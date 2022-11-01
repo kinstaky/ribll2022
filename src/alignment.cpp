@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <fstream>
 
 #include <TGraph.h>
 #include <TString.h>
@@ -278,7 +279,7 @@ TGraph* Alignment::GroupAlignment() {
 }
 
 
-void Alignment::BuildResult(Double_t calibration_p0, Double_t calibration_p1) {
+int Alignment::BuildResult(Double_t *calibration_param) {
 	// time window for all events
 	TH1F *time_window = new TH1F("ht", "total time window", 1000, -search_window_, search_window_);
 	// result tree
@@ -290,6 +291,15 @@ void Alignment::BuildResult(Double_t calibration_p0, Double_t calibration_p1) {
 	opt->Branch("xia_time", &xia_time, "xt/L");
 	opt->Branch("vme_time", &vme_time, "vt/L");
 	
+	// file to record aligned timestamp of vme
+	TString output_file_name;
+	output_file_name.Form("%s%stimestamp-%04d.txt", kGenerateDataPath, kAlignDir, run_);
+	std::ofstream fout(output_file_name.Data());
+	if (!fout.good()) {
+		std::cerr << "Error: open file " << output_file_name << " failed.\n";
+		return -1;
+	}
+
 	// show process
 	printf("Building result   0%%");
 	fflush(stdout);
@@ -301,7 +311,7 @@ void Alignment::BuildResult(Double_t calibration_p0, Double_t calibration_p1) {
 			fflush(stdout);
 		}
 		
-		vme_time = calibration_p0 + calibration_p1 * vme_times_[vme_entry];
+		vme_time = calibration_param[0] + calibration_param[1] * vme_times_[vme_entry];
 		size_t local_hit = 0;
 		for (
 			auto xia_iter = std::lower_bound(
@@ -321,9 +331,12 @@ void Alignment::BuildResult(Double_t calibration_p0, Double_t calibration_p1) {
 			time_window->Fill(xia_time - vme_time);
 			opt->Fill();
 		}
+
+		fout << (local_hit == 1 ? xia_time : -1) << "\n";
 	}
 	printf("\b\b\b\b100%%\n");
 
+	fout.close();
 	opt->Write();
 	time_window->Write();
 
@@ -331,6 +344,8 @@ void Alignment::BuildResult(Double_t calibration_p0, Double_t calibration_p1) {
 		<< " " << double(align_events) / double(xia_times_.size()) << "\n"
 		<< "vme alignment rate " << align_events << " / " << vme_times_.size()
 		<< " " << double(align_events) / double(vme_times_.size()) << "\n";
+
+	return 0;
 }
 
 
@@ -359,13 +374,13 @@ int Alignment::Align() {
 	// calibration
 	TF1 *time_fit = new TF1("time_fit", "pol1", 0, 5e12);
 	xia_vme_time->Fit(time_fit, "R+");
-	Double_t calibration_p0 = time_fit->GetParameter(0);
-	Double_t calibration_p1 = time_fit->GetParameter(1);
-	std::cout << "Calibration p0 " << std::setprecision(15) << calibration_p0
-		<< ", p1 " << std::setprecision(15) << calibration_p1 <<  "\n";
+	Double_t calibration_param[2];
+	time_fit->GetParameters(calibration_param);
+	std::cout << "Calibration p0 " << std::setprecision(15) << calibration_param[0]
+		<< ", p1 " << std::setprecision(15) << calibration_param[1] << "\n";
 	xia_vme_time->Write("calibration");
 
-	BuildResult(calibration_p0, calibration_p1);
+	BuildResult(calibration_param);
 
 	cache_file->Close();
 	return 0;

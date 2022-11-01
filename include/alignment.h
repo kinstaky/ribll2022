@@ -52,7 +52,7 @@ private:
 
 	TGraph* GroupAlignment();
 
-	void BuildResult(Double_t calibration_p0, Double_t calibration_p1);
+	int BuildResult(Double_t *calibration_param);
 };
 
 }
