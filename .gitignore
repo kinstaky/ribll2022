@@ -1,0 +1,11 @@
+# data
+data
+
+# c++ build
+src/*.o
+
+# cmake build
+build
+
+# vscode
+.vscode
