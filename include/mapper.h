@@ -7,6 +7,8 @@
 #include <TString.h>
 #include <TTree.h>
 
+#include "include/event.h"
+
 namespace ribll {
 
 
@@ -155,6 +157,99 @@ public:
 	/// 
 	virtual int Mapping();
 };
+
+class Crate3Mapper : public XiaMapper {
+public:
+
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	///
+	Crate3Mapper(int run);
+
+
+	/// @brief default destructor
+	///
+	virtual ~Crate3Mapper() = default;
+
+
+	/// @brief mapping function
+	///
+	/// @returns 0 for success, -1 otherwise
+	/// 
+	virtual int Mapping();
+};
+
+
+class Crate4Mapper {
+public:
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	///
+	Crate4Mapper(int run);
+
+
+	/// @brief mapping function
+	///
+	/// @returns 0 for success, -1 otherwise
+	/// 
+	int Mapping();
+private:
+	// run number
+	int run_;
+
+	// input data
+	Int_t adc_[5][32];
+	Int_t madc_[2][32];
+	Int_t gdc_[2][128][5];
+	Int_t gmulti_[2][128];
+
+	// output files
+	std::vector<TFile*> opfs_;
+	// output trees
+	std::vector<TTree*> opts_;
+
+	// output data
+	PPACEvent ppac_event_;
+	DSSDEvent dssd_event_;
+
+
+
+	/// @brief initailize the input tree
+	///
+	/// @param[in] file_name name of input file
+	/// @returns pointer to input tree if success, or nullptr otherwise
+	///  
+	TTree* Initialize(const char *file_name);
+
+
+	/// @brief create ppac output tree
+	///
+	/// @param[in] name detector name 
+	/// @returns index of tree
+	/// 
+	size_t CreatePPACTree(const char *name);
+	
+	
+	/// @brief create ADSSD output tree
+	///
+	/// @param[in] name detector name 
+	/// @returns index of tree
+	/// 
+	size_t CreateADSSDTree(const char *name);
+
+
+	/// @brief fill data into output tree by index
+	///
+	/// @param[in] index index of tree to fill
+	/// 
+	inline void FillTree(size_t index) {
+		opfs_[index]->cd();
+		opts_[index]->Fill();
+	}
+};
+
 
 }
 

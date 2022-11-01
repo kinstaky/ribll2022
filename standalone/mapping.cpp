@@ -46,9 +46,9 @@ int main(int argc, char **argv) {
 	// 	crate3.Map();
 	// }
 
-	// if (crate == 0 || crate == 4) {
-	// 	Crate4Mapper crate4();
-	// 	crate4.Map();
-	// }
+	if (crate == 0 || crate == 4) {
+		Crate4Mapper crate4(run);
+		crate4.Mapping();
+	}
 	return 0;
 }

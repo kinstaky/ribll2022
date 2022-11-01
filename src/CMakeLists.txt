@@ -4,7 +4,7 @@ set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 # mapper library
 add_library(
 	mapper
-	mapper.cpp ${PROJECT_INCLUDE_DIR}/mapper.h
+	mapper.cpp ${PROJECT_INCLUDE_DIR}/mapper.h ${PROJECT_INCLUDE_DIR}/defs.h ${PROJECT_INCLUDE_DIR}/event.h
 )
 target_include_directories(
 	mapper
@@ -18,7 +18,7 @@ target_link_libraries(
 # alignment
 add_library(
 	alignment
-	alignment.cpp ${PROJECT_INCLUDE_DIR}/alignment.h
+	alignment.cpp ${PROJECT_INCLUDE_DIR}/alignment.h ${PROJECT_INCLUDE_DIR}/defs.h
 )
 target_include_directories(
 	alignment
