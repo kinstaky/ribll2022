@@ -14,8 +14,8 @@ add_executable(map map.cpp)
 target_link_libraries(map PUBLIC mapper alignment)
 
 # correlation
-add_executable(correlation correlation.cpp)
-target_link_libraries(correlation PUBLIC ppac)
+add_executable(correlate correlate.cpp)
+target_link_libraries(correlate PUBLIC ppac)
 
 # ppac correlation
 add_executable(ppac_correlation ppac_correlation.cpp)
