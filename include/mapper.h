@@ -1,5 +1,5 @@
-#ifndef __MAPPING_H__
-#define __MAPPING_H__
+#ifndef __MAPPER_H__
+#define __MAPPER_H__
 
 #include <vector>
 
@@ -32,7 +32,7 @@ public:
 	///
 	/// @returns 0 if success, -1 on failure
 	/// 
-	virtual int Mapping() = 0;
+	virtual int Map() = 0;
 
 
 	/// @brief initailize the input tree
@@ -86,6 +86,14 @@ public:
 	size_t CreateOutputTree(const char *name);
 
 
+	/// @brief create output tree for triggers
+	///
+	/// @param[in] name detector name 
+	/// @returns index of tree
+	/// 
+	size_t CreateTriggerTree(const char *name);
+
+
 	/// @brief fill event into output tree by index
 	///
 	/// @param[in] index index of tree, get from CreateOutputTree
@@ -129,9 +137,23 @@ protected:
 class Crate1Mapper : public XiaMapper {
 public:
 
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	///
 	Crate1Mapper(int run);
 
-	virtual int Mapping(); 
+
+	/// @brief default destructor
+	///
+	virtual ~Crate1Mapper() = default;
+
+
+	/// @brief mapping function
+	///
+	/// @returns 0 for success, -1 otherwise
+	/// 
+	virtual int Map(); 
 };
 
 
@@ -155,7 +177,7 @@ public:
 	///
 	/// @returns 0 for success, -1 otherwise
 	/// 
-	virtual int Mapping();
+	virtual int Map();
 };
 
 class Crate3Mapper : public XiaMapper {
@@ -177,7 +199,7 @@ public:
 	///
 	/// @returns 0 for success, -1 otherwise
 	/// 
-	virtual int Mapping();
+	virtual int Map();
 };
 
 
@@ -190,11 +212,17 @@ public:
 	Crate4Mapper(int run);
 
 
+	/// @brief default destructor
+	///
+	virtual ~Crate4Mapper() = default;
+
+
 	/// @brief mapping function
 	///
 	/// @returns 0 for success, -1 otherwise
 	/// 
-	int Mapping();
+	int Map();
+
 private:
 	// run number
 	int run_;
@@ -253,4 +281,4 @@ private:
 
 }
 
-#endif 			// __MAPPING_H__
+#endif 			// __MAPPER_H__

@@ -1,10 +1,23 @@
 # include directory
 set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
-# mapping
-add_executable(mapping mapping.cpp)
-target_link_libraries(mapping PUBLIC mapper)
+# single crate map
+add_executable(smap single_map.cpp)
+target_link_libraries(smap PUBLIC mapper)
 
 # align
 add_executable(align align.cpp)
 target_link_libraries(align PUBLIC alignment)
+
+# map and align
+add_executable(map map.cpp)
+target_link_libraries(map PUBLIC mapper alignment)
+
+# correlation
+add_executable(correlation correlation.cpp)
+target_link_libraries(correlation PUBLIC ppac)
+
+# ppac correlation
+add_executable(ppac_correlation ppac_correlation.cpp)
+target_include_directories(ppac_correlation PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
+target_link_libraries(ppac_correlation PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist)

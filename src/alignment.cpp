@@ -200,11 +200,11 @@ TGraph* Alignment::GroupAlignment() {
 			offset_average_hit[g]->AddPoint(offset, average_hit);
 
 
-			if ((Long64_t)offset % 1'000'000'000 == 0) {
+			if (verbose_ && (Long64_t)offset % 1'000'000'000 == 0) {
 				std::cout << "  " << std::setprecision(10)
 					<< offset / 1'000'000'000.0 << " s  "
 					<< hit << "  " << average_hit << "\n";
-			} 
+			}
 		}
 
 		offset_hit[g]->Write(TString::Format("offset_hit%d", g));
@@ -373,7 +373,11 @@ int Alignment::Align() {
 
 	// calibration
 	TF1 *time_fit = new TF1("time_fit", "pol1", 0, 5e12);
-	xia_vme_time->Fit(time_fit, "R+");
+	if (verbose_) {
+		xia_vme_time->Fit(time_fit, "R+");
+	} else {
+		xia_vme_time->Fit(time_fit, "RQ+");
+	}
 	Double_t calibration_param[2];
 	time_fit->GetParameters(calibration_param);
 	std::cout << "Calibration p0 " << std::setprecision(15) << calibration_param[0]

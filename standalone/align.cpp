@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	Alignment align(run, 30, 2'000'000, -10'000'000'000, 10'000'000'000);
 	align.SetVerbose();
 	if (align.Align()) {
-		std::cerr << "Align failed.\n";
+		std::cerr << "Error: Align failed.\n";
 		return -1;
 	}
 

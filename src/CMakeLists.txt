@@ -1,6 +1,18 @@
 # include directory
 set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
+add_subdirectory(detector)
+
+# # defs library
+# add_library(
+# 	defs
+# 	defs.cpp ${PROJECT_INCLUDE_DIR}/defs.h
+# )
+# target_include_directories(
+# 	defs
+# 	PUBLIC ${PROJECT_SOURCE_DIR}
+# )
+
 # mapper library
 add_library(
 	mapper

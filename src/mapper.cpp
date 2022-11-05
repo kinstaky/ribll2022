@@ -6,7 +6,6 @@
 #include <TString.h>
 
 #include "include/defs.h"
-#include "include/event.h"
 
 namespace ribll {
 
@@ -118,7 +117,7 @@ size_t XiaMapper::CreateOutputTree(const char *name) {
 
 size_t XiaMapper::CreateResidualTree(const char *name) {
 	TString file_name;
-	file_name.Form("%s%s%s-residual-%04d.root", kGenerateDataPath, kDecodeDir, name, run_);
+	file_name.Form("%s%s%s-residual-%04d.root", kGenerateDataPath, kMappingDir, name, run_);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("residual tree of %s", name));
@@ -136,6 +135,18 @@ size_t XiaMapper::CreateResidualTree(const char *name) {
 }
 
 
+size_t XiaMapper::CreateTriggerTree(const char *name) {
+	TString file_name;
+	file_name.Form("%s%s%s-map-%04d.root", kGenerateDataPath, kMappingDir, name, run_);
+	opfs_.push_back(new TFile(file_name, "recreate"));
+
+	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
+	opt->Branch("timestamp", &timestamp_, "ts/L");
+
+	opts_.push_back(opt);
+	return opts_.size() - 1;
+}
+
 
 //-----------------------------------------------------------------------------
 //								crate 1 mapper
@@ -146,7 +157,7 @@ size_t XiaMapper::CreateResidualTree(const char *name) {
  }
 
 
-int Crate1Mapper::Mapping() {
+int Crate1Mapper::Map() {
 	TString input_file_name;
 	input_file_name.Form("%s%s_R%04d.root", kCrate1Path, kCrate1FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
@@ -160,8 +171,8 @@ int Crate1Mapper::Mapping() {
 
 	// create output trees
 	size_t tof_index = CreateOutputTree("tof");
-	size_t vme_trigger_index = CreateOutputTree("vt");
-	size_t xia_trigger_index = CreateOutputTree("xt");
+	size_t vme_trigger_index = CreateTriggerTree("vt");
+	size_t xia_trigger_index = CreateTriggerTree("xt");
 	size_t xia_ppac_index = CreateOutputTree("xppac");
 	size_t xtaf_index = CreateOutputTree("xtaf");
 	size_t t0ssd_index = CreateOutputTree("t0ssd");
@@ -319,13 +330,13 @@ Crate2Mapper::Crate2Mapper(int run)
 :XiaMapper(run) {
 }
 
-int Crate2Mapper::Mapping() {
+int Crate2Mapper::Map() {
 	
 	TString input_file_name;
 	input_file_name.Form("%s%s_R%04d.root", kCrate2Path,  kCrate2FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
-		std::cerr << "Error: initialize tree from " << input_file_name << "failed.\n";
+		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
 		return -1;
 	}
 
@@ -338,7 +349,6 @@ int Crate2Mapper::Mapping() {
 	printf("Mapping crate 2   0%%");
 	fflush(stdout);
 	Long64_t entry100 = ipt->GetEntries() / 100;
-	
 	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
@@ -388,7 +398,126 @@ int Crate2Mapper::Mapping() {
 		}
 	}
 	// show finish
-	printf("\b\b\b\b100%%\n");                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+	printf("\b\b\b\b100%%\n");
+
+
+
+	// read events of t0d3 recorded in crate1
+	input_file_name.Form("%s%sc1-residual-%04d.root", kGenerateDataPath, kMappingDir, run_);
+	TTree *res_ipt = Initialize(input_file_name.Data());
+	if (!res_ipt) {
+		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
+		return -1;
+	}
+
+	// show process
+	printf("Mapping crate 1 residual   0%%");
+	fflush(stdout);
+	entry100 = res_ipt->GetEntries() / 100;
+	for (Long64_t entry = 0; entry < res_ipt->GetEntries(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		res_ipt->GetEntry(entry);
+		if (sid_ != 2) continue;
+
+		energy_ = raw_energy_;
+		timestamp_ = CalculateTimestamp(rate_, ts_);
+		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
+		
+		switch (ch_) {
+			case 10:
+				side_ = 0;
+				strip_ = 15;
+				break;
+			case 11:
+				side_ = 1;
+				strip_ = 15;
+				break;
+			case 14:
+				side_ = 1;
+				strip_ = 30;
+				break;
+			default:
+				continue;
+		}	
+		FillTree(t0d3_index);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+
+	for (size_t i = 0; i < opfs_.size(); ++i) {
+		opfs_[i]->cd();
+		opts_[i]->Write();
+		opfs_[i]->Close();
+	}
+	return 0;
+}
+
+
+//-----------------------------------------------------------------------------
+//								crate 3 mapper
+//-----------------------------------------------------------------------------
+
+Crate3Mapper::Crate3Mapper(int run)
+: XiaMapper(run) {
+}
+
+
+int Crate3Mapper::Map() {
+	TString input_file_name;
+	input_file_name.Form("%s%s_R%04d.root", kCrate3Path,  kCrate3FileName, run_);
+	TTree *ipt = Initialize(input_file_name.Data());
+	if (!ipt) {
+		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
+		return -1;
+	}
+
+	// create output trees
+	size_t t0d1_index = CreateOutputTree("t0d1");
+
+	// show process
+	printf("Mapping crate 3   0%%");
+	fflush(stdout);
+	Long64_t entry100 = ipt->GetEntries() / 100;
+	
+	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		ipt->GetEntry(entry);
+		energy_ = raw_energy_;
+		timestamp_ = CalculateTimestamp(rate_, ts_);
+		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
+		
+		side_ = sid_ < 6 ? 0 : 1;
+		switch ((sid_ - 2) % 4) {
+			case 0:
+				strip_ = ch_ + 32;
+				break;
+			case 1:
+				strip_ = ch_ +  48;
+				break;
+			case 2:
+				strip_ = ch_;
+				break;
+			default:
+				strip_ = ch_ + 16;
+				break;
+		}
+	
+		FillTree(t0d1_index);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
 
 	for (size_t i = 0; i < opfs_.size(); ++i) {
 		opfs_[i]->cd();
@@ -470,12 +599,12 @@ size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 }
 
 
-int Crate4Mapper::Mapping() {
+int Crate4Mapper::Map() {
 	TString input_file_name;
 	input_file_name.Form("%s%s%04d.root", kCrate4Path, kCrate4FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
-		std::cerr << "Error: initialize tree from " << input_file_name << "failed.\n";
+		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
 		return -1;
 	}
 
@@ -489,7 +618,7 @@ int Crate4Mapper::Mapping() {
 	align_file_name.Form("%s%stimestamp-%04d.txt", kGenerateDataPath, kAlignDir, run_);
 	std::ifstream align_in(align_file_name.Data());
 	if (!align_in.good()) {
-		std::cerr << "Error: open file " << align_file_name << "failed.\n";
+		std::cerr << "Error: open file " << align_file_name << " failed.\n";
 		return -1;
 	}
 
@@ -611,15 +740,13 @@ int Crate4Mapper::Mapping() {
 	}
 
 	// show finish
-	printf("\b\b\b\b100%%\n");                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+	printf("\b\b\b\b100%%\n");
 
 	for (size_t i = 0; i < opfs_.size(); ++i) {
 		opfs_[i]->cd();
 		opts_[i]->Write();
 		opfs_[i]->Close();
 	}
-	return 0;
-
 	return 0;
 }
 
