@@ -7,6 +7,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1F.h>
+#include <TH2D.h>
 
 #include "include/defs.h"
 
@@ -238,6 +239,153 @@ int PPAC::Correlate() {
 	ipf->Close();
 
 	
+	return 0;
+}
+
+
+
+void SimpleFit(const double *x, double *y, double &k, double &b) {
+	int n = 3;
+	double sumx = 0.0;
+	double sumy = 0.0;
+	double sumxy = 0.0;
+	double sumx2 = 0.0;
+	for (int i = 0; i < n; ++i) {
+		sumx += x[i];
+		sumy += y[i];
+		sumxy += x[i] * y[i];
+		sumx2 += x[i] * x[i];
+	}
+	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
+	b = (sumy - k*sumx) / double(n);
+	// double chi2 = 0.0;
+	// for (int i = 0; i < n; ++i) {
+	// 	double t = y[i] - k*x[i] - b;
+	// 	chi2 += t * t;
+	// }
+	// return chi2;
+}
+
+
+double PositionX(double time, int index) {
+	double result = 0.0;
+	if (index == 0) {
+		result = time / 4.0 - 2.007985;
+	} else if (index == 1) {
+		result = time / 4.0 - 1.805155;
+	} else {
+		result = time / 4.0 + 0.9156165;
+	}
+	return result;
+}
+
+
+double PositionY(double time, int index) {
+	double result = 0.0;
+	if (index == 0) {
+		result = time / 4.0 + 0.133592;
+	} else if (index == 1) {
+		result = time / 4.0 - 1.92654;
+	} else {
+		result = time / 4.0 -0.7477595;
+	}
+	return result;
+}
+
+
+void AddTrace(TH2D *h, double k, double b, int min, int max) {
+	for (int i = min; i < max; ++i) {
+		h->Fill(i, double(i)*k+b);
+	}
+	return;
+}
+
+const double ppac_xz[3] = {-695.2, -454.2, -275.2};
+const double ppac_yz[3] = {-689.2, -448.2, -269.2};
+
+int PPAC::Tracking() {
+	TString input_file_name;
+	input_file_name.Form("%s%sppac-corr-%04d.root", kGenerateDataPath, kCorrelationDir, run_); 
+	TFile *ipf = new TFile(input_file_name, "read");
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: get tree from " << input_file_name << " failed.\n";
+		return -1;
+	}
+
+
+	// input data
+	long long ppac_timestamp;
+	int ppac_flag;
+	unsigned short ppac_hit;
+	unsigned short ppac_xhit;
+	unsigned short ppac_yhit;
+	double ppac_x[ppac_num];
+	double ppac_y[ppac_num];
+	// setup output branches
+	ipt->SetBranchAddress("timestamp", &ppac_timestamp);
+	ipt->SetBranchAddress("flag", &ppac_flag);
+	ipt->SetBranchAddress("hit", &ppac_hit);
+	ipt->SetBranchAddress("xhit", &ppac_xhit);
+	ipt->SetBranchAddress("yhit", &ppac_yhit);
+	ipt->SetBranchAddress("x", ppac_x);
+	ipt->SetBranchAddress("y", ppac_y);
+
+
+	// output file
+	TString output_file_name;
+	output_file_name.Form("%s%sppac-track-%04d.root", kGenerateDataPath, kTelescopeDir, run_);
+	TFile *opf = new TFile(output_file_name, "recreate");
+	
+	TH2D *hxz = new TH2D("hxz", "xz tracking", 900, -800, 100, 1000, -30, 30);
+	TH2D *hyz = new TH2D("hyz", "yz tracking", 900, -800, 100, 1000, -30, 30);
+	TH2D *target = new TH2D("target", "target", 300, -30, 30, 300, -30, 30);
+
+	// show process
+	printf("Tracking ppac events   0%%");
+	fflush(stdout);
+	Long64_t entry100 = ipt->GetEntries() / 100;
+	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+
+		ipt->GetEntry(entry);
+	
+		if (ppac_hit != 15) continue;
+
+		double pos_x[3];
+		for (int i = 0; i < 3; ++i) {
+			pos_x[i] = PositionX(ppac_x[i], i);
+		}
+		double xk, xb;
+		SimpleFit(ppac_xz, pos_x, xk, xb);
+		AddTrace(hxz, xk, xb, -800, 100);
+
+
+		double pos_y[3];
+		for (int i = 0; i < 3; ++i) {
+			pos_y[i] = PositionY(ppac_y[i], i);
+		}
+		double yk, yb;
+		SimpleFit(ppac_yz, pos_y, yk, yb);
+		AddTrace(hyz, yk, yb, -800, 100);
+
+		target->Fill(xb, yb);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	hxz->Write();
+	hyz->Write();
+	target->Write();
+
+	opf->Close();
+
+	ipf->Close();
+
 	return 0;
 }
 

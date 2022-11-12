@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 
+#include "include/detector/detector.h"
 #include "include/detector/ppac.h"
 
 using namespace ribll;
@@ -52,9 +53,15 @@ int main(int argc, char **argv) {
 		if (detector == "ppac") {
 			PPAC ppac(run);
 			if (ppac.Correlate()) {
-				std::cerr << "Error: correlation ppac failed.\n";
+				std::cerr << "Error: correlate ppac failed.\n";
+			}
+		} else if (detector == "t0d1" || detector == "t0d2" || detector == "t0d3") {
+			DSSD dssd(run, detector, 135, 300);
+			if (dssd.Correlate()) {
+				std::cerr << "Error: correlate " << detector << " failed.\n";				
 			}
 		}
 	}
+
     return 0;
 }

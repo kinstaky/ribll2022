@@ -24,6 +24,8 @@ public:
 	///
 	int Correlate();
 
+	int Tracking();
+
 private:
 	struct Event {
 		unsigned short index;

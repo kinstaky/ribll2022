@@ -187,7 +187,7 @@ int Crate1Mapper::Map() {
 	fflush(stdout);
 	Long64_t entry100 = ipt->GetEntries() / 100;
 	
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+	for (Long64_t entry = 0; entry < 10'000'000; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -394,7 +394,9 @@ int Crate2Mapper::Map() {
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
-			FillTree(t0d2_index);
+			if (raw_energy_ > 20) {
+				FillTree(t0d2_index);
+			}
 		}
 	}
 	// show finish
@@ -423,6 +425,7 @@ int Crate2Mapper::Map() {
 
 		res_ipt->GetEntry(entry);
 		if (sid_ != 2) continue;
+
 
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
@@ -497,7 +500,7 @@ int Crate3Mapper::Map() {
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
 		
-		side_ = sid_ < 6 ? 0 : 1;
+		side_ = sid_ < 6 ? 1 : 0;
 		switch ((sid_ - 2) % 4) {
 			case 0:
 				strip_ = ch_ + 32;
@@ -512,8 +515,10 @@ int Crate3Mapper::Map() {
 				strip_ = ch_ + 16;
 				break;
 		}
-	
-		FillTree(t0d1_index);
+
+		if (raw_energy_ > 20) {
+			FillTree(t0d1_index);
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -589,10 +594,10 @@ size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 	opt->Branch("yhit", &dssd_event_.y_hit, "yhit/s");
 	opt->Branch("x_strip", dssd_event_.x_strip, "xs[xhit]/s");
 	opt->Branch("y_strip", dssd_event_.y_strip, "ys[yhit]/s");
-	opt->Branch("x_time", dssd_event_.x_time, "xt[xhit]/s");
-	opt->Branch("y_time", dssd_event_.y_time, "yt[yhit]/s");
-	opt->Branch("x_energy", dssd_event_.x_energy, "xe[xhit]/s");
-	opt->Branch("y_energy", dssd_event_.y_energy, "ye[yhit]/s");
+	opt->Branch("x_time", dssd_event_.x_time, "xt[xhit]/D");
+	opt->Branch("y_time", dssd_event_.y_time, "yt[yhit]/D");
+	opt->Branch("x_energy", dssd_event_.x_energy, "xe[xhit]/D");
+	opt->Branch("y_energy", dssd_event_.y_energy, "ye[yhit]/D");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -681,7 +686,8 @@ int Crate4Mapper::Map() {
 			// check front side
 			for (size_t j = 0; j < 16; ++j) {
 				double energy = madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
-				if (energy > 30 && gmulti_[1][i*16+j] == 1) {
+				// if (energy > 30 && gmulti_[1][i*16+j] == 1) {
+				if (energy > 200) {
 					size_t index = dssd_event_.x_hit;
 					dssd_event_.x_strip[index] = j;
 					dssd_event_.x_energy[index] = energy;
@@ -691,8 +697,8 @@ int Crate4Mapper::Map() {
 			}
 			// check back side
 			for (size_t j = 0; j < 8; ++j) {
-				double energy = adc_[vtaf_back_module[i]][vtaf_back_channel[i]-j];
-				if (energy > 30) {
+				double energy = madc_[vtaf_back_module[i]][vtaf_back_channel[i]-j];
+				if (energy > 200) {
 					size_t index = dssd_event_.y_hit;
 					dssd_event_.y_strip[index] = j;
 					dssd_event_.y_energy[index] = energy;
@@ -711,7 +717,8 @@ int Crate4Mapper::Map() {
 			// check front side
 			for (size_t j = 0; j < 16; ++j) {
 				double energy = adc_[tab_front_module[i]][tab_front_channel[i]+j];
-				if (energy > 30 && gmulti_[0][i*16+j] == 1) {
+				// if (energy > 30 && gmulti_[0][i*16+j] == 1) {
+				if (energy > 200) {
 					size_t index = dssd_event_.x_hit;
 					dssd_event_.x_strip[index] = j;
 					dssd_event_.x_energy[index] = energy;
@@ -726,7 +733,7 @@ int Crate4Mapper::Map() {
 					// special case
 					energy = adc_[4][j];
 				}
-				if (energy > 30) {
+				if (energy > 200) {
 					size_t index = dssd_event_.y_hit;
 					dssd_event_.y_strip[index] = j;
 					dssd_event_.y_energy[index] = energy;
