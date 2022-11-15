@@ -7,7 +7,7 @@ namespace ribll {
 //									data path
 //-----------------------------------------------------------------------------
 // decode data
-const char* const kCrate1Path = "/Data8T1/crate1/decode/";
+const char* const kCrate1Path = "/mnt/crate1/decode/";
 const char* const kCrate1FileName = "c1data";
 
 const char* const kCrate2Path = "/mnt/crate2/decode/";
@@ -26,6 +26,8 @@ const char* const kDecodeDir = "decode/";
 const char* const kAlignDir = "align/";
 const char* const kSingleSideDir = "side-merge/";
 const char* const kCorrelationDir = "correlation/";
+const char* const kNormalizeDir = "normalize/";
+const char* const kMergedDir = "merge/";
 const char* const kTelescopeDir = "telescope/";
 
 

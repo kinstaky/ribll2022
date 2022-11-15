@@ -17,6 +17,14 @@ target_link_libraries(map PUBLIC mapper alignment)
 add_executable(correlate correlate.cpp)
 target_link_libraries(correlate PUBLIC detector ppac)
 
+# merge
+add_executable(merge merge.cpp)
+target_link_libraries(merge PUBLIC detector)
+
+# normalize
+add_executable(normalize normalize.cpp)
+target_link_libraries(normalize PUBLIC detector)
+
 # ppac correlation
 add_executable(ppac_correlation ppac_correlation.cpp)
 target_include_directories(ppac_correlation PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)

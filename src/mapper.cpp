@@ -175,8 +175,10 @@ int Crate1Mapper::Map() {
 	size_t xia_trigger_index = CreateTriggerTree("xt");
 	size_t xia_ppac_index = CreateOutputTree("xppac");
 	size_t xtaf_index = CreateOutputTree("xtaf");
-	size_t t0ssd_index = CreateOutputTree("t0ssd");
-	size_t t1ssd_index = CreateOutputTree("t1ssd");
+	size_t t0s1_index = CreateOutputTree("t0s1");
+	size_t t0s2_index = CreateOutputTree("t0s2");
+	size_t t0s3_index = CreateOutputTree("t0s3");
+	size_t t1s1_index = CreateOutputTree("t1s1");
 	size_t t0csi_index = CreateOutputTree("t0csi");
 	size_t t1csi_index = CreateOutputTree("t1csi");
 	size_t tafcsi_index = CreateOutputTree("tafcsi");
@@ -185,9 +187,10 @@ int Crate1Mapper::Map() {
 	// show process
 	printf("Mapping crate 1   0%%");
 	fflush(stdout);
-	Long64_t entry100 = ipt->GetEntries() / 100;
+	long long entries = ipt->GetEntries();
+	Long64_t entry100 = entries / 100;
 	
-	for (Long64_t entry = 0; entry < 10'000'000; ++entry) {
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -213,18 +216,19 @@ int Crate1Mapper::Map() {
 					break;
 				case 2:
 					// t0ssd 1
-					FillTree(t0ssd_index);
+					FillTree(t0s1_index);
 					break;
 				case 4:
-					// t0ssd 2, fall through
+					// t0ssd 2
+					FillTree(t0s2_index);
+					break;
 				case 5:
 					// t0ssd 3
-					detector_index_ = ch_ - 3;
-					FillTree(t0ssd_index);
+					FillTree(t0s3_index);
 					break;
 				case 6:
 					// t1ssd
-					FillTree(t1ssd_index);
+					FillTree(t1s1_index);
 					break;
 				case 8:
 					// xia trigger
@@ -348,8 +352,9 @@ int Crate2Mapper::Map() {
 	// show process
 	printf("Mapping crate 2   0%%");
 	fflush(stdout);
-	Long64_t entry100 = ipt->GetEntries() / 100;
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+	long long entries = ipt->GetEntries();
+	Long64_t entry100 = entries / 100;
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -388,14 +393,28 @@ int Crate2Mapper::Map() {
 			detector_index_ = 0;
 			side_ = sid_ < 8 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
-			FillTree(t0d3_index);
+			if (!side_) {
+				if (raw_energy_ > 100) {
+					FillTree(t0d3_index);
+				}
+			} else {
+				if (raw_energy_ > 50) {
+					FillTree(t0d3_index);
+				}
+			}
 		} else {
 			// t0d2
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
-			if (raw_energy_ > 20) {
-				FillTree(t0d2_index);
+			if (!side_) {
+				if (raw_energy_ > 300) {
+					FillTree(t0d2_index);
+				}
+			} else {
+				if (raw_energy_ > 800) {
+					FillTree(t0d2_index);
+				}
 			}
 		}
 	}
@@ -415,8 +434,9 @@ int Crate2Mapper::Map() {
 	// show process
 	printf("Mapping crate 1 residual   0%%");
 	fflush(stdout);
-	entry100 = res_ipt->GetEntries() / 100;
-	for (Long64_t entry = 0; entry < res_ipt->GetEntries(); ++entry) {
+	entries = res_ipt->GetEntries();
+	entry100 = entries / 100;
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -446,8 +466,17 @@ int Crate2Mapper::Map() {
 				break;
 			default:
 				continue;
-		}	
-		FillTree(t0d3_index);
+		}
+
+		if (!side_) {
+			if (raw_energy_ > 100) {
+				FillTree(t0d3_index);
+			}
+		} else {
+			if (raw_energy_ > 50) {
+				FillTree(t0d3_index);
+			}
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -486,9 +515,10 @@ int Crate3Mapper::Map() {
 	// show process
 	printf("Mapping crate 3   0%%");
 	fflush(stdout);
-	Long64_t entry100 = ipt->GetEntries() / 100;
+	long long entries = ipt->GetEntries();
+	Long64_t entry100 = entries / 100;
 	
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -500,7 +530,7 @@ int Crate3Mapper::Map() {
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
 		
-		side_ = sid_ < 6 ? 1 : 0;
+		side_ = sid_ < 6 ? 0 : 1;
 		switch ((sid_ - 2) % 4) {
 			case 0:
 				strip_ = ch_ + 32;
@@ -516,8 +546,14 @@ int Crate3Mapper::Map() {
 				break;
 		}
 
-		if (raw_energy_ > 20) {
-			FillTree(t0d1_index);
+		if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
+			if (raw_energy_ > 200) {
+				FillTree(t0d1_index);
+			}
+		} else {
+			if (raw_energy_ > 300) {
+				FillTree(t0d1_index);
+			}
 		}
 	}
 	// show finish
@@ -630,9 +666,10 @@ int Crate4Mapper::Map() {
 	// show process
 	printf("Mapping crate 4   0%%");
 	fflush(stdout);
-	Long64_t entry100 = ipt->GetEntries() / 100;
+	long long entries = ipt->GetEntries();
+	Long64_t entry100 = entries / 100;
 	
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);

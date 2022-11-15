@@ -14,7 +14,8 @@ void PrintUsage(const char *name) {
 		"\n"
 		"Options:\n"
 		"  -h                       Print this help information.\n"
-		"  -n                       Normalize energy with parameters from txt file.\n";
+		"  -n                       Normalize energy with parameters from txt file.\n"
+		"  -m                       Merge adjacent events.\n";
 }
 
 int main(int argc, char **argv) {
@@ -26,6 +27,7 @@ int main(int argc, char **argv) {
 
 	int run = 0;
 	// bool normalize = false;
+	bool merge = false;
 	std::vector<std::string> detectors;
 	int pos_arg_start = 1;
 	
@@ -37,6 +39,10 @@ int main(int argc, char **argv) {
 				return 0;
 			case 'n':
 				// normalize = true;
+				++pos_arg_start;
+				break;
+			case 'm':
+				merge = true;
 				++pos_arg_start;
 				break;
 			default:
@@ -55,11 +61,22 @@ int main(int argc, char **argv) {
 			if (ppac.Correlate()) {
 				std::cerr << "Error: correlate ppac failed.\n";
 			}
-		} else if (detector == "t0d1" || detector == "t0d2" || detector == "t0d3") {
-			DSSD dssd(run, detector, 135, 300);
-			if (dssd.Correlate()) {
+		} else if (detector == "t0d1") {
+			T0D1 t0d1(run, detector, 135, 300);
+			if (t0d1.Correlate()) {
 				std::cerr << "Error: correlate " << detector << " failed.\n";				
 			}
+			if (merge && t0d1.Merge()) {
+				std::cerr << "Error: merge " << detector << " failed.\n";
+			}
+		// } else if (detector == "t0d3") {
+		// 	T0D3 t0d3(run, detector, 135, 300);
+		// 	if (t0d3.Correlate()) {
+		// 		std::cerr << "Error: correlate " << detector << " failed.\n";				
+		// 	}
+		// 	if (merge && t0d3.Merge()) {
+		// 		std::cerr << "Error: merge " << detector << " failed.\n";
+		// 	}
 		}
 	}
 
