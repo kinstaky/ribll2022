@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <TTree.h>
+#include <TGraph.h>
 
 namespace ribll {
 
@@ -36,17 +37,29 @@ public:
 	/// @brief calculate normalize parameters
 	///
 	/// @param[in] length number of run to chain
+	/// @param[in] ref_front reference front strip
+	/// @param[in] ref_back reference back strip
 	/// @param[in] iteration run in iteration mode
 	/// @returns 0 for succes, -1 otherwise
 	///
-	virtual int Normalize(int length, size_t ref_front, size_t ref_back, bool iteration);
+	virtual int Normalize(
+		int length,
+		unsigned short ref_front,
+		unsigned short ref_back,
+		bool iteration
+	);
+
+
+	/// @brief build normalize result
+	virtual int NormalCorrelate();
 
 
 	/// @brief merge events in adjacent strip
 	///
+	/// @param[in] energy_cut front back energy cut
 	/// @returns 0 if success, -1 otherwise
 	/// 
-	virtual int Merge();
+	virtual int Merge(double energy_cut = 0.02);
 
 
 	/// @brief get front strip strip
@@ -116,6 +129,10 @@ protected:
 	TFile *residual_correlated_file_;
 	// residual correlated tree
 	TTree *residual_correlated_tree_;
+	// normalize back parameters
+	double normalize_back_param_[64][2];
+	// normalize front parameters
+	double normalize_front_param_[64][2];
 
 
 	//-------------------------------------------------------------------------
@@ -164,6 +181,44 @@ protected:
 	///
 	virtual int SetupMergedOutput();
 
+	
+	/// @brief calculate normalize parameters of first side
+	///
+	/// @param[in] chain input tree 
+	/// @param[in] ref_front reference front strip
+	/// @param[in] ref_back reference back strip
+	/// @param[in] g_front_back_energy list of graph of front-back energy 
+	/// @param[in] g_back_front_energy list of graph of back-front energy
+	/// @param[in] iteration iteration mode
+	/// 
+	virtual void NormalizeFirstSide(
+		TTree *chain,
+		unsigned short ref_front,
+		unsigned short ref_back,
+		TGraph **g_front_back_energy,
+		TGraph **g_back_front_energy,
+		bool iteration
+	);
+
+
+	/// @brief calculate normalize parameters of first side
+	///
+	/// @param[in] chain input tree 
+	/// @param[in] ref_front reference front strip
+	/// @param[in] ref_back reference back strip
+	/// @param[in] g_front_back_energy list of graph of front-back energy 
+	/// @param[in] g_back_front_energy list of graph of back-front energy
+	/// @param[in] iteration iteration mode
+	/// 
+	virtual void NormalizeSecondSide(
+		TTree *chain,
+		unsigned short ref_front,
+		unsigned short ref_back,
+		TGraph **g_front_back_energy,
+		TGraph **g_back_front_energy,
+		bool iteration
+	);
+
 
 	/// @brief check whether the energy of correlated event can be use in normalization for back strip
 	///
@@ -192,7 +247,7 @@ protected:
 	///
 	inline double NormalizeEnergy(size_t side, unsigned short strip, double energy) {
 		if (side == 0) {
-			return normalize_front_param_[strip][0] + normalize_back_param_[strip][1] * energy;
+			return normalize_front_param_[strip][0] + normalize_front_param_[strip][1] * energy;
 		} else {
 			return normalize_back_param_[strip][0] + normalize_back_param_[strip][1] * energy;
 		}
@@ -237,12 +292,6 @@ private:
 	TFile *single_side_file_;
 	// residual single side events tree
 	TTree *single_side_tree_;
-
-
-	// normalize parameters
-	double normalize_back_param_[64][2];
-	double normalize_front_param_[64][2];
-
 
 	/// @brief read detector events from mapped file and store in map
 	///
@@ -379,6 +428,45 @@ private:
 	/// @returns ture if pass, or false otherwise
 	/// 
 	virtual bool NormalizeBackEnergyCheck(const CorrelatedEvent &correlation, bool iteration) override;
+
+
+	/// @brief calculate normalize parameters of first side
+	///
+	/// @param[in] chain input tree
+	/// @param[in] ref_front reference front strip 
+	/// @param[in] ref_back reference back strip
+	/// @param[in] g_front_back_energy list of graph of front-back energy 
+	/// @param[in] g_back_front_energy list of graph of back-front energy
+	/// @param[in] iteration iteration mode
+	/// 
+	virtual void NormalizeFirstSide(
+		TTree *chain,
+		unsigned short ref_front,
+		unsigned short ref_back,
+		TGraph **g_front_back_energy,
+		TGraph **g_back_front_energy,
+		bool iteration
+	) override;
+
+
+	/// @brief calculate normalize parameters of first side
+	///
+	/// @param[in] chain input tree 
+	/// @param[in] ref_front reference front strip
+	/// @param[in] ref_back reference back strip
+	/// @param[in] g_front_back_energy list of graph of front-back energy 
+	/// @param[in] g_back_front_energy list of graph of back-front energy
+	/// @param[in] iteration iteration mode
+	/// 
+	virtual void NormalizeSecondSide(
+		TTree *chain,
+		unsigned short ref_front,
+		unsigned short ref_back,
+		TGraph **g_front_back_energy,
+		TGraph **g_back_front_energy,
+		bool iteration
+	) override;
+
 };
 
 

@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 
 	if (detector_name == "t0d1") {
 		T0D1 t0d1(run, "t0d1", 135, 300);
-		if (t0d1.Normalize(length, 33, 28, iteration)) {
+		if (t0d1.Normalize(length, 29, 36, iteration)) {
 			std::cerr << "Error: normalize " << detector_name << " failed.\n";
 			return -1;
 		}

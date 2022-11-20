@@ -202,7 +202,7 @@ int Detector::ReadEvents() {
 	// to show y side triple rate
 	long long y_triple_event = 0;
 
-	for (long long entry = 0; entry < 1'000'000 && entry < entries; ++entry) {
+	for (long long entry = 0; entry < entries; ++entry) {
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
@@ -549,7 +549,7 @@ int Detector::Correlate() {
 }
 
 
-int Detector::Normalize(int length, size_t ref_front, size_t ref_back, bool iteration) {
+int Detector::Normalize(int length, unsigned short ref_front, unsigned short ref_back, bool iteration) {
 	// setup input chain
 	TChain *chain = new TChain("tree", "chain");
 	for (int i = 0; i < length; ++i) {
@@ -594,13 +594,33 @@ int Detector::Normalize(int length, size_t ref_front, size_t ref_back, bool iter
 		g_back_front_energy[i] = new TGraph;
 	}
 
-	// fill graph for fitting and get back strips parameters
-	// first loop to get parameters of back strips
+	NormalizeFirstSide(chain, ref_front, ref_back, g_front_back_energy, g_back_front_energy, iteration);
+	NormalizeSecondSide(chain, ref_front, ref_back, g_front_back_energy, g_back_front_energy, iteration);	
+
+	opf->Close();
+
+	if (WriteNormalizeParameters()) {
+		std::cerr << "Error: write normalize paramters to file failed.\n";
+		return -1;
+	}
+
+	return 0;
+}
+
+
+void Detector::NormalizeFirstSide(
+	TTree *chain,
+	unsigned short ref_front,
+	unsigned short,
+	TGraph **,
+	TGraph **g_back_front_energy,
+	bool iteration
+) {
+	long long entries = chain->GetEntries();
+	long long entry100 = entries / 100;
 	printf("Filling back front energy graph   0%%");
     fflush(stdout);
-	long long entries = chain->GetEntries();
-	Long64_t entry100 = entries / 100;
-	for (Long64_t entry = 0; entry < entries; ++entry) {
+	for (long long entry = 0; entry < entries; ++entry) {
 		if (entry % entry100 == 0) {
             printf("\b\b\b\b%3lld%%", entry / entry100);
             fflush(stdout);
@@ -627,19 +647,28 @@ int Detector::Normalize(int length, size_t ref_front, size_t ref_back, bool iter
 			normalize_back_param_[i][0] = energy_fit->GetParameter(0);
 			normalize_back_param_[i][1] = energy_fit->GetParameter(1);
 		}
-		opf->cd();
 		g_back_front_energy[i]->Write(TString::Format("gb%ld", i));
 		std::cout << i << " " << normalize_back_param_[i][0]
 			<< ", " << normalize_back_param_[i][1] << "\n";
 	}
+	return;
+}
 
-	// second loop to get parameters of front strips
+
+void Detector::NormalizeSecondSide(
+	TTree *chain,
+	unsigned short,
+	unsigned short ref_back,
+	TGraph **g_front_back_energy,
+	TGraph **,
+	bool iteration
+) {
+	long long entries = chain->GetEntries();
+	long long entry100 = entries / 100;
 	printf("Filling front back energy graph   0%%");
     fflush(stdout);
-	entries = chain->GetEntries();
-	entry100 = entry100 / 100;
 	for (long long  entry = 0; entry < entries; ++entry) {
-		if (entry % entries == 0) {
+		if (entry % entry100 == 0) {
             printf("\b\b\b\b%3lld%%", entry / entry100);
             fflush(stdout);
         }
@@ -666,19 +695,91 @@ int Detector::Normalize(int length, size_t ref_front, size_t ref_back, bool iter
 			normalize_front_param_[i][0] = energy_fit->GetParameter(0);
 			normalize_front_param_[i][1] = energy_fit->GetParameter(1);	
 		}
-		opf->cd();
 		g_front_back_energy[i]->Write(TString::Format("gf%ld", i));
 		std::cout << i << " " << normalize_front_param_[i][0]
 			<< ", " << normalize_front_param_[i][1] << "\n";
 	}
+	return;
+}
 
-	opf->Close();
 
-
-	if (WriteNormalizeParameters()) {
-		std::cerr << "Error: write normalize paramters to file failed.\n";
+int Detector::NormalCorrelate() {
+	// setup input file
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-corr-%04d.root",
+		kGenerateDataPath, kCorrelationDir, name_.c_str(), run_
+	);
+	TFile *ipf = new TFile(input_file_name, "read");
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: get tree from " << input_file_name << " failed.\n";
 		return -1;
 	}
+	// setup input tree
+	SetupCorrelatedInputTree(ipt);
+
+	// setup output file
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-corr-norm-%04d.root",
+		kGenerateDataPath, kCorrelationDir, name_.c_str(), run_
+	);
+	TFile *opf = new TFile(output_file_name, "recreate");
+	TTree *opt = new TTree("tree", "tree after normalize and correlation");
+	// front hit
+	unsigned short front_hit;
+	// back hit
+	unsigned short back_hit;
+	// normalized front energy
+	double front_norm_energy[8];
+	// normalized back energy
+	double back_norm_energy[8];
+	// setup output tree
+	opt->Branch("front_hit", &front_hit, "fhit/s");
+	opt->Branch("front_energy", front_norm_energy, "fe[fhit]/D");
+	opt->Branch("back_hit", &back_hit, "bhit/s");
+	opt->Branch("back_energy", back_norm_energy, "be[bhit]/D");
+
+	// read normalize paramters
+	if (ReadNormalizeParameters()) {
+		return -1;
+	}
+
+	// show process
+	printf("building normalized result   0%%");
+	fflush(stdout);
+	long long entries = ipt->GetEntries();
+	long long entry100 = entries / 100;
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		
+		ipt->GetEntry(entry);
+		front_hit = correlation_.front_hit;
+		back_hit = correlation_.back_hit;
+		if (front_hit < 8 && back_hit < 8) {
+			for (unsigned short i = 0; i < front_hit; ++i) {
+				front_norm_energy[i] =
+					NormalizeEnergy(0, correlation_.front_strip[i], correlation_.front_energy[i]);
+			}
+			for (unsigned short i = 0; i < back_hit; ++i) {
+				back_norm_energy[i] =
+					NormalizeEnergy(1, correlation_.back_strip[i], correlation_.back_energy[i]);
+			}
+		}
+		opt->Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	opt->Write();
+	opf->Close();
+
+	ipf->Close();
 
 	return 0;
 }
@@ -692,9 +793,7 @@ inline bool EnergyCut(double front_energy, double back_energy, double energy_cut
 }
 
 
-int Detector::Merge() {
-	const double energy_cut = 0.02;
-
+int Detector::Merge(double energy_cut) {
 	TString correlated_file_name;
 	correlated_file_name.Form(
 		"%s%s%s-corr-%04d.root",
@@ -707,7 +806,7 @@ int Detector::Merge() {
 		return -1;
 	}
 
-	SetupCorrelatedInputTree(correlated_tree_);	
+	SetupCorrelatedInputTree(correlated_tree_);
 
 	if (SetupMergedOutput()) {
 		std::cerr << "Error: Setup merged output file or tree failed.\n";
@@ -724,7 +823,7 @@ int Detector::Merge() {
 		return -1;
 	}
 
-	// show process`
+	// show process
 	printf("Merging %s   0%%", name_.c_str());
 	fflush(stdout);
 	// entry number
@@ -1231,32 +1330,96 @@ T0D1::T0D1(
 
 
 bool T0D1::NormalizeFrontEnergyCheck(const CorrelatedEvent &correlation, bool iteration) {
-	if (!iteration && correlation.front_energy[0] < 0) return false; 
-	// double norm_back_energy = NormalizeEnergy(1, correlation.back_strip[0], correlation.back_energy[0]);
-	// double norm_front_energy = NormalizeEnergy(0, correlation.front_strip[0], correlation.front_energy[0]);
-	// if (!(
-	// 	(
-	// 		correlation.front_energy[0] > 4000 && correlation.front_energy[0] < 29000
-	// 		&& correlation.back_energy[0] > 4000 && norm_back_energy < 34000
-	// 	)
-	// 	||
-	// 	(
-	// 		correlation.front_energy[0] > 40000 && correlation.back_energy[0] > 35000 
-	// 	)
-	// )) return false;
-	// if (correlation.front_strip[0] >= 12 && correlation.front_strip[0] <= 15) {
-	// 	if (correlation.front_energy[0] > 22000) return false;
-	// }
+	if (correlation.front_energy[0] < 5000 || correlation.back_energy[0] < 5000) return false;
+	
+	if (!iteration) {
+		if (correlation.front_strip[0] < 16) {
 
 
-	// if (!iteration) {
-	// 	if (abs(correlation.front_energy[0] - norm_back_energy) > 5000) return false;
-	// } else {
-	// 	if (abs(
-	// 		norm_back_energy
-	// 		-  NormalizeEnergy(0, correlation.front_strip[0], correlation.front_energy[0])
-	// 	) > 1000) return false;
-	// }
+		} else if (correlation.front_strip[0] < 32) {
+			if (!(
+				(
+					correlation.front_energy[0] < 18000
+					&& correlation.back_energy[0] < 30000
+				)
+				||
+				(
+					correlation.front_energy[0] > 30000
+					&& correlation.back_energy[0] > 44000
+				)
+			)) {
+				return false;
+			}
+
+
+		} else if (correlation.front_strip[0] < 48) {
+			if (!(
+				(
+					correlation.front_energy[0] < 17000
+					&& correlation.back_energy[0] < 25000
+				)
+				||
+				(
+					correlation.front_energy[0] > 35000
+					&& correlation.back_energy[0] > 49000
+				)
+			)) {
+				return false;
+			}
+
+			// if (
+			// 	abs(correlation.front_energy[0] - norm_back_energy)
+			// 	> 0.2 * norm_back_energy
+			// ) return false;
+
+		} else {
+
+		}
+
+	} else {
+		if (abs(
+			NormalizeEnergy(0, correlation.front_strip[0], correlation.front_energy[0])
+			- correlation.back_energy[0]
+		) > 1000) return false;
+		
+		if (correlation.front_strip[0] < 16) {
+
+
+		} else if (correlation.front_strip[0] < 32) {
+			if (!(
+				(
+					correlation.front_energy[0] < 18000
+					&& correlation.back_energy[0] < 30000
+				)
+				||
+				(
+					correlation.front_energy[0] > 30000
+					&& correlation.back_energy[0] > 44000
+				)
+			)) {
+				return false;
+			}
+
+
+		} else if (correlation.front_strip[0] < 48) {
+			if (!(
+				(
+					correlation.front_energy[0] < 17000
+					&& correlation.back_energy[0] < 25000
+				)
+				||
+				(
+					correlation.front_energy[0] > 35000
+					&& correlation.back_energy[0] > 49000
+				)
+			)) {
+				return false;
+			}
+
+		} else {
+
+		}
+	}
 	
 	return true;
 }
@@ -1264,35 +1427,194 @@ bool T0D1::NormalizeFrontEnergyCheck(const CorrelatedEvent &correlation, bool it
 
 
 bool T0D1::NormalizeBackEnergyCheck(const CorrelatedEvent &correlation, bool iteration) {
-	if (!iteration && correlation.front_energy[0] < 0) return false; 
+	if (correlation.front_energy[0] < 5000 || correlation.back_energy[0] < 5000) return false;
+	
+	if (!iteration) {
+		// if (correlation.back_strip[0] < 16) {
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 20000 && correlation.back_energy[0] < 22000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 30000 && correlation.back_energy[0] > 34000
+		// 		)
+		// 	)) return false;
+		// } else if (correlation.back_strip[0] < 32) {
+		// 	if (
+		// 		abs(correlation.front_energy[0] - correlation.back_energy[0])
+		// 		> 0.3 * correlation.back_energy[0]
+		// 	) return false;
 
-	// if (correlation.front_energy[0] < 5000 || correlation.back_energy[0] < 5000) return false;
-	// if (correlation.back_strip[0] > 27 && correlation.back_strip[0] < 48) {
-	// 	if (!(
-	// 		(
-	// 			correlation.front_energy[0] < 30000 && correlation.back_energy[0] < 20000
-	// 		)
-	// 		||
-	// 		(
-	// 			correlation.front_energy[0] > 42000 && correlation.front_energy[0] < 55000
-	// 			&& correlation.back_energy[0] > 30000 && correlation.back_energy[0] < 37000
-	// 		)
-	// 	)) return false;
-	// }
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 20000 && correlation.back_energy[0] < 24000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 30000 && correlation.back_energy[0] > 38000
+		// 		)
+		// 	)) return false;
+		// } else if (correlation.back_strip[0] < 48) {
+		// 	if (
+		// 		abs(correlation.front_energy[0] - correlation.back_energy[0])
+		// 		> 0.5 * correlation.back_energy[0]
+		// 	) return false;
 
-	// if (!iteration) {
-	// 	if (
-	// 		abs(correlation.front_energy[0] - correlation.back_energy[0])
-	// 		> 0.6 * correlation.back_energy[0]
-	// 	) return false;
-	// } else {
-	// 	if (abs(
-	// 		correlation.front_energy[0]
-	// 		- NormalizeEnergy(1, correlation.back_strip[0], correlation.back_energy[0])
-	// 	) > 2000) return false;
-	// }
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 19000 && correlation.back_energy[0] < 28000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 29000 && correlation.back_energy[0] > 42000
+		// 		)
+		// 	)) return false;
+
+		// } else {
+
+		// }
+
+	} else {
+		if (abs(
+			NormalizeEnergy(0, correlation.front_strip[0], correlation.front_energy[0])
+			- NormalizeEnergy(1, correlation.back_strip[0], correlation.back_energy[0])
+		) > 1000) return false;
+
+
+		// if (correlation.back_strip[0] < 16) {
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 20000 && correlation.back_energy[0] < 22000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 30000 && correlation.back_energy[0] > 34000
+		// 		)
+		// 	)) return false;
+		// } else if (correlation.back_strip[0] < 32) {
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 20000 && correlation.back_energy[0] < 24000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 30000 && correlation.back_energy[0] > 38000
+		// 		)
+		// 	)) return false;
+		// } else if (correlation.back_strip[0] < 48) {
+		// 	if (!(
+		// 		(
+		// 			correlation.front_energy[0] < 19000 && correlation.back_energy[0] < 28000
+		// 		)
+		// 		||
+		// 		(
+		// 			correlation.front_energy[0] > 29000 && correlation.back_energy[0] > 42000
+		// 		)
+		// 	)) return false;
+
+		// } else {
+
+		// }
+
+	}
 	
 	return true;
+}
+
+
+
+void T0D1::NormalizeFirstSide(
+	TTree *chain,
+	unsigned short,
+	unsigned short ref_back,
+	TGraph **g_front_back_energy,
+	TGraph **,
+	bool iteration
+) {
+	long long entries = chain->GetEntries();
+	long long entry100 = entries / 100;
+	printf("Filling back front energy graph   0%%");
+    fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		if (entry % entry100 == 0) {
+            printf("\b\b\b\b%3lld%%", entry / entry100);
+            fflush(stdout);
+        }
+		chain->GetEntry(entry);
+
+		if (correlation_.front_hit != 1 || correlation_.back_hit != 1) continue;
+		if (correlation_.back_strip[0] != ref_back) continue;
+
+		if (!NormalizeFrontEnergyCheck(correlation_, iteration)) continue;
+		
+
+		g_front_back_energy[correlation_.front_strip[0]]->AddPoint(
+			correlation_.front_energy[0], correlation_.back_energy[0]
+		);
+	}
+	printf("\b\b\b\b100%%\n");
+	// fitting now
+	std::cout << "front strip parameters\n";
+	for (size_t i = 0; i < FrontStrip(); ++i) {
+		if (g_front_back_energy[i]->GetN() > 10) {
+			TF1 *energy_fit = new TF1("efit", "pol1", 0, 60000);
+			g_front_back_energy[i]->Fit(energy_fit, "QR+ rob=0.7");
+			normalize_front_param_[i][0] = energy_fit->GetParameter(0);
+			normalize_front_param_[i][1] = energy_fit->GetParameter(1);
+		}
+		g_front_back_energy[i]->Write(TString::Format("gf%ld", i));
+		std::cout << i << " " << normalize_front_param_[i][0]
+			<< ", " << normalize_front_param_[i][1] << "\n";
+	}
+	return;
+}
+
+
+void T0D1::NormalizeSecondSide(
+	TTree *chain,
+	unsigned short ref_front,
+	unsigned short,
+	TGraph **,
+	TGraph **g_back_front_energy,
+	bool iteration
+) {
+	long long entries = chain->GetEntries();
+	long long entry100 = entries / 100;
+	printf("Filling back front energy graph   0%%");
+    fflush(stdout);
+	for (long long  entry = 0; entry < entries; ++entry) {
+		if (entry % entry100 == 0) {
+            printf("\b\b\b\b%3lld%%", entry / entry100);
+            fflush(stdout);
+        }
+		chain->GetEntry(entry);
+
+		if (correlation_.front_hit != 1 || correlation_.back_hit != 1) continue;
+		if (correlation_.front_strip[0] != ref_front) continue;
+
+		if (!NormalizeBackEnergyCheck(correlation_, iteration)) continue;
+
+		g_back_front_energy[correlation_.back_strip[0]]->AddPoint(
+			correlation_.back_energy[0],
+			NormalizeEnergy(0, correlation_.front_strip[0], correlation_.front_energy[0])
+		);
+	}
+	printf("\b\b\b\b100%%\n");
+	// fitting now
+	std::cout << "back strip parameters\n";
+	for (size_t i = 0; i < BackStrip(); ++i) {
+		if (g_back_front_energy[i]->GetN() > 10) {
+			TF1 *energy_fit = new TF1("efit", "pol1", 0, 60000);
+			g_back_front_energy[i]->Fit(energy_fit, "QR+ rob=0.7");
+			normalize_back_param_[i][0] = energy_fit->GetParameter(0);
+			normalize_back_param_[i][1] = energy_fit->GetParameter(1);	
+		}
+		g_back_front_energy[i]->Write(TString::Format("gb%ld", i));
+		std::cout << i << " " << normalize_back_param_[i][0]
+			<< ", " << normalize_back_param_[i][1] << "\n";
+	}
+	return;
 }
 
 

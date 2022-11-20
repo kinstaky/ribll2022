@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     }
 
 	int run = 0;
-	// bool normalize = false;
+	bool normalize = false;
 	bool merge = false;
 	std::vector<std::string> detectors;
 	int pos_arg_start = 1;
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 				PrintUsage(argv[0]);
 				return 0;
 			case 'n':
-				// normalize = true;
+				normalize = true;
 				++pos_arg_start;
 				break;
 			case 'm':
@@ -47,6 +47,7 @@ int main(int argc, char **argv) {
 				break;
 			default:
 				std::cerr << "Error: invalid option " << argv[1] << "\n";
+				return -1;
 		}
 	}
 	
@@ -63,11 +64,20 @@ int main(int argc, char **argv) {
 			}
 		} else if (detector == "t0d1") {
 			T0D1 t0d1(run, detector, 135, 300);
-			if (t0d1.Correlate()) {
-				std::cerr << "Error: correlate " << detector << " failed.\n";				
-			}
-			if (merge && t0d1.Merge()) {
-				std::cerr << "Error: merge " << detector << " failed.\n";
+			if (normalize) {
+				if (t0d1.NormalCorrelate()) {
+					std::cerr << "Error: normal correlate " << detector << " failed.\n";
+					return -1;
+				}
+			} else {
+				if (t0d1.Correlate()) {
+					std::cerr << "Error: correlate " << detector << " failed.\n";				
+					return -1;
+				}
+				if (merge && t0d1.Merge()) {
+					std::cerr << "Error: merge " << detector << " failed.\n";
+					return -1;
+				}
 			}
 		// } else if (detector == "t0d3") {
 		// 	T0D3 t0d3(run, detector, 135, 300);
