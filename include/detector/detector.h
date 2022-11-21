@@ -14,12 +14,22 @@ namespace ribll {
 class Detector {
 public:
 
-	Detector(
-		int run,
-		const std::string &name,
-		unsigned int single_side_window,
-		unsigned int double_sides_window
-	);
+	// correlated and merged event
+	struct MergedEvent {
+		unsigned short hit;
+		long long timestamp;
+		double front_strip[4];
+		double back_strip[4];
+		double time[4];
+		double energy[4];
+	};
+
+	/// @brief constructor
+	///
+	/// @param[in] run run number 
+	/// @param[in] name detector name
+	///
+	Detector(int run, const std::string &name);
 
 
 	/// @brief destructor
@@ -29,9 +39,11 @@ public:
 
 	/// @brief correlate events in detector
 	///
+	///	@param[in] single_side_window single side time window
+	/// @param[in] double_sides_window double side time window
 	/// @returns 0 if success, -1 otherwise
 	/// 
-	virtual int Correlate();
+	virtual int Correlate(unsigned int single_side_window, unsigned int double_sides_window);
 
 
 	/// @brief calculate normalize parameters
@@ -93,17 +105,6 @@ protected:
 		double back_time[8];
 		double front_energy[8];
 		double back_energy[8];
-	};
-
-
-	// correlated and merged event
-	struct MergedEvent {
-		unsigned short hit;
-		long long timestamp;
-		double front_strip[4];
-		double back_strip[4];
-		double time[4];
-		double energy[4];
 	};
 
 
@@ -278,10 +279,6 @@ private:
 	};
 
 	
-	// single side correlation window
-	unsigned int single_side_window_;
-	// double sides correlation window
-	unsigned int double_sides_window_;
 	// events read from mapping file
 	std::multimap<long long, SingleSideEvent> single_side_events_;
 	// residual single event
@@ -295,9 +292,10 @@ private:
 
 	/// @brief read detector events from mapped file and store in map
 	///
+	/// @param[in] single_side_window single side time window
 	/// @returns 0 for success, -1 otherwise
 	///
-	int ReadEvents();
+	int ReadEvents(unsigned int single_side_window);
 
 
 	/// @brief sort events in single-side-event by strip
@@ -327,15 +325,25 @@ private:
 };
 
 
+
+/// @brief create shared pointer to detector
+///
+/// @param[in] run run number
+/// @param[in] name detector name
+/// @returns pointer to detector
+///
+std::shared_ptr<Detector> CreateDetector(int run, const std::string &name);
+
+
 class DSSD : public Detector {
 public:
 	
-	DSSD(
-		int run,
-		const std::string &name,
-		unsigned int single_side_window = 200,
-		unsigned int double_sides_window = 200
-	);
+	/// @brief constructor
+	///
+	/// @param[in] run run number 
+	/// @param[in] name detector name
+	/// 
+	DSSD(int run, const std::string &name);
 
 
 	/// @brief default destructor
@@ -347,7 +355,7 @@ public:
 	///
 	/// @returns front strip number
 	/// 
-	inline size_t FrontStrip() override {
+	virtual inline size_t FrontStrip() override {
 		return 32;
 	}
 
@@ -356,7 +364,7 @@ public:
 	///
 	/// @returns back strip number
 	/// 
-	virtual inline size_t BackStrip() {
+	virtual inline size_t BackStrip() override {
 		return 32;
 	}
 
@@ -381,12 +389,11 @@ private:
 class T0D1 : public DSSD {
 public:
 	
-	T0D1(
-		int run,
-		const std::string &name,
-		unsigned int single_side_window = 200,
-		unsigned int double_sides_window = 200
-	);
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	///
+	T0D1(int run);
 
 
 	/// @brief default destructor
@@ -407,27 +414,35 @@ public:
 	///
 	/// @returns back strip number
 	/// 
-	virtual inline size_t BackStrip() {
+	virtual inline size_t BackStrip() override {
 		return 64;
 	}
 
 private:
-	/// @brief check whether the energy of correlated event can be use in normalization for back strip
+	/// @brief check whether the energy of correlated event can be use in normalization
+	/// for back strip
 	///
 	/// @param[in] correlation corrlated event 
 	/// @param[in] iteration iteration mode 
 	/// @returns true if pass, or false otherwise
 	///
-	virtual bool NormalizeFrontEnergyCheck(const CorrelatedEvent &correlation, bool iteration) override;
+	virtual bool NormalizeFrontEnergyCheck(
+		const CorrelatedEvent &correlation,
+		bool iteration
+	) override;
 
 
-	/// @brief check whether the energy of correlated event can be use in normalization for front strip
+	/// @brief check whether the energy of correlated event can be use in normalization
+	/// for front strip
 	///
 	/// @param[in] correlation correlated event 
 	/// @param[in] iteration iteration mode 
 	/// @returns ture if pass, or false otherwise
 	/// 
-	virtual bool NormalizeBackEnergyCheck(const CorrelatedEvent &correlation, bool iteration) override;
+	virtual bool NormalizeBackEnergyCheck(
+		const CorrelatedEvent &correlation,
+		bool iteration
+	) override;
 
 
 	/// @brief calculate normalize parameters of first side
@@ -473,12 +488,11 @@ private:
 class T0D3 : public DSSD {
 public:
 	
-	T0D3(
-		int run,
-		const std::string &name,
-		unsigned int single_side_window = 200,
-		unsigned int double_sides_window = 200
-	);
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	/// 
+	T0D3(int run);
 
 
 	/// @brief default destructor
@@ -499,10 +513,38 @@ public:
 	///
 	/// @returns back strip number
 	/// 
-	virtual inline size_t BackStrip() {
+	virtual inline size_t BackStrip() override {
 		return 32;
 	}
+
+private:
+	/// @brief check whether the energy of correlated event can be use in normalization
+	/// for back strip
+	///
+	/// @param[in] correlation corrlated event 
+	/// @param[in] iteration iteration mode 
+	/// @returns true if pass, or false otherwise
+	///
+	virtual bool NormalizeFrontEnergyCheck(
+		const CorrelatedEvent &correlation,
+		bool iteration
+	) override;
+
+
+	/// @brief check whether the energy of correlated event can be use in normalization
+	/// for front strip
+	///
+	/// @param[in] correlation correlated event 
+	/// @param[in] iteration iteration mode 
+	/// @returns ture if pass, or false otherwise
+	/// 
+	virtual bool NormalizeBackEnergyCheck(
+		const CorrelatedEvent &correlation,
+		bool iteration
+	) override;	
 };
+
+
 
 
 }

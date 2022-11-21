@@ -47,11 +47,22 @@ int main(int argc, char **argv) {
 	std::string detector_name = std::string(argv[pos_arg_start+2]);
 
 	if (detector_name == "t0d1") {
-		T0D1 t0d1(run, "t0d1", 135, 300);
+		T0D1 t0d1(run);
 		if (t0d1.Normalize(length, 29, 36, iteration)) {
 			std::cerr << "Error: normalize " << detector_name << " failed.\n";
 			return -1;
 		}
+	// } else if (detector_name == "t0d2") {
+
+	} else if (detector_name == "t0d3") {
+		T0D3 t0d3(run);
+		if (t0d3.Normalize(length, 17, 17, iteration)) {
+			std::cerr << "Error: normalize " << detector_name << " failed.\n";
+			return -1;
+		}
+	} else {
+		std::cerr << "Warning: invalid detector " << detector_name << ".\n";
+		return -1;
 	}
 	return 0;
 }

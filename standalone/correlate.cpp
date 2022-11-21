@@ -56,37 +56,33 @@ int main(int argc, char **argv) {
 		detectors.push_back(argv[i]);
 	}
 
-	for (const std::string &detector : detectors) {
-		if (detector == "ppac") {
+	for (const std::string &detector_name : detectors) {
+		if (detector_name == "ppac") {
 			PPAC ppac(run);
 			if (ppac.Correlate()) {
 				std::cerr << "Error: correlate ppac failed.\n";
 			}
-		} else if (detector == "t0d1") {
-			T0D1 t0d1(run, detector, 135, 300);
+		} else {
+			std::shared_ptr<Detector> detector = CreateDetector(run, detector_name);
+			if (!detector) {
+				std::cerr << "Warning: invalid detector " << detector_name << "\n";
+				continue;
+			}
 			if (normalize) {
-				if (t0d1.NormalCorrelate()) {
+				if (detector->NormalCorrelate()) {
 					std::cerr << "Error: normal correlate " << detector << " failed.\n";
-					return -1;
+					continue;
 				}
 			} else {
-				if (t0d1.Correlate()) {
-					std::cerr << "Error: correlate " << detector << " failed.\n";				
-					return -1;
+				if (detector->Correlate(135, 300)) {
+					std::cerr << "Error: correlate " << detector << " failed.\n";
+					continue;
 				}
-				if (merge && t0d1.Merge()) {
+				if (merge && detector->Merge(0.02)) {
 					std::cerr << "Error: merge " << detector << " failed.\n";
-					return -1;
+					continue;
 				}
 			}
-		// } else if (detector == "t0d3") {
-		// 	T0D3 t0d3(run, detector, 135, 300);
-		// 	if (t0d3.Correlate()) {
-		// 		std::cerr << "Error: correlate " << detector << " failed.\n";				
-		// 	}
-		// 	if (merge && t0d3.Merge()) {
-		// 		std::cerr << "Error: merge " << detector << " failed.\n";
-		// 	}
 		}
 	}
 

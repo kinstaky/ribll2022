@@ -19,15 +19,10 @@ namespace ribll {
 
 Detector::Detector(
 	int run,
-	const std::string &name,
-	unsigned int single_side_window,
-	unsigned int double_sides_window
+	const std::string &name
 )
 : run_(run)
-, name_(name)
-, single_side_window_(single_side_window)
-, double_sides_window_(double_sides_window) {
-
+, name_(name) {
 	single_side_file_ = nullptr;
 	correlated_file_ = nullptr;
 	merged_file_ = nullptr;
@@ -141,7 +136,7 @@ int Detector::SetupResidualCorrelated() {
 }
 
 
-int Detector::ReadEvents() {
+int Detector::ReadEvents(unsigned int single_side_window) {
 	// setup input file
 	TString input_file_name;
 	input_file_name.Form(
@@ -233,8 +228,8 @@ int Detector::ReadEvents() {
 				y_side_look_window->Fill(iter->first - timestamp);
 			}
 			// continue if out of single side window
-			if (iter->first <= timestamp - single_side_window_) continue;
-			if (iter->first >= timestamp + single_side_window_) continue;
+			if (iter->first <= timestamp - single_side_window) continue;
+			if (iter->first >= timestamp + single_side_window) continue;
 			// jump if has found correlated event
 			if (found) continue;
 			// found correlated event
@@ -409,9 +404,10 @@ void Detector::StoreResidualSingleSideEvents() {
 	single_side_tree_->Write();
 }
 
-int Detector::Correlate() {
+
+int Detector::Correlate(unsigned int single_side_window, unsigned int double_sides_window) {
 	// read detector events
-	if (ReadEvents()) {
+	if (ReadEvents(single_side_window)) {
 		std::cerr << "Error: Read " << name_ << " events failed.\n";
 		return -1;
 	}
@@ -465,7 +461,7 @@ int Detector::Correlate() {
 			double_side_look_window->Fill(jevent->first - ievent->first);
 			
 			// jump if out of search window
-			if (jevent->first - ievent->first > double_sides_window_) continue;
+			if (jevent->first - ievent->first > double_sides_window) continue;
 			
 			// jump other detector
 			if (jevent->second.index != ievent->second.index) continue;
@@ -1274,18 +1270,25 @@ int Detector::WriteNormalizeParameters() {
 }
 
 
+std::shared_ptr<Detector> CreateDetector(int run, const std::string &name) {
+	if (name == "t0d1") {
+		return std::make_shared<T0D1>(run);
+	// } else if (name == "t0d2") {
+	// 	return std::make_shared<T0D2>(run);
+	} else if (name == "t0d3") {
+		return std::make_shared<T0D3>(run);
+	}
+	return nullptr;
+}
+
+
 
 //-----------------------------------------------------------------------------
 // 									DSSD
 //-----------------------------------------------------------------------------
 
-DSSD::DSSD(
-	int run,
-	const std::string &name,
-	unsigned int single_side_window,
-	unsigned int double_sides_window
-)
-: Detector(run, name, single_side_window, double_sides_window) {
+DSSD::DSSD(int run, const std::string &name)
+: Detector(run, name) {
 }
 
 
@@ -1319,13 +1322,8 @@ void DSSD::SetupCorrelatedInputTree(TTree *tree) {
 // 									T0D1
 //-----------------------------------------------------------------------------
 
-T0D1::T0D1(
-	int run,
-	const std::string &name,
-	unsigned int single_side_window,
-	unsigned int double_sides_window
-)
-: DSSD(run, name, single_side_window, double_sides_window) {
+T0D1::T0D1(int run)
+: DSSD(run, "t0d1") {
 }
 
 
@@ -1622,14 +1620,26 @@ void T0D1::NormalizeSecondSide(
 // 									T0D3
 //-----------------------------------------------------------------------------
 
-T0D3::T0D3(
-	int run,
-	const std::string &name,
-	unsigned int single_side_window,
-	unsigned int double_sides_window
-)
-: DSSD(run, name, single_side_window, double_sides_window) {
+T0D3::T0D3(int run)
+: DSSD(run, "t0d3") {
 }
+
+
+bool T0D3::NormalizeFrontEnergyCheck(const CorrelatedEvent &correlation, bool) {
+	if (correlation.front_energy[0] < 2000 || correlation.back_energy[0] < 2000) {
+		return false;
+	}
+	return true;
+}
+
+
+bool T0D3::NormalizeBackEnergyCheck(const CorrelatedEvent &correlation, bool ) {
+	if (correlation.front_energy[0] < 2000 || correlation.back_energy[0] < 2000) {
+		return false;
+	}
+	return true;
+}
+
 
 
 

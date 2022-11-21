@@ -20,13 +20,26 @@ int main(int argc, char **argv) {
 	int run = atoi(argv[1]);
 	std::string detector_name = std::string(argv[2]);
 
-	if (detector_name == "t0d1") {
-		T0D1 t0d1(run, "t0d1", 135, 300);
-		if (t0d1.Merge()) {
-			std::cerr << "Error: merge adjacent strip events in "
-				<< detector_name << " failed.\n";
-			return -1;
+	std::shared_ptr<Detector> detector = CreateDetector(run, detector_name);
+
+	if (!detector) {
+		std::cerr << "Warning: known detector " << detector_name << "\n";
+		return -1;
+	} else {
+		if (detector_name == "t0d3") {
+			if (detector->Merge(0.04)) {
+				std::cerr << "Error: merge adjacent strip events in "
+					<< detector_name << " failed.\n";
+				return -1;
+			}
+		} else {
+			if (detector->Merge()) {
+				std::cerr << "Error: merge adjacent strip events in "
+					<< detector_name << " failed.\n";
+				return -1;
+			}
 		}
 	}
+
 	return 0;
 }

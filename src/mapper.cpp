@@ -287,7 +287,7 @@ int Crate1Mapper::Map() {
 					strip_ = ch_;
 					break;
 				case 8:
-					detector_index_ = ch_ < 8 ? 4 : 5;
+					detector_index_ = ch_ < 8 ? 5 : 4;
 					side_ = 1;
 					strip_ = 7 - (ch_ % 8);
 					break;
@@ -387,7 +387,7 @@ int Crate2Mapper::Map() {
 					std::cerr << "Error: switch t1d1 should not be here.\n";
 					return -1;
 			}
-			FillTree(t1d1_index);
+			if (raw_energy_ > 4000) FillTree(t1d1_index);
 		} else if (sid_ < 10) {
 			// t0d3
 			detector_index_ = 0;
