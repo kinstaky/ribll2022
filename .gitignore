@@ -1,6 +1,9 @@
 # data
 data
 
+# log
+log
+
 # c++ build
 src/*.o
 

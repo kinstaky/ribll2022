@@ -1,5 +1,5 @@
 # Require the cmake minimum version.
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
 
 
 # Set project properties.
@@ -33,7 +33,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	set(CMAKE_CXX_EXTENSIONS OFF)
 
 	# Set the default cxx standard
-	set(CMAKE_CXX_STANDARD 17)
+	set(CMAKE_CXX_STANDARD 11)
 
 	# Set default compile options
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra")
@@ -56,7 +56,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 endif()
 
 # find root
-find_package(ROOT 6.26 REQUIRED COMPONENTS Core RIO Tree Hist)
+find_package(ROOT 6.20 REQUIRED COMPONENTS Core RIO Tree Hist)
 
 # The complied library code
 add_subdirectory(src)

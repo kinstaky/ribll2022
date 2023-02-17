@@ -68,7 +68,7 @@ int Alignment::ReadXiaTime() {
 			printf("\b\b\b\b%3lld%%", entry / nentry100);
 			fflush(stdout);
 		}
-		
+
 		ipt->GetEntry(entry);
 		xia_times_.push_back(timestamp);
 
@@ -116,7 +116,7 @@ int Alignment::ReadVmeTime() {
 			printf("\b\b\b\b%3lld%%", entry / nentry100);
 			fflush(stdout);
 		}
-		
+
 		ipt->GetEntry(entry);
 		// calculate timestamp
 		ULong64_t timestamp = (sdc[kScalerIndex] + bit_flip_offset) * kScalerPeriod;
@@ -127,7 +127,7 @@ int Alignment::ReadVmeTime() {
 		}
 		last_timestamp = timestamp;
 
-		// record it 
+		// record it
 		vme_times_.push_back(timestamp);
 
 	}
@@ -141,7 +141,7 @@ int Alignment::ReadVmeTime() {
 TGraph* Alignment::GroupAlignment() {
 	// graph for xia-vme calibration
 	TGraph *result = new TGraph;
-	// array of group hit 
+	// array of group hit
 	TGraph **offset_hit = new TGraph*[group_num_];
 	// array of group average hit
 	TGraph **offset_average_hit = new TGraph*[group_num_];
@@ -166,16 +166,17 @@ TGraph* Alignment::GroupAlignment() {
 		double max_hit_offset = 0;
 		double low_bound = g < 3 ? search_low_bound_ : last_offset - 5 * search_window_;
 		double high_bound = g < 3 ? search_high_bound_ : last_offset + 5 * search_window_;
+		int group_point = 0;
 		for (double offset = low_bound; offset <= high_bound; offset += search_window_) {
 			int ievent_count = 0;
 			Double_t hit = 0.0;
-			
+
 			for (
 				size_t vme_entry = group_size * g;
 				vme_entry < group_size * (g + 1) && vme_entry < vme_times_.size();
 				++vme_entry
 			) {
-				Long64_t vme_time = vme_times_[vme_entry]; 
+				Long64_t vme_time = vme_times_[vme_entry];
 				++ievent_count;
 				for (
 					auto xia_iter = std::lower_bound(
@@ -190,26 +191,27 @@ TGraph* Alignment::GroupAlignment() {
 					++hit;
 				}
 			}
-		
-			offset_hit[g]->AddPoint(offset, hit);
+
+			offset_hit[g]->SetPoint(group_point, offset, hit);
 			Double_t average_hit = hit / ievent_count;
 			if (max_hit < average_hit) {
 				max_hit = average_hit;
 				max_hit_offset = offset;
 			}
-			offset_average_hit[g]->AddPoint(offset, average_hit);
+			offset_average_hit[g]->SetPoint(group_point, offset, average_hit);
+			++group_point;
 
 
-			if (verbose_ && (Long64_t)offset % 1'000'000'000 == 0) {
+			if (verbose_ && (Long64_t)offset % 1000000000 == 0) {
 				std::cout << "  " << std::setprecision(10)
-					<< offset / 1'000'000'000.0 << " s  "
+					<< offset / 1000000000.0 << " s  "
 					<< hit << "  " << average_hit << "\n";
 			}
 		}
 
 		offset_hit[g]->Write(TString::Format("offset_hit%d", g));
 		offset_average_hit[g]->Write(TString::Format("offset_ave_hit%d", g));
-		groups_hit->AddPoint(g, max_hit_offset);
+		groups_hit->SetPoint(g, g, max_hit_offset);
 		group_offset.push_back(max_hit_offset);
 		last_offset = max_hit_offset;
 
@@ -241,12 +243,13 @@ TGraph* Alignment::GroupAlignment() {
 			) {
 				if (*xia_iter > vme_time + search_window_ + max_hit_offset) break;
 				group_window[g]->Fill(*xia_iter - vme_time - max_hit_offset);
-			}			
+			}
 		}
 		group_window[g]->Write(TString::Format("group_window%d", g));
 
 
 		// third children loop to fill the xia-timestamp:vme-timestamp calibration graph
+		int result_point = 0;
 		for (
 			size_t vme_entry = group_size * g;
 			vme_entry < group_size * (g + 1) && vme_entry < vme_times_.size();
@@ -269,7 +272,7 @@ TGraph* Alignment::GroupAlignment() {
 				xia_time = *xia_iter;
 			}
 			if (local_hit == 1) {
-				result->AddPoint(vme_time, xia_time);
+				result->SetPoint(result_point++, vme_time, xia_time);
 			}
 		}
 	}
@@ -290,7 +293,7 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 	// setup branches
 	opt->Branch("xia_time", &xia_time, "xt/L");
 	opt->Branch("vme_time", &vme_time, "vt/L");
-	
+
 	// file to record aligned timestamp of vme
 	TString output_file_name;
 	output_file_name.Form("%s%stimestamp-%04d.txt", kGenerateDataPath, kAlignDir, run_);
@@ -310,7 +313,7 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 			printf("\b\b\b\b%3ld%%", vme_entry / nentry100);
 			fflush(stdout);
 		}
-		
+
 		vme_time = calibration_param[0] + calibration_param[1] * vme_times_[vme_entry];
 		size_t local_hit = 0;
 		for (
@@ -364,7 +367,7 @@ int Alignment::Align() {
 	TString cache_file_name;
 	cache_file_name.Form("%s%salign-%04d.root", kGenerateDataPath, kAlignDir, run_);
 	TFile *cache_file = new TFile(cache_file_name, "recreate");
-	
+
 	TGraph *xia_vme_time = GroupAlignment();
 	if (!xia_vme_time) {
 		std::cerr << "Error: group alignment failed.\n";

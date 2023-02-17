@@ -10,7 +10,7 @@
 namespace ribll {
 
 
-	
+
 //-----------------------------------------------------------------------------
 //								xia mapper
 //-----------------------------------------------------------------------------
@@ -78,11 +78,12 @@ Double_t XiaMapper::CalculateTime(
 	Bool_t cfdft
 ) {
 	Double_t result = 0.0;
-	switch (rate) {
+	switch (rate)
+	{
 		case 100:
 			result = timestamp
 				+ Double_t(cfd) / 32768.0 * 10.0;
-			break;			
+			break;
 		case 250:
 			result = timestamp
 				+ (cfdft ? 0.0 : (Double_t(cfd) / 166384.0 - cfds) * 4.0);
@@ -100,7 +101,10 @@ Double_t XiaMapper::CalculateTime(
 
 size_t XiaMapper::CreateOutputTree(const char *name) {
 	TString file_name;
-	file_name.Form("%s%s%s-map-%04d.root", kGenerateDataPath, kMappingDir, name, run_);
+	file_name.Form(
+		"%s%s%s-map-%04d.root",
+		kGenerateDataPath, kMappingDir, name, run_
+	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
@@ -117,10 +121,16 @@ size_t XiaMapper::CreateOutputTree(const char *name) {
 
 size_t XiaMapper::CreateResidualTree(const char *name) {
 	TString file_name;
-	file_name.Form("%s%s%s-residual-%04d.root", kGenerateDataPath, kMappingDir, name, run_);
+	file_name.Form(
+		"%s%s%s-residual-%04d.root",
+		kGenerateDataPath, kMappingDir, name, run_
+	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
-	TTree *opt = new TTree("tree", TString::Format("residual tree of %s", name));
+	TTree *opt = new TTree(
+		"tree",
+		TString::Format("residual tree of %s", name)
+	);
 	opt->Branch("sr", &rate_);
 	opt->Branch("sid", &sid_);
 	opt->Branch("ch", &ch_);
@@ -137,11 +147,15 @@ size_t XiaMapper::CreateResidualTree(const char *name) {
 
 size_t XiaMapper::CreateTriggerTree(const char *name) {
 	TString file_name;
-	file_name.Form("%s%s%s-map-%04d.root", kGenerateDataPath, kMappingDir, name, run_);
+	file_name.Form(
+		"%s%s%s-map-%04d.root",
+		kGenerateDataPath, kMappingDir, name, run_
+	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	opt->Branch("timestamp", &timestamp_, "ts/L");
+	opt->Branch("time", &time_, "time/D");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -152,9 +166,9 @@ size_t XiaMapper::CreateTriggerTree(const char *name) {
 //								crate 1 mapper
 //-----------------------------------------------------------------------------
 
- Crate1Mapper::Crate1Mapper(int run)
- : XiaMapper(run) {
- }
+Crate1Mapper::Crate1Mapper(int run)
+: XiaMapper(run) {
+}
 
 
 int Crate1Mapper::Map() {
@@ -162,7 +176,8 @@ int Crate1Mapper::Map() {
 	input_file_name.Form("%s%s_R%04d.root", kCrate1Path, kCrate1FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
-		std::cerr << "Error: intialize tree from " << input_file_name << " failed\n";
+		std::cerr << "Error: intialize tree from " << input_file_name
+			<< " failed\n";
 		return -1;
 	}
 
@@ -189,7 +204,7 @@ int Crate1Mapper::Map() {
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
-	
+
 	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
@@ -204,7 +219,7 @@ int Crate1Mapper::Map() {
 		detector_index_ = 0;
 		side_ = 0;
 		strip_ = 0;
-		
+
 		if (sid_ == 2) {
 			switch (ch_) {
 				case 0:
@@ -245,7 +260,8 @@ int Crate1Mapper::Map() {
 				default:
 					FillTree(residual_index);
 			}
-		} else if (sid_ == 3) {
+		}
+		else if (sid_ == 3) {
 			// ppac in xia
 			// set ppac index
 			detector_index_ = ch_ > 0 ? (ch_ - 1) / 5 : 0;
@@ -253,29 +269,35 @@ int Crate1Mapper::Map() {
 			// side 2 for Y1, side 3 for Y2, side 4 for A
 			side_ = ch_ > 0 ? (ch_ - 1) % 5 : 0;
 			FillTree(xia_ppac_index);
-		} else if (sid_ == 4) {
+		}
+		else if (sid_ == 4) {
 			if (ch_ == 0) {
 				continue;
-			} else if (ch_ < 12) {
+			}
+			else if (ch_ < 12) {
 				// tab csi
 				detector_index_ = ch_;
 				FillTree(tabcsi_index);
-			} else {
+			}
+			else {
 				// t0 csi
 				detector_index_ = ch_ - 12;
 				FillTree(t0csi_index);
 			}
-		} else if (sid_ == 5) {
+		}
+		else if (sid_ == 5) {
 			if (ch_ < 12) {
 				// taf csi
 				detector_index_ = ch_;
 				FillTree(tafcsi_index);
-			} else {
+			}
+			else {
 				// t1 csi
 				detector_index_ = ch_ - 12;
 				FillTree(t1csi_index);
 			}
-		} else if (sid_ >= 6 && sid_ < 12) {
+		}
+		else if (sid_ >= 6 && sid_ < 12) {
 			// taf in xia
 			switch (sid_) {
 				case 6:
@@ -309,7 +331,8 @@ int Crate1Mapper::Map() {
 					return -1;
 			}
 			FillTree(xtaf_index);
-		} else {
+		}
+		else {
 			FillTree(residual_index);
 		}
 	}
@@ -331,13 +354,16 @@ int Crate1Mapper::Map() {
 //-----------------------------------------------------------------------------
 
 Crate2Mapper::Crate2Mapper(int run)
-:XiaMapper(run) {
+:XiaMapper(run)
+{
 }
 
 int Crate2Mapper::Map() {
-	
 	TString input_file_name;
-	input_file_name.Form("%s%s_R%04d.root", kCrate2Path,  kCrate2FileName, run_);
+	input_file_name.Form(
+		"%s%s_R%04d.root",
+		kCrate2Path,  kCrate2FileName, run_
+	);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
 		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
@@ -388,7 +414,8 @@ int Crate2Mapper::Map() {
 					return -1;
 			}
 			if (raw_energy_ > 4000) FillTree(t1d1_index);
-		} else if (sid_ < 10) {
+		}
+		else if (sid_ < 10) {
 			// t0d3
 			detector_index_ = 0;
 			side_ = sid_ < 8 ? 0 : 1;
@@ -397,12 +424,14 @@ int Crate2Mapper::Map() {
 				if (raw_energy_ > 100) {
 					FillTree(t0d3_index);
 				}
-			} else {
+			}
+			else {
 				if (raw_energy_ > 50) {
 					FillTree(t0d3_index);
 				}
 			}
-		} else {
+		}
+		else {
 			// t0d2
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
@@ -411,7 +440,8 @@ int Crate2Mapper::Map() {
 				if (raw_energy_ > 300) {
 					FillTree(t0d2_index);
 				}
-			} else {
+			}
+			else {
 				if (raw_energy_ > 800) {
 					FillTree(t0d2_index);
 				}
@@ -422,12 +452,15 @@ int Crate2Mapper::Map() {
 	printf("\b\b\b\b100%%\n");
 
 
-
 	// read events of t0d3 recorded in crate1
-	input_file_name.Form("%s%sc1-residual-%04d.root", kGenerateDataPath, kMappingDir, run_);
+	input_file_name.Form(
+		"%s%sc1-residual-%04d.root",
+		kGenerateDataPath, kMappingDir, run_
+	);
 	TTree *res_ipt = Initialize(input_file_name.Data());
 	if (!res_ipt) {
-		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
+		std::cerr << "Error: initialize tree from " << input_file_name
+			<< " failed.\n";
 		return -1;
 	}
 
@@ -450,7 +483,7 @@ int Crate2Mapper::Map() {
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
-		
+
 		switch (ch_) {
 			case 10:
 				side_ = 0;
@@ -472,7 +505,8 @@ int Crate2Mapper::Map() {
 			if (raw_energy_ > 100) {
 				FillTree(t0d3_index);
 			}
-		} else {
+		}
+		else {
 			if (raw_energy_ > 50) {
 				FillTree(t0d3_index);
 			}
@@ -496,16 +530,22 @@ int Crate2Mapper::Map() {
 //-----------------------------------------------------------------------------
 
 Crate3Mapper::Crate3Mapper(int run)
-: XiaMapper(run) {
+: XiaMapper(run)
+{
 }
 
 
 int Crate3Mapper::Map() {
 	TString input_file_name;
-	input_file_name.Form("%s%s_R%04d.root", kCrate3Path,  kCrate3FileName, run_);
+	input_file_name.Form
+	(
+		"%s%s_R%04d.root",
+		kCrate3Path,  kCrate3FileName, run_
+	);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
-		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
+		std::cerr << "Error: initialize tree from " << input_file_name
+			<< " failed.\n";
 		return -1;
 	}
 
@@ -517,10 +557,12 @@ int Crate3Mapper::Map() {
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
-	
-	for (Long64_t entry = 0; entry < entries; ++entry) {
+
+	for (Long64_t entry = 0; entry < entries; ++entry)
+	{
 		// show process
-		if (entry % entry100 == 0) {
+		if (entry % entry100 == 0)
+		{
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
@@ -529,9 +571,10 @@ int Crate3Mapper::Map() {
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
-		
+
 		side_ = sid_ < 6 ? 0 : 1;
-		switch ((sid_ - 2) % 4) {
+		switch ((sid_ - 2) % 4)
+		{
 			case 0:
 				strip_ = ch_ + 32;
 				break;
@@ -546,12 +589,17 @@ int Crate3Mapper::Map() {
 				break;
 		}
 
-		if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
-			if (raw_energy_ > 200) {
+		if (side_ == 1 && (strip_ < 16 || strip_ >= 32))
+		{
+			if (raw_energy_ > 200)
+			{
 				FillTree(t0d1_index);
 			}
-		} else {
-			if (raw_energy_ > 300) {
+		}
+		else
+		{
+			if (raw_energy_ > 300)
+			{
 				FillTree(t0d1_index);
 			}
 		}
@@ -560,7 +608,8 @@ int Crate3Mapper::Map() {
 	printf("\b\b\b\b100%%\n");
 
 
-	for (size_t i = 0; i < opfs_.size(); ++i) {
+	for (size_t i = 0; i < opfs_.size(); ++i)
+	{
 		opfs_[i]->cd();
 		opts_[i]->Write();
 		opfs_[i]->Close();
@@ -574,11 +623,13 @@ int Crate3Mapper::Map() {
 //-----------------------------------------------------------------------------
 
 Crate4Mapper::Crate4Mapper(int run)
-: run_(run) {
+: run_(run)
+{
 }
 
 
-TTree* Crate4Mapper::Initialize(const char *file_name) {
+TTree* Crate4Mapper::Initialize(const char *file_name)
+{
 	TFile *ipf = new TFile(file_name, "read");
 	if (!ipf) {
 		std::cerr << "Error: open file " << file_name << " failed.\n";
@@ -599,9 +650,14 @@ TTree* Crate4Mapper::Initialize(const char *file_name) {
 }
 
 
-size_t Crate4Mapper::CreatePPACTree(const char *name) {
+size_t Crate4Mapper::CreatePPACTree(const char *name)
+{
 	TString file_name;
-	file_name.Form("%s%s%s-corr-%04d.root", kGenerateDataPath, kCorrelationDir, name, run_);
+	file_name.Form
+	(
+		"%s%s%s-corr-%04d.root",
+		kGenerateDataPath, kCorrelationDir, name, run_
+	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
@@ -610,42 +666,56 @@ size_t Crate4Mapper::CreatePPACTree(const char *name) {
 	opt->Branch("hit", &ppac_event_.hit, "hit/s");
 	opt->Branch("xhit", &ppac_event_.x_hit, "xhit/s");
 	opt->Branch("yhit", &ppac_event_.y_hit, "yhit/s");
-	opt->Branch("x", ppac_event_.x, TString::Format("x[%llu]/D", ppac_num).Data());
-	opt->Branch("y", ppac_event_.y, TString::Format("y[%llu]/D", ppac_num).Data());
+	opt->Branch(
+		"x", ppac_event_.x, TString::Format("x[%llu]/D", ppac_num).Data()
+	);
+	opt->Branch(
+		"y", ppac_event_.y, TString::Format("y[%llu]/D", ppac_num).Data()
+	);
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-size_t Crate4Mapper::CreateADSSDTree(const char *name) {
+size_t Crate4Mapper::CreateADSSDTree(const char *name)
+{
 	TString file_name;
-	file_name.Form("%s%s%s-corr-%04d.root", kGenerateDataPath, kCorrelationDir, name, run_);
+	file_name.Form(
+		"%s%s%s-corr-%04d.root",
+		kGenerateDataPath, kCorrelationDir, name, run_
+	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	opt->Branch("timestamp", &dssd_event_.timestamp, "ts/L");
 	opt->Branch("index", &dssd_event_.index, "index/s");
-	opt->Branch("xhit", &dssd_event_.x_hit, "xhit/s");
-	opt->Branch("yhit", &dssd_event_.y_hit, "yhit/s");
-	opt->Branch("x_strip", dssd_event_.x_strip, "xs[xhit]/s");
-	opt->Branch("y_strip", dssd_event_.y_strip, "ys[yhit]/s");
-	opt->Branch("x_time", dssd_event_.x_time, "xt[xhit]/D");
-	opt->Branch("y_time", dssd_event_.y_time, "yt[yhit]/D");
-	opt->Branch("x_energy", dssd_event_.x_energy, "xe[xhit]/D");
-	opt->Branch("y_energy", dssd_event_.y_energy, "ye[yhit]/D");
+	opt->Branch("front_hit", &dssd_event_.front_hit, "fhit/s");
+	opt->Branch("back_hit", &dssd_event_.back_hit, "bhit/s");
+	opt->Branch("front_strip", dssd_event_.front_strip, "fs[fhit]/s");
+	opt->Branch("back_strip", dssd_event_.back_strip, "bs[bhit]/s");
+	opt->Branch("front_time", dssd_event_.front_time, "ft[fhit]/D");
+	opt->Branch("back_time", dssd_event_.back_time, "bt[bhit]/D");
+	opt->Branch("front_energy", dssd_event_.front_energy, "fe[fhit]/D");
+	opt->Branch("back_energy", dssd_event_.back_energy, "be[bhit]/D");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-int Crate4Mapper::Map() {
+int Crate4Mapper::Map()
+{
 	TString input_file_name;
-	input_file_name.Form("%s%s%04d.root", kCrate4Path, kCrate4FileName, run_);
+	input_file_name.Form(
+		"%s%s%04d.root",
+		kCrate4Path, kCrate4FileName, run_
+	);
 	TTree *ipt = Initialize(input_file_name.Data());
-	if (!ipt) {
-		std::cerr << "Error: initialize tree from " << input_file_name << " failed.\n";
+	if (!ipt)
+	{
+		std::cerr << "Error: initialize tree from " << input_file_name
+			<< " failed.\n";
 		return -1;
 	}
 
@@ -656,9 +726,13 @@ int Crate4Mapper::Map() {
 
 	// read align timestamp from file
 	TString align_file_name;
-	align_file_name.Form("%s%stimestamp-%04d.txt", kGenerateDataPath, kAlignDir, run_);
+	align_file_name.Form(
+		"%s%stimestamp-%04d.txt",
+		kGenerateDataPath, kAlignDir, run_
+	);
 	std::ifstream align_in(align_file_name.Data());
-	if (!align_in.good()) {
+	if (!align_in.good())
+	{
 		std::cerr << "Error: open file " << align_file_name << " failed.\n";
 		return -1;
 	}
@@ -668,10 +742,12 @@ int Crate4Mapper::Map() {
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
-	
-	for (Long64_t entry = 0; entry < entries; ++entry) {
+
+	for (Long64_t entry = 0; entry < entries; ++entry)
+	{
 		// show process
-		if (entry % entry100 == 0) {
+		if (entry % entry100 == 0)
+		{
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
@@ -681,35 +757,47 @@ int Crate4Mapper::Map() {
 		// read align timestamp
 		Long64_t timestamp;
 		align_in >> timestamp;
-		if (timestamp < 0) {
+		if (timestamp < 0)
+		{
 			continue;
 		}
-		
-		
+
+
 		// ppac
 		ppac_event_.timestamp = timestamp;
 		ppac_event_.flag = 0;
 		ppac_event_.hit = ppac_event_.x_hit = ppac_event_.y_hit = 0;
-		for (size_t i = 0; i < ppac_num; ++i) {
+		for (size_t i = 0; i < ppac_num; ++i)
+		{
 			// check existence of all signal of ppac
-			for (size_t j = 0; j < 5; ++j) {
-				if (gmulti_[0][i*5+j+96] > 0) {
+			for (size_t j = 0; j < 5; ++j)
+			{
+				if (gmulti_[0][i*5+j+96] > 0)
+				{
 					++ppac_event_.hit;
-					ppac_event_.flag |= (1 << (i*5+j)); 
+					ppac_event_.flag |= (1 << (i*5+j));
 				}
 			}
 			// check x1 and x2
-			if (gmulti_[0][i*5+96] > 0 && gmulti_[0][i*5+97] > 0) {
+			if (gmulti_[0][i*5+96] > 0 && gmulti_[0][i*5+97] > 0)
+			{
 				++ppac_event_.x_hit;
-				ppac_event_.x[i] = double(gdc_[0][i*5+96][0] - gdc_[0][i*5+97][0]) * 0.1;
-			} else {
+				ppac_event_.x[i]
+					= double(gdc_[0][i*5+96][0] - gdc_[0][i*5+97][0]) * 0.1;
+			}
+			else
+			{
 				ppac_event_.x[i] = 0.0;
 			}
 			// check y1 and y2
-			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0) {
+			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0)
+			{
 				++ppac_event_.y_hit;
-				ppac_event_.y[i] = double(gdc_[0][i*5+98][0] - gdc_[0][i*5+99][0]) * 0.1; 
-			} else {
+				ppac_event_.y[i]
+					= double(gdc_[0][i*5+98][0] - gdc_[0][i*5+99][0]) * 0.1;
+			}
+			else
+			{
 				ppac_event_.y[i] = 0.0;
 			}
 		}
@@ -717,67 +805,81 @@ int Crate4Mapper::Map() {
 
 		// vtaf
 		dssd_event_.timestamp = timestamp;
-		for (size_t i = 0; i < 2; ++i) {
+		for (size_t i = 0; i < 2; ++i)
+		{
 			dssd_event_.index = i;
-			dssd_event_.x_hit = dssd_event_.y_hit = 0;
+			dssd_event_.front_hit = dssd_event_.back_hit = 0;
 			// check front side
-			for (size_t j = 0; j < 16; ++j) {
-				double energy = madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
-				// if (energy > 30 && gmulti_[1][i*16+j] == 1) {
-				if (energy > 200) {
-					size_t index = dssd_event_.x_hit;
-					dssd_event_.x_strip[index] = j;
-					dssd_event_.x_energy[index] = energy;
-					dssd_event_.x_time[index] = (gdc_[1][i*16+j][0] - gdc_[1][127][0]) * 0.1;
-					++dssd_event_.x_hit;
+			for (size_t j = 0; j < 16; ++j)
+			{
+				double energy
+					= madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
+				if (energy > 200)
+				{
+					size_t index = dssd_event_.front_hit;
+					dssd_event_.front_strip[index] = j;
+					dssd_event_.front_energy[index] = energy;
+					dssd_event_.front_time[index]
+						= (gdc_[1][i*16+j][0] - gdc_[1][127][0]) * 0.1;
+					++dssd_event_.front_hit;
 				}
 			}
 			// check back side
-			for (size_t j = 0; j < 8; ++j) {
-				double energy = madc_[vtaf_back_module[i]][vtaf_back_channel[i]-j];
-				if (energy > 200) {
-					size_t index = dssd_event_.y_hit;
-					dssd_event_.y_strip[index] = j;
-					dssd_event_.y_energy[index] = energy;
-					++dssd_event_.y_hit;
+			for (size_t j = 0; j < 8; ++j)
+			{
+				double energy
+					= madc_[vtaf_back_module[i]][vtaf_back_channel[i]+j];
+				if (energy > 200)
+				{
+					size_t index = dssd_event_.back_hit;
+					dssd_event_.back_strip[index] = j;
+					dssd_event_.back_energy[index] = energy;
+					++dssd_event_.back_hit;
 				}
 			}
-			if (dssd_event_.x_hit && dssd_event_.y_hit) {
+			if (dssd_event_.front_hit && dssd_event_.back_hit)
+			{
 				FillTree(vtaf_index);
 			}
 		}
 
 		// tab
-		for (size_t i = 0; i < 6; ++i) {
+		for (size_t i = 0; i < 6; ++i)
+		{
+			if (i == 4) continue;
 			dssd_event_.index = i;
-			dssd_event_.x_hit = dssd_event_.y_hit = 0;
+			dssd_event_.front_hit = dssd_event_.back_hit = 0;
 			// check front side
-			for (size_t j = 0; j < 16; ++j) {
-				double energy = adc_[tab_front_module[i]][tab_front_channel[i]+j];
-				// if (energy > 30 && gmulti_[0][i*16+j] == 1) {
-				if (energy > 200) {
-					size_t index = dssd_event_.x_hit;
-					dssd_event_.x_strip[index] = j;
-					dssd_event_.x_energy[index] = energy;
-					dssd_event_.x_time[index] = (gdc_[0][i*16+j][0] - gdc_[0][127][0]) * 0.1;
-					++dssd_event_.x_hit;
+			for (size_t j = 0; j < 16; ++j)
+			{
+				double energy
+					= adc_[tab_front_module[i]][tab_front_channel[i]+j];
+				if (energy > 200)
+				{
+					size_t index = dssd_event_.front_hit;
+					dssd_event_.front_strip[index] = j;
+					dssd_event_.front_energy[index] = energy;
+					dssd_event_.front_time[index]
+						= (gdc_[0][i*16+j][0] - gdc_[0][127][0]) * 0.1;
+					++dssd_event_.front_hit;
 				}
 			}
 			// check back side
-			for (size_t j = 0; j < 8; ++j) {
-				double energy = adc_[tab_back_module[i]][tab_back_channel[i]-j];
-				if (i == 5) {
-					// special case
-					energy = adc_[4][j];
+			for (size_t j = 0; j < 8; ++j)
+			{
+				double energy
+					= adc_[tab_back_module[i]][tab_back_channel[i]+j];
+				if (energy > 200)
+				{
+					size_t index = dssd_event_.back_hit;
+					dssd_event_.back_strip[index] = j;
+					dssd_event_.back_energy[index] = energy;
+					++dssd_event_.back_hit;
 				}
-				if (energy > 200) {
-					size_t index = dssd_event_.y_hit;
-					dssd_event_.y_strip[index] = j;
-					dssd_event_.y_energy[index] = energy;
-					++dssd_event_.y_hit;
-				}
+
 			}
-			if (dssd_event_.x_hit && dssd_event_.y_hit) {
+			if (dssd_event_.front_hit && dssd_event_.back_hit)
+			{
 				FillTree(tab_index);
 			}
 		}
@@ -786,7 +888,8 @@ int Crate4Mapper::Map() {
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	for (size_t i = 0; i < opfs_.size(); ++i) {
+	for (size_t i = 0; i < opfs_.size(); ++i)
+	{
 		opfs_[i]->cd();
 		opts_[i]->Write();
 		opfs_[i]->Close();

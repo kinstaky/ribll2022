@@ -7,7 +7,7 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include "include/event.h"
+#include "include/event/event.h"
 
 namespace ribll {
 
@@ -22,7 +22,7 @@ public:
 	///
 	XiaMapper(int run);
 
-	
+
 	/// @brief destructor
 	///
 	virtual ~XiaMapper();
@@ -31,7 +31,7 @@ public:
 	/// @brief abstract mapping function
 	///
 	/// @returns 0 if success, -1 on failure
-	/// 
+	///
 	virtual int Map() = 0;
 
 
@@ -39,13 +39,13 @@ public:
 	///
 	/// @param[in] file_name name of input file
 	/// @returns pointer to input tree if success, or nullptr otherwise
-	///  
+	///
 	TTree* Initialize(const char *file_name);
 
 
 	/// @brief calculate timestamp with raw timestamp and sampling rate
 	///
-	/// @param[in] rate sampling rate, 100, 250 or 500 
+	/// @param[in] rate sampling rate, 100, 250 or 500
 	/// @param[in] ts timestamp read from file
 	/// @returns real timestamp in nanosecond, or 0 for invalid rate
 	///
@@ -54,7 +54,7 @@ public:
 
 	/// @brief calculate real time in nanosecond
 	///
-	/// @param[in] rate sampling rate, 100, 250 or 500 
+	/// @param[in] rate sampling rate, 100, 250 or 500
 	/// @param[in] timestamp timestamp in nanosecond
 	/// @param[in] cfd cfd value read from file
 	/// @param[in] cfds cfd source value read from file
@@ -74,30 +74,30 @@ public:
 	///
 	/// @param[in] crate name
 	/// @returns index of tree
-	/// 
+	///
 	size_t CreateResidualTree(const char *name);
 
 
 	/// @brief create output tree for detectors
 	///
-	/// @param[in] name detector name 
+	/// @param[in] name detector name
 	/// @returns index of tree
-	/// 
+	///
 	size_t CreateOutputTree(const char *name);
 
 
 	/// @brief create output tree for triggers
 	///
-	/// @param[in] name detector name 
+	/// @param[in] name detector name
 	/// @returns index of tree
-	/// 
+	///
 	size_t CreateTriggerTree(const char *name);
 
 
 	/// @brief fill event into output tree by index
 	///
 	/// @param[in] index index of tree, get from CreateOutputTree
-	/// 
+	///
 	inline void FillTree(size_t index) {
 		opfs_[index]->cd();
 		opts_[index]->Fill();
@@ -152,8 +152,8 @@ public:
 	/// @brief mapping function
 	///
 	/// @returns 0 for success, -1 otherwise
-	/// 
-	virtual int Map(); 
+	///
+	virtual int Map();
 };
 
 
@@ -176,7 +176,7 @@ public:
 	/// @brief mapping function
 	///
 	/// @returns 0 for success, -1 otherwise
-	/// 
+	///
 	virtual int Map();
 };
 
@@ -198,7 +198,7 @@ public:
 	/// @brief mapping function
 	///
 	/// @returns 0 for success, -1 otherwise
-	/// 
+	///
 	virtual int Map();
 };
 
@@ -220,7 +220,7 @@ public:
 	/// @brief mapping function
 	///
 	/// @returns 0 for success, -1 otherwise
-	/// 
+	///
 	int Map();
 
 private:
@@ -248,30 +248,30 @@ private:
 	///
 	/// @param[in] file_name name of input file
 	/// @returns pointer to input tree if success, or nullptr otherwise
-	///  
+	///
 	TTree* Initialize(const char *file_name);
 
 
 	/// @brief create ppac output tree
 	///
-	/// @param[in] name detector name 
+	/// @param[in] name detector name
 	/// @returns index of tree
-	/// 
+	///
 	size_t CreatePPACTree(const char *name);
-	
-	
+
+
 	/// @brief create ADSSD output tree
 	///
-	/// @param[in] name detector name 
+	/// @param[in] name detector name
 	/// @returns index of tree
-	/// 
+	///
 	size_t CreateADSSDTree(const char *name);
 
 
 	/// @brief fill data into output tree by index
 	///
 	/// @param[in] index index of tree to fill
-	/// 
+	///
 	inline void FillTree(size_t index) {
 		opfs_[index]->cd();
 		opts_[index]->Fill();
