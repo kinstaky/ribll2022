@@ -10,7 +10,7 @@
 /// @brief print usage of this program
 ///
 /// @param[in] name program name
-/// 
+///
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run\n"
 		"  run                run number\n"
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	ribll::Alignment align(run, 30, 2'000'000, -10'000'000'000, 10'000'000'000);
+	ribll::Alignment align(run, 30, 2000000, -10000000000, 10000000000);
 	align.SetVerbose(false);
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";

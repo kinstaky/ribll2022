@@ -7,7 +7,7 @@ using namespace ribll;
 /// @brief print usage of this program
 ///
 /// @param[in] name program name
-/// 
+///
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run\n"
 		"  run                run number\n"
@@ -26,12 +26,12 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[1]);
 
-	Alignment align(run, 30, 2'000'000, -10'000'000'000, 10'000'000'000);
+	Alignment align(run, 30, 2000000, -10000000000, 10000000000);
 	align.SetVerbose();
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";
 		return -1;
 	}
 
-	return 0;  
+	return 0;
 }

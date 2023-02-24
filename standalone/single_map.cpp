@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[1]);
 	int crate = atoi(argv[2]);
-	
+
 	if (crate == 1) {
 		Crate1Mapper crate1(run);
 		crate1.Map();

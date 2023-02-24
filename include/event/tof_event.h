@@ -7,7 +7,6 @@ namespace ribll {
 
 struct TofMapEvent : public Event {
 	double time;
-	long long timestamp;
 	unsigned short index;
 
 

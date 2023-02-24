@@ -29,7 +29,13 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 	} else if (detector_name == "t0d1") {
-		std::cerr << "Error: t0d1 to do.\n";
+		// T0D1 t0d1(run);
+		// if (t0d1.MatchTrigger(-1000, 1000)) {
+		// 	std::cerr << "Error: match trigger for "
+		// 		<< detector_name << " failed.\n";
+		// 	return -1;
+		// }
+		std::cerr << "Error: to do\n";
 		return -1;
 	} else {
 		std::cerr << "Error: match trigger in "

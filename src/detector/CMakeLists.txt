@@ -16,16 +16,28 @@ target_link_libraries(
 	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
 
-# ppac library
+
+# tof library
 add_library(
-	ppac
-	ppac.cpp ${DETECTOR_INCLUDE_DIR}/ppac.h ${PROJECT_INCLUDE_DIR}/defs.h
-)
-target_include_directories(
-	ppac
-	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+	tof
+	tof.cpp ${DETECTOR_INCLUDE_DIR}/tof.h ${PROJECT_INCLUDE_DIR}/defs.h
 )
 target_link_libraries(
-	ppac
-	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+	tof
+	PUBLIC detector tof_event ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
+
+
+# # ppac library
+# add_library(
+# 	ppac
+# 	ppac.cpp ${DETECTOR_INCLUDE_DIR}/ppac.h ${PROJECT_INCLUDE_DIR}/defs.h
+# )
+# target_include_directories(
+# 	ppac
+# 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+# )
+# target_link_libraries(
+# 	ppac
+# 	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+# )
