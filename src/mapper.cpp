@@ -15,7 +15,7 @@ namespace ribll {
 //								xia mapper
 //-----------------------------------------------------------------------------
 
-XiaMapper::XiaMapper(int run)
+XiaMapper::XiaMapper(unsigned int run)
 : run_(run) {
 }
 
@@ -154,7 +154,6 @@ size_t XiaMapper::CreateTriggerTree(const char *name) {
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
-	opt->Branch("timestamp", &timestamp_, "ts/L");
 	opt->Branch("time", &time_, "time/D");
 
 	opts_.push_back(opt);
@@ -166,7 +165,7 @@ size_t XiaMapper::CreateTriggerTree(const char *name) {
 //								crate 1 mapper
 //-----------------------------------------------------------------------------
 
-Crate1Mapper::Crate1Mapper(int run)
+Crate1Mapper::Crate1Mapper(unsigned int run)
 : XiaMapper(run) {
 }
 
@@ -353,9 +352,8 @@ int Crate1Mapper::Map() {
 //								crate 2 mapper
 //-----------------------------------------------------------------------------
 
-Crate2Mapper::Crate2Mapper(int run)
-:XiaMapper(run)
-{
+Crate2Mapper::Crate2Mapper(unsigned int run)
+:XiaMapper(run) {
 }
 
 int Crate2Mapper::Map() {
@@ -529,9 +527,8 @@ int Crate2Mapper::Map() {
 //								crate 3 mapper
 //-----------------------------------------------------------------------------
 
-Crate3Mapper::Crate3Mapper(int run)
-: XiaMapper(run)
-{
+Crate3Mapper::Crate3Mapper(unsigned int run)
+: XiaMapper(run) {
 }
 
 
@@ -622,14 +619,12 @@ int Crate3Mapper::Map() {
 //								crate 4 mapper
 //-----------------------------------------------------------------------------
 
-Crate4Mapper::Crate4Mapper(int run)
-: run_(run)
-{
+Crate4Mapper::Crate4Mapper(unsigned int run)
+: run_(run) {
 }
 
 
-TTree* Crate4Mapper::Initialize(const char *file_name)
-{
+TTree* Crate4Mapper::Initialize(const char *file_name) {
 	TFile *ipf = new TFile(file_name, "read");
 	if (!ipf) {
 		std::cerr << "Error: open file " << file_name << " failed.\n";
@@ -650,62 +645,43 @@ TTree* Crate4Mapper::Initialize(const char *file_name)
 }
 
 
-size_t Crate4Mapper::CreatePPACTree(const char *name)
-{
+size_t Crate4Mapper::CreatePPACTree(const char *name) {
+	// output file name
 	TString file_name;
 	file_name.Form
 	(
-		"%s%s%s-corr-%04d.root",
+		"%s%s%s-correlation-%04d.root",
 		kGenerateDataPath, kCorrelationDir, name, run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
-	opt->Branch("timestamp", &ppac_event_.timestamp, "ts/L");
-	opt->Branch("flag", &ppac_event_.flag, "flag/I");
-	opt->Branch("hit", &ppac_event_.hit, "hit/s");
-	opt->Branch("xhit", &ppac_event_.x_hit, "xhit/s");
-	opt->Branch("yhit", &ppac_event_.y_hit, "yhit/s");
-	opt->Branch(
-		"x", ppac_event_.x, TString::Format("x[%llu]/D", ppac_num).Data()
-	);
-	opt->Branch(
-		"y", ppac_event_.y, TString::Format("y[%llu]/D", ppac_num).Data()
-	);
+	ppac_event_.SetupOutput(opt);
+	opt->Branch("time", &align_time_, "t/D");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-size_t Crate4Mapper::CreateADSSDTree(const char *name)
-{
+size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-corr-%04d.root",
+		"%s%s%s-correlation-%04d.root",
 		kGenerateDataPath, kCorrelationDir, name, run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
-	opt->Branch("timestamp", &dssd_event_.timestamp, "ts/L");
-	opt->Branch("index", &dssd_event_.index, "index/s");
-	opt->Branch("front_hit", &dssd_event_.front_hit, "fhit/s");
-	opt->Branch("back_hit", &dssd_event_.back_hit, "bhit/s");
-	opt->Branch("front_strip", dssd_event_.front_strip, "fs[fhit]/s");
-	opt->Branch("back_strip", dssd_event_.back_strip, "bs[bhit]/s");
-	opt->Branch("front_time", dssd_event_.front_time, "ft[fhit]/D");
-	opt->Branch("back_time", dssd_event_.back_time, "bt[bhit]/D");
-	opt->Branch("front_energy", dssd_event_.front_energy, "fe[fhit]/D");
-	opt->Branch("back_energy", dssd_event_.back_energy, "be[bhit]/D");
+	dssd_event_.SetupOutput(opt);
+	opt->Branch("time", &align_time_, "t/D");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-int Crate4Mapper::Map()
-{
+int Crate4Mapper::Map() {
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s%04d.root",
@@ -755,16 +731,16 @@ int Crate4Mapper::Map()
 		ipt->GetEntry(entry);
 
 		// read align timestamp
-		Long64_t timestamp;
-		align_in >> timestamp;
-		if (timestamp < 0)
+		double align_time;
+		align_in >> align_time;
+		if (align_time < 0)
 		{
 			continue;
 		}
 
 
 		// ppac
-		ppac_event_.timestamp = timestamp;
+		align_time_ = align_time;
 		ppac_event_.flag = 0;
 		ppac_event_.hit = ppac_event_.x_hit = ppac_event_.y_hit = 0;
 		for (size_t i = 0; i < ppac_num; ++i)
@@ -804,7 +780,7 @@ int Crate4Mapper::Map()
 		FillTree(vppac_index);
 
 		// vtaf
-		dssd_event_.timestamp = timestamp;
+		align_time_ = align_time;
 		for (size_t i = 0; i < 2; ++i)
 		{
 			dssd_event_.index = i;

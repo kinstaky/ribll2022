@@ -7,7 +7,8 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include "include/event/event.h"
+#include "include/event/dssd_event.h"
+#include "include/event/ppac_event.h"
 
 namespace ribll {
 
@@ -20,7 +21,7 @@ public:
 	///
 	/// @param[in] run run number
 	///
-	XiaMapper(int run);
+	XiaMapper(unsigned int run);
 
 
 	/// @brief destructor
@@ -104,7 +105,7 @@ public:
 	}
 
 protected:
-	int run_;
+	unsigned int run_;
 
 	// input files
 	std::vector<TFile*> ipfs_;
@@ -141,7 +142,7 @@ public:
 	///
 	/// @param[in] run run number
 	///
-	Crate1Mapper(int run);
+	Crate1Mapper(unsigned int run);
 
 
 	/// @brief default destructor
@@ -165,7 +166,7 @@ public:
 	///
 	/// @param[in] run run number
 	///
-	Crate2Mapper(int run);
+	Crate2Mapper(unsigned int run);
 
 
 	/// @brief default destructor
@@ -187,7 +188,7 @@ public:
 	///
 	/// @param[in] run run number
 	///
-	Crate3Mapper(int run);
+	Crate3Mapper(unsigned int run);
 
 
 	/// @brief default destructor
@@ -209,7 +210,7 @@ public:
 	///
 	/// @param[in] run run number
 	///
-	Crate4Mapper(int run);
+	Crate4Mapper(unsigned int run);
 
 
 	/// @brief default destructor
@@ -239,8 +240,9 @@ private:
 	std::vector<TTree*> opts_;
 
 	// output data
-	PPACEvent ppac_event_;
-	DSSDEvent dssd_event_;
+	PpacFundamentalEvent ppac_event_;
+	DssdFundamentalEvent dssd_event_;
+	double align_time_;
 
 
 
