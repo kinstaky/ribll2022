@@ -17,7 +17,7 @@
 namespace ribll {
 
 Alignment::Alignment(
-	int run,
+	unsigned int run,
 	size_t group_num,
 	double search_window,
 	double search_low_bound,
@@ -28,8 +28,7 @@ Alignment::Alignment(
 , search_window_(search_window)
 , search_low_bound_(search_low_bound)
 , search_high_bound_(search_high_bound)
-{
-	verbose_ = false;
+, verbose_(false) {
 }
 
 
@@ -55,8 +54,8 @@ int Alignment::ReadXiaTime() {
 		return -1;
 	}
 	// set branches
-	Long64_t timestamp;
-	ipt->SetBranchAddress("timestamp", &timestamp);
+	double xia_time;
+	ipt->SetBranchAddress("time", &xia_time);
 
 	// show process
 	printf("reading xia events   0%%");
@@ -70,7 +69,7 @@ int Alignment::ReadXiaTime() {
 		}
 
 		ipt->GetEntry(entry);
-		xia_times_.push_back(timestamp);
+		xia_times_.push_back(xia_time);
 
 	}
 	printf("\b\b\b\b100%%\n");
