@@ -15,7 +15,7 @@ target_link_libraries(map PUBLIC mapper alignment)
 
 # match trigger
 add_executable(match_trigger match_trigger.cpp)
-target_link_libraries(match_trigger PUBLIC tof)
+target_link_libraries(match_trigger PUBLIC detectors)
 
 # # correlation
 # add_executable(correlate correlate.cpp)

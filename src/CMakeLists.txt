@@ -32,16 +32,20 @@ target_link_libraries(
 	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
 
-# telescope
-add_library(
-	telescope
-	telescope.cpp ${PROJECT_INCLUDE_DIR}/telescope.h ${PROJECT_INCLUDE_DIR}/defs.h
-)
-target_include_directories(
-	telescope
-	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
-)
-target_link_libraries(
-	telescope
-	PUBLIC detector ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
-)
+# detectors
+add_library(detectors detectors.cpp ${PROJECT_INCLUDE_DIR}/detectors.h)
+target_link_libraries(detectors PUBLIC tof)
+
+# # telescope
+# add_library(
+# 	telescope
+# 	telescope.cpp ${PROJECT_INCLUDE_DIR}/telescope.h ${PROJECT_INCLUDE_DIR}/defs.h
+# )
+# target_include_directories(
+# 	telescope
+# 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+# )
+# target_link_libraries(
+# 	telescope
+# 	PUBLIC detector ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+# )

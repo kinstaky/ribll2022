@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "include/detector/tof.h"
+#include "include/detectors.h"
 
 using namespace ribll;
 
@@ -21,24 +21,11 @@ int main(int argc, char **argv) {
 	int run = atoi(argv[1]);
 	std::string detector_name = std::string(argv[2]);
 
-	if (detector_name == "tof") {
-		Tof tof(run);
-		if (tof.MatchTrigger(-1000, 1000)) {
-			std::cerr << "Error: match trigger for "
-				<< detector_name << " failed.\n";
-			return -1;
-		}
-	} else if (detector_name == "t0d1") {
-		// T0D1 t0d1(run);
-		// if (t0d1.MatchTrigger(-1000, 1000)) {
-		// 	std::cerr << "Error: match trigger for "
-		// 		<< detector_name << " failed.\n";
-		// 	return -1;
-		// }
-		std::cerr << "Error: to do\n";
-		return -1;
-	} else {
-		std::cerr << "Error: match trigger in "
+	std::shared_ptr<Detector> detector = CreateDetector(detector_name, run);
+	if (!detector) return -1;
+
+	if (detector->MatchTrigger(-1000, 1000)) {
+		std::cerr << "Error: match trigger for "
 			<< detector_name << " failed.\n";
 		return -1;
 	}
