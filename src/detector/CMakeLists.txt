@@ -18,14 +18,13 @@ target_link_libraries(
 
 
 # tof library
-add_library(
-	tof
-	tof.cpp ${DETECTOR_INCLUDE_DIR}/tof.h ${PROJECT_INCLUDE_DIR}/defs.h
-)
-target_link_libraries(
-	tof
-	PUBLIC detector tof_event ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
-)
+add_library(tof tof.cpp ${DETECTOR_INCLUDE_DIR}/tof.h)
+target_link_libraries(tof PUBLIC detector tof_event)
+
+
+# dssd library
+add_library(dssd dssd.cpp ${DETECTOR_INCLUDE_DIR}/dssd.h)
+target_link_libraries(dssd PUBLIC detector dssd_event)
 
 
 # # ppac library

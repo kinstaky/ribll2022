@@ -37,7 +37,16 @@ public:
 	virtual int MatchTrigger(double window_left, double window_right) = 0;
 
 
-
+	/// @brief template of match trigger
+	/// @tparam MapEvent type of map event
+	/// @tparam FundamentalEvent type of fundamental event
+	/// @tparam Statistics type of statistics
+	/// @param[in] window_left left edge of match window
+	/// @param[in] window_right right edge of match window
+	/// @param[in] fill_event function to convert map event
+	///		to fundamental event
+	/// @returns 0 if success, -1 otherwise
+	///
 	template<
 		typename MapEvent,
 		typename FundamentalEvent,

@@ -34,7 +34,7 @@ target_link_libraries(
 
 # detectors
 add_library(detectors detectors.cpp ${PROJECT_INCLUDE_DIR}/detectors.h)
-target_link_libraries(detectors PUBLIC tof)
+target_link_libraries(detectors PUBLIC tof dssd)
 
 # # telescope
 # add_library(

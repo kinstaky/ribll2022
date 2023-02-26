@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "include/detector/tof.h"
-// #include "include/detector/dssd.h"
+#include "include/detector/dssd.h"
 // #include "include/detector/csi.h"
 
 namespace ribll {
