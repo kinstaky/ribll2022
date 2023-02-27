@@ -27,6 +27,16 @@ add_library(dssd dssd.cpp ${DETECTOR_INCLUDE_DIR}/dssd.h)
 target_link_libraries(dssd PUBLIC detector dssd_event)
 
 
+# adssd library
+add_library(adssd adssd.cpp ${DETECTOR_INCLUDE_DIR}/adssd.h)
+target_link_libraries(adssd PUBLIC detector dssd_event)
+
+
+#csi library
+add_library(csi csi.cpp ${DETECTOR_INCLUDE_DIR}/csi.h)
+target_link_libraries(csi PUBLIC detector csi_event)
+
+
 # # ppac library
 # add_library(
 # 	ppac

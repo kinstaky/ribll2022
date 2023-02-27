@@ -188,7 +188,10 @@ int Crate1Mapper::Map() {
 	size_t vme_trigger_index = CreateTriggerTree("vt");
 	size_t xia_trigger_index = CreateTriggerTree("xt");
 	size_t xia_ppac_index = CreateOutputTree("xppac");
-	size_t xtaf_index = CreateOutputTree("xtaf");
+	size_t taf2_index = CreateOutputTree("taf2");
+	size_t taf3_index = CreateOutputTree("taf3");
+	size_t taf4_index = CreateOutputTree("taf4");
+	size_t taf5_index = CreateOutputTree("taf5");
 	size_t t0s1_index = CreateOutputTree("t0s1");
 	size_t t0s2_index = CreateOutputTree("t0s2");
 	size_t t0s3_index = CreateOutputTree("t0s3");
@@ -259,8 +262,7 @@ int Crate1Mapper::Map() {
 				default:
 					FillTree(residual_index);
 			}
-		}
-		else if (sid_ == 3) {
+		} else if (sid_ == 3) {
 			// ppac in xia
 			// set ppac index
 			detector_index_ = ch_ > 0 ? (ch_ - 1) / 5 : 0;
@@ -268,70 +270,69 @@ int Crate1Mapper::Map() {
 			// side 2 for Y1, side 3 for Y2, side 4 for A
 			side_ = ch_ > 0 ? (ch_ - 1) % 5 : 0;
 			FillTree(xia_ppac_index);
-		}
-		else if (sid_ == 4) {
+		} else if (sid_ == 4) {
 			if (ch_ == 0) {
 				continue;
-			}
-			else if (ch_ < 12) {
+			} else if (ch_ < 12) {
 				// tab csi
 				detector_index_ = ch_;
 				FillTree(tabcsi_index);
-			}
-			else {
+			} else {
 				// t0 csi
 				detector_index_ = ch_ - 12;
 				FillTree(t0csi_index);
 			}
-		}
-		else if (sid_ == 5) {
+		} else if (sid_ == 5) {
 			if (ch_ < 12) {
 				// taf csi
 				detector_index_ = ch_;
 				FillTree(tafcsi_index);
-			}
-			else {
+			} else {
 				// t1 csi
 				detector_index_ = ch_ - 12;
 				FillTree(t1csi_index);
 			}
-		}
-		else if (sid_ >= 6 && sid_ < 12) {
-			// taf in xia
-			switch (sid_) {
-				case 6:
-					detector_index_ = 4;
-					strip_ = ch_;
-					break;
-				case 7:
-					detector_index_ = 5;
-					strip_ = ch_;
-					break;
-				case 8:
-					detector_index_ = ch_ < 8 ? 5 : 4;
-					side_ = 1;
-					strip_ = 7 - (ch_ % 8);
-					break;
-				case 9:
-					detector_index_ = 2;
-					strip_ = ch_;
-					break;
-				case 10:
-					detector_index_ = 3;
-					strip_ = ch_;
-					break;
-				case 11:
-					detector_index_ = ch_ < 8 ? 2 : 3;
-					side_ = 1;
-					strip_ = 7 - (ch_ % 8);
-					break;
-				default:
-					std::cerr << "Error: switch taf should not be here.\n";
-					return -1;
+		} else if (sid_ == 6) {
+			// taf4 front side
+			strip_ = ch_;
+			FillTree(taf4_index);
+		} else if (sid_ == 7) {
+			// taf5 front side
+			strip_ = ch_;
+			FillTree(taf5_index);
+		} else if (sid_ == 8) {
+			// taf4/taf5 back side
+			side_ = 1;
+			if (ch_ < 8) {
+				// taf5 back side
+				strip_ = ch_;
+				FillTree(taf5_index);				
+			} else {
+				// taf4 back side
+				strip_ = ch_ - 8;
+				FillTree(taf4_index);
 			}
-			FillTree(xtaf_index);
-		}
-		else {
+		} else if (sid_ == 9) {
+			// taf2 front side
+			strip_ = ch_;
+			FillTree(taf2_index);
+		} else if (sid_ == 10) {
+			// taf3 front side
+			strip_ = ch_;
+			FillTree(taf3_index);
+		} else if (sid_ == 11) {
+			// taf2/taf3 back side
+			side_ = 1;
+			if (ch_ < 8) {
+				// taf2 back side
+				strip_ = ch_;
+				FillTree(taf2_index);
+			} else {
+				// taf3 back side
+				strip_ = ch_ - 8;
+				FillTree(taf3_index);
+			}
+		} else {
 			FillTree(residual_index);
 		}
 	}

@@ -31,7 +31,7 @@ public:
 
 		/// @brief constructor
 		/// @param[in] total total events
-		/// 
+		///
 		MatchTriggerStatistics(long long total);
 
 
