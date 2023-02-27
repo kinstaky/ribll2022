@@ -2,25 +2,6 @@
 
 namespace ribll {
 
-GroupCsi::MatchTriggerStatistics::MatchTriggerStatistics(long long total)
-: total_events(total)
-, match_events(0)
-, oversize_events(0) {
-}
-
-
-std::ostream& operator<<(
-	std::ostream &os,
-	const GroupCsi::MatchTriggerStatistics &st
-) {
-	return os << "events match rate "
-		<< st.match_events << " / " << st.total_events << "  "
-		<< double(st.match_events) / double(st.total_events) << "\n"
-		<< "oversize rate " << st.oversize_events << " / " << st.total_events
-		<< "  " << double(st.oversize_events) / double(st.total_events);
-}
-
-
 GroupCsi::GroupCsi(
 	unsigned int run,
 	const std::string &name,
@@ -42,7 +23,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, CsiMapEvent> &match_map,
 	FundamentalEvent &fundamental_event,
-	GroupCsi::MatchTriggerStatistics &statistics
+	Detector::MatchTriggerStatistics &statistics
 ) {
 	// initialize fundamental event
 	fundamental_event.match = true;
@@ -80,7 +61,7 @@ int CircularCsi::MatchTrigger(double window_left, double window_right) {
 	return Detector::MatchTrigger<
 		CsiMapEvent,
 		CircularCsiFundamentalEvent,
-		GroupCsi::MatchTriggerStatistics
+		MatchTriggerStatistics
 	>(
 		window_left,
 		window_right,
@@ -98,7 +79,7 @@ int SquareCsi::MatchTrigger(double window_left, double window_right) {
 	return Detector::MatchTrigger<
 		CsiMapEvent,
 		SquareCsiFundamentalEvent,
-		GroupCsi::MatchTriggerStatistics
+		MatchTriggerStatistics
 	>(
 		window_left,
 		window_right,

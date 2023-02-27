@@ -26,31 +26,6 @@ public:
 	~Tof() = default;
 
 
-	/// @brief statistics for matching trigger
-	///
-	class MatchTriggerStatistics {
-	public:
-		long long match_events;
-		long long total_events;
-
-		/// @brief constructor
-		/// @param[in] total total trigger events
-		///
-		MatchTriggerStatistics(long long total);
-
-
-		/// @brief overloaded operator<< function, output statistics
-		/// @param[in] os ostream
-		/// @param[in] statistics output object
-		/// @returns ostream
-		///
-		friend std::ostream& operator<<(
-			std::ostream &os,
-			const MatchTriggerStatistics &statistics
-		);
-	};
-
-
 	/// @brief match xia main trigger and build events
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window

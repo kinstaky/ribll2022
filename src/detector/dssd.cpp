@@ -6,28 +6,6 @@
 namespace ribll {
 
 //-----------------------------------------------------------------------------
-//						Dssd::MatchTriggerStatistics
-//-----------------------------------------------------------------------------
-
-Dssd::MatchTriggerStatistics::MatchTriggerStatistics(long long total)
-: total_events(total)
-, match_events(0)
-, oversize_events(0) {
-}
-
-
-std::ostream& operator<<(
-	std::ostream &os,
-	const Dssd::MatchTriggerStatistics &st
-) {
-	return os << "events match rate "
-		<< st.match_events << " / " << st.total_events << "  "
-		<< double(st.match_events) / double(st.total_events) << "\n"
-		<< st.oversize_events << " / " << st.total_events << "  "
-		<< double(st.oversize_events) / double(st.total_events);
-}
-
-//-----------------------------------------------------------------------------
 //								Dssd
 //-----------------------------------------------------------------------------
 Dssd::Dssd(unsigned int run, const std::string &name)
@@ -44,7 +22,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, DssdMapEvent> &match_map,
 	DssdFundamentalEvent &fundamental_event,
-	Dssd::MatchTriggerStatistics &statistics
+	Detector::MatchTriggerStatistics &statistics
 ) {
 	// initialize output fundamental event
 	fundamental_event.front_hit = 0;
@@ -112,7 +90,7 @@ int Dssd::MatchTrigger(double window_left, double window_right) {
 	return Detector::MatchTrigger<
 		DssdMapEvent,
 		DssdFundamentalEvent,
-		MatchTriggerStatistics
+		Detector::MatchTriggerStatistics
 	>(
 		window_left,
 		window_right,

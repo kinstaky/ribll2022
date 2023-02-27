@@ -21,32 +21,6 @@ public:
 	virtual ~Dssd() = default;
 
 
-	/// @brief statistics of matching trigger
-	///
-	class MatchTriggerStatistics {
-	public:
-		long long total_events;
-		long long match_events;
-		long long oversize_events;
-
-		/// @brief constructor
-		/// @param[in] total total events
-		///
-		MatchTriggerStatistics(long long total);
-
-
-		/// @brief overloaded operator<< function, output statistics
-		/// @param[in] os ostream
-		/// @param[in] statistics output object
-		/// @returns ostream
-		///
-		friend std::ostream& operator<<(
-			std::ostream &os,
-			const MatchTriggerStatistics &statisics
-		);
-	};
-
-
 	/// @brief match xia main trigger and build events
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window

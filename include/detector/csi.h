@@ -23,37 +23,13 @@ public:
 	///
 	virtual ~GroupCsi() = default;
 
-
-	class MatchTriggerStatistics {
-	public:
-		long long total_events;
-		long long match_events;
-		long long oversize_events;
-
-		/// @brief constructor
-		/// @param[in] total total events
-		///
-		MatchTriggerStatistics(long long total);
-
-
-		/// @brief overloaded operator<< function, output statistics
-		/// @param[in] os ostream
-		/// @param[in] statistics output object
-		/// @returns ostream
-		///
-		friend std::ostream& operator<<(
-			std::ostream &os,
-			const MatchTriggerStatistics &statisics
-		);
-	};
-
 protected:
 	unsigned int csi_size_;
 };
 
 class CircularCsi : public GroupCsi {
 public:
-	
+
 	/// @brief constructor
 	/// @param[in] run run number 
 	/// @param[in] name detector name

@@ -17,22 +17,6 @@ Tof::Tof(unsigned int run)
 }
 
 
-Tof::MatchTriggerStatistics::MatchTriggerStatistics(long long total)
-: match_events(0)
-, total_events(total) {
-}
-
-
-std::ostream& operator<<(
-	std::ostream &os,
-	const Tof::MatchTriggerStatistics &st
-) {
-	return os << "events match rate "
-		<< st.match_events << " / " << st.total_events << "  "
-		<< double(st.match_events) / double(st.total_events) << "\n";
-}
-
-
 int Tof::MatchTrigger(double window_left, double window_right) {
 	return Detector::MatchTrigger<
 		TofMapEvent,
