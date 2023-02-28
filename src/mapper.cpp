@@ -214,6 +214,8 @@ int Crate1Mapper::Map() {
 		}
 
 		ipt->GetEntry(entry);
+		if (raw_energy_ == 0) continue;
+
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
@@ -294,42 +296,74 @@ int Crate1Mapper::Map() {
 		} else if (sid_ == 6) {
 			// taf4 front side
 			strip_ = ch_;
-			FillTree(taf4_index);
+			if (raw_energy_ > 200) {
+				FillTree(taf4_index);
+			}
 		} else if (sid_ == 7) {
 			// taf5 front side
 			strip_ = ch_;
-			FillTree(taf5_index);
+			if (raw_energy_ > 100) {
+				FillTree(taf5_index);
+			}
 		} else if (sid_ == 8) {
 			// taf4/taf5 back side
 			side_ = 1;
 			if (ch_ < 8) {
 				// taf5 back side
 				strip_ = ch_;
-				FillTree(taf5_index);				
+				switch (strip_) {
+					case 7:
+						if (raw_energy_ > 600) FillTree(taf5_index);
+						break;
+					case 6:
+						if (raw_energy_ > 500) FillTree(taf5_index);
+						break;
+					case 0:
+					case 1:
+					case 5:
+						if (raw_energy_ > 450) FillTree(taf5_index);
+						break;
+					default:
+						if (raw_energy_ > 400) FillTree(taf5_index);
+				}
 			} else {
 				// taf4 back side
 				strip_ = ch_ - 8;
-				FillTree(taf4_index);
+				if (
+					(strip_ < 4 && raw_energy_ > 400)
+					|| (strip_ >= 4 && strip_ < 6 && raw_energy_ > 1000)
+					|| (strip_ >= 6 && raw_energy_ > 1200)
+				) {
+					FillTree(taf4_index);
+				}
 			}
 		} else if (sid_ == 9) {
 			// taf2 front side
 			strip_ = ch_;
-			FillTree(taf2_index);
+			if (raw_energy_ > 150) {
+				FillTree(taf2_index);
+			}
 		} else if (sid_ == 10) {
 			// taf3 front side
 			strip_ = ch_;
-			FillTree(taf3_index);
+			if (raw_energy_ > 150) {
+				FillTree(taf3_index);
+			}
 		} else if (sid_ == 11) {
 			// taf2/taf3 back side
 			side_ = 1;
 			if (ch_ < 8) {
 				// taf2 back side
 				strip_ = ch_;
-				FillTree(taf2_index);
+				if (raw_energy_ > 200) {
+					FillTree(taf2_index);
+				}
 			} else {
 				// taf3 back side
 				strip_ = ch_ - 8;
-				FillTree(taf3_index);
+				if (raw_energy_ > 400) {
+					FillTree(taf3_index);
+				}
 			}
 		} else {
 			FillTree(residual_index);
@@ -386,6 +420,8 @@ int Crate2Mapper::Map() {
 		}
 
 		ipt->GetEntry(entry);
+		if (raw_energy_ == 0) continue;
+
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
@@ -555,16 +591,16 @@ int Crate3Mapper::Map() {
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
 
-	for (Long64_t entry = 0; entry < entries; ++entry)
-	{
+	for (Long64_t entry = 0; entry < entries; ++entry) {
 		// show process
-		if (entry % entry100 == 0)
-		{
+		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
 
 		ipt->GetEntry(entry);
+		if (raw_energy_ == 0) continue;
+
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
@@ -777,6 +813,7 @@ int Crate4Mapper::Map() {
 					= madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
 				if (energy > 200) {
 					size_t index = dssd_event_.front_hit;
+					if (index >= 8) break;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
 					dssd_event_.front_time[index]
@@ -790,12 +827,16 @@ int Crate4Mapper::Map() {
 					= madc_[vtaf_back_module[i]][vtaf_back_channel[i]+j];
 				if (energy > 200) {
 					size_t index = dssd_event_.back_hit;
+					if (index >= 8) break;
 					dssd_event_.back_strip[index] = j;
 					dssd_event_.back_energy[index] = energy;
 					++dssd_event_.back_hit;
 				}
 			}
-			if (dssd_event_.front_hit && dssd_event_.back_hit) {
+			if (
+				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			) {
 				FillTree(taf_index[i]);
 			}
 		}
@@ -809,6 +850,7 @@ int Crate4Mapper::Map() {
 					= adc_[tab_front_module[i]][tab_front_channel[i]+j];
 				if (energy > 200) {
 					size_t index = dssd_event_.front_hit;
+					if (index >= 8) break;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
 					dssd_event_.front_time[index]
@@ -822,13 +864,17 @@ int Crate4Mapper::Map() {
 					= adc_[tab_back_module[i]][tab_back_channel[i]+j];
 				if (energy > 200) {
 					size_t index = dssd_event_.back_hit;
+					if (index >= 8) break;
 					dssd_event_.back_strip[index] = j;
 					dssd_event_.back_energy[index] = energy;
 					++dssd_event_.back_hit;
 				}
 
 			}
-			if (dssd_event_.front_hit && dssd_event_.back_hit) {
+			if (
+				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			) {
 				FillTree(tab_index[i]);
 			}
 		}

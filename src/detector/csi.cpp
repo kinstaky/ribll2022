@@ -54,6 +54,7 @@ void FillEvent(
 		++statistics.match_events;
 		statistics.used_events += used_events;
 	}
+	fundamental_event.match = valid;
 	return;
 }
 

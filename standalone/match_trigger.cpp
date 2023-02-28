@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <map>
 
 #include "include/detectors.h"
 
@@ -10,6 +11,13 @@ void PrintUsage(const char *name) {
 		<< "  run                       run number\n"
 		<< "  detector                  detector name\n";
 }
+
+const std::map<std::string, std::pair<double, double>> window_edge_map = {
+	{"tafcsi", {-1300.0, 800.0}},
+	{"tabcsi", {-1000.0, 800.0}},
+	{"t0csi", {-1600.0, 800.0}},
+	{"t1csi", {-1000.0, 800.0}}
+};
 
 int main(int argc, char **argv) {
 	// check parameters
@@ -24,7 +32,14 @@ int main(int argc, char **argv) {
 	std::shared_ptr<Detector> detector = CreateDetector(detector_name, run);
 	if (!detector) return -1;
 
-	if (detector->MatchTrigger(-1000, 1000)) {
+	std::pair<double, double> window_edge = {-1000.0, 1000.0};
+	// search for special window left and right edge
+	auto search = window_edge_map.find(detector_name);
+	// found special edge and assign to window_edge
+	if (search != window_edge_map.end()) {
+		window_edge = search->second;
+	}
+	if (detector->MatchTrigger(window_edge.first, window_edge.second)) {
 		std::cerr << "Error: Match trigger for "
 			<< detector_name << " failed.\n";
 		return -1;
