@@ -1,7 +1,6 @@
 #include "include/mapper.h"
 
 #include <iostream>
-#include <fstream>
 
 #include <TString.h>
 
@@ -651,8 +650,8 @@ size_t Crate4Mapper::CreatePPACTree(const char *name) {
 	TString file_name;
 	file_name.Form
 	(
-		"%s%s%s-correlation-%04d.root",
-		kGenerateDataPath, kCorrelationDir, name, run_
+		"%s%s%s-map-%04d.root",
+		kGenerateDataPath, kMappingDir, name, run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
@@ -668,8 +667,8 @@ size_t Crate4Mapper::CreatePPACTree(const char *name) {
 size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-correlation-%04d.root",
-		kGenerateDataPath, kCorrelationDir, name, run_
+		"%s%s%s-map-%04d.root",
+		kGenerateDataPath, kMappingDir, name, run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
@@ -683,116 +682,100 @@ size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 
 
 int Crate4Mapper::Map() {
+	// input decode file name
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s%04d.root",
 		kCrate4Path, kCrate4FileName, run_
 	);
+	// pointer to input file
 	TTree *ipt = Initialize(input_file_name.Data());
-	if (!ipt)
-	{
+	if (!ipt) {
 		std::cerr << "Error: initialize tree from " << input_file_name
 			<< " failed.\n";
 		return -1;
 	}
 
-	// create output trees
-	size_t vppac_index = CreatePPACTree("vppac");
-	size_t vtaf_index = CreateADSSDTree("vtaf");
-	size_t tab_index = CreateADSSDTree("tab");
-
-	// read align timestamp from file
+	// align file name
 	TString align_file_name;
 	align_file_name.Form(
-		"%s%stimestamp-%04d.txt",
+		"%s%salign-%04d.root",
 		kGenerateDataPath, kAlignDir, run_
 	);
-	std::ifstream align_in(align_file_name.Data());
-	if (!align_in.good())
-	{
-		std::cerr << "Error: open file " << align_file_name << " failed.\n";
+	// add friend to combine with align tree
+	if (!ipt->AddFriend("at=tree", align_file_name)) {
+		std::cerr << "Error: Add friend from "
+			<< align_file_name << " failed.\n";
 		return -1;
 	}
+	// setup align tree branch
+	ipt->SetBranchAddress("at.xia_time", &align_time_);
 
-	// show process
+	// create output trees
+	size_t vppac_index = CreatePPACTree("vppac");
+	size_t taf_index[2] = {CreateADSSDTree("taf0"), CreateADSSDTree("taf1")};
+	size_t tab_index[6];
+	for (size_t i = 0; i < 6; ++i) {
+		tab_index[i] = CreateADSSDTree(("tab" + std::to_string(i)).c_str());
+	}
+
+
+	// total number of entries in input tree
+	long long entries = ipt->GetEntries();\
+	// 1/100 of input entry, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
 	printf("Mapping crate 4   0%%");
 	fflush(stdout);
-	long long entries = ipt->GetEntries();
-	Long64_t entry100 = entries / 100;
-
-	for (Long64_t entry = 0; entry < entries; ++entry)
-	{
+	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
-		if (entry % entry100 == 0)
-		{
+		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
 
+		// read input event and align time
 		ipt->GetEntry(entry);
-
-		// read align timestamp
-		double align_time;
-		align_in >> align_time;
-		if (align_time < 0)
-		{
-			continue;
-		}
-
+		if (align_time_ < 0) continue;
 
 		// ppac
-		align_time_ = align_time;
 		ppac_event_.flag = 0;
 		ppac_event_.hit = ppac_event_.x_hit = ppac_event_.y_hit = 0;
-		for (size_t i = 0; i < ppac_num; ++i)
-		{
+		for (size_t i = 0; i < ppac_num; ++i) {
 			// check existence of all signal of ppac
-			for (size_t j = 0; j < 5; ++j)
-			{
-				if (gmulti_[0][i*5+j+96] > 0)
-				{
+			for (size_t j = 0; j < 5; ++j) {
+				if (gmulti_[0][i*5+j+96] > 0) {
 					++ppac_event_.hit;
 					ppac_event_.flag |= (1 << (i*5+j));
 				}
 			}
 			// check x1 and x2
-			if (gmulti_[0][i*5+96] > 0 && gmulti_[0][i*5+97] > 0)
-			{
+			if (gmulti_[0][i*5+96] > 0 && gmulti_[0][i*5+97] > 0) {
 				++ppac_event_.x_hit;
 				ppac_event_.x[i]
 					= double(gdc_[0][i*5+96][0] - gdc_[0][i*5+97][0]) * 0.1;
-			}
-			else
-			{
+			} else {
 				ppac_event_.x[i] = 0.0;
 			}
 			// check y1 and y2
-			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0)
-			{
+			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0) {
 				++ppac_event_.y_hit;
 				ppac_event_.y[i]
 					= double(gdc_[0][i*5+98][0] - gdc_[0][i*5+99][0]) * 0.1;
-			}
-			else
-			{
+			} else {
 				ppac_event_.y[i] = 0.0;
 			}
 		}
 		FillTree(vppac_index);
 
-		// vtaf
-		align_time_ = align_time;
-		for (size_t i = 0; i < 2; ++i)
-		{
-			dssd_event_.index = i;
+		// taf
+		for (size_t i = 0; i < 2; ++i) {
 			dssd_event_.front_hit = dssd_event_.back_hit = 0;
 			// check front side
-			for (size_t j = 0; j < 16; ++j)
-			{
+			for (size_t j = 0; j < 16; ++j) {
 				double energy
 					= madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
-				if (energy > 200)
-				{
+				if (energy > 200) {
 					size_t index = dssd_event_.front_hit;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
@@ -802,37 +785,29 @@ int Crate4Mapper::Map() {
 				}
 			}
 			// check back side
-			for (size_t j = 0; j < 8; ++j)
-			{
+			for (size_t j = 0; j < 8; ++j) {
 				double energy
 					= madc_[vtaf_back_module[i]][vtaf_back_channel[i]+j];
-				if (energy > 200)
-				{
+				if (energy > 200) {
 					size_t index = dssd_event_.back_hit;
 					dssd_event_.back_strip[index] = j;
 					dssd_event_.back_energy[index] = energy;
 					++dssd_event_.back_hit;
 				}
 			}
-			if (dssd_event_.front_hit && dssd_event_.back_hit)
-			{
-				FillTree(vtaf_index);
+			if (dssd_event_.front_hit && dssd_event_.back_hit) {
+				FillTree(taf_index[i]);
 			}
 		}
 
 		// tab
-		for (size_t i = 0; i < 6; ++i)
-		{
-			if (i == 4) continue;
-			dssd_event_.index = i;
+		for (size_t i = 0; i < 6; ++i) {
 			dssd_event_.front_hit = dssd_event_.back_hit = 0;
 			// check front side
-			for (size_t j = 0; j < 16; ++j)
-			{
+			for (size_t j = 0; j < 16; ++j) {
 				double energy
 					= adc_[tab_front_module[i]][tab_front_channel[i]+j];
-				if (energy > 200)
-				{
+				if (energy > 200) {
 					size_t index = dssd_event_.front_hit;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
@@ -842,12 +817,10 @@ int Crate4Mapper::Map() {
 				}
 			}
 			// check back side
-			for (size_t j = 0; j < 8; ++j)
-			{
+			for (size_t j = 0; j < 8; ++j) {
 				double energy
 					= adc_[tab_back_module[i]][tab_back_channel[i]+j];
-				if (energy > 200)
-				{
+				if (energy > 200) {
 					size_t index = dssd_event_.back_hit;
 					dssd_event_.back_strip[index] = j;
 					dssd_event_.back_energy[index] = energy;
@@ -855,18 +828,15 @@ int Crate4Mapper::Map() {
 				}
 
 			}
-			if (dssd_event_.front_hit && dssd_event_.back_hit)
-			{
-				FillTree(tab_index);
+			if (dssd_event_.front_hit && dssd_event_.back_hit) {
+				FillTree(tab_index[i]);
 			}
 		}
 	}
-
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	for (size_t i = 0; i < opfs_.size(); ++i)
-	{
+	for (size_t i = 0; i < opfs_.size(); ++i) {
 		opfs_[i]->cd();
 		opts_[i]->Write();
 		opfs_[i]->Close();

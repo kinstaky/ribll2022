@@ -3,7 +3,6 @@
 namespace ribll {
 
 void DssdMapEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("index", &index);
 	tree->SetBranchAddress("side", &side);
 	tree->SetBranchAddress("strip", &strip);
 	tree->SetBranchAddress("time", &time);
@@ -12,7 +11,6 @@ void DssdMapEvent::SetupInput(TTree *tree) {
 
 
 void DssdMapEvent::SetupOutput(TTree *tree) {
-	tree->Branch("index", &index, "index/s");
 	tree->Branch("side", &side, "side/s");
 	tree->Branch("strip", &strip, "s/s");
 	tree->Branch("time", &time, "t/D");
@@ -21,7 +19,6 @@ void DssdMapEvent::SetupOutput(TTree *tree) {
 
 
 void DssdFundamentalEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("index", &index);
 	tree->SetBranchAddress("front_hit", &front_hit);
 	tree->SetBranchAddress("back_hit", &back_hit);
 	tree->SetBranchAddress("front_strip", front_strip);
@@ -34,7 +31,6 @@ void DssdFundamentalEvent::SetupInput(TTree *tree) {
 
 
 void DssdFundamentalEvent::SetupOutput(TTree *tree) {
-	tree->Branch("index", &index, "index/s");
 	tree->Branch("front_hit", &front_hit, "fhit/s");
 	tree->Branch("back_hit", &back_hit, "bhit/s");
 	tree->Branch("front_strip", front_strip, "fs[fhit]/s");

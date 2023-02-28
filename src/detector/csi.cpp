@@ -31,22 +31,28 @@ void FillEvent(
 		fundamental_event.time[i] = -1.0;
 		fundamental_event.energy[i] = -1.0;
 	}
-	// check match events number
 	// if any channel is valid
 	bool valid = false;
+	unsigned int used_events = 0;
+	// range of events time is equal to trigger time
 	auto range = match_map.equal_range(trigger_time);
 	for (auto iter = range.first; iter != range.second; ++iter) {
 		if (fundamental_event.time[iter->second.index] > 0.0) {
+			// Found more than one signal in one event in CsI(Tl).
+			// So this is oversize event.
 			fundamental_event.match = false;
 			++statistics.oversize_events;
 		} else {
+			// Found the first signal in one CsI(Tl).
 			fundamental_event.time[iter->second.index] = iter->second.time;
 			fundamental_event.energy[iter->second.index] = iter->second.energy;
 			valid = true;
+			++used_events;
 		}
 	}
 	if (fundamental_event.match && valid) {
 		++statistics.match_events;
+		statistics.used_events += used_events;
 	}
 	return;
 }

@@ -7,7 +7,8 @@
 
 namespace ribll {
 
-struct Event {
+class Event {
+public:
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
 	///

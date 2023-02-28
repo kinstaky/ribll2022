@@ -2,6 +2,18 @@
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(EVENT_INCLUDE_DIR ${PROJECT_INCLUDE_DIR}/event)
 
+# trigger event library
+add_library(
+	trigger_event
+	trigger_event.cpp ${EVENT_INCLUDE_DIR}/trigger_event.h
+	${EVENT_INCLUDE_DIR}/event.h ${PROJECT_INCLUDE_DIR}/defs.h
+)
+target_include_directories(
+	trigger_event
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(trigger_event PUBLIC ROOT::Tree)
+
 # tof event library
 add_library(
 	tof_event

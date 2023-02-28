@@ -5,11 +5,8 @@
 
 namespace ribll {
 
-struct CsiMapEvent : public Event {
-	unsigned short index;
-	double time;
-	double energy;
-
+class CsiMapEvent : public Event {
+public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pinter to input tree
@@ -21,32 +18,36 @@ struct CsiMapEvent : public Event {
 	/// @param[in] tree pinter to output tree
 	///
 	virtual void SetupOutput(TTree *tree) override;
+
+
+	unsigned short index;
+	double time;
+	double energy;
 };
 
 
-struct CircularCsiFundamentalEvent : public Event {
+class CircularCsiFundamentalEvent : public Event {
+public:
+
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	///
+	virtual void SetupInput(TTree *tree) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param tree pointer to output tree
+	virtual void SetupOutput(TTree *tree) override;
+
+
 	bool match;
 	double time[12];
 	double energy[12];
-
-
-	/// @brief setup branches of input tree
-	/// @param[in] tree pointer to input tree
-	///
-	virtual void SetupInput(TTree *tree) override;
-
-
-	/// @brief setup branches of output tree
-	/// @param tree pointer to output tree
-	virtual void SetupOutput(TTree *tree) override;
 };
 
 
-struct SquareCsiFundamentalEvent : public Event {
-	bool match;
-	double time[4];
-	double energy[4];
-
+class SquareCsiFundamentalEvent : public Event {
+public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
@@ -57,6 +58,11 @@ struct SquareCsiFundamentalEvent : public Event {
 	/// @brief setup branches of output tree
 	/// @param tree pointer to output tree
 	virtual void SetupOutput(TTree *tree) override;
+
+
+	bool match;
+	double time[4];
+	double energy[4];
 };
 
 }

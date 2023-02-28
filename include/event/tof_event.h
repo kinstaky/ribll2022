@@ -5,26 +5,28 @@
 
 namespace ribll {
 
-struct TofMapEvent : public Event {
+class TofMapEvent : public Event {
+public:
+
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	///
+	virtual void SetupInput(TTree *tree) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[out] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+
 	double time;
 	unsigned short index;
-
-
-	/// @brief setup branches of input tree
-	/// @param[in] tree pointer to input tree
-	///
-	virtual void SetupInput(TTree *tree) override;
-
-
-	/// @brief setup branches of output tree
-	/// @param[out] tree pointer to output tree
-	///
-	virtual void SetupOutput(TTree *tree) override;
 };
 
-struct TofFundamentalEvent : public Event {
-	double time[2];
 
+class TofFundamentalEvent : public Event {
+public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
@@ -36,6 +38,9 @@ struct TofFundamentalEvent : public Event {
 	/// @param[out] tree pointer to output tree
 	///
 	virtual void SetupOutput(TTree *tree) override;
+
+
+	double time[2];
 };
 
 

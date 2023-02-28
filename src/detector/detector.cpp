@@ -81,9 +81,14 @@ int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
 	return 0;
 }
 
-Detector::MatchTriggerStatistics::MatchTriggerStatistics(long long total)
-: total_events(total)
+Detector::MatchTriggerStatistics::MatchTriggerStatistics(
+	long long reference,
+	long long total
+)
+: reference_events(reference)
+, total_events(total)
 , match_events(0)
+, used_events(0)
 , oversize_events(0) {
 }
 
@@ -92,11 +97,15 @@ std::ostream& operator<<(
 	std::ostream &os,
 	const Detector::MatchTriggerStatistics &st
 ) {
-	return os << "events match rate "
-		<< st.match_events << " / " << st.total_events << "  "
-		<< double(st.match_events) / double(st.total_events) << "\n"
-		<< "oversize rate " << st.oversize_events << " / " << st.total_events
-		<< "  " << double(st.oversize_events) / double(st.total_events);
+	return os << "trigger match rate "
+		<< st.match_events << " / " << st.reference_events << "  "
+		<< double(st.match_events) / double(st.reference_events) << "\n"
+		<< "mapped event used rate "
+		<< st.used_events << " / " << st.total_events << "  "
+		<< double(st.used_events) / double(st.total_events) << "\n"
+		<< "oversize rate "
+		<< st.oversize_events << " / " << st.reference_events << "  "
+		<< double(st.oversize_events) / double(st.reference_events);
 }
 
 

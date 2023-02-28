@@ -3,7 +3,6 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
-#include <fstream>
 
 #include <TGraph.h>
 #include <TString.h>
@@ -255,7 +254,7 @@ TGraph* Alignment::GroupAlignment() {
 			++vme_entry
 		) {
 			Long64_t vme_time = vme_times_[vme_entry];
-			Long64_t xia_time;
+			double xia_time;
 			int local_hit = 0;
 			for (
 				auto xia_iter = std::lower_bound(
@@ -283,38 +282,50 @@ TGraph* Alignment::GroupAlignment() {
 
 int Alignment::BuildResult(Double_t *calibration_param) {
 	// time window for all events
-	TH1F *time_window = new TH1F("ht", "total time window", 1000, -search_window_, search_window_);
+	TH1F *time_window =new TH1F(
+		"ht", "total time window", 1000, -search_window_, search_window_
+	);
 	// result tree
 	TTree *opt = new TTree("tree", "alignment result");
 	// output data
-	Long64_t xia_time;
-	Long64_t vme_time;
+	// output match VME trigger time recorded in XIA
+	double xia_time;
+	// output vme trigger time recorded in VME
+	long long vme_time;
 	// setup branches
-	opt->Branch("xia_time", &xia_time, "xt/L");
+	opt->Branch("xia_time", &xia_time, "xt/D");
 	opt->Branch("vme_time", &vme_time, "vt/L");
 
-	// file to record aligned timestamp of vme
-	TString output_file_name;
-	output_file_name.Form("%s%stimestamp-%04d.txt", kGenerateDataPath, kAlignDir, run_);
-	std::ofstream fout(output_file_name.Data());
-	if (!fout.good()) {
-		std::cerr << "Error: open file " << output_file_name << " failed.\n";
-		return -1;
-	}
+	// number of VME events can be aligned, for statistics
+	size_t align_events = 0;
+	// number of VME events match more than one VME trigger in XIA,
+	// for statistics
+	size_t oversize_events = 0;
 
-	// show process
+	// total entries in loop
+	size_t entries = vme_times_.size();
+	// 1/100 of total entries, for showing process
+	size_t entry100 = entries / 100 + 1;
+	// show begin
 	printf("Building result   0%%");
 	fflush(stdout);
-	size_t nentry100 = vme_times_.size() / 100;
-	size_t align_events = 0;
-	for (size_t vme_entry = 0; vme_entry < vme_times_.size(); ++vme_entry) {
-		if (vme_entry % nentry100 == 0) {
-			printf("\b\b\b\b%3ld%%", vme_entry / nentry100);
+	for (size_t vme_entry = 0; vme_entry < entries; ++vme_entry) {
+		// show process
+		if (vme_entry % entry100 == 0) {
+			printf("\b\b\b\b%3ld%%", vme_entry / entry100);
 			fflush(stdout);
 		}
 
-		vme_time = calibration_param[0] + calibration_param[1] * vme_times_[vme_entry];
-		size_t local_hit = 0;
+		// number of VME trigger in XIA match this VME event
+		size_t match_count = 0;
+
+
+		// calculate VME events time
+		vme_time =
+			calibration_param[0] +
+			calibration_param[1] * vme_times_[vme_entry];
+
+		// search for VME trigger in XIA
 		for (
 			auto xia_iter = std::lower_bound(
 				xia_times_.begin(),
@@ -325,20 +336,23 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 			++xia_iter
 		) {
 			if (*xia_iter > vme_time + search_window_) break;
-			++local_hit;
+			++match_count;
 			xia_time = *xia_iter;
 		}
-		if (local_hit == 1) {
+		if (match_count == 1) {
 			++align_events;
 			time_window->Fill(xia_time - vme_time);
-			opt->Fill();
+		} else {
+			++oversize_events;
+			// set to -1.0 as placeholder
+			xia_time = -1.0;
 		}
 
-		fout << (local_hit == 1 ? xia_time : -1) << "\n";
+		opt->Fill();
 	}
+	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	fout.close();
 	opt->Write();
 	time_window->Write();
 

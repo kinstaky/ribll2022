@@ -22,6 +22,13 @@ add_library(tof tof.cpp ${DETECTOR_INCLUDE_DIR}/tof.h)
 target_link_libraries(tof PUBLIC detector tof_event)
 
 
+# vme trigger library
+add_library(vme_trigger vme_trigger.cpp ${DETECTOR_INCLUDE_DIR}/vme_trigger.h)
+target_link_libraries(
+	vme_trigger
+	PUBLIC detector trigger_event ppac_event dssd_event
+)
+
 # dssd library
 add_library(dssd dssd.cpp ${DETECTOR_INCLUDE_DIR}/dssd.h)
 target_link_libraries(dssd PUBLIC detector dssd_event)

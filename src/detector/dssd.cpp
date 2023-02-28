@@ -59,6 +59,7 @@ void FillEvent(
 
 	// record events
 	if (front_events.size() > 8 || back_events.size() > 8) {
+		// Front or back events is more than 8, which is out of consideration.
 		fundamental_event.front_hit = 0;
 		fundamental_event.back_hit = 0;
 		++statistics.oversize_events;
@@ -82,6 +83,8 @@ void FillEvent(
 		&& fundamental_event.back_hit > 0
 	) {
 		++statistics.match_events;
+		statistics.used_events +=
+			fundamental_event.front_hit + fundamental_event.back_hit;
 	}
 
 }

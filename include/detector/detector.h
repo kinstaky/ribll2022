@@ -33,14 +33,12 @@ public:
 	///
 	class MatchTriggerStatistics {
 	public:
-		long long total_events;
-		long long match_events;
-		long long oversize_events;
 
 		/// @brief constructor
-		/// @param[in] total total events
+		/// @param[in] reference total reference trigger number
+		/// @param[in] total total mapped event number
 		///
-		MatchTriggerStatistics(long long total);
+		MatchTriggerStatistics(long long reference, long long total);
 
 
 		/// @brief overloaded operator<< function, output statistics
@@ -52,6 +50,18 @@ public:
 			std::ostream &os,
 			const MatchTriggerStatistics &statisics
 		);
+
+
+		// total number of main trigger
+		long long reference_events;
+		// total number of input mapped events
+		long long total_events;
+		// number of output fundamental events
+		long long match_events;
+		// number of used input mapped events
+		long long used_events;
+		// number of invalid input mapped events, because of noise or ...
+		long long oversize_events;
 	};
 
 	/// @brief match xia main trigger and build events
@@ -227,7 +237,7 @@ int Detector::MatchTrigger(
 	ipf->Close();
 
 	// for statistics
-	Statistics statistics(trigger_times.size());
+	Statistics statistics(trigger_times.size(), entries);
 
 	// show begin
 	printf("Writing fundamental events   0%%");
