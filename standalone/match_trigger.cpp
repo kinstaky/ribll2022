@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 	if (!detector) return -1;
 
 	if (detector->MatchTrigger(-1000, 1000)) {
-		std::cerr << "Error: match trigger for "
+		std::cerr << "Error: Match trigger for "
 			<< detector_name << " failed.\n";
 		return -1;
 	}

@@ -36,6 +36,14 @@ public:
 	/// @brief default destructor
 	///
 	virtual ~Taf() = default;
+
+
+	/// @brief match xia main trigger and build events
+	/// @param[in] window_left left edge of match window
+	/// @param[in] window_right right edge of match window
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int MatchTrigger(double window_left, double window_right);
 };
 
 
@@ -52,6 +60,14 @@ public:
 	/// @brief default destructor
 	///
 	virtual ~Tab() = default;
+
+
+	/// @brief match xia main trigger and build events
+	/// @param[in] window_left left edge of match window
+	/// @param[in] window_right right edge of match window
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int MatchTrigger(double window_left, double window_right);
 };
 
 
