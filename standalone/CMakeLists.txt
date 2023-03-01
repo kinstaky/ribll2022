@@ -46,3 +46,5 @@ target_link_libraries(match_trigger PUBLIC detectors)
 # add_executable(reftof reftof.cpp)
 # target_include_directories(reftof PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
 # target_link_libraries(reftof PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist)
+
+add_subdirectory(check)

@@ -200,6 +200,10 @@ int Crate1Mapper::Map() {
 	size_t tafcsi_index = CreateOutputTree("tafcsi");
 	size_t tabcsi_index = CreateOutputTree("tabcsi");
 
+	const unsigned short tabcsi_channel_index[12] = {
+		0, 1, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3
+	};
+
 	// show process
 	printf("Mapping crate 1   0%%");
 	fflush(stdout);
@@ -257,7 +261,7 @@ int Crate1Mapper::Map() {
 					FillTree(vme_trigger_index);
 					break;
 				case 15:
-					// tabcsi-0A
+					// tabcsi-0
 					FillTree(tabcsi_index);
 					break;
 				default:
@@ -276,7 +280,7 @@ int Crate1Mapper::Map() {
 				continue;
 			} else if (ch_ < 12) {
 				// tab csi
-				detector_index_ = ch_;
+				detector_index_ = tabcsi_channel_index[ch_];
 				FillTree(tabcsi_index);
 			} else {
 				// t0 csi
@@ -285,8 +289,18 @@ int Crate1Mapper::Map() {
 			}
 		} else if (sid_ == 5) {
 			if (ch_ < 12) {
+				switch (ch_) {
+					// special case for 8 and 9
+					case 8:
+						detector_index_ = 9;
+						break;
+					case 9:
+						detector_index_ = 8;
+						break;
+					default:
+						detector_index_ = ch_;
+				}
 				// taf csi
-				detector_index_ = ch_;
 				FillTree(tafcsi_index);
 			} else {
 				// t1 csi
@@ -848,13 +862,13 @@ int Crate4Mapper::Map() {
 			for (size_t j = 0; j < 16; ++j) {
 				double energy
 					= adc_[tab_front_module[i]][tab_front_channel[i]+j];
-				if (energy > 200) {
+				if (gmulti_[0][((6-i)%6)*16+j] > 0 && energy > 200) {
 					size_t index = dssd_event_.front_hit;
 					if (index >= 8) break;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
 					dssd_event_.front_time[index]
-						= (gdc_[0][i*16+j][0] - gdc_[0][127][0]) * 0.1;
+						= (gdc_[0][((6-i)%6)*16+j][0] - gdc_[0][127][0]) * 0.1;
 					++dssd_event_.front_hit;
 				}
 			}

@@ -42,10 +42,11 @@ const int kScalerPeriod = 200;
 //								vme module config
 //-----------------------------------------------------------------------------
 const unsigned long long tab_num = 6;
-const unsigned long long tab_front_module[tab_num] = {0, 0, 1, 2, 3, 3};
-const unsigned long long tab_front_channel[tab_num] = {16, 0, 0, 16, 16, 0};
-const unsigned long long tab_back_module[tab_num] = {1, 1, 2, 2, 4, 4};
-const unsigned long long tab_back_channel[tab_num] = {24, 16, 8, 0, 0, 8};
+const unsigned long long tab_front_module[tab_num] = {0, 3, 3, 2, 1, 0};
+const unsigned long long tab_front_channel[tab_num] = {16, 0, 16, 16, 0, 0};
+const unsigned long long tab_front_time_channel[tab_num] = {0, 80, 64, 48, 32, 16};
+const unsigned long long tab_back_module[tab_num] = {1, 4, 4, 2, 2, 1};
+const unsigned long long tab_back_channel[tab_num] = {24, 8, 0, 0, 8, 16};
 
 const unsigned long long vtaf_num = 2;
 const unsigned long long vtaf_front_module[vtaf_num] = {0, 0};
