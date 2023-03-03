@@ -40,8 +40,8 @@ void SquareCsiFundamentalEvent::SetupInput(TTree *tree) {
 
 void SquareCsiFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("match", &match, "m/O");
-	tree->Branch("time", time, "t[12]/D");
-	tree->Branch("energy", energy, "e[12]/D");
+	tree->Branch("time", time, "t[4]/D");
+	tree->Branch("energy", energy, "e[4]/D");
 }
 
 }

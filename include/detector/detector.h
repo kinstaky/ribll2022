@@ -180,7 +180,7 @@ int Detector::MatchTrigger(
 	std::multimap<double, MapEvent> match_map;
 
 	// show begin
-	printf("reading %s events   0%%", name_c_str());
+	printf("reading %s events   0%%", name_.c_str());
 	fflush(stdout);
 	// total entries form input tree
 	long long entries = ipt->GetEntries();
