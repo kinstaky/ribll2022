@@ -12,6 +12,7 @@
 #include <TF1.h>
 
 #include "include/defs.h"
+#include "include/statistics.h"
 
 namespace ribll {
 
@@ -84,7 +85,7 @@ int Alignment::ReadXiaTime() {
 int Alignment::ReadVmeTime() {
 	// set vme input file name
 	TString file_name;
-	file_name.Form("%s%s%04d.root", kCrate4Path, kCrate4FileName, run_);
+	file_name.Form("%s%s%04d.root", kCrate3Path, kCrate3FileName, run_);
 	// raed root file
 	TFile *ipf = new TFile(file_name, "read");
 	if (!ipf) {
@@ -296,11 +297,13 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 	opt->Branch("xia_time", &xia_time, "xt/D");
 	opt->Branch("vme_time", &vme_time, "vt/L");
 
-	// number of VME events can be aligned, for statistics
-	size_t align_events = 0;
-	// number of VME events match more than one VME trigger in XIA,
-	// for statistics
-	size_t oversize_events = 0;
+
+	AlignStatistics statistics(
+		run_,
+		xia_times_.size(),
+		vme_times_.size(),
+		calibration_param
+	);
 
 	// total entries in loop
 	size_t entries = vme_times_.size();
@@ -340,10 +343,10 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 			xia_time = *xia_iter;
 		}
 		if (match_count == 1) {
-			++align_events;
+			++statistics.align_events;
 			time_window->Fill(xia_time - vme_time);
 		} else {
-			++oversize_events;
+			++statistics.oversize_events;
 			// set to -1.0 as placeholder
 			xia_time = -1.0;
 		}
@@ -356,10 +359,8 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 	opt->Write();
 	time_window->Write();
 
-	std::cout << "xia alignment rate " << align_events << " / " << xia_times_.size()
-		<< " " << double(align_events) / double(xia_times_.size()) << "\n"
-		<< "vme alignment rate " << align_events << " / " << vme_times_.size()
-		<< " " << double(align_events) / double(vme_times_.size()) << "\n";
+	statistics.Write();
+	statistics.Print();
 
 	return 0;
 }

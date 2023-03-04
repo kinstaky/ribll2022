@@ -17,7 +17,7 @@ using namespace ribll;
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run crate\n"
 		"  run                run number\n"
-		"  crate              Choose crate to mapping, 1, 2, 3 for xia and 4 for vme\n"
+		"  crate              Choose crate to mapping, 0, 1, 2 for xia and 3 for vme\n"
 		"                       default(without this argument) is all.\n"
 		"Options:\n"
 		"  -h                 Print this help information.\n";
@@ -34,20 +34,26 @@ int main(int argc, char **argv) {
 	int run = atoi(argv[1]);
 	int crate = atoi(argv[2]);
 
-	if (crate == 1) {
+	if (crate == 0) {
+		Crate0Mapper crate0(run);
+		if (crate0.Map()) {
+			std::cerr << "Error: Mapping crate 0 failed.\n";
+		}
+	} else if (crate == 1) {
 		Crate1Mapper crate1(run);
-		crate1.Map();
+		if (crate1.Map()) {
+			std::cerr << "Error: Mapping crate 1 failed.\n";
+		}
 	} else if (crate == 2) {
 		Crate2Mapper crate2(run);
 		if (crate2.Map()) {
-			std::cerr << "Error: mapping crate 2 failed.\n";
+			std::cerr << "Error: Mapping crate 2 failed.\n";
 		}
 	} else if (crate == 3) {
 		Crate3Mapper crate3(run);
-		crate3.Map();
-	} else if (crate == 4) {
-		Crate4Mapper crate4(run);
-		crate4.Map();
+		if (crate3.Map()) {
+			std::cerr << "Error: Mapping crate 3 failed.\n";
+		}
 	} else {
 		std::cerr << "Error: Invalid crate number " << crate << "\n";
 		return -1;

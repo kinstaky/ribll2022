@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[1]);
 
-	ribll::Crate1Mapper crate1(run);
-	if (crate1.Map()) {
-		std::cerr << "Error: Map crate 1 failed.\n";
+	ribll::Crate0Mapper crate0(run);
+	if (crate0.Map()) {
+		std::cerr << "Error: Map crate 0 failed.\n";
 		return -1;
 	}
 
@@ -38,6 +38,12 @@ int main(int argc, char **argv) {
 	align.SetVerbose(false);
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";
+		return -1;
+	}
+
+	ribll::Crate1Mapper crate1(run);
+	if (crate1.Map()) {
+		std::cerr << "Error: Map crate 1 failed.\n";
 		return -1;
 	}
 
@@ -50,12 +56,6 @@ int main(int argc, char **argv) {
 	ribll::Crate3Mapper crate3(run);
 	if (crate3.Map()) {
 		std::cerr << "Error: Map crate 3 failed.\n";
-		return -1;
-	}
-
-	ribll::Crate4Mapper crate4(run);
-	if (crate4.Map()) {
-		std::cerr << "Error: Map crate 4 failed.\n";
 		return -1;
 	}
 

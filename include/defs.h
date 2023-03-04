@@ -7,17 +7,17 @@ namespace ribll {
 //									data path
 //-----------------------------------------------------------------------------
 // decode data
-const char* const kCrate1Path = "/data/ribll2022/decode/crate1/";
-const char* const kCrate1FileName = "c1data";
+const char* const kCrate0Path = "/data/ribll2022/decode/crate1/";
+const char* const kCrate0FileName = "c1data";
 
-const char* const kCrate2Path = "/data/ribll2022/decode/crate2/";
-const char* const kCrate2FileName = "c2data";
+const char* const kCrate1Path = "/data/ribll2022/decode/crate2/";
+const char* const kCrate1FileName = "c2data";
 
-const char* const kCrate3Path = "/data/ribll2022/decode/crate3/";
-const char* const kCrate3FileName = "c3data";
+const char* const kCrate2Path = "/data/ribll2022/decode/crate3/";
+const char* const kCrate2FileName = "c3data";
 
-const char* const kCrate4Path = "/data/ribll2022/decode/vme/";
-const char* const kCrate4FileName = "vmedata";
+const char* const kCrate3Path = "/data/ribll2022/decode/vme/";
+const char* const kCrate3FileName = "vmedata";
 
 // generate data
 const char* const kGenerateDataPath = "/data/ribll2022/";

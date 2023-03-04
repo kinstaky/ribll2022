@@ -5,6 +5,7 @@
 #include <TString.h>
 
 #include "include/defs.h"
+#include "include/statistics.h"
 
 namespace ribll {
 
@@ -161,17 +162,17 @@ size_t XiaMapper::CreateTriggerTree(const char *name) {
 
 
 //-----------------------------------------------------------------------------
-//								crate 1 mapper
+//								crate 0 mapper
 //-----------------------------------------------------------------------------
 
-Crate1Mapper::Crate1Mapper(unsigned int run)
+Crate0Mapper::Crate0Mapper(unsigned int run)
 : XiaMapper(run) {
 }
 
 
-int Crate1Mapper::Map() {
+int Crate0Mapper::Map() {
 	TString input_file_name;
-	input_file_name.Form("%s%s_R%04d.root", kCrate1Path, kCrate1FileName, run_);
+	input_file_name.Form("%s%s_R%04d.root", kCrate0Path, kCrate0FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
 		std::cerr << "Error: intialize tree from " << input_file_name
@@ -391,24 +392,29 @@ int Crate1Mapper::Map() {
 		opts_[i]->Write();
 		opfs_[i]->Close();
 	}
+
+	MapStatistics statistics(run_, 0);
+	statistics.Write();
+	statistics.Print();
+
 	return 0;
 }
 
 
 
 //-----------------------------------------------------------------------------
-//								crate 2 mapper
+//								crate 1 mapper
 //-----------------------------------------------------------------------------
 
-Crate2Mapper::Crate2Mapper(unsigned int run)
+Crate1Mapper::Crate1Mapper(unsigned int run)
 :XiaMapper(run) {
 }
 
-int Crate2Mapper::Map() {
+int Crate1Mapper::Map() {
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s_R%04d.root",
-		kCrate2Path,  kCrate2FileName, run_
+		kCrate1Path,  kCrate1FileName, run_
 	);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
@@ -472,14 +478,12 @@ int Crate2Mapper::Map() {
 				if (raw_energy_ > 100) {
 					FillTree(t0d3_index);
 				}
-			}
-			else {
+			} else {
 				if (raw_energy_ > 50) {
 					FillTree(t0d3_index);
 				}
 			}
-		}
-		else {
+		} else {
 			// t0d2
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
@@ -488,8 +492,7 @@ int Crate2Mapper::Map() {
 				if (raw_energy_ > 300) {
 					FillTree(t0d2_index);
 				}
-			}
-			else {
+			} else {
 				if (raw_energy_ > 800) {
 					FillTree(t0d2_index);
 				}
@@ -553,8 +556,7 @@ int Crate2Mapper::Map() {
 			if (raw_energy_ > 100) {
 				FillTree(t0d3_index);
 			}
-		}
-		else {
+		} else {
 			if (raw_energy_ > 50) {
 				FillTree(t0d3_index);
 			}
@@ -569,25 +571,30 @@ int Crate2Mapper::Map() {
 		opts_[i]->Write();
 		opfs_[i]->Close();
 	}
+
+	MapStatistics statistics(run_, 1);
+	statistics.Write();
+	statistics.Print();
+
 	return 0;
 }
 
 
 //-----------------------------------------------------------------------------
-//								crate 3 mapper
+//								crate 2 mapper
 //-----------------------------------------------------------------------------
 
-Crate3Mapper::Crate3Mapper(unsigned int run)
+Crate2Mapper::Crate2Mapper(unsigned int run)
 : XiaMapper(run) {
 }
 
 
-int Crate3Mapper::Map() {
+int Crate2Mapper::Map() {
 	TString input_file_name;
 	input_file_name.Form
 	(
 		"%s%s_R%04d.root",
-		kCrate3Path,  kCrate3FileName, run_
+		kCrate2Path,  kCrate2FileName, run_
 	);
 	TTree *ipt = Initialize(input_file_name.Data());
 	if (!ipt) {
@@ -620,8 +627,7 @@ int Crate3Mapper::Map() {
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
 
 		side_ = sid_ < 6 ? 0 : 1;
-		switch ((sid_ - 2) % 4)
-		{
+		switch ((sid_ - 2) % 4) {
 			case 0:
 				strip_ = ch_ + 32;
 				break;
@@ -636,17 +642,12 @@ int Crate3Mapper::Map() {
 				break;
 		}
 
-		if (side_ == 1 && (strip_ < 16 || strip_ >= 32))
-		{
-			if (raw_energy_ > 200)
-			{
+		if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
+			if (raw_energy_ > 200) {
 				FillTree(t0d1_index);
 			}
-		}
-		else
-		{
-			if (raw_energy_ > 300)
-			{
+		} else {
+			if (raw_energy_ > 300) {
 				FillTree(t0d1_index);
 			}
 		}
@@ -655,26 +656,30 @@ int Crate3Mapper::Map() {
 	printf("\b\b\b\b100%%\n");
 
 
-	for (size_t i = 0; i < opfs_.size(); ++i)
-	{
+	for (size_t i = 0; i < opfs_.size(); ++i) {
 		opfs_[i]->cd();
 		opts_[i]->Write();
 		opfs_[i]->Close();
 	}
+
+	MapStatistics statistics(run_, 2);
+	statistics.Write();
+	statistics.Print();
+
 	return 0;
 }
 
 
 //-----------------------------------------------------------------------------
-//								crate 4 mapper
+//								crate 3 mapper
 //-----------------------------------------------------------------------------
 
-Crate4Mapper::Crate4Mapper(unsigned int run)
+Crate3Mapper::Crate3Mapper(unsigned int run)
 : run_(run) {
 }
 
 
-TTree* Crate4Mapper::Initialize(const char *file_name) {
+TTree* Crate3Mapper::Initialize(const char *file_name) {
 	TFile *ipf = new TFile(file_name, "read");
 	if (!ipf) {
 		std::cerr << "Error: open file " << file_name << " failed.\n";
@@ -695,7 +700,7 @@ TTree* Crate4Mapper::Initialize(const char *file_name) {
 }
 
 
-size_t Crate4Mapper::CreatePPACTree(const char *name) {
+size_t Crate3Mapper::CreatePPACTree(const char *name) {
 	// output file name
 	TString file_name;
 	file_name.Form
@@ -714,7 +719,7 @@ size_t Crate4Mapper::CreatePPACTree(const char *name) {
 }
 
 
-size_t Crate4Mapper::CreateADSSDTree(const char *name) {
+size_t Crate3Mapper::CreateADSSDTree(const char *name) {
 	TString file_name;
 	file_name.Form(
 		"%s%s%s-map-%04d.root",
@@ -731,12 +736,12 @@ size_t Crate4Mapper::CreateADSSDTree(const char *name) {
 }
 
 
-int Crate4Mapper::Map() {
+int Crate3Mapper::Map() {
 	// input decode file name
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s%04d.root",
-		kCrate4Path, kCrate4FileName, run_
+		kCrate3Path, kCrate3FileName, run_
 	);
 	// pointer to input file
 	TTree *ipt = Initialize(input_file_name.Data());
@@ -901,6 +906,11 @@ int Crate4Mapper::Map() {
 		opts_[i]->Write();
 		opfs_[i]->Close();
 	}
+
+	MapStatistics statistics(run_, 2);
+	statistics.Write();
+	statistics.Print();
+
 	return 0;
 }
 

@@ -4,6 +4,17 @@ set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 add_subdirectory(detector)
 add_subdirectory(event)
 
+# statistics library
+add_library(
+	statistics
+	statistics.cpp
+	${PROJECT_INCLUDE_DIR}/statistics.h
+	${PROJECT_INCLUDE_DIR}/defs.h
+)
+target_include_directories(
+	statistics PUBLIC ${PROJECT_SOURCE_DIR}
+)
+
 # mapper library
 add_library(
 	mapper
@@ -15,7 +26,7 @@ target_include_directories(
 )
 target_link_libraries(
 	mapper
-	PUBLIC ppac_event dssd_event ROOT::Core ROOT::RIO ROOT::Tree
+	PUBLIC statistics ppac_event dssd_event ROOT::Core ROOT::RIO ROOT::Tree
 )
 
 # alignment
@@ -29,7 +40,7 @@ target_include_directories(
 )
 target_link_libraries(
 	alignment
-	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+	PUBLIC statistics ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
 
 # detectors

@@ -135,6 +135,30 @@ protected:
 };
 
 
+class Crate0Mapper : public XiaMapper {
+public:
+
+	/// @brief constructor
+	///
+	/// @param[in] run run number
+	///
+	Crate0Mapper(unsigned int run);
+
+
+	/// @brief default destructor
+	///
+	virtual ~Crate0Mapper() = default;
+
+
+	/// @brief mapping function
+	///
+	/// @returns 0 for success, -1 otherwise
+	///
+	virtual int Map();
+};
+
+
+
 class Crate1Mapper : public XiaMapper {
 public:
 
@@ -156,8 +180,6 @@ public:
 	///
 	virtual int Map();
 };
-
-
 
 class Crate2Mapper : public XiaMapper {
 public:
@@ -181,9 +203,9 @@ public:
 	virtual int Map();
 };
 
-class Crate3Mapper : public XiaMapper {
-public:
 
+class Crate3Mapper {
+public:
 	/// @brief constructor
 	///
 	/// @param[in] run run number
@@ -194,28 +216,6 @@ public:
 	/// @brief default destructor
 	///
 	virtual ~Crate3Mapper() = default;
-
-
-	/// @brief mapping function
-	///
-	/// @returns 0 for success, -1 otherwise
-	///
-	virtual int Map();
-};
-
-
-class Crate4Mapper {
-public:
-	/// @brief constructor
-	///
-	/// @param[in] run run number
-	///
-	Crate4Mapper(unsigned int run);
-
-
-	/// @brief default destructor
-	///
-	virtual ~Crate4Mapper() = default;
 
 
 	/// @brief mapping function
