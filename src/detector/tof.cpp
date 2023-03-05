@@ -27,7 +27,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, TofMapEvent> &match_map,
 	TofFundamentalEvent &fundamental_event,
-	Detector::MatchTriggerStatistics &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	fundamental_event.time[0] = -1.0;
 	fundamental_event.time[1] = -1.0;
@@ -48,11 +48,7 @@ void FillEvent(
 
 
 int Tof::MatchTrigger(double window_left, double window_right) {
-	return Detector::MatchTrigger<
-		TofMapEvent,
-		TofFundamentalEvent,
-		MatchTriggerStatistics
-	>(
+	return Detector::MatchTrigger<TofMapEvent, TofFundamentalEvent>(
 		window_left,
 		window_right,
 		FillEvent

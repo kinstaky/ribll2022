@@ -6,7 +6,7 @@
 
 namespace ribll {
 
-const std::string title_time = "year,month,day,hour,minute,second,unix_time";
+const std::string title_time = ",year,month,day,hour,minute,second,unix_time";
 
 time_t ReadStatisticsTime(std::istream &is) {
 	// temporary variable to store time
@@ -86,11 +86,13 @@ std::istream& operator>>(
 	// read run number
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.run_;
 
 	// read crate id
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.crate_;
 
 	statistics.store_time_ = ReadStatisticsTime(is);
@@ -168,26 +170,31 @@ std::istream& operator>>(
 	// read run number
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.run_;
 
 	// read align events
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.align_events;
 
 	// read oversize events
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.oversize_events;
 
 	// read total XIA events
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.xia_events_;
 
 	// read vme events
 	std::getline(is, line, ',');
 	ss.str(line);
+	ss.clear();
 	ss >> statistics.vme_events_;
 
 	// read XIA and VME alignment rate
@@ -198,6 +205,7 @@ std::istream& operator>>(
 	for (size_t i = 0; i < 2; ++i) {
 		std::getline(is, line, ',');
 		ss.str(line);
+		ss.clear();
 		ss >> statistics.calibration_param_[i];
 	}
 
@@ -224,5 +232,153 @@ std::ostream& operator<<(
 	WriteStatisticsTime(os, sta.store_time_);
 	return os;
 }
+
+
+//-----------------------------------------------------------------------------
+//							MatchTriggerStatistics
+//-----------------------------------------------------------------------------
+
+MatchTriggerStatistics::MatchTriggerStatistics(
+	unsigned int run,
+	const std::string &detector,
+	long long reference_events,
+	long long mapped_events
+)
+: Statistics(run)
+, match_events(0)
+, used_events(0)
+, oversize_events(0)
+, conflict_events(0)
+, detector_(detector) 
+, reference_events_(reference_events)
+, mapped_events_(mapped_events) {
+
+}
+
+
+void MatchTriggerStatistics::Write() {
+	Statistics::Write<MatchTriggerStatistics>("match-trigger");
+}
+
+
+void MatchTriggerStatistics::Print() const {
+	std::cout << "Trigger match rate "
+		<< match_events << " / " << reference_events_ << "  "
+		<< double(match_events) / double(reference_events_) << "\n"
+		<< "Mapped events used rate "
+		<< used_events << " / " << mapped_events_ << "  "
+		<< double(used_events) / double(mapped_events_) << "\n"
+		<< "Oversize events "
+		<< oversize_events << " / " << reference_events_ << "  "
+		<< double(oversize_events) / double(reference_events_) << "\n"
+		<< "Conflict events "
+		<< conflict_events << " / " << mapped_events_ << "  "
+		<< double(conflict_events) / double(mapped_events_) << "\n";
+}
+
+
+std::string MatchTriggerStatistics::Title() const {
+	return "run,detector,match,used,oversize,conflict,reference,mapped"
+		",match_rate,used_rate,oversize_rate,conflict_rate"
+		+ title_time;
+}
+
+
+std::string MatchTriggerStatistics::Key() const {
+	return Statistics::Key() + detector_;
+}
+
+
+std::istream& operator>>(
+	std::istream& is,
+	MatchTriggerStatistics &statistics
+) {
+	// buffer to store from getline
+	std::string line;
+	// stringstream to help convert to other type
+	std::stringstream ss;
+
+	// read run number
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.run_;
+
+	// read detector name
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.detector_;
+
+	// read match events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.match_events;
+
+	// read used events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.used_events;
+
+	// read oversize events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.oversize_events;
+
+	// read conflict events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.conflict_events;
+
+	// read reference events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.reference_events_;
+
+	// read mapped events
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.mapped_events_;
+
+	// read rates
+	for (int i = 0; i < 4; ++i) {
+		std::getline(is, line, ',');
+	}
+
+	// read time
+	statistics.store_time_ = ReadStatisticsTime(is);
+
+	return is;
+}
+
+
+std::ostream& operator<<(
+	std::ostream& os,
+	const MatchTriggerStatistics &sta
+) {
+	os << std::setw(4) << std::setfill('0') << sta.run_
+		<< "," << sta.detector_
+		<< "," << sta.match_events
+		<< "," << sta.used_events
+		<< "," << sta.oversize_events
+		<< "," << sta.conflict_events
+		<< "," << sta.reference_events_
+		<< "," << sta.mapped_events_
+		<< "," << double(sta.match_events) / double(sta.reference_events_)
+		<< "," << double(sta.used_events) / double(sta.mapped_events_)
+		<< "," << double(sta.oversize_events) / double(sta.reference_events_)
+		<< "," << double(sta.conflict_events) / double(sta.mapped_events_);
+
+	WriteStatisticsTime(os, sta.store_time_);
+	
+	return os;
+}
+
 
 }			// namespace ribll

@@ -907,7 +907,7 @@ int Crate3Mapper::Map() {
 		opfs_[i]->Close();
 	}
 
-	MapStatistics statistics(run_, 2);
+	MapStatistics statistics(run_, 3);
 	statistics.Write();
 	statistics.Print();
 

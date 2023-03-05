@@ -9,6 +9,7 @@
 #include <TTree.h>
 
 #include "include/defs.h"
+#include "include/statistics.h"
 
 namespace ribll {
 
@@ -29,41 +30,6 @@ public:
 	//							MatchTrigger
 	//-------------------------------------------------------------------------
 
-	/// @brief statistics of matching trigger
-	///
-	class MatchTriggerStatistics {
-	public:
-
-		/// @brief constructor
-		/// @param[in] reference total reference trigger number
-		/// @param[in] total total mapped event number
-		///
-		MatchTriggerStatistics(long long reference, long long total);
-
-
-		/// @brief overloaded operator<< function, output statistics
-		/// @param[in] os ostream
-		/// @param[in] statistics output object
-		/// @returns ostream
-		///
-		friend std::ostream& operator<<(
-			std::ostream &os,
-			const MatchTriggerStatistics &statisics
-		);
-
-
-		// total number of main trigger
-		long long reference_events;
-		// total number of input mapped events
-		long long total_events;
-		// number of output fundamental events
-		long long match_events;
-		// number of used input mapped events
-		long long used_events;
-		// number of invalid input mapped events, because of noise or ...
-		long long oversize_events;
-	};
-
 	/// @brief match xia main trigger and build events
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
@@ -75,18 +41,13 @@ public:
 	/// @brief template of match trigger
 	/// @tparam MapEvent type of map event
 	/// @tparam FundamentalEvent type of fundamental event
-	/// @tparam Statistics type of statistics
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @param[in] fill_event function to convert map event
 	///		to fundamental event
 	/// @returns 0 if success, -1 otherwise
 	///
-	template<
-		typename MapEvent,
-		typename FundamentalEvent,
-		typename Statistics
-	>
+	template<typename MapEvent, typename FundamentalEvent>
 	int MatchTrigger(
 		double window_left,
 		double window_right,
@@ -94,7 +55,7 @@ public:
 			double trigger_time,
 			const std::multimap<double, MapEvent> &match_map,
 			FundamentalEvent &fundamental_event,
-			Statistics &statistics
+			MatchTriggerStatistics &statistics
 		)
 	);
 
@@ -114,11 +75,7 @@ private:
 
 
 
-template<
-	typename MapEvent,
-	typename FundamentalEvent,
-	typename Statistics
->
+template<typename MapEvent, typename FundamentalEvent>
 int Detector::MatchTrigger(
 	double window_left,
 	double window_right,
@@ -126,7 +83,7 @@ int Detector::MatchTrigger(
 		double trigger_time,
 		const std::multimap<double, MapEvent> &match_map,
 		FundamentalEvent &fundamental_event,
-		Statistics &statistics
+		MatchTriggerStatistics &statistics
 	)
 ) {
 	const double look_window = 10'000;
@@ -179,6 +136,14 @@ int Detector::MatchTrigger(
 	// detector's match events in map
 	std::multimap<double, MapEvent> match_map;
 
+	// for statistics
+	MatchTriggerStatistics statistics(
+		run_,
+		name_,
+		trigger_times.size(),
+		ipt->GetEntries()
+	);
+
 	// show begin
 	printf("reading %s events   0%%", name_.c_str());
 	fflush(stdout);
@@ -216,6 +181,9 @@ int Detector::MatchTrigger(
 			if (*iter <= map_event.time + window_left) continue;
 			if (*iter >= map_event.time + window_right) continue;
 
+			// find conflict event
+			if (match_time > 0) ++statistics.conflict_events; 
+
 			if (
 				fabs(*iter-map_event.time) < fabs(match_time-map_event.time)
 			) {
@@ -235,9 +203,6 @@ int Detector::MatchTrigger(
 	hist_look_window->Write();
 	// close input file
 	ipf->Close();
-
-	// for statistics
-	Statistics statistics(trigger_times.size(), entries);
 
 	// show begin
 	printf("Writing %s fundamental events   0%%", name_.c_str());
@@ -269,8 +234,10 @@ int Detector::MatchTrigger(
 	// close output file
 	opf->Close();
 
+	// save statistics
+	statistics.Write();
 	// show statistics
-	std::cout << statistics << "\n";
+	statistics.Print();
 
 	return 0;
 }

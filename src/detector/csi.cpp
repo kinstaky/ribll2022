@@ -23,7 +23,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, CsiMapEvent> &match_map,
 	FundamentalEvent &fundamental_event,
-	Detector::MatchTriggerStatistics &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	// initialize fundamental event
 	fundamental_event.match = true;
@@ -65,11 +65,7 @@ CircularCsi::CircularCsi(unsigned int run, const std::string &name)
 
 
 int CircularCsi::MatchTrigger(double window_left, double window_right) {
-	return Detector::MatchTrigger<
-		CsiMapEvent,
-		CircularCsiFundamentalEvent,
-		MatchTriggerStatistics
-	>(
+	return Detector::MatchTrigger<CsiMapEvent, CircularCsiFundamentalEvent>(
 		window_left,
 		window_right,
 		FillEvent<CircularCsiFundamentalEvent, 12>
@@ -83,11 +79,7 @@ SquareCsi::SquareCsi(unsigned int run, const std::string &name)
 
 
 int SquareCsi::MatchTrigger(double window_left, double window_right) {
-	return Detector::MatchTrigger<
-		CsiMapEvent,
-		SquareCsiFundamentalEvent,
-		MatchTriggerStatistics
-	>(
+	return Detector::MatchTrigger<CsiMapEvent, SquareCsiFundamentalEvent>(
 		window_left,
 		window_right,
 		FillEvent<SquareCsiFundamentalEvent, 4>

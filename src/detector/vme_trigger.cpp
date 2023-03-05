@@ -21,7 +21,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, TriggerEvent> &match_map,
 	TriggerEvent &fundamental_event,
-	Detector::MatchTriggerStatistics &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	fundamental_event.time = -1.0;
 	size_t match_count = match_map.count(trigger_time);
@@ -99,8 +99,12 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 	ipt->SetBranchAddress("time", &align_time);
 	event.SetupOutput(opt);
 
-	// match events, for statistics
-	long long match_events = 0;
+	MatchTriggerStatistics statistics(
+		run,
+		name,
+		trigger_tree->GetEntries(),
+		ipt->GetEntries()
+	);
 
 	// total entry of reference trigger
 	long long entries = trigger_tree->GetEntries();
@@ -149,7 +153,8 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 				// match the XIA trigger.
 				// jump to next entry
 				++input_entry;
-				++match_events;
+				++statistics.match_events;
+				++statistics.used_events;
 			} else {
 				// Align time is larger than trigger time, which mean no
 				// match events is found.
@@ -172,24 +177,15 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 	// close output file
 	opf->Close();
 
-	// show statistics
-	std::cout << name << " events match rate "
-		<< match_events << " / " << entries << "  "
-		<< double(match_events) / double(entries) << "\n"
-		<< "events used rate "
-		<< match_events << " / " << total_input_entries << "  "
-		<< double(match_events) / double(total_input_entries) << "\n";
+	statistics.Write();
+	statistics.Print();
 
 	return 0;
 }
 
 
 int VmeTrigger::MatchTrigger(double window_left, double window_right) {
-	if (Detector::MatchTrigger<
-		TriggerEvent,
-		TriggerEvent,
-		MatchTriggerStatistics
-	>(
+	if (Detector::MatchTrigger<TriggerEvent, TriggerEvent>(
 		window_left,
 		window_right,
 		FillEvent

@@ -22,7 +22,7 @@ void FillEvent(
 	double trigger_time,
 	const std::multimap<double, DssdMapEvent> &match_map,
 	DssdFundamentalEvent &fundamental_event,
-	Detector::MatchTriggerStatistics &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	// initialize output fundamental event
 	fundamental_event.front_hit = 0;
@@ -90,11 +90,7 @@ void FillEvent(
 }
 
 int Dssd::MatchTrigger(double window_left, double window_right) {
-	return Detector::MatchTrigger<
-		DssdMapEvent,
-		DssdFundamentalEvent,
-		Detector::MatchTriggerStatistics
-	>(
+	return Detector::MatchTrigger<DssdMapEvent, DssdFundamentalEvent>(
 		window_left,
 		window_right,
 		FillEvent

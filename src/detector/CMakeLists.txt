@@ -13,7 +13,7 @@ target_include_directories(
 )
 target_link_libraries(
 	detector
-	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+	PUBLIC statistics ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
 
 
