@@ -242,7 +242,7 @@ private:
 	// output data
 	PpacFundamentalEvent ppac_event_;
 	DssdFundamentalEvent dssd_event_;
-	double align_time_;
+	long long align_time_;
 
 
 

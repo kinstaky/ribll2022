@@ -22,6 +22,7 @@ public:
 
 	unsigned short side;
 	unsigned short strip;
+	bool cfd_flag;
 	double time;
 	double energy;
 };
@@ -55,10 +56,11 @@ public:
 	virtual inline void Nullify() {
 		front_hit = back_hit = 0;
 	}
-	
+
 
 	unsigned short front_hit;
 	unsigned short back_hit;
+	unsigned short cfd_flag;
 	unsigned short front_strip[8];
 	unsigned short back_strip[8];
 	double front_time[8];

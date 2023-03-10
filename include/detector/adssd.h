@@ -43,7 +43,7 @@ public:
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(double window_left, double window_right);
+	virtual int MatchTrigger(double window_left, double window_right) override;
 };
 
 
@@ -67,7 +67,7 @@ public:
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(double window_left, double window_right);
+	virtual int MatchTrigger(double window_left, double window_right) override;
 };
 
 

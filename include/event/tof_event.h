@@ -22,6 +22,7 @@ public:
 
 	double time;
 	unsigned short index;
+	bool cfd_flag;
 };
 
 
@@ -41,6 +42,7 @@ public:
 
 
 	double time[2];
+	unsigned short cfd_flag;
 };
 
 

@@ -23,12 +23,17 @@ void FillEvent(
 	TriggerEvent &fundamental_event,
 	MatchTriggerStatistics &statistics
 ) {
-	fundamental_event.time = -1.0;
+	fundamental_event.time = -1e5;
+	fundamental_event.cfd_flag = 0;
+	fundamental_event.timestamp = -1;
+
 	size_t match_count = match_map.count(trigger_time);
 	if (match_count == 1) {
 		auto range = match_map.equal_range(trigger_time);
 		for (auto iter = range.first; iter != range.second; ++iter) {
-			fundamental_event.time = iter->second.time;
+			fundamental_event.time = iter->second.time - trigger_time;
+			fundamental_event.timestamp = iter->second.timestamp;
+			fundamental_event.cfd_flag = iter->second.cfd_flag;
 		}
 		++statistics.match_events;
 		++statistics.used_events;
@@ -57,9 +62,9 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 		return -1;
 	}
 	// reference vme trigger time
-	double trigger_time;
+	long long trigger_time;
 	// setup input branch
-	trigger_tree->SetBranchAddress("time", &trigger_time);
+	trigger_tree->SetBranchAddress("timestamp", &trigger_time);
 
 	// setup detector map event input
 	// name of input detector map event file
@@ -93,7 +98,7 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 	// input and output event
 	FundamentalEvent event;
 	// input align detector align trigger time
-	double align_time;
+	long long align_time;
 	// setup input and output detector tree branches
 	event.SetupInput(ipt);
 	ipt->SetBranchAddress("time", &align_time);

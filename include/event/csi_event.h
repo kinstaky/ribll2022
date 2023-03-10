@@ -21,6 +21,7 @@ public:
 
 
 	unsigned short index;
+	bool cfd_flag;
 	double time;
 	double energy;
 };
@@ -41,6 +42,7 @@ public:
 
 
 	bool match;
+	unsigned short cfd_flag;
 	double time[12];
 	double energy[12];
 };
@@ -61,6 +63,7 @@ public:
 
 
 	bool match;
+	unsigned short cfd_flag;
 	double time[4];
 	double energy[4];
 };

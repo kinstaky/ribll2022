@@ -181,9 +181,6 @@ int Detector::MatchTrigger(
 			if (*iter <= map_event.time + window_left) continue;
 			if (*iter >= map_event.time + window_right) continue;
 
-			// find conflict event
-			if (match_time > 0) ++statistics.conflict_events; 
-
 			if (
 				fabs(*iter-map_event.time) < fabs(match_time-map_event.time)
 			) {

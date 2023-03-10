@@ -1,7 +1,6 @@
 #ifndef __PPAC_EVENT_H__
 #define __PPAC_EVENT_H__
 
-#include "include/defs.h"
 #include "include/event/event.h"
 
 namespace ribll {
@@ -23,6 +22,7 @@ public:
 
 	unsigned short index;
 	unsigned short side;
+	bool cfd_flag;
 	double time;
 };
 
@@ -58,11 +58,14 @@ public:
 
 
 	unsigned int flag;
+	unsigned short cfd_flag;
 	unsigned short hit;
 	unsigned short x_hit;
 	unsigned short y_hit;
-	double x[ppac_num];
-	double y[ppac_num];
+	double x1[3];
+	double x2[3];
+	double y1[3];
+	double y2[3];
 };
 
 

@@ -5,6 +5,7 @@ namespace ribll {
 void DssdMapEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("side", &side);
 	tree->SetBranchAddress("strip", &strip);
+	tree->SetBranchAddress("cfd", &cfd_flag);
 	tree->SetBranchAddress("time", &time);
 	tree->SetBranchAddress("energy", &energy);
 }
@@ -13,6 +14,7 @@ void DssdMapEvent::SetupInput(TTree *tree) {
 void DssdMapEvent::SetupOutput(TTree *tree) {
 	tree->Branch("side", &side, "side/s");
 	tree->Branch("strip", &strip, "s/s");
+	tree->Branch("cfd", &cfd_flag, "cfd/O");
 	tree->Branch("time", &time, "t/D");
 	tree->Branch("energy", &energy, "e/D");
 }
@@ -21,6 +23,7 @@ void DssdMapEvent::SetupOutput(TTree *tree) {
 void DssdFundamentalEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("front_hit", &front_hit);
 	tree->SetBranchAddress("back_hit", &back_hit);
+	tree->SetBranchAddress("cfd", &cfd_flag);
 	tree->SetBranchAddress("front_strip", front_strip);
 	tree->SetBranchAddress("back_strip", back_strip);
 	tree->SetBranchAddress("front_time", front_time);
@@ -33,6 +36,7 @@ void DssdFundamentalEvent::SetupInput(TTree *tree) {
 void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("front_hit", &front_hit, "fhit/s");
 	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("cfd", &cfd_flag, "cfd/s");
 	tree->Branch("front_strip", front_strip, "fs[fhit]/s");
 	tree->Branch("back_strip", back_strip, "bs[bhit]/s");
 	tree->Branch("front_time", front_time, "ft[fhit]/D");

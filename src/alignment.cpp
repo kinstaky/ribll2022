@@ -54,8 +54,8 @@ int Alignment::ReadXiaTime() {
 		return -1;
 	}
 	// set branches
-	double xia_time;
-	ipt->SetBranchAddress("time", &xia_time);
+	long long xia_time;
+	ipt->SetBranchAddress("timestamp", &xia_time);
 
 	// show process
 	printf("reading xia events   0%%");
@@ -281,7 +281,7 @@ TGraph* Alignment::GroupAlignment() {
 }
 
 
-int Alignment::BuildResult(Double_t *calibration_param) {
+int Alignment::BuildResult(double *calibration_param) {
 	// time window for all events
 	TH1F *time_window =new TH1F(
 		"ht", "total time window", 1000, -search_window_, search_window_
@@ -290,11 +290,11 @@ int Alignment::BuildResult(Double_t *calibration_param) {
 	TTree *opt = new TTree("tree", "alignment result");
 	// output data
 	// output match VME trigger time recorded in XIA
-	double xia_time;
+	long long xia_time;
 	// output vme trigger time recorded in VME
 	long long vme_time;
 	// setup branches
-	opt->Branch("xia_time", &xia_time, "xt/D");
+	opt->Branch("xia_time", &xia_time, "xt/L");
 	opt->Branch("vme_time", &vme_time, "vt/L");
 
 

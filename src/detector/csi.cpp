@@ -28,24 +28,29 @@ void FillEvent(
 	// initialize fundamental event
 	fundamental_event.match = true;
 	for (unsigned int i = 0; i < csi_size; ++i) {
-		fundamental_event.time[i] = -1.0;
-		fundamental_event.energy[i] = -1.0;
+		fundamental_event.time[i] = -1e5;
+		fundamental_event.energy[i] = -1e5;
 	}
+	fundamental_event.cfd_flag = 0;
+
 	// if any channel is valid
 	bool valid = false;
 	unsigned int used_events = 0;
 	// range of events time is equal to trigger time
 	auto range = match_map.equal_range(trigger_time);
 	for (auto iter = range.first; iter != range.second; ++iter) {
-		if (fundamental_event.time[iter->second.index] > 0.0) {
+		if (fundamental_event.time[iter->second.index] > -9e4) {
 			// Found more than one signal in one event in CsI(Tl).
-			// So this is oversize event.
+			// So this is conflict event.
 			fundamental_event.match = false;
-			++statistics.oversize_events;
+			++statistics.conflict_events;
 		} else {
+			size_t index = iter->second.index;
 			// Found the first signal in one CsI(Tl).
-			fundamental_event.time[iter->second.index] = iter->second.time;
-			fundamental_event.energy[iter->second.index] = iter->second.energy;
+			fundamental_event.cfd_flag |=
+				iter->second.cfd_flag ? (1 << index) : 0;
+			fundamental_event.time[index] = iter->second.time - trigger_time;
+			fundamental_event.energy[index] = iter->second.energy;
 			valid = true;
 			++used_events;
 		}

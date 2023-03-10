@@ -83,7 +83,7 @@ private:
 	double search_high_bound_;
 
 	// xia data map
-	std::vector<double> xia_times_;
+	std::vector<long long> xia_times_;
 	// vme time list
 	std::vector<long long> vme_times_;
 

@@ -5,6 +5,7 @@ namespace ribll {
 
 void CsiMapEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("index", &index);
+	tree->SetBranchAddress("cfd", &cfd_flag);
 	tree->SetBranchAddress("time", &time);
 	tree->SetBranchAddress("energy", &energy);
 }
@@ -12,6 +13,7 @@ void CsiMapEvent::SetupInput(TTree *tree) {
 
 void CsiMapEvent::SetupOutput(TTree *tree) {
 	tree->Branch("index", &index, "index/s");
+	tree->Branch("cfd", &cfd_flag, "cfd/O");
 	tree->Branch("time", &time, "t/D");
 	tree->Branch("energy", &energy, "e/D");
 }
@@ -19,6 +21,7 @@ void CsiMapEvent::SetupOutput(TTree *tree) {
 
 void CircularCsiFundamentalEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("match", &match);
+	tree->SetBranchAddress("cfd", &cfd_flag);
 	tree->SetBranchAddress("time", time);
 	tree->SetBranchAddress("energy", energy);
 }
@@ -26,6 +29,7 @@ void CircularCsiFundamentalEvent::SetupInput(TTree *tree) {
 
 void CircularCsiFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("match", &match, "m/O");
+	tree->Branch("cfd", &cfd_flag, "cfd/s");
 	tree->Branch("time", time, "t[12]/D");
 	tree->Branch("energy", energy, "e[12]/D");
 }
@@ -33,6 +37,7 @@ void CircularCsiFundamentalEvent::SetupOutput(TTree *tree) {
 
 void SquareCsiFundamentalEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("match", &match);
+	tree->SetBranchAddress("cfd", &cfd_flag);
 	tree->SetBranchAddress("time", time);
 	tree->SetBranchAddress("energy", energy);
 }
@@ -40,6 +45,7 @@ void SquareCsiFundamentalEvent::SetupInput(TTree *tree) {
 
 void SquareCsiFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("match", &match, "m/O");
+	tree->Branch("cfd", &cfd_flag, "cfd/s");
 	tree->Branch("time", time, "t[4]/D");
 	tree->Branch("energy", energy, "e[4]/D");
 }

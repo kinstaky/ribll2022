@@ -21,6 +21,8 @@ public:
 
 
 	double time;
+	long long timestamp;
+	bool cfd_flag;
 };
 
 }

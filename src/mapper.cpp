@@ -114,6 +114,7 @@ size_t XiaMapper::CreateOutputTree(const char *name) {
 	opt->Branch("timestamp", &timestamp_, "ts/L");
 	opt->Branch("time", &time_, "t/D");
 	opt->Branch("energy", &energy_, "e/D");
+	opt->Branch("cfd", &cfdft_, "cfd/O");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -155,6 +156,8 @@ size_t XiaMapper::CreateTriggerTree(const char *name) {
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	opt->Branch("time", &time_, "time/D");
+	opt->Branch("timestamp", &timestamp_, "ts/L");
+	opt->Branch("cfd", &cfdft_, "cfd/O");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -712,7 +715,7 @@ size_t Crate3Mapper::CreatePPACTree(const char *name) {
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	ppac_event_.SetupOutput(opt);
-	opt->Branch("time", &align_time_, "t/D");
+	opt->Branch("time", &align_time_, "t/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -729,7 +732,7 @@ size_t Crate3Mapper::CreateADSSDTree(const char *name) {
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	dssd_event_.SetupOutput(opt);
-	opt->Branch("time", &align_time_, "t/D");
+	opt->Branch("time", &align_time_, "t/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -795,8 +798,14 @@ int Crate3Mapper::Map() {
 
 		// ppac
 		ppac_event_.flag = 0;
+		ppac_event_.cfd_flag = 0;
 		ppac_event_.hit = ppac_event_.x_hit = ppac_event_.y_hit = 0;
 		for (size_t i = 0; i < ppac_num; ++i) {
+			ppac_event_.x1[i] = -1e5;
+			ppac_event_.x2[i] = -1e5;
+			ppac_event_.y1[i] = -1e5;
+			ppac_event_.y2[i] = -1e5;
+
 			// check existence of all signal of ppac
 			for (size_t j = 0; j < 5; ++j) {
 				if (gmulti_[0][i*5+j+96] > 0) {
@@ -805,25 +814,35 @@ int Crate3Mapper::Map() {
 				}
 			}
 			// check x1 and x2
+			if (gmulti_[0][i*5+96] > 0) {
+				ppac_event_.x1[i] =
+					(gdc_[0][i*5+96][0] - gdc_[0][127][0]) * 0.1;
+			}
+			if (gmulti_[0][i*5+97] > 0) {
+				ppac_event_.x2[i] =
+					(gdc_[0][i*5+97][0] - gdc_[0][127][0]) * 0.1;
+			}
 			if (gmulti_[0][i*5+96] > 0 && gmulti_[0][i*5+97] > 0) {
 				++ppac_event_.x_hit;
-				ppac_event_.x[i]
-					= double(gdc_[0][i*5+96][0] - gdc_[0][i*5+97][0]) * 0.1;
-			} else {
-				ppac_event_.x[i] = 0.0;
 			}
+
 			// check y1 and y2
+			if (gmulti_[0][i*5+98] > 0) {
+				ppac_event_.y1[i] =
+					(gdc_[0][i*5+98][0] - gdc_[0][127][0]) * 0.1;
+			}
+			if (gmulti_[0][i*5+99] > 0) {
+				ppac_event_.y2[i] =
+					(gdc_[0][i*5+99][0] - gdc_[0][127][0]) * 0.1;
+			}
 			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0) {
 				++ppac_event_.y_hit;
-				ppac_event_.y[i]
-					= double(gdc_[0][i*5+98][0] - gdc_[0][i*5+99][0]) * 0.1;
-			} else {
-				ppac_event_.y[i] = 0.0;
 			}
 		}
 		FillTree(vppac_index);
 
 		// taf
+		dssd_event_.cfd_flag = 0;
 		for (size_t i = 0; i < 2; ++i) {
 			dssd_event_.front_hit = dssd_event_.back_hit = 0;
 			// check front side

@@ -29,15 +29,19 @@ void FillEvent(
 	TofFundamentalEvent &fundamental_event,
 	MatchTriggerStatistics &statistics
 ) {
-	fundamental_event.time[0] = -1.0;
-	fundamental_event.time[1] = -1.0;
+	fundamental_event.time[0] = -1e5;
+	fundamental_event.time[1] = -1e5;
+	fundamental_event.cfd_flag = 0;
 
 	// check match events number
 	size_t match_count = match_map.count(trigger_time);
 	if (match_count == 1 || match_count == 2) {
 		auto range = match_map.equal_range(trigger_time);
 		for (auto iter = range.first; iter != range.second; ++iter) {
-			fundamental_event.time[iter->second.index] = iter->second.time;
+			fundamental_event.time[iter->second.index] =
+				iter->second.time - trigger_time;
+			fundamental_event.cfd_flag |=
+				iter->second.cfd_flag ? (1 << iter->second.index) : 0;
 		}
 		++statistics.match_events;
 		statistics.used_events += match_count;
