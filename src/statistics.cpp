@@ -249,7 +249,7 @@ MatchTriggerStatistics::MatchTriggerStatistics(
 , used_events(0)
 , oversize_events(0)
 , conflict_events(0)
-, detector_(detector) 
+, detector_(detector)
 , reference_events_(reference_events)
 , mapped_events_(mapped_events) {
 
@@ -376,9 +376,78 @@ std::ostream& operator<<(
 		<< "," << double(sta.conflict_events) / double(sta.mapped_events_);
 
 	WriteStatisticsTime(os, sta.store_time_);
-	
+
 	return os;
 }
+
+
+//-----------------------------------------------------------------------------
+//							XiaTriggerPeriodStatistics
+//-----------------------------------------------------------------------------
+
+XiaTriggerPeriodStatistics::XiaTriggerPeriodStatistics(
+	unsigned int run,
+	double period
+)
+: Statistics(run)
+, period_(period) {
+}
+
+
+void XiaTriggerPeriodStatistics::Write() {
+	Statistics::Write<XiaTriggerPeriodStatistics>("xt-period");
+}
+
+
+void XiaTriggerPeriodStatistics::Print() const {
+	std::cout << "Mininum period time is " << period_ << " ns\n";
+}
+
+
+std::string XiaTriggerPeriodStatistics::Title() const {
+	return "run,period" + title_time;
+}
+
+
+std::istream& operator>>(
+	std::istream &is,
+	XiaTriggerPeriodStatistics &statistics
+) {
+	// buffer to store from getline
+	std::string line;
+	// stringstream to help convert to other type
+	std::stringstream ss;
+
+	// read run number
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.run_;
+
+	// read period
+	std::getline(is, line, ',');
+	ss.str(line);
+	ss.clear();
+	ss >> statistics.period_;
+
+		// read time
+	statistics.store_time_ = ReadStatisticsTime(is);
+
+	return is;
+}
+
+
+std::ostream& operator<<(
+	std::ostream& os,
+	const XiaTriggerPeriodStatistics &sta
+) {
+	os << std::setw(4) << std::setfill('0') << sta.run_
+		<< "," << sta.period_;
+
+	WriteStatisticsTime(os, sta.store_time_);
+	return os;
+}
+
 
 
 }			// namespace ribll

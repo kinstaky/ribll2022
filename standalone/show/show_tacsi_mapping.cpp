@@ -17,7 +17,7 @@ TCanvas *c1;
 // output file name
 TString output_file_name;
 
-int Check(unsigned int run, const std::string &name) {
+int Show(unsigned int run, const std::string &name) {
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(
@@ -100,29 +100,29 @@ int main(int argc, char **argv) {
 	// initialize global variables
 	c1 = new TCanvas;
 	output_file_name.Form(
-		"%scheck/tacsi-mapping-%04u.pdf",
-		kGenerateDataPath, run
+		"%s%s/tacsi-mapping-%04u.pdf",
+		kGenerateDataPath, kShowDir, run
 	);
 
 	// add first title page to output pdf file
 	TPaveText *first_page = new TPaveText(0.05, 0.1, 0.95, 0.9);
-	first_page->AddText("PDF for checking TAF and TAB csi mapping");
+	first_page->AddText("PDF for showing TAF and TAB csi mapping");
 	first_page->Draw();
 	c1->Print(output_file_name + "(", "Title:start");
 
-	// check TAF
+	// show TAF
 	for (int i = 0; i < 6; ++i) {
 		std::string detector = "taf" + std::to_string(i);
-		if (Check(run, detector)) {
-			std::cerr << "Error: Check " << detector << " failed.\n";
+		if (Show(run, detector)) {
+			std::cerr << "Error: Show " << detector << " failed.\n";
 		}
 	}
 
-	// check TAB
+	// show TAB
 	for (int i = 0; i < 6; ++i) {
 		std::string detector = "tab" + std::to_string(i);
-		if (Check(run, detector)) {
-			std::cerr << "Error: Check " << detector << " failed.\n";
+		if (Show(run, detector)) {
+			std::cerr << "Error: Show " << detector << " failed.\n";
 		}
 	}
 

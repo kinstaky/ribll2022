@@ -31,6 +31,9 @@ const char* const kNormalizeDir = "normalize/";
 const char* const kMergedDir = "merge/";
 const char* const kTelescopeDir = "telescope/";
 
+const char* const kCheckDir = "check/";
+const char* const kShowDir = "show/";
+
 
 //-----------------------------------------------------------------------------
 //								xia vme alignment

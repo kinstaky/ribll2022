@@ -48,3 +48,4 @@ target_link_libraries(match_trigger PUBLIC detectors)
 # target_link_libraries(reftof PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist)
 
 add_subdirectory(check)
+add_subdirectory(show)
