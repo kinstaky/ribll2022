@@ -1,6 +1,7 @@
 # include directory
 set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
+add_subdirectory(check)
 add_subdirectory(detector)
 add_subdirectory(event)
 

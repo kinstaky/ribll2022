@@ -13,3 +13,8 @@ target_link_libraries(
 	check_tacsi_mapping
 	PUBLIC ROOT::Core ROOT::Tree ROOT::RIO ROOT::Hist ROOT::Gpad
 )
+
+
+# check chain
+add_executable(check_chain check_chain.cpp)
+target_link_libraries(check_chain PRIVATE chain_check)

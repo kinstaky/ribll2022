@@ -61,6 +61,14 @@ public:
 	///
 	virtual std::string Key() const;
 
+
+	/// @brief get store time
+	/// @returns store time
+	///
+	inline virtual time_t Time() const {
+		return store_time_;
+	}
+
 protected:
 	// run number
 	unsigned int run_;
@@ -342,7 +350,7 @@ void Statistics::Write(const std::string &type) {
 		char buffer[1024];
 		// read the first title line
 		fin.getline(buffer, sizeof(buffer));
-		
+
 		// loop to read entries
 		while (fin.good()) {
 			fin >> entry;
@@ -351,7 +359,7 @@ void Statistics::Write(const std::string &type) {
 		// close file
 		fin.close();
 	}
-	
+
 	// use entry to store statistics
 	entry = *(static_cast<Entry*>(this));
 	// try to find the entry with the key(run number and detector name)

@@ -257,7 +257,7 @@ MatchTriggerStatistics::MatchTriggerStatistics(
 
 
 void MatchTriggerStatistics::Write() {
-	Statistics::Write<MatchTriggerStatistics>("match-trigger");
+	Statistics::Write<MatchTriggerStatistics>("match");
 }
 
 

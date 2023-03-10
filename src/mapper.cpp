@@ -181,7 +181,7 @@ int Crate0Mapper::Map() {
 	}
 
 	// create residual tree
-	size_t residual_index = CreateResidualTree("c1");
+	size_t residual_index = CreateResidualTree("c0");
 
 	// create output trees
 	size_t tof_index = CreateOutputTree("tof");
@@ -206,7 +206,7 @@ int Crate0Mapper::Map() {
 	};
 
 	// show process
-	printf("Mapping crate 1   0%%");
+	printf("Mapping crate 0   0%%");
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
@@ -428,7 +428,7 @@ int Crate1Mapper::Map() {
 	size_t t0d2_index = CreateOutputTree("t0d2");
 
 	// show process
-	printf("Mapping crate 2   0%%");
+	printf("Mapping crate 1   0%%");
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
@@ -505,7 +505,7 @@ int Crate1Mapper::Map() {
 
 	// read events of t0d3 recorded in crate1
 	input_file_name.Form(
-		"%s%sc1-residual-%04d.root",
+		"%s%sc0-residual-%04d.root",
 		kGenerateDataPath, kMappingDir, run_
 	);
 	TTree *res_ipt = Initialize(input_file_name.Data());
@@ -516,7 +516,7 @@ int Crate1Mapper::Map() {
 	}
 
 	// show process
-	printf("Mapping crate 1 residual   0%%");
+	printf("Mapping crate 0 residual   0%%");
 	fflush(stdout);
 	entries = res_ipt->GetEntries();
 	entry100 = entries / 100;
@@ -607,7 +607,7 @@ int Crate2Mapper::Map() {
 	size_t t0d1_index = CreateOutputTree("t0d1");
 
 	// show process
-	printf("Mapping crate 3   0%%");
+	printf("Mapping crate 2   0%%");
 	fflush(stdout);
 	long long entries = ipt->GetEntries();
 	Long64_t entry100 = entries / 100;
@@ -780,7 +780,7 @@ int Crate3Mapper::Map() {
 	// 1/100 of input entry, for showing process
 	long long entry100 = entries / 100 + 1;
 	// show start
-	printf("Mapping crate 4   0%%");
+	printf("Mapping crate 3   0%%");
 	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
