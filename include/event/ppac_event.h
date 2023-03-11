@@ -66,6 +66,7 @@ public:
 	double x2[3];
 	double y1[3];
 	double y2[3];
+	double anode[3];
 };
 
 

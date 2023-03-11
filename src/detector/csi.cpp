@@ -44,6 +44,7 @@ void FillEvent(
 			// So this is conflict event.
 			fundamental_event.match = false;
 			++statistics.conflict_events;
+			break;
 		} else {
 			size_t index = iter->second.index;
 			// Found the first signal in one CsI(Tl).
@@ -59,7 +60,7 @@ void FillEvent(
 		++statistics.match_events;
 		statistics.used_events += used_events;
 	}
-	fundamental_event.match = valid;
+	if (!valid) fundamental_event.match = false;
 	return;
 }
 

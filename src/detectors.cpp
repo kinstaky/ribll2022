@@ -12,6 +12,8 @@ std::shared_ptr<Detector> CreateDetector(
 		return std::make_shared<Tof>(run);
 	} else if (name == "vt") {
 		return std::make_shared<VmeTrigger>(run);
+	} else if (name == "xppac") {
+		return std::make_shared<Ppac>(run, "xppac");
 	} else if (name == "t0d1") {
 		return std::make_shared<T0d1>(run);
 	} else if (name == "t0d2") {

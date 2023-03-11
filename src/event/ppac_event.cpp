@@ -28,6 +28,7 @@ void PpacFundamentalEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("x2", x2);
 	tree->SetBranchAddress("y1", y1);
 	tree->SetBranchAddress("y2", y2);
+	tree->SetBranchAddress("anode", anode);
 }
 
 
@@ -41,6 +42,7 @@ void PpacFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("x2", x2, "x2[3]/D");
 	tree->Branch("y1", y1, "y1[3]/D");
 	tree->Branch("y2", y2, "y2[3]/D");
+	tree->Branch("anode", anode, "a[3]/D");
 }
 
 }

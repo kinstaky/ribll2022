@@ -46,7 +46,7 @@ target_link_libraries(
 
 # detectors
 add_library(detectors detectors.cpp ${PROJECT_INCLUDE_DIR}/detectors.h)
-target_link_libraries(detectors PUBLIC tof dssd adssd csi vme_trigger)
+target_link_libraries(detectors PUBLIC adssd csi dssd ppac tof vme_trigger)
 
 # # telescope
 # add_library(

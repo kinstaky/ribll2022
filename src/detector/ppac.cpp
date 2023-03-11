@@ -22,12 +22,80 @@ void FillEvent(
 	PpacFundamentalEvent &fundamental_event,
 	MatchTriggerStatistics &statistics
 ) {
-	auto range = match_map.equal_range(trigger_time);
-	for (auto iter = range.first; iter != range.second; ++iter) {
-		
+	// initialize fundamental event
+	fundamental_event.flag = 0;
+	fundamental_event.cfd_flag = 0;
+	fundamental_event.hit = 0;
+	fundamental_event.x_hit = 0;
+	fundamental_event.y_hit = 0;
+	for (size_t i = 0; i < ppac_num; ++i) {
+		fundamental_event.x1[i] = -1e5;
+		fundamental_event.x2[i] = -1e5;
+		fundamental_event.y1[i] = -1e5;
+		fundamental_event.y2[i] = -1e5;
+		fundamental_event.anode[i] = -1e5;
 	}
 
+	auto range = match_map.equal_range(trigger_time);
+	for (auto iter = range.first; iter != range.second; ++iter) {
+		unsigned int index = iter->second.index * 5 + iter->second.side;
+		if ((fundamental_event.flag & (1 << index)) != 0) {
+			// conflict event
+			++statistics.conflict_events;
+			fundamental_event.flag = 0;
+			break;
+		} else {
+			++fundamental_event.hit;
+			fundamental_event.flag |= 1 << index;
+			fundamental_event.cfd_flag |=
+				iter->second.cfd_flag ? (1 << index) : 0;
+			// fill x or y or a
+			double time = iter->second.time - trigger_time;
+			if (iter->second.side == 0) {
+				fundamental_event.x1[iter->second.index] = time;
+			} else if (iter->second.side == 1) {
+				fundamental_event.x2[iter->second.index] = time;
+			} else if (iter->second.side == 2) {
+				fundamental_event.y1[iter->second.index] = time;
+			} else if (iter->second.side == 3) {
+				fundamental_event.y2[iter->second.index] = time;
+			} else {
+				fundamental_event.anode[iter->second.index] = time;
+			}
+		}
+	}
+
+	// fill x hit and y hit
+	for (size_t i = 0; i < ppac_num; ++i) {
+		unsigned int x_mask = 0x3 << (i * 5);
+		fundamental_event.x_hit +=
+			(fundamental_event.flag & x_mask) == x_mask ? 1 : 0;
+		unsigned int y_mask = 0xc << (i * 5);
+		fundamental_event.y_hit +=
+			(fundamental_event.flag & y_mask) == y_mask ? 1 : 0;
+	}
+
+	// match event is able to track
+	if (fundamental_event.x_hit >= 2 && fundamental_event.y_hit >= 2) {
+		++statistics.match_events;
+	}
+	// flag over 0 means match at least one channel
+	if (fundamental_event.flag) {
+		statistics.used_events += fundamental_event.hit;
+	}
+
+	return;
 }
+
+
+int Ppac::MatchTrigger(double window_left, double window_right) {
+	return Detector::MatchTrigger<PpacMapEvent, PpacFundamentalEvent>(
+		window_left,
+		window_right,
+		FillEvent
+	);
+}
+
 // int PPAC::ReadEvents() {
 // 	events_.clear();
 // 	// setup input file and tree

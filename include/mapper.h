@@ -207,7 +207,6 @@ public:
 class Crate3Mapper {
 public:
 	/// @brief constructor
-	///
 	/// @param[in] run run number
 	///
 	Crate3Mapper(unsigned int run);
@@ -219,7 +218,6 @@ public:
 
 
 	/// @brief mapping function
-	///
 	/// @returns 0 for success, -1 otherwise
 	///
 	int Map();
@@ -247,7 +245,6 @@ private:
 
 
 	/// @brief initailize the input tree
-	///
 	/// @param[in] file_name name of input file
 	/// @returns pointer to input tree if success, or nullptr otherwise
 	///
@@ -255,23 +252,20 @@ private:
 
 
 	/// @brief create ppac output tree
-	///
-	/// @param[in] name detector name
 	/// @returns index of tree
 	///
-	size_t CreatePPACTree(const char *name);
+	size_t CreatePPACTree();
 
 
 	/// @brief create ADSSD output tree
-	///
 	/// @param[in] name detector name
 	/// @returns index of tree
 	///
 	size_t CreateADSSDTree(const char *name);
 
 
+
 	/// @brief fill data into output tree by index
-	///
 	/// @param[in] index index of tree to fill
 	///
 	inline void FillTree(size_t index) {

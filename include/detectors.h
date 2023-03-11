@@ -3,11 +3,12 @@
 
 #include <memory>
 
-#include "include/detector/tof.h"
-#include "include/detector/vme_trigger.h"
-#include "include/detector/dssd.h"
 #include "include/detector/adssd.h"
 #include "include/detector/csi.h"
+#include "include/detector/dssd.h"
+#include "include/detector/ppac.h"
+#include "include/detector/tof.h"
+#include "include/detector/vme_trigger.h"
 
 namespace ribll {
 

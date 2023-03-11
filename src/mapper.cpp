@@ -703,17 +703,16 @@ TTree* Crate3Mapper::Initialize(const char *file_name) {
 }
 
 
-size_t Crate3Mapper::CreatePPACTree(const char *name) {
+size_t Crate3Mapper::CreatePPACTree() {
 	// output file name
 	TString file_name;
-	file_name.Form
-	(
-		"%s%s%s-map-%04d.root",
-		kGenerateDataPath, kMappingDir, name, run_
+	file_name.Form(
+		"%s%svppac-map-%04d.root",
+		kGenerateDataPath, kMappingDir, run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
-	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
+	TTree *opt = new TTree("tree", "tree of vppac");
 	ppac_event_.SetupOutput(opt);
 	opt->Branch("time", &align_time_, "t/L");
 
@@ -737,6 +736,9 @@ size_t Crate3Mapper::CreateADSSDTree(const char *name) {
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
+
+
+
 
 
 int Crate3Mapper::Map() {
@@ -770,7 +772,7 @@ int Crate3Mapper::Map() {
 	ipt->SetBranchAddress("at.xia_time", &align_time_);
 
 	// create output trees
-	size_t vppac_index = CreatePPACTree("vppac");
+	size_t vppac_index = CreatePPACTree();
 	size_t taf_index[2] = {CreateADSSDTree("taf0"), CreateADSSDTree("taf1")};
 	size_t tab_index[6];
 	for (size_t i = 0; i < 6; ++i) {
@@ -805,6 +807,7 @@ int Crate3Mapper::Map() {
 			ppac_event_.x2[i] = -1e5;
 			ppac_event_.y1[i] = -1e5;
 			ppac_event_.y2[i] = -1e5;
+			ppac_event_.anode[i] = -1e5;
 
 			// check existence of all signal of ppac
 			for (size_t j = 0; j < 5; ++j) {
@@ -837,6 +840,12 @@ int Crate3Mapper::Map() {
 			}
 			if (gmulti_[0][i*5+98] > 0 && gmulti_[0][i*5+99] > 0) {
 				++ppac_event_.y_hit;
+			}
+
+			// check anode
+			if (gmulti_[0][i*5+100] > 0) {
+				ppac_event_.anode[i] =
+					(gdc_[0][i*5+100][0] - gdc_[0][127][0]) * 0.1;
 			}
 		}
 		FillTree(vppac_index);

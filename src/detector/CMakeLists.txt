@@ -44,16 +44,6 @@ add_library(csi csi.cpp ${DETECTOR_INCLUDE_DIR}/csi.h)
 target_link_libraries(csi PUBLIC detector csi_event)
 
 
-# # ppac library
-# add_library(
-# 	ppac
-# 	ppac.cpp ${DETECTOR_INCLUDE_DIR}/ppac.h ${PROJECT_INCLUDE_DIR}/defs.h
-# )
-# target_include_directories(
-# 	ppac
-# 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
-# )
-# target_link_libraries(
-# 	ppac
-# 	PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
-# )
+# ppac library
+add_library(ppac ppac.cpp ${DETECTOR_INCLUDE_DIR}/ppac.h)
+target_link_libraries(ppac PUBLIC detector ppac_event)
