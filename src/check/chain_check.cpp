@@ -18,6 +18,7 @@ const std::map<std::string, std::vector<std::string>> node_dependencies = {
 	{"align", {"map-0"}},
 	{"match-vt", {"map-0", "map-3"}},
 	{"match-tof", {"map-0"}},
+	{"match-vtof", {"map-3", "match-vt"}},
 	{"match-xppac", {"map-0"}},
 	{"match-vppac", {"map-3", "match-vt"}},
 	{"match-t0d1", {"map-0", "map-2"}},

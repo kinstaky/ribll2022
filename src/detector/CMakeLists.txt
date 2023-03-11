@@ -26,7 +26,7 @@ target_link_libraries(tof PUBLIC detector tof_event)
 add_library(vme_trigger vme_trigger.cpp ${DETECTOR_INCLUDE_DIR}/vme_trigger.h)
 target_link_libraries(
 	vme_trigger
-	PUBLIC detector trigger_event ppac_event dssd_event
+	PUBLIC detector trigger_event tof_event ppac_event dssd_event
 )
 
 # dssd library

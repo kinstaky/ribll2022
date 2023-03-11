@@ -714,7 +714,7 @@ size_t Crate3Mapper::CreatePPACTree() {
 
 	TTree *opt = new TTree("tree", "tree of vppac");
 	ppac_event_.SetupOutput(opt);
-	opt->Branch("time", &align_time_, "t/L");
+	opt->Branch("timestamp", &align_time_, "ts/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
@@ -731,14 +731,28 @@ size_t Crate3Mapper::CreateADSSDTree(const char *name) {
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	dssd_event_.SetupOutput(opt);
-	opt->Branch("time", &align_time_, "t/L");
+	opt->Branch("timestamp", &align_time_, "ts/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
+size_t Crate3Mapper::CreateTofTree() {
+	TString file_name;
+	file_name.Form(
+		"%s%svtof-map-%04d.root",
+		kGenerateDataPath, kMappingDir, run_
+	);
+	opfs_.push_back(new TFile(file_name, "recreate"));
 
+	TTree *opt = new TTree("tree", "tree of vtof");
+	tof_event_.SetupOutput(opt);
+	opt->Branch("timestamp", &align_time_, "ts/L");
+
+	opts_.push_back(opt);
+	return opts_.size() - 1;
+}
 
 
 int Crate3Mapper::Map() {
@@ -772,6 +786,7 @@ int Crate3Mapper::Map() {
 	ipt->SetBranchAddress("at.xia_time", &align_time_);
 
 	// create output trees
+	size_t vtof_index = CreateTofTree();
 	size_t vppac_index = CreatePPACTree();
 	size_t taf_index[2] = {CreateADSSDTree("taf0"), CreateADSSDTree("taf1")};
 	size_t tab_index[6];
@@ -781,7 +796,7 @@ int Crate3Mapper::Map() {
 
 
 	// total number of entries in input tree
-	long long entries = ipt->GetEntries();\
+	long long entries = ipt->GetEntries();
 	// 1/100 of input entry, for showing process
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -797,6 +812,18 @@ int Crate3Mapper::Map() {
 		// read input event and align time
 		ipt->GetEntry(entry);
 		if (align_time_ < 0) continue;
+
+		// tof
+		tof_event_.time[0] = -1e5;
+		tof_event_.time[1] = -1e5;
+		tof_event_.cfd_flag = 0;
+		for (size_t i = 0; i < 2; ++i) {
+			if (gmulti_[0][125+i] > 0) {
+				tof_event_.time[i] =
+					(gdc_[0][125+i][0] - gdc_[0][127][0]) * 0.1;
+			}
+		}
+		FillTree(vtof_index);
 
 		// ppac
 		ppac_event_.flag = 0;

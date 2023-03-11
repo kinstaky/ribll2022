@@ -27,7 +27,8 @@ target_include_directories(
 )
 target_link_libraries(
 	mapper
-	PUBLIC statistics ppac_event dssd_event ROOT::Core ROOT::RIO ROOT::Tree
+	PUBLIC statistics tof_event ppac_event dssd_event
+		ROOT::Core ROOT::RIO ROOT::Tree
 )
 
 # alignment

@@ -9,6 +9,7 @@
 
 #include "include/event/dssd_event.h"
 #include "include/event/ppac_event.h"
+#include "include/event/tof_event.h"
 
 namespace ribll {
 
@@ -240,6 +241,7 @@ private:
 	// output data
 	PpacFundamentalEvent ppac_event_;
 	DssdFundamentalEvent dssd_event_;
+	TofFundamentalEvent tof_event_;
 	long long align_time_;
 
 
@@ -263,6 +265,12 @@ private:
 	///
 	size_t CreateADSSDTree(const char *name);
 
+
+
+	/// @brief create ToF output tree
+	/// @returns index of tree
+	///
+	size_t CreateTofTree();
 
 
 	/// @brief fill data into output tree by index

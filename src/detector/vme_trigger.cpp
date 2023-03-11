@@ -3,6 +3,7 @@
 #include "include/event/trigger_event.h"
 #include "include/event/ppac_event.h"
 #include "include/event/dssd_event.h"
+#include "include/event/tof_event.h"
 
 namespace ribll {
 
@@ -101,7 +102,7 @@ int MatchVmeDetector(unsigned int run, const std::string &name) {
 	long long align_time;
 	// setup input and output detector tree branches
 	event.SetupInput(ipt);
-	ipt->SetBranchAddress("time", &align_time);
+	ipt->SetBranchAddress("timestamp", &align_time);
 	event.SetupOutput(opt);
 
 	MatchTriggerStatistics statistics(
@@ -199,6 +200,11 @@ int VmeTrigger::MatchTrigger(double window_left, double window_right) {
 	}
 
 	// match detectors event recorded by VME
+	// ToF in VME
+	if (MatchVmeDetector<TofFundamentalEvent>(run_, "vtof")) {
+		std::cerr << "Error: Match VME event in vtof failed.\n";
+		return -1;
+	}
 	// PPAC in VME
 	if (MatchVmeDetector<PpacFundamentalEvent>(run_, "vppac")) {
 		std::cerr << "Error: Match VME event in vppac failed.\n";

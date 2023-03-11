@@ -41,6 +41,21 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
+	/// @brief show whether the event is valid or not
+	/// @returns true if valid, false if invalid
+	///
+	virtual inline bool Valid() const {
+		return time[0] > -9e4 && time[1] > -9e4;
+	}
+
+
+	/// @brief make the event invalid
+	///
+	virtual inline void Nullify() {
+		time[0] = time[1] = -1e5;
+	}
+
+
 	double time[2];
 	unsigned short cfd_flag;
 };
