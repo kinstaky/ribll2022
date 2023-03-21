@@ -33,6 +33,12 @@ public:
 	///
 	virtual int MatchTrigger(double window_left, double window_right) override;
 
+
+	/// @brief identify beam type by ToF
+	/// @returns 0f if success, -1 otherwise
+	///
+	virtual int BeamIdentify();
+
 private:
 
 	// /// @brief read tirgger from root file

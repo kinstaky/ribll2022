@@ -4,6 +4,8 @@
 #include <map>
 
 #include <TH1F.h>
+#include <TString.h>
+#include <TF1.h>
 
 #include "include/defs.h"
 #include "include/event/tof_event.h"
@@ -58,5 +60,124 @@ int Tof::MatchTrigger(double window_left, double window_right) {
 		FillEvent
 	);
 }
+
+
+int Tof::BeamIdentify() {
+	// setup input file
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%stof-fundamental-%04u.root",
+		kGenerateDataPath, kFundamentalDir, run_
+	);
+	// input file
+	TFile *ipf = new TFile(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	TofFundamentalEvent fundamental_event;
+	// setup input branches
+	fundamental_event.SetupInput(ipt);
+
+	// setup output file
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%sbeam-type-%04u.root",
+		kGenerateDataPath, kBeamDir, run_
+	);
+	// output file
+	TFile *opf = new TFile(output_file_name, "recreate");
+	// output ToF histogram and fitting
+	TH1F *htof = new TH1F("htof", "ToF(T2-T1) of beam", 1000, 0, 100);
+	// output tree
+	TTree *opt = new TTree("tree", "tree of beam type");
+	// output beam type
+	short beam_type;
+	// output branches
+	opt->Branch("beam_type", &beam_type, "bt/S");
+
+	// first loop to fill histogram
+	// total number of input tree
+	long long entries = ipt->GetEntries();
+	for (long long entry = 0; entry < entries; ++entry) {
+		ipt->GetEntry(entry);
+		
+		// ignoe invalid tof value
+		if (
+			fundamental_event.time[0] < -9e4
+			|| fundamental_event.time[1] < -9e4
+		) continue;
+		
+		htof->Fill(fundamental_event.time[1] - fundamental_event.time[0]);
+	}
+
+	// fit peaks
+	TF1 *f14c = new TF1("f14c", "gaus", 50, 70);
+	f14c->SetParameter(0, 1e5);
+	f14c->SetParameter(1, 60);
+	f14c->SetParameter(2, 2);
+	f14c->SetParLimits(1, 50, 70);
+	htof->Fit(f14c, "BQR+");
+	// get fit result
+	BeamIdentifyStatistics statistics(run_, entries);
+
+	// constant of 14C
+	statistics.const14c = f14c->GetParameter(0);
+	// mean of 14C 
+	statistics.mean14c = f14c->GetParameter(1);
+	// sigma of 14C
+	statistics.sigma14c = f14c->GetParameter(2);
+
+	// save histograms with fitting
+	htof->Write();
+
+	// second loop to record beam type
+	// minimum tof value of 14C
+	double min14c = statistics.mean14c - 5 * statistics.sigma14c;
+	double max14c = statistics.mean14c + 5 * statistics.sigma14c;
+	for (long long entry = 0; entry < entries; ++entry) {
+		ipt->GetEntry(entry);
+		
+		// initialize beam type
+		beam_type = 0;
+	
+		// ignoe invalid tof value
+		if (
+			fundamental_event.time[0] < -9e4
+			|| fundamental_event.time[1] < -9e4
+		) {
+			beam_type = -1;
+			opt->Fill();
+			continue;
+		}
+
+		// tof of this particle	
+		double tof = fundamental_event.time[1] - fundamental_event.time[0];
+
+		// check if it's 14C
+		if (tof > min14c && tof < max14c) {
+			beam_type = 1;
+			++statistics.c14;
+		}
+		opt->Fill();
+	}
+	opt->Write();
+	// close files
+	opf->Close();
+	ipf->Close();
+	
+
+	statistics.Write();
+	statistics.Print();
+
+	return 0;
+}
+
 
 }		// namespace ribll

@@ -17,6 +17,10 @@ target_link_libraries(map PUBLIC mapper alignment)
 add_executable(match_trigger match_trigger.cpp)
 target_link_libraries(match_trigger PUBLIC detectors)
 
+# beam identify
+add_executable(beam_identify beam_identify.cpp)
+target_link_libraries(beam_identify PUBLIC tof)
+
 # # correlation
 # add_executable(correlate correlate.cpp)
 # target_link_libraries(correlate PUBLIC detector ppac)
