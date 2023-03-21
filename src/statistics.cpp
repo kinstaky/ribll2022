@@ -8,15 +8,6 @@ namespace ribll {
 
 const std::string title_time = ",year,month,day,hour,minute,second,unix_time";
 
-time_t ReadStatisticsTime(std::istream &is) {
-	// temporary variable to store time
-	std::string tmp;
-	for (int i = 0; i < 6; ++i) std::getline(is, tmp, ',');
-	// statistics time in unix time
-	time_t result;
-	is >> result;
-	return result;
-}
 
 void WriteStatisticsTime(std::ostream &os, time_t statistics_time) {
 	// output statistics time
@@ -101,24 +92,10 @@ std::istream& operator>>(
 	std::istream &is,
 	MapStatistics &statistics
 ) {
-	// buffer to store from getline
-	std::string line;
-	// stringstream to help convert to other type
-	std::stringstream ss;
-
-	// read run number
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.run_;
-
-	// read crate id
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.crate_;
-
-	statistics.store_time_ = ReadStatisticsTime(is);
+	CsvLineReader reader(is);
+	std::string tmp;
+	reader >> statistics.run_ >> statistics.crate_;
+	statistics.store_time_ = reader.ReadTime();
 
 	return is;
 }
@@ -185,55 +162,15 @@ std::istream& operator>>(
 	std::istream &is,
 	AlignStatistics &statistics
 ) {
-	// buffer to store from getline
-	std::string line;
-	// stringstream to help convert to other type
-	std::stringstream ss;
-
-	// read run number
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.run_;
-
-	// read align events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.align_events;
-
-	// read oversize events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.oversize_events;
-
-	// read total XIA events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.xia_events_;
-
-	// read vme events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.vme_events_;
-
-	// read XIA and VME alignment rate
-	std::getline(is, line, ',');
-	std::getline(is, line, ',');
-
-	// read calibration parameters
-	for (size_t i = 0; i < 2; ++i) {
-		std::getline(is, line, ',');
-		ss.str(line);
-		ss.clear();
-		ss >> statistics.calibration_param_[i];
-	}
-
-	// read store time
-	statistics.store_time_ = ReadStatisticsTime(is);
+	CsvLineReader reader(is);
+	std::string tmp;
+	reader >> statistics.run_
+		>> statistics.align_events >> statistics.oversize_events
+		>> statistics.xia_events_ >> statistics.vme_events_
+		>> tmp >> tmp
+		>> statistics.calibration_param_[0]
+		>> statistics.calibration_param_[1];
+	statistics.store_time_ = reader.ReadTime();
 
 	return is;
 }
@@ -316,66 +253,14 @@ std::istream& operator>>(
 	std::istream& is,
 	MatchTriggerStatistics &statistics
 ) {
-	// buffer to store from getline
-	std::string line;
-	// stringstream to help convert to other type
-	std::stringstream ss;
-
-	// read run number
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.run_;
-
-	// read detector name
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.detector_;
-
-	// read match events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.match_events;
-
-	// read used events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.used_events;
-
-	// read oversize events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.oversize_events;
-
-	// read conflict events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.conflict_events;
-
-	// read reference events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.reference_events_;
-
-	// read mapped events
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.mapped_events_;
-
-	// read rates
-	for (int i = 0; i < 4; ++i) {
-		std::getline(is, line, ',');
-	}
-
-	// read time
-	statistics.store_time_ = ReadStatisticsTime(is);
+	CsvLineReader reader(is);
+	std::string tmp;
+	reader >> statistics.run_ >> statistics.detector_
+		>> statistics.match_events >> statistics.used_events
+		>> statistics.oversize_events >> statistics.conflict_events
+		>> statistics.reference_events_ >> statistics.mapped_events_
+		>> tmp >> tmp >> tmp >> tmp;
+	statistics.store_time_ = reader.ReadTime();
 
 	return is;
 }
@@ -436,25 +321,10 @@ std::istream& operator>>(
 	std::istream &is,
 	XiaTriggerPeriodStatistics &statistics
 ) {
-	// buffer to store from getline
-	std::string line;
-	// stringstream to help convert to other type
-	std::stringstream ss;
-
-	// read run number
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.run_;
-
-	// read period
-	std::getline(is, line, ',');
-	ss.str(line);
-	ss.clear();
-	ss >> statistics.period_;
-
-		// read time
-	statistics.store_time_ = ReadStatisticsTime(is);
+	CsvLineReader reader(is);
+	std::string tmp;
+	reader >> statistics.run_ >> statistics.period_;
+	statistics.store_time_ = reader.ReadTime();
 
 	return is;
 }
