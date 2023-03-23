@@ -22,7 +22,6 @@ void PrintUsage(const char *name) {
 }
 
 
-
 /// @brief check arguments
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
@@ -68,6 +67,7 @@ int ParseArguments(
 	return result;
 }
 
+
 const std::map<std::string, std::pair<double, double>> window_edge_map = {
 	{"tof", {400.0, 800.0}},
 	{"tafcsi", {-1300.0, 800.0}},
@@ -75,6 +75,7 @@ const std::map<std::string, std::pair<double, double>> window_edge_map = {
 	{"t0csi", {-1600.0, 800.0}},
 	{"t1csi", {-1000.0, 800.0}}
 };
+
 
 int main(int argc, char **argv) {
 	// check parameters
@@ -116,6 +117,15 @@ int main(int argc, char **argv) {
 	}
 
 	for (auto detector_name : detector_names) {
+		// merge ADSSD trigger
+		if (detector_name == "ta") {
+			int result = MergeAdssdTrigger(trigger_tag, run);
+			if (result) {
+				std::cerr << "Error: Merge ADSSD trigger failed.\n";
+			}
+			continue;
+		}
+
 		std::shared_ptr<Detector> detector = CreateDetector(detector_name, run);
 		if (!detector) continue;
 

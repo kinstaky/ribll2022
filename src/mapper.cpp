@@ -491,15 +491,16 @@ int Crate1Mapper::Map() {
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
-			if (!side_) {
-				if (raw_energy_ > 300) {
-					FillTree(t0d2_index);
-				}
-			} else {
-				if (raw_energy_ > 800) {
-					FillTree(t0d2_index);
-				}
-			}
+			// if (!side_) {
+			// 	if (raw_energy_ > 300) {
+			// 		FillTree(t0d2_index);
+			// 	}
+			// } else {
+			// 	if (raw_energy_ > 800) {
+			// 		FillTree(t0d2_index);
+			// 	}
+			// }
+			FillTree(t0d2_index);
 		}
 	}
 	// show finish
@@ -645,15 +646,16 @@ int Crate2Mapper::Map() {
 				break;
 		}
 
-		if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
-			if (raw_energy_ > 200) {
-				FillTree(t0d1_index);
-			}
-		} else {
-			if (raw_energy_ > 300) {
-				FillTree(t0d1_index);
-			}
-		}
+		// if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
+		// 	if (raw_energy_ > 200) {
+		// 		FillTree(t0d1_index);
+		// 	}
+		// } else {
+		// 	if (raw_energy_ > 300) {
+		// 		FillTree(t0d1_index);
+		// 	}
+		// }
+		FillTree(t0d1_index);
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -907,12 +909,12 @@ int Crate3Mapper::Map() {
 					++dssd_event_.back_hit;
 				}
 			}
-			if (
-				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
-				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
-			) {
-				FillTree(taf_index[i]);
-			}
+			// if (
+			// 	dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+			// 	&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			// ) {
+			FillTree(taf_index[i]);
+			// }
 		}
 
 		// tab
@@ -945,12 +947,12 @@ int Crate3Mapper::Map() {
 				}
 
 			}
-			if (
-				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
-				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
-			) {
-				FillTree(tab_index[i]);
-			}
+			// if (
+			// 	dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+			// 	&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			// ) {
+			FillTree(tab_index[i]);
+			// }
 		}
 	}
 	// show finish

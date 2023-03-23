@@ -250,43 +250,41 @@ int VmeTrigger::ExtractTrigger(
 		window_left,
 		window_right,
 		FillEvent
-	)) {
-		return -1;
-	}
+	)) return -1;
 
-	// match detectors event recorded by VME
-	// ToF in VME
-	if (MatchVmeDetector<TofFundamentalEvent>(trigger_tag, run_, "vtof")) {
-		std::cerr << "Error: Match VME event in vtof failed.\n";
-		return -1;
-	}
-	// PPAC in VME
-	if (MatchVmeDetector<PpacFundamentalEvent>(trigger_tag, run_, "vppac")) {
-		std::cerr << "Error: Match VME event in vppac failed.\n";
-		return -1;
-	}
-	// TAF0 and TAF1 in VME
-	for (int i = 0; i < 2; ++i) {
-		std::string detector = "taf" + std::to_string(i);
-		if (MatchVmeDetector<DssdFundamentalEvent>(
-			trigger_tag, run_, detector
-		)) {
-			std::cerr << "Error: Match VME event in "
-				<< detector << " failed.\n";
-			return -1;
-		}
-	}
-	// TAB0 ~ TAB5 in VME
-	for (int i = 0; i < 6; ++i) {
-		std::string detector = "tab" + std::to_string(i);
-		if (MatchVmeDetector<DssdFundamentalEvent>(
-			trigger_tag, run_, detector
-		)) {
-			std::cerr << "Error: Match VME event in "
-				<< detector << " failed.\n";
-			return -1;
-		}
-	}
+	// // match detectors event recorded by VME
+	// // ToF in VME
+	// if (MatchVmeDetector<TofFundamentalEvent>(trigger_tag, run_, "vtof")) {
+	// 	std::cerr << "Error: Match VME event in vtof failed.\n";
+	// 	return -1;
+	// }
+	// // PPAC in VME
+	// if (MatchVmeDetector<PpacFundamentalEvent>(trigger_tag, run_, "vppac")) {
+	// 	std::cerr << "Error: Match VME event in vppac failed.\n";
+	// 	return -1;
+	// }
+	// // TAF0 and TAF1 in VME
+	// for (int i = 0; i < 2; ++i) {
+	// 	std::string detector = "taf" + std::to_string(i);
+	// 	if (MatchVmeDetector<DssdFundamentalEvent>(
+	// 		trigger_tag, run_, detector
+	// 	)) {
+	// 		std::cerr << "Error: Match VME event in "
+	// 			<< detector << " failed.\n";
+	// 		return -1;
+	// 	}
+	// }
+	// // TAB0 ~ TAB5 in VME
+	// for (int i = 0; i < 6; ++i) {
+	// 	std::string detector = "tab" + std::to_string(i);
+	// 	if (MatchVmeDetector<DssdFundamentalEvent>(
+	// 		trigger_tag, run_, detector
+	// 	)) {
+	// 		std::cerr << "Error: Match VME event in "
+	// 			<< detector << " failed.\n";
+	// 		return -1;
+	// 	}
+	// }
 
 	return 0;
 }

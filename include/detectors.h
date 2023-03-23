@@ -23,6 +23,15 @@ std::shared_ptr<Detector> CreateDetector(
 	unsigned int run
 );
 
+
+/// @brief merge adssd trigger
+/// @param[in] trigger_tag tag of XIA trigger
+/// @param[in] run run number
+/// @returns 0 if success, -1 otherwise
+///
+int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run);
+
+
 }
 
 #endif 		// __DETECTORS_H__

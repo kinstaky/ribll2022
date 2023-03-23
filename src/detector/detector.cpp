@@ -68,7 +68,7 @@ int Detector::ReadTriggerTimes(
 	fflush(stdout);
 	long long entries = trigger_tree->GetEntries();
 	// 1/100 of entry, for showing process
-	long long entry100 = entries / 100;
+	long long entry100 = entries / 100 + 1;
 	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
