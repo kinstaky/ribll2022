@@ -23,13 +23,14 @@ Tof::Tof(unsigned int run)
 /// @param[in] trigger_time trigger time to match
 /// @param[in] match_map map_events order by trigger time
 /// @param[out] fundamental_event converted fundamental event
-/// @param[inout] statistics information about statistics
+/// @param[out] statistics information about statistics
+/// @returns index >= 0 if matched, -1 for failed
 ///
-void FillEvent(
+int FillEvent(
 	double trigger_time,
 	const std::multimap<double, TofMapEvent> &match_map,
 	TofFundamentalEvent &fundamental_event,
-	MatchTriggerStatistics &statistics
+	std::vector<MatchTriggerStatistics> &statistics
 ) {
 	fundamental_event.time[0] = -1e5;
 	fundamental_event.time[1] = -1e5;
@@ -37,24 +38,42 @@ void FillEvent(
 
 	// check match events number
 	size_t match_count = match_map.count(trigger_time);
-	if (match_count == 1 || match_count == 2) {
-		auto range = match_map.equal_range(trigger_time);
-		for (auto iter = range.first; iter != range.second; ++iter) {
-			fundamental_event.time[iter->second.index] =
-				iter->second.time - trigger_time;
-			fundamental_event.cfd_flag |=
-				iter->second.cfd_flag ? (1 << iter->second.index) : 0;
+
+	// jump if match not found
+	if (match_count == 0) return -1;
+	// record oversize events and jump
+	if (match_count > 2) {
+		for (MatchTriggerStatistics &sta : statistics) {
+			++sta.oversize_events;
 		}
-		++statistics.match_events;
-		statistics.used_events += match_count;
-	} else if (match_count > 2) {
-		++statistics.oversize_events;
+		return -1;
 	}
+
+	// index is 0 represents golden if match count is 2,
+	// index is 1 represents silver if match count is 1
+	size_t index = 2 - match_count;
+	auto range = match_map.equal_range(trigger_time);
+	for (auto iter = range.first; iter != range.second; ++iter) {
+		fundamental_event.time[iter->second.index] =
+			iter->second.time - trigger_time;
+		fundamental_event.cfd_flag |=
+			iter->second.cfd_flag ? (1 << iter->second.index) : 0;
+	}
+	++statistics[index].match_events;
+	statistics[index].used_events += match_count;
+
+	return index;
 }
 
 
-int Tof::MatchTrigger(double window_left, double window_right) {
-	return Detector::MatchTrigger<TofMapEvent, TofFundamentalEvent>(
+int Tof::ExtractTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
+	return Detector::ExtractTrigger<TofMapEvent, TofFundamentalEvent>(
+		trigger_tag,
+		{"golden", "silver"},
 		window_left,
 		window_right,
 		FillEvent
@@ -107,13 +126,13 @@ int Tof::BeamIdentify() {
 	long long entries = ipt->GetEntries();
 	for (long long entry = 0; entry < entries; ++entry) {
 		ipt->GetEntry(entry);
-		
+
 		// ignoe invalid tof value
 		if (
 			fundamental_event.time[0] < -9e4
 			|| fundamental_event.time[1] < -9e4
 		) continue;
-		
+
 		htof->Fill(fundamental_event.time[1] - fundamental_event.time[0]);
 	}
 
@@ -129,7 +148,7 @@ int Tof::BeamIdentify() {
 
 	// constant of 14C
 	statistics.const14c = f14c->GetParameter(0);
-	// mean of 14C 
+	// mean of 14C
 	statistics.mean14c = f14c->GetParameter(1);
 	// sigma of 14C
 	statistics.sigma14c = f14c->GetParameter(2);
@@ -143,10 +162,10 @@ int Tof::BeamIdentify() {
 	double max14c = statistics.mean14c + 5 * statistics.sigma14c;
 	for (long long entry = 0; entry < entries; ++entry) {
 		ipt->GetEntry(entry);
-		
+
 		// initialize beam type
 		beam_type = 0;
-	
+
 		// ignoe invalid tof value
 		if (
 			fundamental_event.time[0] < -9e4
@@ -157,7 +176,7 @@ int Tof::BeamIdentify() {
 			continue;
 		}
 
-		// tof of this particle	
+		// tof of this particle
 		double tof = fundamental_event.time[1] - fundamental_event.time[0];
 
 		// check if it's 14C
@@ -171,7 +190,7 @@ int Tof::BeamIdentify() {
 	// close files
 	opf->Close();
 	ipf->Close();
-	
+
 
 	statistics.Write();
 	statistics.Print();

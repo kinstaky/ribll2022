@@ -70,8 +70,13 @@ CircularCsi::CircularCsi(unsigned int run, const std::string &name)
 }
 
 
-int CircularCsi::MatchTrigger(double window_left, double window_right) {
+int CircularCsi::MatchTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
 	return Detector::MatchTrigger<CsiMapEvent, CircularCsiFundamentalEvent>(
+		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent<CircularCsiFundamentalEvent, 12>
@@ -84,8 +89,13 @@ SquareCsi::SquareCsi(unsigned int run, const std::string &name)
 }
 
 
-int SquareCsi::MatchTrigger(double window_left, double window_right) {
+int SquareCsi::MatchTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
 	return Detector::MatchTrigger<CsiMapEvent, SquareCsiFundamentalEvent>(
+		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent<SquareCsiFundamentalEvent, 4>

@@ -34,14 +34,20 @@ Detector::Detector(
 	// }
 }
 
-int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
+int Detector::ReadTriggerTimes(
+	std::vector<double> &trigger_times,
+	const std::string &tag
+) {
 	// clear data
 	trigger_times.clear();
 	// trigger file name
 	TString trigger_file_name;
 	trigger_file_name.Form(
-		"%s%sxt-map-%04d.root",
-		kGenerateDataPath, kMappingDir, run_
+		"%s%sxt-map-%s%04d.root",
+		kGenerateDataPath,
+		kMappingDir,
+		tag.empty() ? "" : (tag + "-").c_str(),
+		run_
 	);
 	// pointer to trigger file
 	TFile *trigger_file = new TFile(trigger_file_name, "read");
@@ -58,7 +64,7 @@ int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
 	trigger_tree->SetBranchAddress("time", &trigger_time);
 
 	// show begin
-	printf("Reading trigger events   0%%");
+	printf("Reading %s trigger events   0%%", tag.c_str());
 	fflush(stdout);
 	long long entries = trigger_tree->GetEntries();
 	// 1/100 of entry, for showing process
@@ -79,6 +85,21 @@ int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
 	// close file
 	trigger_file->Close();
 	return 0;
+}
+
+
+int Detector::MatchTrigger(const std::string&, double, double) {
+	// do nothing but report error
+	std::cerr << "Error: MatchTrigger is not implemented yet.\n";
+	return -1;
+}
+
+
+
+int Detector::ExtractTrigger(const std::string&, double, double) {
+	// do nothing but report error
+	std::cerr << "Error: ExtractTrigger is not implemented yet.\n";
+	return -1;
 }
 
 

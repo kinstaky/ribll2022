@@ -140,7 +140,7 @@ bool CheckTime(
 			ReadEditTime<AlignStatistics>(file_name, statistics.Key());
 	} else if (type == "match") {
 		std::string detector = key.substr(key.find_first_of('-') + 1);
-		MatchTriggerStatistics statistics(run, detector, 0, 0);
+		MatchTriggerStatistics statistics(run, detector, "", "", 0, 0);
 		store_time =
 			ReadEditTime<MatchTriggerStatistics>(file_name, statistics.Key());
 	}

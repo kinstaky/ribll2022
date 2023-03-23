@@ -88,8 +88,13 @@ void FillEvent(
 }
 
 
-int Ppac::MatchTrigger(double window_left, double window_right) {
+int Ppac::MatchTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
 	return Detector::MatchTrigger<PpacMapEvent, PpacFundamentalEvent>(
+		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent

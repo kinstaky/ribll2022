@@ -275,12 +275,16 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] detector detector name
+	/// @param[in] tag trigger tag, empty for origin trigger
+	/// @param[in] extract_tag extract tag, empty for just matching
 	/// @param[in] reference_events total number of reference trigger events
 	/// @param[in] mapped_events total number of input mapped events
 	///
 	MatchTriggerStatistics(
 		unsigned int run,
 		const std::string &detector,
+		const std::string &tag,
+		const std::string &extract_tag,
 		long long reference_events,
 		long long mapeed_events
 	);
@@ -347,6 +351,10 @@ public:
 private:
 	// detector name
 	std::string detector_;
+	// trigger tag
+	std::string tag_;
+	// extract
+	std::string extract_tag_;
 	// total number of main trigger
 	long long reference_events_;
 	// total number of input mapped events
@@ -442,7 +450,7 @@ public:
 	///
 	virtual std::string Title() const override;
 
-	
+
 	/// @brief return run number and beam type in single string
 	/// @returns run number and detector name pair
 	///

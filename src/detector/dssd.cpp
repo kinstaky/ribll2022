@@ -17,9 +17,10 @@ Dssd::Dssd(unsigned int run, const std::string &name)
 /// @param[in] trigger_time trigger time to match
 /// @param[in] match_map map_events order by trigger time
 /// @param[out] fundamental_event converted fundamental event
-/// @param[inout] statistics information about statistics
+/// @param[out] statistics information about statistics
+/// @returns 0 if filling event is valid, -1 otherwise
 ///
-void FillEvent(
+int FillEvent(
 	double trigger_time,
 	const std::multimap<double, DssdMapEvent> &match_map,
 	DssdFundamentalEvent &fundamental_event,
@@ -109,17 +110,62 @@ void FillEvent(
 		++statistics.match_events;
 		statistics.used_events +=
 			fundamental_event.front_hit + fundamental_event.back_hit;
+		return 0;
 	}
 
+	return -1;
 }
 
-int Dssd::MatchTrigger(double window_left, double window_right) {
+
+void FillEventInMatch(
+	double trigger_time,
+	const std::multimap<double, DssdMapEvent> &match_map,
+	DssdFundamentalEvent &fundamental_event,
+	MatchTriggerStatistics &statistics
+) {
+	FillEvent(trigger_time, match_map, fundamental_event, statistics);
+}
+
+
+int FillEventInExtract(
+	double trigger_time,
+	const std::multimap<double, DssdMapEvent> &match_map,
+	DssdFundamentalEvent &fundamental_event,
+	std::vector<MatchTriggerStatistics> &statistics
+) {
+	return
+		FillEvent(trigger_time, match_map, fundamental_event, statistics[0]);
+}
+
+
+int Dssd::MatchTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
 	return Detector::MatchTrigger<DssdMapEvent, DssdFundamentalEvent>(
+		trigger_tag,
 		window_left,
 		window_right,
-		FillEvent
+		FillEventInMatch
 	);
 }
+
+
+int Dssd::ExtractTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
+	return Detector::ExtractTrigger<DssdMapEvent, DssdFundamentalEvent>(
+		trigger_tag,
+		{name_},
+		window_left,
+		window_right,
+		FillEventInExtract
+	);
+}
+
 
 //-----------------------------------------------------------------------------
 //								T0d1

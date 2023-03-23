@@ -1,22 +1,23 @@
-#ifndef __VME_TRIGGER_H__
-#define __VME_TRIGGER_H__
+#ifndef __SSD_H__
+#define __SSD_H__
 
 #include "include/detector/detector.h"
 
 namespace ribll {
 
-class VmeTrigger : public Detector {
+class Ssd : public Detector {
 public:
 
 	/// @brief constructor
 	/// @param[in] run run number
+	/// @param[in] name detector name
 	///
-	VmeTrigger(unsigned int run);
+	Ssd(unsigned int run, const std::string &name);
 
 
-	/// @brief default destructor
+	/// @brief defautl destructor
 	///
-	virtual ~VmeTrigger() = default;
+	virtual ~Ssd() = default;
 
 
 	/// @brief match xia main trigger and build events
@@ -25,13 +26,13 @@ public:
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int ExtractTrigger(
+	virtual int MatchTrigger(
 		const std::string &trigger_tag,
 		double window_left,
 		double window_right
-	) override;	
+	) override;
 };
 
 }		// namespace ribll
 
-#endif		// __VME_TRIGGER_H__
+#endif 		// __SSD_H__

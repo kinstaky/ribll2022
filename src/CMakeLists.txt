@@ -27,8 +27,7 @@ target_include_directories(
 )
 target_link_libraries(
 	mapper
-	PUBLIC statistics tof_event ppac_event dssd_event
-		ROOT::Core ROOT::RIO ROOT::Tree
+	PUBLIC statistics event ROOT::Core ROOT::RIO ROOT::Tree
 )
 
 # alignment
@@ -47,7 +46,7 @@ target_link_libraries(
 
 # detectors
 add_library(detectors detectors.cpp ${PROJECT_INCLUDE_DIR}/detectors.h)
-target_link_libraries(detectors PUBLIC adssd csi dssd ppac tof vme_trigger)
+target_link_libraries(detectors PUBLIC adssd csi dssd ppac ssd tof vme_trigger)
 
 # # telescope
 # add_library(

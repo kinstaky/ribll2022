@@ -14,13 +14,17 @@ Taf::Taf(unsigned int run, unsigned int index)
 }
 
 
-int Taf::MatchTrigger(double window_left, double window_right) {
+int Taf::ExtractTrigger(
+	const std::string &trigger_tag,
+	double window_left,
+	double window_right
+) {
 	if (name_ == "taf0" || name_ == "taf1") {
-		std::cerr << "Error: MatchTrigger with vt instead of "
+		std::cerr << "Error: MatchTrigger vt instead of "
 			<< name_ << "\n";
 		return -1;
 	}
-	return Dssd::MatchTrigger(window_left, window_right);
+	return Dssd::ExtractTrigger(trigger_tag, window_left, window_right);
 }
 
 Tab::Tab(unsigned int run, unsigned int index)
@@ -28,10 +32,4 @@ Tab::Tab(unsigned int run, unsigned int index)
 }
 
 
-int Tab::MatchTrigger(double, double) {
-	std::cerr << "Error: MatchTrigger with vt instead of "
-		<< name_ << "\n";
-	return -1;
-}
-
-}
+}		// namespace ribll

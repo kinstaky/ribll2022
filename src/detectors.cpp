@@ -34,6 +34,10 @@ std::shared_ptr<Detector> CreateDetector(
 		return std::make_shared<CircularCsi>(run, name);
 	} else if (name == "t0csi" || name == "t1csi") {
 		return std::make_shared<SquareCsi>(run, name);
+	} else if (name.substr(0, 3) == "t0s" && name.size() == 4) {
+		return std::make_shared<Ssd>(run, name);
+	} else if (name == "t1s1") {
+		return std::make_shared<Ssd>(run, name);
 	}
 
 	std::cerr << "Error: Create detector " << name << " failed.\n";

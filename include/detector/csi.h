@@ -42,12 +42,17 @@ public:
 	virtual ~CircularCsi() = default;
 
 
-	/// @brief match xia main trigger and build events
+	/// @brief extract trigger with detector events
+	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(double window_left, double window_right) override;
+	virtual int MatchTrigger(
+		const std::string &trigger_tag,
+		double window_left,
+		double window_right
+	) override;
 };
 
 
@@ -55,7 +60,7 @@ class SquareCsi : public GroupCsi {
 public:
 
 	/// @brief constructor
-	/// @param[in] run run number 
+	/// @param[in] run run number
 	/// @param[in] name detector name
 	///
 	SquareCsi(unsigned int run, const std::string &name);
@@ -66,13 +71,17 @@ public:
 	virtual ~SquareCsi() = default;
 
 
-	/// @brief match xia main trigger and build events
+	/// @brief extract trigger with detector events
+	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(double window_left, double window_right) override;
-
+	virtual int MatchTrigger(
+		const std::string &trigger_tag,
+		double window_left,
+		double window_right
+	) override;
 };
 
 }		// namespace ribll

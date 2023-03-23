@@ -26,26 +26,23 @@ public:
 	~Tof() = default;
 
 
-	/// @brief match xia main trigger and build events
+	/// @brief extract trigger with detector events
+	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(double window_left, double window_right) override;
+	virtual int ExtractTrigger(
+		const std::string &trigger_tag,
+		double window_left,
+		double window_right
+	) override;
 
 
 	/// @brief identify beam type by ToF
-	/// @returns 0f if success, -1 otherwise
+	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int BeamIdentify();
-
-private:
-
-	// /// @brief read tirgger from root file
-	// /// @param[out] trigger_times list of trigger time
-	// /// @returns 0 if success, -1 otherwise
-	// ///
-	// int ReadTriggerTimes(std::vector<double> &trigger_times);
 };
 
 
