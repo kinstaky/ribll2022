@@ -12,7 +12,7 @@
 #include <TF1.h>
 
 #include "include/defs.h"
-#include "include/statistics.h"
+#include "include/statistics/align_statistics.h"
 
 namespace ribll {
 

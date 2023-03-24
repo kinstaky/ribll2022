@@ -4,17 +4,7 @@ set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 add_subdirectory(check)
 add_subdirectory(detector)
 add_subdirectory(event)
-
-# statistics library
-add_library(
-	statistics
-	statistics.cpp
-	${PROJECT_INCLUDE_DIR}/statistics.h
-	${PROJECT_INCLUDE_DIR}/defs.h
-)
-target_include_directories(
-	statistics PUBLIC ${PROJECT_SOURCE_DIR}
-)
+add_subdirectory(statistics)
 
 # mapper library
 add_library(

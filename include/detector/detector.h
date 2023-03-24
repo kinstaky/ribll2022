@@ -11,7 +11,7 @@
 
 #include "include/defs.h"
 #include "include/event/trigger_event.h"
-#include "include/statistics.h"
+#include "include/statistics/match_trigger_statistics.h"
 
 namespace ribll {
 

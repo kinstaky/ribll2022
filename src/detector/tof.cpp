@@ -9,6 +9,7 @@
 
 #include "include/defs.h"
 #include "include/event/tof_event.h"
+#include "include/statistics/beam_identify_statistics.h"
 
 
 namespace ribll {

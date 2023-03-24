@@ -5,7 +5,7 @@
 #include <TH1F.h>
 
 #include "include/defs.h"
-#include "include/statistics.h"
+#include "include/statistics/xt_period_statistics.h"
 
 using namespace ribll;
 

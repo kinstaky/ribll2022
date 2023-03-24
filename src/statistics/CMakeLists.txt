@@ -1,0 +1,33 @@
+# include directory
+set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(STATISTICS_INCLUDE_DIR ${PROJECT_INCLUDE_DIR}/statistics)
+
+set(
+	STATISTICS_HEADER_FILES
+	${PROJECT_INCLUDE_DIR}/defs.h
+	${STATISTICS_INCLUDE_DIR}/csv_line_reader.h
+	${STATISTICS_INCLUDE_DIR}/statistics.h
+	${STATISTICS_INCLUDE_DIR}/map_statistics.h
+	${STATISTICS_INCLUDE_DIR}/align_statistics.h
+	${STATISTICS_INCLUDE_DIR}/match_trigger_statistics.h
+	${STATISTICS_INCLUDE_DIR}/xt_period_statistics.h
+	${STATISTICS_INCLUDE_DIR}/beam_identify_statistics.h
+)
+
+set(
+	STATISTICS_SOURCE_FILES
+	csv_line_reader.cpp
+	statistics.cpp
+	map_statistics.cpp
+	align_statistics.cpp
+	match_trigger_statistics.cpp
+	xt_period_statistics.cpp
+	beam_identify_statistics.cpp
+)
+
+# statistics library
+add_library(
+	statistics
+	${STATISTICS_SOURCE_FILES} ${STATISTICS_HEADER_FILES}
+)
+target_include_directories(statistics PUBLIC ${PROJECT_SOURCE_DIR})

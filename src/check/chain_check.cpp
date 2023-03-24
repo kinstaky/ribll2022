@@ -6,7 +6,9 @@
 #include <fstream>
 #include <exception>
 
-#include "include/statistics.h"
+#include "include/statistics/align_statistics.h"
+#include "include/statistics/map_statistics.h"
+#include "include/statistics/match_trigger_statistics.h"
 
 namespace ribll {
 

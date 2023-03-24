@@ -5,7 +5,7 @@
 #include <TString.h>
 
 #include "include/defs.h"
-#include "include/statistics.h"
+#include "include/statistics/map_statistics.h"
 
 namespace ribll {
 
