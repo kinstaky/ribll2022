@@ -27,3 +27,14 @@ target_link_libraries(
 	show_xt_period
 	PUBLIC statistics ROOT::Core ROOT::Tree ROOT::RIO ROOT::Hist
 )
+
+# show T0 hit
+add_executable(show_t0_hit show_t0_hit.cpp ${PROJECT_INCLUDE_DIR}/defs.h)
+target_include_directories(
+	show_t0_hit
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(
+	show_t0_hit
+	PUBLIC ROOT::Core ROOT::Tree ROOT::RIO
+)
