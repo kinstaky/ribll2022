@@ -4,21 +4,8 @@ set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 add_subdirectory(check)
 add_subdirectory(detector)
 add_subdirectory(event)
+add_subdirectory(mapper)
 add_subdirectory(statistics)
-
-# mapper library
-add_library(
-	mapper
-	mapper.cpp ${PROJECT_INCLUDE_DIR}/mapper.h ${PROJECT_INCLUDE_DIR}/defs.h
-)
-target_include_directories(
-	mapper
-	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
-)
-target_link_libraries(
-	mapper
-	PUBLIC statistics event ROOT::Core ROOT::RIO ROOT::Tree
-)
 
 # alignment
 add_library(
