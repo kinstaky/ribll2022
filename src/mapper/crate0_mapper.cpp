@@ -7,7 +7,7 @@ Crate0Mapper::Crate0Mapper(unsigned int run)
 }
 
 
-int Crate0Mapper::Map() {
+int Crate0Mapper::Map(bool threshold) {
 	TString input_file_name;
 	input_file_name.Form("%s%s_R%04d.root", kCrate0Path, kCrate0FileName, run_);
 	TTree *ipt = Initialize(input_file_name.Data());
@@ -148,7 +148,7 @@ int Crate0Mapper::Map() {
 		} else if (sid_ == 6) {
 			// taf4 front side
 			strip_ = ch_;
-			if (raw_energy_ > 200) {
+			if (!threshold || raw_energy_ > 200) {
 				FillTree(taf4_index);
 			}
 		} else if (sid_ == 7) {
@@ -182,9 +182,12 @@ int Crate0Mapper::Map() {
 				// taf4 back side
 				strip_ = ch_ - 8;
 				if (
-					(strip_ < 4 && raw_energy_ > 400)
-					|| (strip_ >= 4 && strip_ < 6 && raw_energy_ > 1000)
-					|| (strip_ >= 6 && raw_energy_ > 1200)
+					!threshold
+					|| (
+						(strip_ < 4 && raw_energy_ > 400)
+						|| (strip_ >= 4 && strip_ < 6 && raw_energy_ > 1000)
+						|| (strip_ >= 6 && raw_energy_ > 1200)
+					)
 				) {
 					FillTree(taf4_index);
 				}
@@ -192,13 +195,13 @@ int Crate0Mapper::Map() {
 		} else if (sid_ == 9) {
 			// taf2 front side
 			strip_ = ch_;
-			if (raw_energy_ > 150) {
+			if (!threshold || raw_energy_ > 150) {
 				FillTree(taf2_index);
 			}
 		} else if (sid_ == 10) {
 			// taf3 front side
 			strip_ = ch_;
-			if (raw_energy_ > 150) {
+			if (!threshold || raw_energy_ > 150) {
 				FillTree(taf3_index);
 			}
 		} else if (sid_ == 11) {
@@ -207,13 +210,13 @@ int Crate0Mapper::Map() {
 			if (ch_ < 8) {
 				// taf2 back side
 				strip_ = ch_;
-				if (raw_energy_ > 200) {
+				if (!threshold || raw_energy_ > 200) {
 					FillTree(taf2_index);
 				}
 			} else {
 				// taf3 back side
 				strip_ = ch_ - 8;
-				if (raw_energy_ > 400) {
+				if (!threshold || raw_energy_ > 400) {
 					FillTree(taf3_index);
 				}
 			}
@@ -230,7 +233,7 @@ int Crate0Mapper::Map() {
 		opfs_[i]->Close();
 	}
 
-	MapStatistics statistics(run_, 0);
+	MapStatistics statistics(run_, 0, threshold);
 	statistics.Write();
 	statistics.Print();
 

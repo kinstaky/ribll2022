@@ -22,7 +22,7 @@ void PrintUsage(const char *name) {
 }
 
 
-/// @brief check arguments
+/// @brief parse arguments
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
 /// @param[out] help need help
@@ -50,7 +50,10 @@ int ParseArguments(
 		if (argv[result][0] != '-') break;
 		// short option contains only one letter
 		if (argv[result][2] != 0) return -result;
-		if (argv[result][1] == 't') {
+		if (argv[result][1] == 'h') {
+			help = true;
+			return result;
+		} else if (argv[result][1] == 't') {
 			// option of trigger tag
 			// get tag in next argument
 			++result;
@@ -92,6 +95,12 @@ int main(int argc, char **argv) {
 	bool extract = false;
 	// start index of postional paramters
 	int pos_start = ParseArguments(argc, argv, help, trigger_tag, extract);
+
+	if (help) {
+		PrintUsage(argv[0]);
+		return 0;
+	}
+
 	if (pos_start < 0) {
 		if (-pos_start < argc) {
 			std::cerr << "Error: Invalid option " << argv[-pos_start] << ".\n";

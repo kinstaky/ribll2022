@@ -7,7 +7,7 @@ Crate2Mapper::Crate2Mapper(unsigned int run)
 }
 
 
-int Crate2Mapper::Map() {
+int Crate2Mapper::Map(bool threshold) {
 	TString input_file_name;
 	input_file_name.Form
 	(
@@ -38,7 +38,6 @@ int Crate2Mapper::Map() {
 		}
 
 		ipt->GetEntry(entry);
-		if (raw_energy_ == 0) continue;
 
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
@@ -60,16 +59,15 @@ int Crate2Mapper::Map() {
 				break;
 		}
 
-		// if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
-		// 	if (raw_energy_ > 200) {
-		// 		FillTree(t0d1_index);
-		// 	}
-		// } else {
-		// 	if (raw_energy_ > 300) {
-		// 		FillTree(t0d1_index);
-		// 	}
-		// }
-		FillTree(t0d1_index);
+		if (side_ == 1 && (strip_ < 16 || strip_ >= 32)) {
+			if (!threshold || raw_energy_ > 200) {
+				FillTree(t0d1_index);
+			}
+		} else {
+			if (!threshold || raw_energy_ > 300) {
+				FillTree(t0d1_index);
+			}
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -81,7 +79,7 @@ int Crate2Mapper::Map() {
 		opfs_[i]->Close();
 	}
 
-	MapStatistics statistics(run_, 2);
+	MapStatistics statistics(run_, 2, threshold);
 	statistics.Write();
 	statistics.Print();
 

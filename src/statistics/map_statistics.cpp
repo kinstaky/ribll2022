@@ -2,9 +2,14 @@
 
 namespace ribll {
 
-MapStatistics::MapStatistics(unsigned int run, unsigned int crate)
+MapStatistics::MapStatistics(
+	unsigned int run,
+	unsigned int crate,
+	bool threshold
+)
 : Statistics(run)
-, crate_(crate) {
+, crate_(crate)
+, threshold_(threshold) {
 }
 
 
@@ -18,7 +23,7 @@ void MapStatistics::Print() const {
 
 
 std::string MapStatistics::Title() const {
-	return "run,crate" + title_time;
+	return "run,crate,threshold" + title_time;
 }
 
 
@@ -33,7 +38,7 @@ std::istream& operator>>(
 ) {
 	CsvLineReader reader(is);
 	std::string tmp;
-	reader >> statistics.run_ >> statistics.crate_;
+	reader >> statistics.run_ >> statistics.crate_ >> statistics.threshold_;
 	statistics.store_time_ = reader.ReadTime();
 
 	return is;
@@ -45,7 +50,7 @@ std::ostream& operator<<(
 	const MapStatistics &statistics
 ) {
 	os << std::setw(4) << std::setfill('0') << statistics.run_
-		<< "," << statistics.crate_;
+		<< "," << statistics.crate_ << "," << statistics.threshold_;
 
 	WriteStatisticsTime(os, statistics.store_time_);
 

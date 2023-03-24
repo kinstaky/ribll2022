@@ -132,7 +132,7 @@ bool CheckTime(
 		std::string(kGenerateDataPath)+ "statistics/" + type + ".csv";
 	if (type == "map") {
 		unsigned int crate = key[key.find_first_of('-') + 1] -'0';
-		MapStatistics statistics(run, crate);
+		MapStatistics statistics(run, crate, true);
 		store_time =
 			ReadEditTime<MapStatistics>(file_name, statistics.Key());
 	} else if (type == "align") {

@@ -246,6 +246,11 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		info.opf->Close();
 	}
 
+	MatchTriggerStatistics statistics(
+		run, "ta", trigger_tag, "", 1, 1
+	);
+	statistics.Write();
+
 	return 0;
 }
 

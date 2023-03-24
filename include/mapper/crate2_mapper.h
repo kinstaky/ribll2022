@@ -9,7 +9,6 @@ class Crate2Mapper : public XiaMapper {
 public:
 
 	/// @brief constructor
-	///
 	/// @param[in] run run number
 	///
 	Crate2Mapper(unsigned int run);
@@ -21,10 +20,10 @@ public:
 
 
 	/// @brief mapping function
-	///
+	/// @param[in] threshold whether to use threshold
 	/// @returns 0 for success, -1 otherwise
 	///
-	virtual int Map();
+	virtual int Map(bool threshold = true) override;
 };
 
 }		// namespace ribll

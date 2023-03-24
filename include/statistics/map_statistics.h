@@ -16,8 +16,9 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] crate crate number
+	/// @param[in] threshold cut at threshold ? 
 	///
-	MapStatistics(unsigned int run, unsigned int crate);
+	MapStatistics(unsigned int run, unsigned int crate, bool threshold);
 
 
 	/// @brief default destructor
@@ -70,6 +71,7 @@ public:
 
 private:
 	unsigned int crate_;
+	bool threshold_;
 };
 
 }		// namespace ribll

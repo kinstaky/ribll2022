@@ -6,7 +6,7 @@ Crate1Mapper::Crate1Mapper(unsigned int run)
 :XiaMapper(run) {
 }
 
-int Crate1Mapper::Map() {
+int Crate1Mapper::Map(bool threshold) {
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s_R%04d.root",
@@ -36,7 +36,6 @@ int Crate1Mapper::Map() {
 		}
 
 		ipt->GetEntry(entry);
-		if (raw_energy_ == 0) continue;
 
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
@@ -63,7 +62,7 @@ int Crate1Mapper::Map() {
 					std::cerr << "Error: switch t1d1 should not be here.\n";
 					return -1;
 			}
-			if (raw_energy_ > 4000) FillTree(t1d1_index);
+			if (!threshold || raw_energy_ > 4000) FillTree(t1d1_index);
 		}
 		else if (sid_ < 10) {
 			// t0d3
@@ -71,11 +70,11 @@ int Crate1Mapper::Map() {
 			side_ = sid_ < 8 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
 			if (!side_) {
-				if (raw_energy_ > 100) {
+				if (!threshold || raw_energy_ > 100) {
 					FillTree(t0d3_index);
 				}
 			} else {
-				if (raw_energy_ > 50) {
+				if (!threshold || raw_energy_ > 50) {
 					FillTree(t0d3_index);
 				}
 			}
@@ -84,16 +83,15 @@ int Crate1Mapper::Map() {
 			detector_index_ = 0;
 			side_ = sid_ < 12 ? 0 : 1;
 			strip_ = sid_ % 2 == 0 ? ch_ : ch_ + 16;
-			// if (!side_) {
-			// 	if (raw_energy_ > 300) {
-			// 		FillTree(t0d2_index);
-			// 	}
-			// } else {
-			// 	if (raw_energy_ > 800) {
-			// 		FillTree(t0d2_index);
-			// 	}
-			// }
-			FillTree(t0d2_index);
+			if (!side_) {
+				if (!threshold || raw_energy_ > 300) {
+					FillTree(t0d2_index);
+				}
+			} else {
+				if (!threshold || raw_energy_ > 800) {
+					FillTree(t0d2_index);
+				}
+			}
 		}
 	}
 	// show finish
@@ -150,11 +148,11 @@ int Crate1Mapper::Map() {
 		}
 
 		if (!side_) {
-			if (raw_energy_ > 100) {
+			if (!threshold || raw_energy_ > 100) {
 				FillTree(t0d3_index);
 			}
 		} else {
-			if (raw_energy_ > 50) {
+			if (!threshold || raw_energy_ > 50) {
 				FillTree(t0d3_index);
 			}
 		}
@@ -169,7 +167,7 @@ int Crate1Mapper::Map() {
 		opfs_[i]->Close();
 	}
 
-	MapStatistics statistics(run_, 1);
+	MapStatistics statistics(run_, 1, threshold);
 	statistics.Write();
 	statistics.Print();
 
