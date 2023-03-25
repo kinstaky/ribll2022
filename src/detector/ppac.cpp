@@ -93,12 +93,19 @@ int Ppac::MatchTrigger(
 	double window_left,
 	double window_right
 ) {
-	return Detector::MatchTrigger<PpacMapEvent, PpacFundamentalEvent>(
-		trigger_tag,
-		window_left,
-		window_right,
-		FillEvent
-	);
+	if (name_ == "xppac") {
+		return Detector::MatchTrigger<PpacMapEvent, PpacFundamentalEvent>(
+			trigger_tag,
+			window_left,
+			window_right,
+			FillEvent
+		);
+	} else {
+		// vppac
+		return Detector::VmeMatchTrigger<PpacFundamentalEvent>(
+			trigger_tag
+		);
+	}
 }
 
 // int PPAC::ReadEvents() {

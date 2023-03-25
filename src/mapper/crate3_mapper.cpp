@@ -234,12 +234,12 @@ int Crate3Mapper::Map() {
 					++dssd_event_.back_hit;
 				}
 			}
-			// if (
-			// 	dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
-			// 	&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
-			// ) {
-			FillTree(taf_index[i]);
-			// }
+			if (
+				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			) {
+				FillTree(taf_index[i]);
+			}
 		}
 
 		// tab
@@ -272,12 +272,12 @@ int Crate3Mapper::Map() {
 				}
 
 			}
-			// if (
-			// 	dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
-			// 	&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
-			// ) {
-			FillTree(tab_index[i]);
-			// }
+			if (
+				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
+			) {
+				FillTree(tab_index[i]);
+			}
 		}
 	}
 	// show finish

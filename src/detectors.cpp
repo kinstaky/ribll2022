@@ -25,12 +25,12 @@ std::shared_ptr<Detector> CreateDetector(
 		return std::make_shared<T0d2>(run);
 	} else if (name == "t0d3") {
 		return std::make_shared<T0d3>(run);
-	} else if (name.substr(0, 3) == "taf" && name.size() == 4) {
+	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
 			return std::make_shared<Taf>(run, index);
 		}
-	} else if (name.substr(0, 3) == "tab" && name.size() == 4) {
+	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
 			return std::make_shared<Tab>(run, index);
@@ -39,7 +39,7 @@ std::shared_ptr<Detector> CreateDetector(
 		return std::make_shared<CircularCsi>(run, name);
 	} else if (name == "t0csi" || name == "t1csi") {
 		return std::make_shared<SquareCsi>(run, name);
-	} else if (name.substr(0, 3) == "t0s" && name.size() == 4) {
+	} else if (name.size() == 4 && name.substr(0, 3) == "t0s") {
 		return std::make_shared<Ssd>(run, name);
 	} else if (name == "t1s1") {
 		return std::make_shared<Ssd>(run, name);

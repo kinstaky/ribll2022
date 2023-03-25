@@ -95,7 +95,6 @@ int Detector::MatchTrigger(const std::string&, double, double) {
 }
 
 
-
 int Detector::ExtractTrigger(const std::string&, double, double) {
 	// do nothing but report error
 	std::cerr << "Error: ExtractTrigger is not implemented yet.\n";

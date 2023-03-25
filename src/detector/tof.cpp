@@ -20,18 +20,79 @@ Tof::Tof(unsigned int run)
 }
 
 
+// /// @brief convert map event to fundamental event
+// /// @param[in] trigger_time trigger time to match
+// /// @param[in] match_map map_events order by trigger time
+// /// @param[out] fundamental_event converted fundamental event
+// /// @param[out] statistics information about statistics
+// /// @returns index >= 0 if matched, -1 for failed
+// ///
+// int FillEvent(
+// 	double trigger_time,
+// 	const std::multimap<double, TofMapEvent> &match_map,
+// 	TofFundamentalEvent &fundamental_event,
+// 	std::vector<MatchTriggerStatistics> &statistics
+// ) {
+// 	fundamental_event.time[0] = -1e5;
+// 	fundamental_event.time[1] = -1e5;
+// 	fundamental_event.cfd_flag = 0;
+
+// 	// check match events number
+// 	size_t match_count = match_map.count(trigger_time);
+
+// 	// jump if match not found
+// 	if (match_count == 0) return -1;
+// 	// record oversize events and jump
+// 	if (match_count > 2) {
+// 		for (MatchTriggerStatistics &sta : statistics) {
+// 			++sta.oversize_events;
+// 		}
+// 		return -1;
+// 	}
+
+// 	// index is 0 represents golden if match count is 2,
+// 	// index is 1 represents silver if match count is 1
+// 	size_t index = 2 - match_count;
+// 	auto range = match_map.equal_range(trigger_time);
+// 	for (auto iter = range.first; iter != range.second; ++iter) {
+// 		fundamental_event.time[iter->second.index] =
+// 			iter->second.time - trigger_time;
+// 		fundamental_event.cfd_flag |=
+// 			iter->second.cfd_flag ? (1 << iter->second.index) : 0;
+// 	}
+// 	++statistics[index].match_events;
+// 	statistics[index].used_events += match_count;
+
+// 	return index;
+// }
+
+
+// int Tof::ExtractTrigger(
+// 	const std::string &trigger_tag,
+// 	double window_left,
+// 	double window_right
+// ) {
+// 	return Detector::ExtractTrigger<TofMapEvent, TofFundamentalEvent>(
+// 		trigger_tag,
+// 		{"golden", "silver"},
+// 		window_left,
+// 		window_right,
+// 		FillEvent
+// 	);
+// }
+
+
 /// @brief convert map event to fundamental event
 /// @param[in] trigger_time trigger time to match
 /// @param[in] match_map map_events order by trigger time
 /// @param[out] fundamental_event converted fundamental event
 /// @param[out] statistics information about statistics
-/// @returns index >= 0 if matched, -1 for failed
 ///
-int FillEvent(
+void FillEvent(
 	double trigger_time,
 	const std::multimap<double, TofMapEvent> &match_map,
 	TofFundamentalEvent &fundamental_event,
-	std::vector<MatchTriggerStatistics> &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	fundamental_event.time[0] = -1e5;
 	fundamental_event.time[1] = -1e5;
@@ -40,46 +101,43 @@ int FillEvent(
 	// check match events number
 	size_t match_count = match_map.count(trigger_time);
 
-	// jump if match not found
-	if (match_count == 0) return -1;
-	// record oversize events and jump
-	if (match_count > 2) {
-		for (MatchTriggerStatistics &sta : statistics) {
-			++sta.oversize_events;
+	if (match_count == 1 || match_count == 2) {
+		auto range = match_map.equal_range(trigger_time);
+		for (auto iter = range.first; iter != range.second; ++iter) {
+			fundamental_event.time[iter->second.index] =
+				iter->second.time - trigger_time;
+			fundamental_event.cfd_flag |=
+				iter->second.cfd_flag ? (1 << iter->second.index) : 0;
 		}
-		return -1;
+		++statistics.match_events;
+		statistics.used_events += match_count;
+	} else if (match_count > 2) {
+		++statistics.oversize_events;
 	}
-
-	// index is 0 represents golden if match count is 2,
-	// index is 1 represents silver if match count is 1
-	size_t index = 2 - match_count;
-	auto range = match_map.equal_range(trigger_time);
-	for (auto iter = range.first; iter != range.second; ++iter) {
-		fundamental_event.time[iter->second.index] =
-			iter->second.time - trigger_time;
-		fundamental_event.cfd_flag |=
-			iter->second.cfd_flag ? (1 << iter->second.index) : 0;
-	}
-	++statistics[index].match_events;
-	statistics[index].used_events += match_count;
-
-	return index;
 }
 
 
-int Tof::ExtractTrigger(
+int Tof::MatchTrigger(
 	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
-	return Detector::ExtractTrigger<TofMapEvent, TofFundamentalEvent>(
-		trigger_tag,
-		{"golden", "silver"},
-		window_left,
-		window_right,
-		FillEvent
-	);
+	if (name_ == "tof") {
+		return Detector::MatchTrigger<TofMapEvent, TofFundamentalEvent>(
+			trigger_tag,
+			window_left,
+			window_right,
+			FillEvent
+		);
+	} else {
+		// vtof
+		return Detector::VmeMatchTrigger<TofFundamentalEvent>(
+			trigger_tag
+		);
+	}
 }
+
+
 
 
 int Tof::BeamIdentify() {

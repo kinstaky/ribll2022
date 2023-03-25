@@ -70,6 +70,14 @@ public:
 	);
 
 
+	/// @brief template for VME detectors matching trigger
+	/// @tparam FundamentalEvent type of fundamental event
+	/// @param[in] trigger_tag tag for trigger
+	/// @returns 0 if success, -1 otherwise
+	/// 
+	template<typename FundamentalEvent>
+	int VmeMatchTrigger(const std::string &trigger_tag);
+
 
 	/// @brief extract trigger with detector events
 	/// @param[in] trigger_tag extract from trigger with this tag
@@ -248,7 +256,6 @@ long long Detector::FillMatchMap(
 }
 
 
-
 template<typename MapEvent, typename FundamentalEvent>
 int Detector::MatchTrigger(
 	const std::string &trigger_tag,
@@ -358,6 +365,164 @@ int Detector::MatchTrigger(
 	return 0;
 }
 
+
+template<typename FundamentalEvent>
+int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
+	// read merged vt trigger
+	// merged vt fundamental file name
+	TString vt_file_name;
+	vt_file_name.Form(
+		"%s%svt-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		trigger_tag.empty() ? "" : (trigger_tag+"-").c_str(),
+		run_
+	);
+	// vt file
+	TFile *vt_file = new TFile(vt_file_name, "read");
+	// vt tree
+	TTree *vt_tree = (TTree*)vt_file->Get("tree");
+	if (!vt_tree) {
+		std::cerr << "Error: Get tree from "
+			<< vt_file_name << " failed.\n";
+		return -1;
+	}
+	// input trigger event
+	TriggerEvent vt_event;
+	// setup vt tree branches
+	vt_event.SetupInput(vt_tree);
+
+	std::vector<long long> vt_times;
+
+	// total number of VME trigger events
+	long long entries = vt_tree->GetEntries();
+	// 1/100 of entries
+	// long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Reading VME trigger   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		// if (entry % entry100 == 0) {
+		// 	printf("\b\b\b\b%3lld%%", entry / entry100);
+		// 	fflush(stdout);
+		// }
+		// get entry
+		vt_tree->GetEntry(entry);
+		// add valid timestamp or invalid -1 timestamp based on time
+		if (vt_event.time > -9e4) vt_times.push_back(vt_event.timestamp);
+		else vt_times.push_back(-1);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// close vt input file
+	vt_file->Close();
+
+
+	// setup detector input and output
+	// detector input file name
+	TString detector_input_file_name;
+	detector_input_file_name.Form(
+		"%s%s%s-map-%04u.root",
+		kGenerateDataPath, kMappingDir, name_.c_str(), run_
+	);
+	// detector input file
+	TFile *ipf = new TFile(detector_input_file_name, "read");
+	// detector input tree
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< detector_input_file_name << " failed.\n";
+		return -1;
+	}
+	// detector output file name
+	TString detector_output_file_name;
+	detector_output_file_name.Form(
+		"%s%s%s-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		name_.c_str(),
+		trigger_tag.empty() ? "" : (trigger_tag+"-").c_str(),
+		run_
+	);
+	// detector output file
+	TFile *opf = new TFile(detector_output_file_name, "recreate");
+	// detector output tree
+	TTree *opt = new TTree("tree", "fundamental tree");
+	// input timestamp
+	long long timestamp;
+	// input and output event
+	FundamentalEvent fundamental_event;
+	// setup input and output branches
+	ipt->SetBranchAddress("timestamp", &timestamp);
+	fundamental_event.SetupInput(ipt);
+	fundamental_event.SetupOutput(opt);
+
+	// for statistics
+	MatchTriggerStatistics statistics(
+		run_,
+		name_,
+		trigger_tag,
+		"",
+		vt_times.size(),
+		ipt->GetEntries()
+	);
+
+	// detecotr map event entries
+	long long detector_entries = ipt->GetEntries();
+	// detecotr current entry
+	long long detector_entry = 0;
+	// show start
+	printf("Writing %s fundamnetal events   0%%", name_.c_str());
+	fflush(stdout);
+	for (size_t entry = 0; entry < vt_times.size(); ++entry) {
+		// show process
+		// if (entry % entry100 == 0) {
+		// 	printf("\b\b\b\b%3lld%%", entry / entry100);
+		// 	fflush(stdout);
+		// }
+		
+		if (detector_entry < detector_entries) {
+			// read detector event
+			ipt->GetEntry(detector_entry);
+			while (
+				timestamp < vt_times[entry]
+				&& detector_entry+1 < detector_entries
+			) {
+				++detector_entry;
+				ipt->GetEntry(detector_entry);
+			}
+
+			if (timestamp == vt_times[entry]) {
+				// record this event and move to next event
+				++detector_entry;
+				++statistics.used_events;
+				++statistics.match_events;
+			} else {
+				// nullify this event
+				fundamental_event.Nullify();
+			}
+		} else {
+			fundamental_event.Nullify();
+		}
+		// fill event
+		opt->Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// write tree
+	opt->Write();
+	// close files
+	opf->Close();
+	ipf->Close();
+
+	// save statistics
+	statistics.Write();
+	// show statistics
+	statistics.Print();
+
+	return 0;
+}
 
 
 template<typename MapEvent, typename FundamentalEvent>
