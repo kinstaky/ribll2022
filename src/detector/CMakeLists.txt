@@ -16,7 +16,6 @@ target_link_libraries(
 	PUBLIC statistics ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
 )
 
-
 # adssd library
 add_library(adssd adssd.cpp ${DETECTOR_INCLUDE_DIR}/adssd.h)
 target_link_libraries(adssd PUBLIC detector event)
@@ -26,7 +25,12 @@ add_library(csi csi.cpp ${DETECTOR_INCLUDE_DIR}/csi.h)
 target_link_libraries(csi PUBLIC detector event)
 
 # dssd library
-add_library(dssd dssd.cpp ${DETECTOR_INCLUDE_DIR}/dssd.h)
+add_library(
+	dssd
+	dssd.cpp t0d1.cpp t0d2.cpp t0d3.cpp
+	${DETECTOR_INCLUDE_DIR}/dssd.h ${DETECTOR_INCLUDE_DIR}/t0d1.h
+	${DETECTOR_INCLUDE_DIR}/t0d2.h ${DETECTOR_INCLUDE_DIR}/t0d3.h
+)
 target_link_libraries(dssd PUBLIC detector event)
 
 # ppac library

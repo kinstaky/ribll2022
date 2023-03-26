@@ -10,6 +10,9 @@
 #include "include/detector/ssd.h"
 #include "include/detector/tof.h"
 #include "include/detector/vme_trigger.h"
+#include "include/detector/t0d1.h"
+#include "include/detector/t0d2.h"
+#include "include/detector/t0d3.h"
 
 namespace ribll {
 
