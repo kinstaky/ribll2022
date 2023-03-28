@@ -3,7 +3,10 @@
 
 #include <string>
 
+#include <TChain.h>
+
 #include "include/detector/detector.h"
+#include "include/event/dssd_event.h"
 
 namespace ribll {
 
@@ -42,6 +45,15 @@ public:
 	}
 
 
+	/// @brief return strip number based on side
+	/// @param[in] side 0 for front side, 1 for back side 
+	/// @returns strip number
+	///
+	virtual inline size_t Strip(int side) const {
+		return side == 0 ? FrontStrip() : BackStrip(); 
+	}
+
+
 	//-------------------------------------------------------------------------
 	//							match trigger
 	//-------------------------------------------------------------------------
@@ -71,6 +83,101 @@ public:
 		double window_right
 	) override;
 
+
+	//-------------------------------------------------------------------------
+	//							normalize
+	//-------------------------------------------------------------------------
+
+	/// @brief normalize dssd
+	/// @param[in] length number of files to use
+	/// @param[in] tag trigger tag to choose file
+	/// @param[in] iteration in iteration mode?
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Normalize(
+		unsigned int length,
+		const std::string &tag,
+		bool iteration
+	);
+
+
+	/// @brief get normalized energy based on parameters
+	/// @param[in] side 0 for front, 1 for back 
+	/// @param[in] strip strip index 
+	/// @param[in] energy energy 
+	/// @returns normaized energy
+	///
+	inline double NormEnergy(int side, int strip, double energy) {
+		return norm_params_[side][strip][0]
+			+ norm_params_[side][strip][1] * energy;
+	}
+
+
+	//-------------------------------------------------------------------------
+	//							normalize
+	//-------------------------------------------------------------------------
+
+	virtual int Merge();
+
+protected:
+
+	//-------------------------------------------------------------------------
+	//							normalize
+	//-------------------------------------------------------------------------
+
+	/// @brief read normalize parameters form file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int ReadNormalizeParameters();
+
+
+	/// @brief write normalize parameters to file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteNormalizeParameters();
+
+
+	/// @brief normalize one side
+	/// @param[in] chain input TChain
+	/// @param[in] side side to normalize, 0 for front, 1 for back
+	/// @param[in] ref_strip reference strip from the other side
+	/// @param[in] iteration iteration mode
+	///
+	int SideNormalize(
+		TChain *chain,
+		size_t side,
+		size_t ref_strip,
+		bool iteration
+	);
+
+
+	/// @brief normalize both sides, the true normalize
+	/// @param[in] chain TChain of input events
+	/// @param[in] iteration iteration mode?
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int NormalizeSides(TChain *chain, bool iteration);
+
+
+	/// @brief wirte normalized energy to root file
+	/// @param[in] run run number
+	/// @param[in] tag trigger tag
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteNormalizeFiles(unsigned int run, const std::string &tag);
+
+
+	/// @brief check whether energy is suitable for fitting
+	/// @param[in] side side to normalize
+	/// @param[in] event fundamental event
+	/// @returns true if pass check, false not pass
+	///
+	virtual bool NormEnergyCheck(size_t side, const DssdFundamentalEvent &event);
+
+
+	// normalize parameters, first index is side,
+	// second index is strip, third index is p0 and p1
+	double norm_params_[2][64][2];
 };
 
 }		// namespace ribll

@@ -29,9 +29,9 @@ target_link_libraries(beam_identify PUBLIC tof)
 # add_executable(merge merge.cpp)
 # target_link_libraries(merge PUBLIC detector)
 
-# # normalize
-# add_executable(normalize normalize.cpp)
-# target_link_libraries(normalize PUBLIC detector)
+# normalize
+add_executable(normalize normalize.cpp)
+target_link_libraries(normalize PUBLIC detectors)
 
 # # telescope
 # add_executable(tele telescope.cpp)

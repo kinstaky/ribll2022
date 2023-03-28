@@ -50,6 +50,32 @@ std::shared_ptr<Detector> CreateDetector(
 }
 
 
+std::shared_ptr<Dssd> CreateDssd(
+	const std::string &name,
+	unsigned int run
+) {
+	if (name == "t0d1") {
+		return std::make_shared<T0d1>(run);
+	} else if (name == "t0d2") {
+		return std::make_shared<T0d2>(run);
+	} else if (name == "t0d3") {
+		return std::make_shared<T0d3>(run);
+	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
+		unsigned int index = name[3] - '0';
+		if (index <= 5) {
+			return std::make_shared<Taf>(run, index);
+		}
+	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
+		unsigned int index = name[3] - '0';
+		if (index <= 5) {
+			return std::make_shared<Tab>(run, index);
+		}
+	}
+
+	std::cerr << "Error: Create dssd " << name << " failed.\n";
+	return nullptr;
+}
+
 struct MergeInfo {
 	TFile *opf;
 	TTree *opt;

@@ -13,6 +13,8 @@
 #include "include/detector/t0d1.h"
 #include "include/detector/t0d2.h"
 #include "include/detector/t0d3.h"
+#include "include/detector/taf.h"
+#include "include/detector/tab.h"
 
 namespace ribll {
 
@@ -22,6 +24,17 @@ namespace ribll {
 /// @returns pointer to detector if successful, nullptr otherwise
 ///
 std::shared_ptr<Detector> CreateDetector(
+	const std::string &name,
+	unsigned int run
+);
+
+
+/// @brief create dssd detector by name
+/// @param[in] name dssd name
+/// @param[in] run run number
+/// @returns pointer to dssd if successful, nullptr otherwise
+///
+std::shared_ptr<Dssd> CreateDssd(
 	const std::string &name,
 	unsigned int run
 );
