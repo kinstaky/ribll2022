@@ -11,64 +11,67 @@ namespace ribll {
 
 std::shared_ptr<Detector> CreateDetector(
 	const std::string &name,
-	unsigned int run
+	unsigned int run,
+	const std::string &tag
 ) {
 	if (name == "tof") {
-		return std::make_shared<Tof>(run);
+		return std::make_shared<Tof>(run, tag);
 	} else if (name == "vt") {
-		return std::make_shared<VmeTrigger>(run);
+		return std::make_shared<VmeTrigger>(run, tag);
 	} else if (name == "xppac") {
-		return std::make_shared<Ppac>(run, "xppac");
+		return std::make_shared<Ppac>(run, "xppac", tag);
 	} else if (name == "t0d1") {
-		return std::make_shared<T0d1>(run);
+		return std::make_shared<T0d1>(run, tag);
 	} else if (name == "t0d2") {
-		return std::make_shared<T0d2>(run);
+		return std::make_shared<T0d2>(run, tag);
 	} else if (name == "t0d3") {
-		return std::make_shared<T0d3>(run);
+		return std::make_shared<T0d3>(run, tag);
 	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
-			return std::make_shared<Taf>(run, index);
+			return std::make_shared<Taf>(run, index, tag);
 		}
 	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
-			return std::make_shared<Tab>(run, index);
+			return std::make_shared<Tab>(run, index, tag);
 		}
 	} else if (name == "tafcsi" || name == "tabcsi") {
-		return std::make_shared<CircularCsi>(run, name);
+		return std::make_shared<CircularCsi>(run, name, tag);
 	} else if (name == "t0csi" || name == "t1csi") {
-		return std::make_shared<SquareCsi>(run, name);
+		return std::make_shared<SquareCsi>(run, name, tag);
 	} else if (name.size() == 4 && name.substr(0, 3) == "t0s") {
-		return std::make_shared<Ssd>(run, name);
+		return std::make_shared<Ssd>(run, name, tag);
 	} else if (name == "t1s1") {
-		return std::make_shared<Ssd>(run, name);
+		return std::make_shared<Ssd>(run, name, tag);
 	}
 
-	std::cerr << "Error: Create detector " << name << " failed.\n";
+	std::cerr << "Error: Create detector " << name
+		<< " with tag " << tag << " failed.\n";
 	return nullptr;
 }
 
 
 std::shared_ptr<Dssd> CreateDssd(
 	const std::string &name,
-	unsigned int run
+	unsigned int run,
+	const std::string &tag
 ) {
 	if (name == "t0d1") {
-		return std::make_shared<T0d1>(run);
+		return std::make_shared<T0d1>(run, tag);
 	} else if (name == "t0d2") {
-		return std::make_shared<T0d2>(run);
+		return std::make_shared<T0d2>(run, tag);
 	} else if (name == "t0d3") {
-		return std::make_shared<T0d3>(run);
+		return std::make_shared<T0d3>(run, tag);
 	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
-			return std::make_shared<Taf>(run, index);
+			return std::make_shared<Taf>(run, index, tag);
 		}
 	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
 		unsigned int index = name[3] - '0';
 		if (index <= 5) {
-			return std::make_shared<Tab>(run, index);
+			return std::make_shared<Tab>(run, index, tag);
 		}
 	}
 
@@ -129,7 +132,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		// setup input branches
 		ipt->SetBranchAddress("xt.time", &xia_time);
 		fundamental_event.SetupInput(ipt);
-		
+
 		MergeInfo &info = merge_info[i-2];
 		info.entries = ipt->GetEntries();
 		info.entry = 0;
@@ -192,7 +195,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		// detector output file
 		merge_info[i-2].opf = new TFile(taf_output_file_name, "recreate");
 		// detector output tree
-		merge_info[i-2].opt = new TTree("tree", "fundamental tree");		
+		merge_info[i-2].opt = new TTree("tree", "fundamental tree");
 		// setup output branches
 		fundamental_event.SetupOutput(merge_info[i-2].opt);
 	}

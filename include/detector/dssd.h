@@ -16,8 +16,13 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] name detector name
+	/// @param[in] tag trigger tag
 	///
-	Dssd(unsigned int run, const std::string &name);
+	Dssd(
+		unsigned int run,
+		const std::string &name,
+		const std::string &tag
+	);
 
 
 	/// @brief default destructor
@@ -59,26 +64,22 @@ public:
 	//-------------------------------------------------------------------------
 
 	/// @brief match xia main trigger and build events
-	/// @param[in] trigger_tag tag of trigger to chosse file
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int MatchTrigger(
-		const std::string &trigger_tag,
 		double window_left,
 		double window_right
 	) override;
 
 
 	/// @brief extract trigger with detector events
-	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int ExtractTrigger(
-		const std::string &trigger_tag,
 		double window_left,
 		double window_right
 	) override;
@@ -90,13 +91,11 @@ public:
 
 	/// @brief normalize dssd
 	/// @param[in] length number of files to use
-	/// @param[in] tag trigger tag to choose file
 	/// @param[in] iteration in iteration mode?
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Normalize(
 		unsigned int length,
-		const std::string &tag,
 		bool iteration
 	);
 

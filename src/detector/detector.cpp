@@ -19,16 +19,15 @@ namespace ribll {
 
 Detector::Detector(
 	unsigned int run,
-	const std::string &name
+	const std::string &name,
+	const std::string &tag
 )
 : run_(run)
-, name_(name) {
+, name_(name)
+, tag_(tag) {
 }
 
-int Detector::ReadTriggerTimes(
-	std::vector<double> &trigger_times,
-	const std::string &tag
-) {
+int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
 	// clear data
 	trigger_times.clear();
 	// trigger file name
@@ -37,7 +36,7 @@ int Detector::ReadTriggerTimes(
 		"%s%sxt-map-%s%04d.root",
 		kGenerateDataPath,
 		kMappingDir,
-		tag.empty() ? "" : (tag + "-").c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
 	// pointer to trigger file
@@ -55,7 +54,7 @@ int Detector::ReadTriggerTimes(
 	trigger_tree->SetBranchAddress("time", &trigger_time);
 
 	// show begin
-	printf("Reading %s trigger events   0%%", tag.c_str());
+	printf("Reading %s trigger events   0%%", tag_.c_str());
 	fflush(stdout);
 	long long entries = trigger_tree->GetEntries();
 	// 1/100 of entry, for showing process
@@ -79,14 +78,14 @@ int Detector::ReadTriggerTimes(
 }
 
 
-int Detector::MatchTrigger(const std::string&, double, double) {
+int Detector::MatchTrigger(double, double) {
 	// do nothing but report error
 	std::cerr << "Error: MatchTrigger is not implemented yet.\n";
 	return -1;
 }
 
 
-int Detector::ExtractTrigger(const std::string&, double, double) {
+int Detector::ExtractTrigger(double, double) {
 	// do nothing but report error
 	std::cerr << "Error: ExtractTrigger is not implemented yet.\n";
 	return -1;

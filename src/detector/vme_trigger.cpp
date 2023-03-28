@@ -7,8 +7,8 @@
 
 namespace ribll {
 
-VmeTrigger::VmeTrigger(unsigned int run)
-: Detector(run, "vt") {
+VmeTrigger::VmeTrigger(unsigned int run, const std::string &tag)
+: Detector(run, "vt", tag) {
 }
 
 
@@ -240,12 +240,10 @@ int MatchVmeDetector(
 
 
 int VmeTrigger::ExtractTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	if (Detector::ExtractTrigger<TriggerEvent, TriggerEvent>(
-		trigger_tag,
 		{"vt"},
 		window_left,
 		window_right,

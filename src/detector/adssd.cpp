@@ -5,13 +5,29 @@
 
 namespace ribll {
 
-Adssd::Adssd(unsigned int run, const std::string &name)
-: Dssd(run, name) {
+Adssd::Adssd(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: Dssd(run, name, tag) {
 }
 
 
-int Adssd::MatchTrigger(const std::string &trigger_tag, double, double) {
-	return Detector::VmeMatchTrigger<DssdFundamentalEvent>(trigger_tag);
+int Adssd::MatchTrigger(double, double) {
+	return Detector::VmeMatchTrigger<DssdFundamentalEvent>();
 }
+
+
+// int Adssd::Merge() {
+// 		// input file name
+// 	TString fundamental_file_name;
+// 	fundamental_file_name.Form(
+// 		"%s%s%s-fundamental"
+// 	)
+	
+// 	DssdFundamentalEvent fundamental_event;
+
+// }
 
 }		// namespace ribll

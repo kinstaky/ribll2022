@@ -15,7 +15,7 @@ public:
 
 
 	/// @brief setup branches of output tree
-	/// @param[out] tree pointer to output tree
+	/// @param[in] tree pointer to output tree
 	///
 	virtual void SetupOutput(TTree *tree) override;
 
@@ -38,7 +38,7 @@ public:
 
 
 	/// @brief setup branches of output tree
-	/// @param[out] tree pointer to output tree
+	/// @param[in] tree pointer to output tree
 	///
 	virtual void SetupOutput(TTree *tree) override;
 
@@ -67,6 +67,28 @@ public:
 	double back_time[8];
 	double front_energy[8];
 	double back_energy[8];
+};
+
+
+class DssdMergedEvent : public Event {
+public:
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	///
+	virtual void SetupInput(TTree *tree) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[in] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+
+	unsigned short hit;
+	double magnitude[4];
+	double theta[4];
+	double phi[4];
+	double energy[4];
 };
 
 }

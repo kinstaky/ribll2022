@@ -21,8 +21,13 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] name detector name
+	/// @param[in] tag trigger tag
 	///
-	Detector(unsigned int run, const std::string &name);
+	Detector(
+		unsigned int run,
+		const std::string &name,
+		const std::string &tag
+	);
 
 
 	/// @brief default destructor
@@ -34,16 +39,11 @@ public:
 	//-------------------------------------------------------------------------
 
 	/// @brief match xia main trigger and build events
-	/// @param[in] trigger_tag tag of trigger to chosse file
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(
-		const std::string &trigger_tag,
-		double window_left,
-		double window_right
-	);
+	virtual int MatchTrigger(double window_left, double window_right);
 
 
 	/// @brief template of match trigger
@@ -51,14 +51,12 @@ public:
 	/// @tparam FundamentalEvent type of fundamental event
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
-	/// @param[in] trigger_tag tag of trigger for selecting file
 	/// @param[in] fill_event function to convert map event
 	///		to fundamental event
 	/// @returns 0 if success, -1 otherwise
 	///
 	template<typename MapEvent, typename FundamentalEvent>
 	int MatchTrigger(
-		const std::string &trigger_tag,
 		double window_left,
 		double window_right,
 		void (*fill_event)(
@@ -72,11 +70,10 @@ public:
 
 	/// @brief template for VME detectors matching trigger
 	/// @tparam FundamentalEvent type of fundamental event
-	/// @param[in] trigger_tag tag for trigger
 	/// @returns 0 if success, -1 otherwise
-	/// 
+	///
 	template<typename FundamentalEvent>
-	int VmeMatchTrigger(const std::string &trigger_tag);
+	int VmeMatchTrigger();
 
 
 	/// @brief extract trigger with detector events
@@ -85,17 +82,12 @@ public:
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int ExtractTrigger(
-		const std::string &trigger_tag,
-		double window_left,
-		double window_right
-	);
+	virtual int ExtractTrigger(double window_left, double window_right);
 
 
 	/// @brief template of extract trigger
 	/// @tparam MapEvent type of map event
 	/// @tparam FundamentalEvent type of fndamental event
-	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] extract_tags tags after extraction
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
@@ -104,7 +96,6 @@ public:
 	///
 	template<typename MapEvent, typename FundamentalEvent>
 	int ExtractTrigger(
-		const std::string &trigger_tag,
 		const std::vector<std::string> &extract_tags,
 		double window_left,
 		double window_right,
@@ -121,22 +112,19 @@ protected:
 	unsigned int run_;
 	// detector name
 	std::string name_;
+	// trigger tag
+	std::string tag_;
 
 private:
 	/// @brief read tirgger from root file
 	/// @param[out] trigger_times list of trigger time
-	/// @param[in] tag trigger tag to choose trigger file
 	/// @returns 0 if success, -1 otherwise
 	///
-	int ReadTriggerTimes(
-		std::vector<double> &trigger_times,
-		const std::string &tag = ""
-	);
+	int ReadTriggerTimes(std::vector<double> &trigger_times);
 
 
 	/// @brief match the map event of detector with trigger
 	/// @tparam MapEvent type of detector map event
-	/// @param[in] tag tag of trigger to choose file
 	/// @param[in] look_window width of look window in nanoseconds
 	/// @param[in] hist_look_window histogram to fill time difference
 	/// @param[in] window_left left border of matching window in nanoseconds
@@ -147,7 +135,6 @@ private:
 	///
 	template<typename MapEvent>
 	long long FillMatchMap(
-		const std::string &tag,
 		double look_window,
 		TH1F *hist_look_window,
 		double window_left,
@@ -160,7 +147,6 @@ private:
 
 template<typename MapEvent>
 long long Detector::FillMatchMap(
-	const std::string &tag,
 	double look_window,
 	TH1F *hist_look_window,
 	double window_left,
@@ -172,9 +158,7 @@ long long Detector::FillMatchMap(
 	trigger_times.clear();
 	match_map.clear();
 
-	if (ReadTriggerTimes(trigger_times, tag)) {
-		return -1;
-	}
+	if (ReadTriggerTimes(trigger_times)) return -1;
 
 	// setup input file and tree
 	// name of input file
@@ -258,7 +242,6 @@ long long Detector::FillMatchMap(
 
 template<typename MapEvent, typename FundamentalEvent>
 int Detector::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right,
 	void (*fill_event)(
@@ -281,7 +264,6 @@ int Detector::MatchTrigger(
 	long long detector_entries;
 	// get detector entries, trigger times and match map
 	detector_entries = FillMatchMap<MapEvent>(
-		trigger_tag,
 		look_window,
 		hist_look_window,
 		window_left,
@@ -300,7 +282,7 @@ int Detector::MatchTrigger(
 		kGenerateDataPath,
 		kFundamentalDir,
 		name_.c_str(),
-		trigger_tag.empty() ? "" : (trigger_tag + "-").c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
 	// pointer to output file
@@ -317,7 +299,7 @@ int Detector::MatchTrigger(
 	MatchTriggerStatistics statistics(
 		run_,
 		name_,
-		trigger_tag,
+		tag_,
 		"",
 		trigger_times.size(),
 		detector_entries
@@ -367,7 +349,7 @@ int Detector::MatchTrigger(
 
 
 template<typename FundamentalEvent>
-int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
+int Detector::VmeMatchTrigger() {
 	// read merged vt trigger
 	// merged vt fundamental file name
 	TString vt_file_name;
@@ -375,7 +357,7 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 		"%s%svt-fundamental-%s%04u.root",
 		kGenerateDataPath,
 		kFundamentalDir,
-		trigger_tag.empty() ? "" : (trigger_tag+"-").c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
 	// vt file
@@ -442,7 +424,7 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 		kGenerateDataPath,
 		kFundamentalDir,
 		name_.c_str(),
-		trigger_tag.empty() ? "" : (trigger_tag+"-").c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
 	// detector output file
@@ -462,7 +444,7 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 	MatchTriggerStatistics statistics(
 		run_,
 		name_,
-		trigger_tag,
+		tag_,
 		"",
 		vt_times.size(),
 		ipt->GetEntries()
@@ -472,16 +454,7 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 	long long detector_entries = ipt->GetEntries();
 	// detecotr current entry
 	long long detector_entry = 0;
-	// show start
-	printf("Writing %s fundamnetal events   0%%", name_.c_str());
-	fflush(stdout);
 	for (size_t entry = 0; entry < vt_times.size(); ++entry) {
-		// show process
-		// if (entry % entry100 == 0) {
-		// 	printf("\b\b\b\b%3lld%%", entry / entry100);
-		// 	fflush(stdout);
-		// }
-		
 		if (detector_entry < detector_entries) {
 			// read detector event
 			ipt->GetEntry(detector_entry);
@@ -508,8 +481,6 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 		// fill event
 		opt->Fill();
 	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
 	// write tree
 	opt->Write();
 	// close files
@@ -527,7 +498,6 @@ int Detector::VmeMatchTrigger(const std::string &trigger_tag) {
 
 template<typename MapEvent, typename FundamentalEvent>
 int Detector::ExtractTrigger(
-	const std::string &trigger_tag,
 	const std::vector<std::string> &extract_tags,
 	double window_left,
 	double window_right,
@@ -551,7 +521,6 @@ int Detector::ExtractTrigger(
 	long long detector_entries;
 	// get detector entries, trigger times and match map
 	detector_entries = FillMatchMap<MapEvent>(
-		trigger_tag,
 		look_window,
 		hist_look_window,
 		window_left,
@@ -587,7 +556,7 @@ int Detector::ExtractTrigger(
 			"%s%sxt-map-%s%s-%04u.root",
 			kGenerateDataPath,
 			kMappingDir,
-			trigger_tag.empty() ? "" : (trigger_tag + "-").c_str(),
+			tag_.empty() ? "" : (tag_+"-").c_str(),
 			tag.c_str(),
 			run_
 		);
@@ -609,7 +578,7 @@ int Detector::ExtractTrigger(
 			kGenerateDataPath,
 			kFundamentalDir,
 			name_.c_str(),
-			trigger_tag.empty() ? "" : (trigger_tag + "-").c_str(),
+			tag_.empty() ? "" : (tag_+"-").c_str(),
 			tag.c_str(),
 			run_
 		);
@@ -629,12 +598,7 @@ int Detector::ExtractTrigger(
 	std::vector<MatchTriggerStatistics> statistics;
 	for (const std::string &tag : extract_tags) {
 		statistics.emplace_back(
-			run_,
-			name_,
-			trigger_tag,
-			tag,
-			trigger_times.size(),
-			detector_entries
+			run_, name_, tag_, tag, trigger_times.size(), detector_entries
 		);
 	}
 

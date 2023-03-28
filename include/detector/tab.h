@@ -11,8 +11,9 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] index index of taf, 0 to 5
+	/// @param[in] tag trigger tag
 	///
-	Tab(unsigned int run, unsigned int index);
+	Tab(unsigned int run, unsigned int index, const std::string &tag);
 
 
 	/// @brief default destructor

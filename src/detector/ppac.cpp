@@ -5,8 +5,12 @@
 namespace ribll {
 
 
-Ppac::Ppac(unsigned int run, const std::string &name)
-: Detector(run, name) {
+Ppac::Ppac(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: Detector(run, name, tag) {
 }
 
 
@@ -89,22 +93,18 @@ void FillEvent(
 
 
 int Ppac::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	if (name_ == "xppac") {
 		return Detector::MatchTrigger<PpacMapEvent, PpacFundamentalEvent>(
-			trigger_tag,
 			window_left,
 			window_right,
 			FillEvent
 		);
 	} else {
 		// vppac
-		return Detector::VmeMatchTrigger<PpacFundamentalEvent>(
-			trigger_tag
-		);
+		return Detector::VmeMatchTrigger<PpacFundamentalEvent>();
 	}
 }
 

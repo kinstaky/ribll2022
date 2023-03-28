@@ -2,15 +2,15 @@
 
 namespace ribll {
 
-Taf::Taf(unsigned int run, unsigned int index)
-: Adssd(run, "taf"+std::to_string(index))
+Taf::Taf(unsigned int run, unsigned int index, const std::string &tag)
+: Adssd(run, "taf"+std::to_string(index), tag)
 , index_(index) {
 }
 
 
-int Taf::MatchTrigger(const std::string &trigger_tag, double, double) {
+int Taf::MatchTrigger(double, double) {
 	if (name_ == "taf0" || name_ == "taf1") { 
-		return Detector::VmeMatchTrigger<DssdFundamentalEvent>(trigger_tag);
+		return Detector::VmeMatchTrigger<DssdFundamentalEvent>();
 	}
 	std::cerr << "Error: Use ExtractTrigger instead.\n";
 	return -1;
@@ -18,7 +18,6 @@ int Taf::MatchTrigger(const std::string &trigger_tag, double, double) {
 
 
 int Taf::ExtractTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
@@ -26,7 +25,7 @@ int Taf::ExtractTrigger(
 		std::cerr << "Error: Use MatchTrigger instead.\n";
 		return -1;
 	}
-	return Dssd::ExtractTrigger(trigger_tag, window_left, window_right);
+	return Dssd::ExtractTrigger(window_left, window_right);
 }
 
 

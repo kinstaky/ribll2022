@@ -10,8 +10,9 @@ public:
 
 	/// @brief constructor
 	/// @param[in] run run number
+	/// @param[in] tag trigger tag
 	///
-	T0d2(unsigned int run);
+	T0d2(unsigned int run, const std::string &tag);
 
 
 	/// @brief default destructor

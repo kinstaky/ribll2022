@@ -135,7 +135,8 @@ int main(int argc, char **argv) {
 			continue;
 		}
 
-		std::shared_ptr<Detector> detector = CreateDetector(detector_name, run);
+		std::shared_ptr<Detector> detector =
+			CreateDetector(detector_name, run, trigger_tag);
 		if (!detector) continue;
 
 		std::pair<double, double> window_edge = {-1000.0, 1000.0};
@@ -149,7 +150,6 @@ int main(int argc, char **argv) {
 		if (!extract) {
 			// extract tag empty, just match trigger
 			int result = detector->MatchTrigger(
-				trigger_tag,
 				window_edge.first,
 				window_edge.second
 			);
@@ -160,7 +160,6 @@ int main(int argc, char **argv) {
 			}
 		} else {
 			int result = detector->ExtractTrigger(
-				trigger_tag,
 				window_edge.first,
 				window_edge.second
 			);

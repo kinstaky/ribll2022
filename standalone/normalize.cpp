@@ -115,10 +115,10 @@ int main(int argc, char **argv) {
 	}
 
 	for (auto dssd_name : dssd_names) {
-		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run);
+		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
 		if (!dssd) continue;
-		
-		if (dssd->Normalize(length, tag, false)) {
+
+		if (dssd->Normalize(length, false)) {
 			std::cerr << "Error: Normalize "
 				<< dssd_name << " failed.\n";
 			continue;

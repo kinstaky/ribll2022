@@ -16,7 +16,7 @@ public:
 
 
 	/// @brief setup branches of output tree
-	/// @param[out] tree pointer to output tree
+	/// @param[in] tree pointer to output tree
 	///
 	virtual void SetupOutput(TTree *tree) = 0;
 };

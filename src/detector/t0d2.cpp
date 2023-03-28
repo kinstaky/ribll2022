@@ -2,8 +2,8 @@
 
 namespace ribll {
 
-T0d2::T0d2(unsigned int run)
-: Dssd(run, "t0d2") {
+T0d2::T0d2(unsigned int run, const std::string &tag)
+: Dssd(run, "t0d2", tag) {
 }
 
 

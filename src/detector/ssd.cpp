@@ -4,8 +4,12 @@
 
 namespace ribll {
 
-Ssd::Ssd(unsigned int run, const std::string &name)
-: Detector(run, name) {
+Ssd::Ssd(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: Detector(run, name, tag) {
 }
 
 
@@ -42,12 +46,10 @@ void FillEvent(
 
 
 int Ssd::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	return Detector::MatchTrigger<SsdEvent, SsdEvent>(
-		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent

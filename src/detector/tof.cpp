@@ -15,8 +15,8 @@
 namespace ribll {
 
 
-Tof::Tof(unsigned int run)
-: Detector(run, "tof") {
+Tof::Tof(unsigned int run, const std::string &tag)
+: Detector(run, "tof", tag) {
 }
 
 
@@ -118,22 +118,18 @@ void FillEvent(
 
 
 int Tof::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	if (name_ == "tof") {
 		return Detector::MatchTrigger<TofMapEvent, TofFundamentalEvent>(
-			trigger_tag,
 			window_left,
 			window_right,
 			FillEvent
 		);
 	} else {
 		// vtof
-		return Detector::VmeMatchTrigger<TofFundamentalEvent>(
-			trigger_tag
-		);
+		return Detector::VmeMatchTrigger<TofFundamentalEvent>();
 	}
 }
 

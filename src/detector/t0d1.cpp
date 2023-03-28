@@ -2,8 +2,8 @@
 
 namespace ribll {
 
-T0d1::T0d1(unsigned int run)
-: Dssd(run, "t0d1") {
+T0d1::T0d1(unsigned int run, const std::string &tag)
+: Dssd(run, "t0d1", tag) {
 }
 
 // bool T0D1::NormalizeFrontEnergyCheck(

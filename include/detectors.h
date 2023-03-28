@@ -21,22 +21,26 @@ namespace ribll {
 /// @brief create detector by name
 /// @param[in] name detector name
 /// @param[in] run run number
+/// @param[in] tag trigger tag
 /// @returns pointer to detector if successful, nullptr otherwise
 ///
 std::shared_ptr<Detector> CreateDetector(
 	const std::string &name,
-	unsigned int run
+	unsigned int run,
+	const std::string &tag
 );
 
 
 /// @brief create dssd detector by name
 /// @param[in] name dssd name
 /// @param[in] run run number
+/// @param[in] tag trigger tag
 /// @returns pointer to dssd if successful, nullptr otherwise
 ///
 std::shared_ptr<Dssd> CreateDssd(
 	const std::string &name,
-	unsigned int run
+	unsigned int run,
+	const std::string &tag
 );
 
 

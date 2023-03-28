@@ -5,9 +5,10 @@ namespace ribll {
 GroupCsi::GroupCsi(
 	unsigned int run,
 	const std::string &name,
+	const std::string &tag,
 	unsigned int size
 )
-: Detector(run, name)
+: Detector(run, name, tag)
 , csi_size_(size) {
 }
 
@@ -65,18 +66,20 @@ void FillEvent(
 }
 
 
-CircularCsi::CircularCsi(unsigned int run, const std::string &name)
-: GroupCsi(run, name, 12) {
+CircularCsi::CircularCsi(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: GroupCsi(run, name, tag, 12) {
 }
 
 
 int CircularCsi::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	return Detector::MatchTrigger<CsiMapEvent, CircularCsiFundamentalEvent>(
-		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent<CircularCsiFundamentalEvent, 12>
@@ -84,18 +87,20 @@ int CircularCsi::MatchTrigger(
 }
 
 
-SquareCsi::SquareCsi(unsigned int run, const std::string &name)
-: GroupCsi(run, name, 4) {
+SquareCsi::SquareCsi(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: GroupCsi(run, name, tag, 4) {
 }
 
 
 int SquareCsi::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	return Detector::MatchTrigger<CsiMapEvent, SquareCsiFundamentalEvent>(
-		trigger_tag,
 		window_left,
 		window_right,
 		FillEvent<SquareCsiFundamentalEvent, 4>

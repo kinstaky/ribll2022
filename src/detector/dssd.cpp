@@ -9,8 +9,12 @@
 
 namespace ribll {
 
-Dssd::Dssd(unsigned int run, const std::string &name)
-: Detector(run, name) {
+Dssd::Dssd(
+	unsigned int run,
+	const std::string &name,
+	const std::string &tag
+)
+: Detector(run, name, tag) {
 }
 
 
@@ -144,12 +148,10 @@ int FillEventInExtract(
 
 
 int Dssd::MatchTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	return Detector::MatchTrigger<DssdMapEvent, DssdFundamentalEvent>(
-		trigger_tag,
 		window_left,
 		window_right,
 		FillEventInMatch
@@ -158,12 +160,10 @@ int Dssd::MatchTrigger(
 
 
 int Dssd::ExtractTrigger(
-	const std::string &trigger_tag,
 	double window_left,
 	double window_right
 ) {
 	return Detector::ExtractTrigger<DssdMapEvent, DssdFundamentalEvent>(
-		trigger_tag,
 		{name_},
 		window_left,
 		window_right,
@@ -445,7 +445,6 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 
 int Dssd::Normalize(
 	unsigned int length,
-	const std::string &tag,
 	bool iteration
 ) {
 	// setup input chain
@@ -457,7 +456,7 @@ int Dssd::Normalize(
 			kGenerateDataPath,
 			kFundamentalDir,
 			name_.c_str(),
-			tag.empty() ? "" : (tag + "-").c_str(),
+			tag_.empty() ? "" : (tag_ + "-").c_str(),
 			i+run_
 		);
 		if (!chain->AddFile(file_name)) {
@@ -490,7 +489,7 @@ int Dssd::Normalize(
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
-		tag.empty() ? "" : (tag+"-").c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_,
 		length
 	);
@@ -511,7 +510,7 @@ int Dssd::Normalize(
 	// write trees
 	std::cout << "---------------------------------------------------------\n"; 
 	for (unsigned int i = run_; i < run_ + length; i++) {
-		if (WriteNormalizeFiles(i, tag)) {
+		if (WriteNormalizeFiles(i, tag_)) {
 			std::cerr << "Error: Write normalized energy to file in run "
 				<< i << " failed.\n";
 			return -1;
@@ -526,18 +525,10 @@ int Dssd::Normalize(
 //									merge
 //-----------------------------------------------------------------------------
 
-// int Dssd::Merge() {
-
-// 	// input file name
-// 	TString fundamental_file_name;
-// 	fundamental_file_name.Form(
-// 		"%s%s%s-fundamental"
-// 	)
-	
-// 	DssdFundamentalEvent fundamental_event;
-
-// 	return 0;
-// }
+int Dssd::Merge() {
+	std::cerr << "Error: Dssd::Merge not implemented yet.\n";
+	return -1;
+}
 
 
 }

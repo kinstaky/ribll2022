@@ -14,9 +14,15 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] name detector name
+	/// @param[in] tag trigger tag
 	/// @param[in] size number of csi in group
 	///
-	GroupCsi(unsigned int run, const std::string &name, unsigned int size);
+	GroupCsi(
+		unsigned int run,
+		const std::string &name,
+		const std::string &tag,
+		unsigned int size
+	);
 
 
 	/// @brief default destructor
@@ -31,10 +37,15 @@ class CircularCsi : public GroupCsi {
 public:
 
 	/// @brief constructor
-	/// @param[in] run run number 
+	/// @param[in] run run number
 	/// @param[in] name detector name
+	/// @param[in] tag trigger tag
 	///
-	CircularCsi(unsigned int run, const std::string &name);
+	CircularCsi(
+		unsigned int run,
+		const std::string &name,
+		const std::string &tag
+	);
 
 
 	/// @brief default destructor
@@ -43,13 +54,11 @@ public:
 
 
 	/// @brief extract trigger with detector events
-	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int MatchTrigger(
-		const std::string &trigger_tag,
 		double window_left,
 		double window_right
 	) override;
@@ -62,8 +71,13 @@ public:
 	/// @brief constructor
 	/// @param[in] run run number
 	/// @param[in] name detector name
+	/// @param[in] tag trigger tag
 	///
-	SquareCsi(unsigned int run, const std::string &name);
+	SquareCsi(
+		unsigned int run,
+		const std::string &name,
+		const std::string &tag
+	);
 
 
 	/// @brief default destructor
@@ -72,13 +86,11 @@ public:
 
 
 	/// @brief extract trigger with detector events
-	/// @param[in] trigger_tag extract from trigger with this tag
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int MatchTrigger(
-		const std::string &trigger_tag,
 		double window_left,
 		double window_right
 	) override;
