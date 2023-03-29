@@ -21,17 +21,13 @@ target_link_libraries(match_trigger PUBLIC detectors)
 add_executable(beam_identify beam_identify.cpp)
 target_link_libraries(beam_identify PUBLIC tof)
 
-# # correlation
-# add_executable(correlate correlate.cpp)
-# target_link_libraries(correlate PUBLIC detector ppac)
-
-# # merge
-# add_executable(merge merge.cpp)
-# target_link_libraries(merge PUBLIC detector)
-
 # normalize
 add_executable(normalize normalize.cpp)
 target_link_libraries(normalize PUBLIC detectors)
+
+# merge
+add_executable(merge merge.cpp)
+target_link_libraries(merge PUBLIC detectors)
 
 # # telescope
 # add_executable(tele telescope.cpp)

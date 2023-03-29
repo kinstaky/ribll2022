@@ -525,7 +525,7 @@ int Dssd::Normalize(
 //									merge
 //-----------------------------------------------------------------------------
 
-int Dssd::Merge() {
+int Dssd::Merge(double) {
 	std::cerr << "Error: Dssd::Merge not implemented yet.\n";
 	return -1;
 }

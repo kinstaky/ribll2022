@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (pos_start+1 == argc) {
+	if (pos_start+1 >= argc) {
 		// positional arguments less than 2
 		std::cerr << "Error: Miss detector argument(s).\n";
 		PrintUsage(argv[0]);

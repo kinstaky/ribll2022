@@ -70,7 +70,7 @@ public:
 };
 
 
-class DssdMergedEvent : public Event {
+class DssdMergeEvent : public Event {
 public:
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
@@ -85,7 +85,7 @@ public:
 
 
 	unsigned short hit;
-	double magnitude[4];
+	double radius[4];
 	double theta[4];
 	double phi[4];
 	double energy[4];

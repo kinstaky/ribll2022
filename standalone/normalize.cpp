@@ -65,8 +65,6 @@ int ParseArguments(
 	return result;
 }
 
-
-
 int main(int argc, char **argv) {
 	if (argc < 4) {
 		PrintUsage(argv[0]);
@@ -99,7 +97,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (pos_start + 2 >= argc) {
-		// positional arguments less than 2
+		// positional arguments less than 3
 		std::cerr << "Error: Miss detector argument.\n";
 		PrintUsage(argv[0]);
 		return -1;

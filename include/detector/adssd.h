@@ -3,6 +3,9 @@
 
 #include <string>
 
+#include <Math/Vector3D.h>
+#include <TMath.h>
+
 #include "include/detector/dssd.h"
 #include "include/event/dssd_event.h"
 
@@ -47,21 +50,35 @@ public:
 		return 8;
 	}
 
-
 	//-------------------------------------------------------------------------
-	//							match trigger
+	//								merge
 	//-------------------------------------------------------------------------
 
-	/// @brief match xia main trigger and build events
-	/// @param[in] window_left left edge of match window
-	/// @param[in] window_right right edge of match window
+	/// @brief merge adjacent event in the same side and merge events of two sides
+	/// @param[in] energy_diff tolerant energy relateive difference
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int MatchTrigger(
-		double window_left,
-		double window_right
-	) override;
+	virtual int Merge(double energy_diff) override;
 
+protected:
+	//-------------------------------------------------------------------------
+	//								geometry
+	//-------------------------------------------------------------------------
+
+	/// @brief calculate the position from strip index
+	/// @param[in] front_strip front strip
+	/// @param[in] back_strip back strip
+	/// @returns vector class point to position
+	///
+	ROOT::Math::Polar3DVector CalculatePosition(
+		unsigned short front_strip,
+		unsigned short back_strip
+	) const;
+
+
+	ROOT::Math::Polar3DVector center_;
+	std::pair<double, double> radius_range_;
+	std::pair<double, double> phi_range_;
 };
 
 }	// namespace ribll

@@ -113,10 +113,14 @@ public:
 
 
 	//-------------------------------------------------------------------------
-	//							normalize
+	//							merge
 	//-------------------------------------------------------------------------
 
-	virtual int Merge();
+	/// @brief merge adjacent event in the same side and merge events of two sides
+	/// @param[in] energy_diff tolerant energy relateive difference
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Merge(double energy_diff);
 
 protected:
 
@@ -178,6 +182,12 @@ protected:
 	// second index is strip, third index is p0 and p1
 	double norm_params_[2][64][2];
 };
+
+
+inline double RelativeDifference(double x, double y) {
+	return fabs((x - y) / (x + y));
+}
+
 
 }		// namespace ribll
 

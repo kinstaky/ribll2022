@@ -27,7 +27,7 @@ const char* const kAlignDir = "align/";
 const char* const kFundamentalDir = "fundamental/";
 const char* const kBeamDir = "beam/";
 const char* const kNormalizeDir = "normalize/";
-// const char* const kMergedDir = "merge/";
+const char* const kMergeDir = "merge/";
 // const char* const kTelescopeDir = "telescope/";
 
 const char* const kCheckDir = "check/";

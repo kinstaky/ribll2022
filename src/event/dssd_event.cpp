@@ -46,20 +46,21 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 }
 
 
-void DssdMergedEvent::SetupInput(TTree *tree) {
+void DssdMergeEvent::SetupInput(TTree *tree) {
 	tree->SetBranchAddress("hit", &hit);
-	tree->SetBranchAddress("magnitude", magnitude);
+	tree->SetBranchAddress("radius", radius);
 	tree->SetBranchAddress("theta", theta);
 	tree->SetBranchAddress("phi", phi);
 	tree->SetBranchAddress("energy", energy);
 }
 
 
-void DssdMergedEvent::SetupOutput(TTree *tree) {
+void DssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("hit", &hit, "hit/s");
-	tree->Branch("magnitude", magnitude, "mag[hit]/D");
-	tree->Branch("theta", theta, "eta[hit]/D");
+	tree->Branch("radius", radius, "r[hit]/D");
+	tree->Branch("theta", theta, "theta[hit]/D");
 	tree->Branch("phi", phi, "phi[hit]/D");
+	tree->Branch("energy", energy, "e[hit]/D");
 }
 
 

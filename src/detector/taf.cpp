@@ -1,15 +1,40 @@
 #include "include/detector/taf.h"
 
+#include <TMath.h>
+
 namespace ribll {
+
+const ROOT::Math::Polar3DVector taf_center(0.1025, 0.0, 0.0);
+const std::pair<double, double> taf_radius_ranges[6] = {
+	{0.068, 0.1705},
+	{0.068, 0.1705},
+	{0.068, 0.1705},
+	{0.068, 0.1705},
+	{0.068, 0.1705},
+	{0.068, 0.1705}
+};
+const std::pair<double, double> taf_phi_ranges[6] = {
+	{117.6*TMath::DegToRad(), 62.4*TMath::DegToRad()},
+	{57.6*TMath::DegToRad(), 2.4*TMath::DegToRad()},
+	{-2.4*TMath::DegToRad(), -57.6*TMath::DegToRad()},
+	{-62.4*TMath::DegToRad(), -117.6*TMath::DegToRad()},
+	{-122.4*TMath::DegToRad(), -177.6*TMath::DegToRad()},
+	{177.6*TMath::DegToRad(), 122.4*TMath::DegToRad()}
+};
+
 
 Taf::Taf(unsigned int run, unsigned int index, const std::string &tag)
 : Adssd(run, "taf"+std::to_string(index), tag)
 , index_(index) {
+
+	center_ = taf_center;
+	radius_range_ = taf_radius_ranges[index];
+	phi_range_ = taf_phi_ranges[index];
 }
 
 
 int Taf::MatchTrigger(double, double) {
-	if (name_ == "taf0" || name_ == "taf1") { 
+	if (name_ == "taf0" || name_ == "taf1") {
 		return Detector::VmeMatchTrigger<DssdFundamentalEvent>();
 	}
 	std::cerr << "Error: Use ExtractTrigger instead.\n";
