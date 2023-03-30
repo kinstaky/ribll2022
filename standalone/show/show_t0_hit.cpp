@@ -6,6 +6,7 @@
 #include <TTree.h>
 
 #include "include/defs.h"
+#include "include/statistics/t0_hit_statistics.h"
 
 using namespace ribll;
 
@@ -48,34 +49,36 @@ void PrintHit(
 	ipt->SetBranchAddress("front_hit", &d1_front_hit);
 	ipt->SetBranchAddress("d2.front_hit", &d2_front_hit);
 
+	T0HitStatistics statistics(run, tag, ipt->GetEntries());
 
-	long long d1_single_hit = 0;
-	long long d1_multi_hit = 0;
-	long long d2_single_hit = 0;
-	long long d2_multi_hit = 0;
-	long long d1d2_single_hit = 0;
-	long long d1d2_multi_hit = 0;
-
+	// total entries
 	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Checking hit rate   0%%");
+	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
 		ipt->GetEntry(entry);
 		if (d1_front_hit == 0 || d2_front_hit == 0) continue;
-		d1_single_hit += d1_front_hit == 1 ? 1 : 0;
-		d1_multi_hit += d1_front_hit > 1 ? 1 : 0;
-		d2_single_hit += d2_front_hit == 1 ? 1 : 0;
-		d2_multi_hit += d2_front_hit > 1 ? 1 : 0;
-		d1d2_single_hit += d1_front_hit > 1 && d2_front_hit > 1 ? 0 : 1;
-		d1d2_multi_hit += d1_front_hit > 1 && d2_front_hit > 1 ? 1 : 0;
+		statistics.d1_single_hit += d1_front_hit == 1 ? 1 : 0;
+		statistics.d1_multi_hit += d1_front_hit > 1 ? 1 : 0;
+		statistics.d2_single_hit += d2_front_hit == 1 ? 1 : 0;
+		statistics.d2_multi_hit += d2_front_hit > 1 ? 1 : 0;
+		statistics.d1d2_single_hit += d1_front_hit > 1 && d2_front_hit > 1 ? 0 : 1;
+		statistics.d1d2_multi_hit += d1_front_hit > 1 && d2_front_hit > 1 ? 1 : 0;
 	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
 
-	std::cout << run << "," << tag << "," << entries
-		<< "," << d1_single_hit << "," << d1_multi_hit
-		<< "," << d2_single_hit << "," << d2_multi_hit
-		<< "," << d1d2_single_hit << "," << d1d2_multi_hit
-		<< "," << double(d1_single_hit) / double(d1_multi_hit)
-		<< "," << double(d2_single_hit) / double(d2_multi_hit)
-		<< "," << double(d1d2_single_hit) / double(d1d2_multi_hit)
-		<< "\n";
+	statistics.Write();
+	statistics.Print();
+
 	return;
 }
 
@@ -89,9 +92,8 @@ int main(int argc, char **argv) {
 
 	unsigned int run = atoi(argv[1]);
 
-	PrintHit(run, "");
 	PrintHit(run, "ta");
-
+	PrintHit(run, "");
 
 	return 0;
 }

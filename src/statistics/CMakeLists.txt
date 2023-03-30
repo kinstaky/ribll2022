@@ -12,6 +12,7 @@ set(
 	${STATISTICS_INCLUDE_DIR}/match_trigger_statistics.h
 	${STATISTICS_INCLUDE_DIR}/xt_period_statistics.h
 	${STATISTICS_INCLUDE_DIR}/beam_identify_statistics.h
+	${STATISTICS_INCLUDE_DIR}/t0_hit_statistics.h
 )
 
 set(
@@ -23,6 +24,7 @@ set(
 	match_trigger_statistics.cpp
 	xt_period_statistics.cpp
 	beam_identify_statistics.cpp
+	t0_hit_statistics.cpp
 )
 
 # statistics library

@@ -16,8 +16,8 @@ MatchTriggerStatistics::MatchTriggerStatistics(
 , oversize_events(0)
 , conflict_events(0)
 , detector_(detector)
-, tag_(tag)
-, extract_tag_(extract_tag)
+, tag_(tag.empty() ? "-" : tag)
+, extract_tag_(extract_tag.empty() ? "-" : extract_tag)
 , reference_events_(reference_events)
 , mapped_events_(mapped_events) {
 

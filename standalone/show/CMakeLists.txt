@@ -36,5 +36,16 @@ target_include_directories(
 )
 target_link_libraries(
 	show_t0_hit
-	PUBLIC ROOT::Core ROOT::Tree ROOT::RIO
+	PUBLIC statistics ROOT::Core ROOT::Tree ROOT::RIO
+)
+
+# show gdc offset
+add_executable(show_gdc_offset show_gdc_offset.cpp)
+target_include_directories(
+	show_gdc_offset
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(
+	show_gdc_offset
+	PUBLIC ROOT::Core ROOT::Tree ROOT::RIO ROOT::Graf
 )

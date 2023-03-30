@@ -4,7 +4,7 @@
 #include "include/statistics/statistics.h"
 
 namespace ribll {
-	
+
 class MatchTriggerStatistics : public Statistics {
 public:
 
