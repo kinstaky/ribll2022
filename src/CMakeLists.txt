@@ -25,6 +25,20 @@ target_link_libraries(
 add_library(detectors detectors.cpp ${PROJECT_INCLUDE_DIR}/detectors.h)
 target_link_libraries(detectors PUBLIC adssd csi dssd ppac ssd tof vme_trigger)
 
+# time reference
+add_library(
+	time_reference
+	time_reference.cpp ${PROJECT_INCLUDE_DIR}/time_reference.h
+)
+target_include_directories(
+	time_reference
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+)
+target_link_libraries(
+	time_reference
+	PUBLIC event ROOT::Core ROOT::RIO ROOT::Tree
+)
+
 # # telescope
 # add_library(
 # 	telescope

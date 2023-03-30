@@ -17,6 +17,10 @@ target_link_libraries(map PUBLIC mapper alignment)
 add_executable(match_trigger match_trigger.cpp)
 target_link_libraries(match_trigger PUBLIC detectors)
 
+# reference time
+add_executable(ref_time ref_time.cpp)
+target_link_libraries(ref_time time_reference)
+
 # beam identify
 add_executable(beam_identify beam_identify.cpp)
 target_link_libraries(beam_identify PUBLIC tof)
