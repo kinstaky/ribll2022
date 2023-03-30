@@ -21,22 +21,22 @@ int Crate0Mapper::Map(bool threshold) {
 	size_t residual_index = CreateResidualTree("c0");
 
 	// create output trees
-	size_t tof_index = CreateOutputTree("tof");
-	size_t vme_trigger_index = CreateTriggerTree("vt");
-	size_t xia_trigger_index = CreateTriggerTree("xt");
-	size_t xia_ppac_index = CreateOutputTree("xppac");
-	size_t taf2_index = CreateOutputTree("taf2");
-	size_t taf3_index = CreateOutputTree("taf3");
-	size_t taf4_index = CreateOutputTree("taf4");
-	size_t taf5_index = CreateOutputTree("taf5");
-	size_t t0s1_index = CreateOutputTree("t0s1");
-	size_t t0s2_index = CreateOutputTree("t0s2");
-	size_t t0s3_index = CreateOutputTree("t0s3");
-	size_t t1s1_index = CreateOutputTree("t1s1");
-	size_t t0csi_index = CreateOutputTree("t0csi");
-	size_t t1csi_index = CreateOutputTree("t1csi");
-	size_t tafcsi_index = CreateOutputTree("tafcsi");
-	size_t tabcsi_index = CreateOutputTree("tabcsi");
+	size_t tof_index = CreateOutputTree("tof", threshold);
+	size_t vme_trigger_index = CreateTriggerTree("vt", threshold);
+	size_t xia_trigger_index = CreateTriggerTree("xt", threshold);
+	size_t xia_ppac_index = CreateOutputTree("xppac", threshold);
+	size_t taf2_index = CreateOutputTree("taf2", threshold);
+	size_t taf3_index = CreateOutputTree("taf3", threshold);
+	size_t taf4_index = CreateOutputTree("taf4", threshold);
+	size_t taf5_index = CreateOutputTree("taf5", threshold);
+	size_t t0s1_index = CreateOutputTree("t0s1", threshold);
+	size_t t0s2_index = CreateOutputTree("t0s2", threshold);
+	size_t t0s3_index = CreateOutputTree("t0s3", threshold);
+	size_t t1s1_index = CreateOutputTree("t1s1", threshold);
+	size_t t0csi_index = CreateOutputTree("t0csi", threshold);
+	size_t t1csi_index = CreateOutputTree("t1csi", threshold);
+	size_t tafcsi_index = CreateOutputTree("tafcsi", threshold);
+	size_t tabcsi_index = CreateOutputTree("tabcsi", threshold);
 
 	const unsigned short tabcsi_channel_index[12] = {
 		0, 1, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3

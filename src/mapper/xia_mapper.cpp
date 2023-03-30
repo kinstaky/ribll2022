@@ -98,11 +98,15 @@ double XiaMapper::CalculateTime(
 }
 
 
-size_t XiaMapper::CreateOutputTree(const char *name) {
+size_t XiaMapper::CreateOutputTree(const char *name, bool threshold) {
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-map-%04d.root",
-		kGenerateDataPath, kMappingDir, name, run_
+		"%s%s%s-map-%s%04d.root",
+		kGenerateDataPath,
+		kMappingDir,
+		name,
+		threshold ? "" : "nc-",
+		run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
@@ -145,11 +149,15 @@ size_t XiaMapper::CreateResidualTree(const char *name) {
 }
 
 
-size_t XiaMapper::CreateTriggerTree(const char *name) {
+size_t XiaMapper::CreateTriggerTree(const char *name, bool threshold) {
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-map-%04d.root",
-		kGenerateDataPath, kMappingDir, name, run_
+		"%s%s%s-map-%s%04d.root",
+		kGenerateDataPath,
+		kMappingDir,
+		name,
+		threshold ? "" : "nc-",
+		run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 

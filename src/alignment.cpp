@@ -60,7 +60,7 @@ int Alignment::ReadXiaTime() {
 	// show process
 	printf("reading xia events   0%%");
 	fflush(stdout);
-	Long64_t nentry100 = ipt->GetEntries() / 100;
+	Long64_t nentry100 = ipt->GetEntries() / 100 + 1;
 	xia_times_.clear();
 	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
 		if (entry % nentry100 == 0) {
@@ -106,7 +106,7 @@ int Alignment::ReadVmeTime() {
 	// show process
 	printf("reading vme events   0%%");
 	fflush(stdout);
-	Long64_t nentry100 = ipt->GetEntries() / 100;
+	Long64_t nentry100 = ipt->GetEntries() / 100 + 1;
 	vme_times_.clear();
 	ULong64_t bit_flip_offset = 0;
 	ULong64_t last_timestamp = 0;

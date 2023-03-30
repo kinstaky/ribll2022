@@ -104,16 +104,18 @@ protected:
 
 	/// @brief create output tree for detectors
 	/// @param[in] name detector name
+	/// @param[in] threshold whether to add nc- to file name (nc == no cut)
 	/// @returns index of tree
 	///
-	size_t CreateOutputTree(const char *name);
+	size_t CreateOutputTree(const char *name, bool threshold);
 
 
 	/// @brief create output tree for triggers
 	/// @param[in] name detector name
+	/// @param[in] threshold whether to add nc- to file name (nc == no cut)
 	/// @returns index of tree
 	///
-	size_t CreateTriggerTree(const char *name);
+	size_t CreateTriggerTree(const char *name, bool threshold);
 
 
 	/// @brief fill event into output tree by index

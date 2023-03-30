@@ -19,9 +19,9 @@ int Crate1Mapper::Map(bool threshold) {
 	}
 
 	// create output trees
-	size_t t1d1_index = CreateOutputTree("t1d1");
-	size_t t0d3_index = CreateOutputTree("t0d3");
-	size_t t0d2_index = CreateOutputTree("t0d2");
+	size_t t1d1_index = CreateOutputTree("t1d1", threshold);
+	size_t t0d3_index = CreateOutputTree("t0d3", threshold);
+	size_t t0d2_index = CreateOutputTree("t0d2", threshold);
 
 	// show process
 	printf("Mapping crate 1   0%%");
