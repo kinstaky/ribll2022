@@ -112,6 +112,22 @@ int Crate3Mapper::Map() {
 	// setup align tree branch
 	ipt->SetBranchAddress("at.xia_time", &align_time_);
 
+	// align-gdc file name
+	TString align_gdc_file_name;
+	align_gdc_file_name.Form(
+		"%s%salign-gdc-%04u.root",
+		kGenerateDataPath, kAlignDir, run_
+	);
+	// add friend to combine with align-gdc tree
+	if (!ipt->AddFriend("ag=tree", align_gdc_file_name)) {
+		std::cerr << "Error: Add friend from "
+			<< align_gdc_file_name << "failed.\n";
+		return -1;
+	}
+	// setup align-gdc tree branch
+	ipt->SetBranchAddress("ag.gmulti", align_gmulti_);
+	ipt->SetBranchAddress("ag.gdc", align_gdc_);
+
 	// create output trees
 	size_t vtof_index = CreateTofTree();
 	size_t vppac_index = CreatePPACTree();
@@ -212,13 +228,13 @@ int Crate3Mapper::Map() {
 			for (size_t j = 0; j < 16; ++j) {
 				double energy
 					= madc_[vtaf_front_module[i]][vtaf_front_channel[i]+j];
-				if (energy > 200) {
+				if (align_gmulti_[i*16+j] > 0 && energy > 200) {
 					size_t index = dssd_event_.front_hit;
 					if (index >= 8) break;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
 					dssd_event_.front_time[index]
-						= (gdc_[1][i*16+j][0] - gdc_[1][127][0]) * 0.1;
+						= (align_gdc_[i*16+j][0] - align_gdc_[127][0]) * 0.1;
 					++dssd_event_.front_hit;
 				}
 			}

@@ -12,9 +12,9 @@ class Alignment {
 public:
 
 	/// @brief constructor
-	/// @param[in] run run number 
-	/// @param[in] group_num groups to divide 
-	/// @param[in] search_window width of search window, in nanoseconds 
+	/// @param[in] run run number
+	/// @param[in] group_num groups to divide
+	/// @param[in] search_window width of search window, in nanoseconds
 	/// @param[in] search_low_bound lower bound of search window, in nanoseconds
 	/// @param[in] search_high_bound higher bound of search window, in nanoseconds
 	///
@@ -40,7 +40,7 @@ public:
 
 	/// @brief change verbose parameters for printing process
 	/// @param[in] verbose value to change
-	/// 
+	///
 	inline void SetVerbose(bool verbose = true) {
 		verbose_ = verbose;
 	}
@@ -55,13 +55,13 @@ private:
 
 	/// @brief read VME time recored in v830 plugin (sdc in data)
 	/// @returns 0 for successful, 1 otherwise
-	/// 
+	///
 	int ReadVmeTime();
 
 
 	/// @brief align XIA and VME events in groups
 	/// @returns 0 for successful, 1 otherwise
-	/// 
+	///
 	TGraph* GroupAlignment();
 
 
@@ -70,6 +70,9 @@ private:
 	/// @returns 0 for successful, 1 otherwise
 	///
 	int BuildResult(double *calibration_param);
+
+
+	int AlignGdc();
 
 
 	// run number

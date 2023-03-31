@@ -32,27 +32,6 @@ public:
 	int Map();
 
 private:
-	// run number
-	int run_;
-
-	// input data
-	int adc_[5][32];
-	int madc_[2][32];
-	int gdc_[2][128][5];
-	int gmulti_[2][128];
-
-	// output files
-	std::vector<TFile*> opfs_;
-	// output trees
-	std::vector<TTree*> opts_;
-
-	// output data
-	PpacFundamentalEvent ppac_event_;
-	DssdFundamentalEvent dssd_event_;
-	TofFundamentalEvent tof_event_;
-	long long align_time_;
-
-
 
 	/// @brief initailize the input tree
 	/// @param[in] file_name name of input file
@@ -88,6 +67,29 @@ private:
 		opfs_[index]->cd();
 		opts_[index]->Fill();
 	}
+
+
+	// run number
+	int run_;
+
+	// input data
+	int adc_[5][32];
+	int madc_[2][32];
+	int gdc_[2][128][5];
+	int gmulti_[2][128];
+
+	// output files
+	std::vector<TFile*> opfs_;
+	// output trees
+	std::vector<TTree*> opts_;
+
+	// output data
+	PpacFundamentalEvent ppac_event_;
+	DssdFundamentalEvent dssd_event_;
+	TofFundamentalEvent tof_event_;
+	long long align_time_;
+	int align_gmulti_[128];
+	int align_gdc_[128][5];
 };
 
 }		// namespace ribll

@@ -16,11 +16,13 @@ using namespace ribll;
 /// 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run crate\n"
-		"  run                run number\n"
-		"  crate              Choose crate to mapping, 0, 1, 2 for xia and 3 for vme\n"
-		"                       default(without this argument) is all.\n"
+		"  run               run number\n"
+		"  crate             Choose crate to mapping, 0, 1, 2 for xia and 3 for vme\n"
+		"                      default(without this argument) is all.\n"
 		"Options:\n"
-		"  -h                 Print this help information.\n";
+
+		"  -h                Print this help information.\n"
+		"  -n                Map without threshold.\n";
 	return;
 }
 

@@ -366,6 +366,113 @@ int Alignment::BuildResult(double *calibration_param) {
 }
 
 
+int Alignment::AlignGdc() {
+	// this run input file name
+	TString first_input_file_name;
+	first_input_file_name.Form(
+		"%s%s%04u.root",
+		kCrate3Path, kCrate3FileName, run_
+	);
+	// this run input file
+	TFile *first_input_file = new TFile(first_input_file_name, "read");
+	// this run input tree
+	TTree *first_tree = (TTree*)first_input_file->Get("tree");
+	if (!first_tree) {
+		std::cerr << "Error: Get tree from "
+			<< first_input_file_name << " failed.\n";
+		return -1;
+	}
+	// input gmulti
+	int gmulti[2][128];
+	// input gdc
+	int gdc[2][128][5];
+	// setup input branches
+	first_tree->SetBranchAddress("gmulti", gmulti);
+	first_tree->SetBranchAddress("gdc", gdc);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%salign-gdc-%04u.root",
+		kGenerateDataPath, kAlignDir, run_
+	);
+	// output file
+	TFile *opf = new TFile(output_file_name, "recreate");
+	// output tree
+	TTree *opt = new TTree("tree", "align gdc");
+	// output gmulti
+	int align_gmulti[128];
+	// output gdc
+	int align_gdc[128][5];
+	// setup output branches
+	opt->Branch("gmulti", align_gmulti, "gmulti[128]/I");
+	opt->Branch("gdc", align_gdc, "gdc[128][5]/I");
+
+	// total entries
+	long long entries = first_tree->GetEntries();
+
+	// time offset, get from show_gdc_offset
+	long long offset = run_ + 168;
+
+	// first loop to read from first input file (this run)
+	for (long long entry = offset; entry < entries; ++entry) {
+		first_tree->GetEntry(entry);
+		for (int i = 0; i < 128; ++i) {
+			align_gmulti[i] = gmulti[1][i];
+			for (int j = 0; j < 5; ++j) {
+				align_gdc[i][j] = gdc[1][i][j];
+			}
+		}
+		opt->Fill();
+	}
+
+	// close first file
+	first_input_file->Close();
+
+
+	// next run input file name
+	TString second_input_file_name;
+	second_input_file_name.Form(
+		"%s%s%04u.root",
+		kCrate3Path, kCrate3FileName, run_+1
+	);
+	// this run input file
+	TFile *second_input_file = new TFile(second_input_file_name, "read");
+	// this run input tree
+	TTree *second_tree = (TTree*)second_input_file->Get("tree");
+	if (!second_tree) {
+		std::cerr << "Error: Get tree from "
+			<< second_input_file_name << " failed.\n";
+		return -1;
+	}
+	// setup input branches
+	second_tree->SetBranchAddress("gmulti", gmulti);
+	second_tree->SetBranchAddress("gdc", gdc);
+
+	// second loop to read from first input file (this run)
+	for (long long entry = 0; entry < offset; ++entry) {
+		second_tree->GetEntry(entry);
+		for (int i = 0; i < 128; ++i) {
+			align_gmulti[i] = gmulti[1][i];
+			for (int j = 0; j < 5; ++j) {
+				align_gdc[i][j] = gdc[1][i][j];
+			}
+		}
+		opt->Fill();
+	}
+
+	// close first file
+	second_input_file->Close();
+
+	// save align time and close files
+	opf->cd();
+	opt->Write();
+	opf->Close();
+
+	return 0;
+}
+
+
 int Alignment::Align() {
 	// read xia and vme timestamp
 	if (ReadXiaTime()) {
@@ -404,7 +511,14 @@ int Alignment::Align() {
 	BuildResult(calibration_param);
 
 	cache_file->Close();
+
+
+	// align gdc
+	if (AlignGdc()) {
+		return -1;
+	}
 	return 0;
 }
+
 
 }
