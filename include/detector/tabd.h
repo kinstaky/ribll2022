@@ -5,7 +5,7 @@
 
 namespace ribll {
 
-class Tab : public Adssd {
+class Tabd : public Adssd {
 public:
 
 	/// @brief constructor
@@ -13,12 +13,12 @@ public:
 	/// @param[in] index index of taf, 0 to 5
 	/// @param[in] tag trigger tag
 	///
-	Tab(unsigned int run, unsigned int index, const std::string &tag);
+	Tabd(unsigned int run, unsigned int index, const std::string &tag);
 
 
 	/// @brief default destructor
 	///
-	virtual ~Tab() = default;
+	virtual ~Tabd() = default;
 
 
 	//-------------------------------------------------------------------------

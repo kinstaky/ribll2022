@@ -5,7 +5,7 @@
 
 namespace ribll {
 
-class Taf : public Adssd {
+class Tafd : public Adssd {
 public:
 
 	/// @brief constructor
@@ -13,12 +13,12 @@ public:
 	/// @param[in] index index of taf, 0 to 5
 	/// @param[in] tag trigger tag
 	///
-	Taf(unsigned int run, unsigned int index, const std::string &tag);
+	Tafd(unsigned int run, unsigned int index, const std::string &tag);
 
 
 	/// @brief default destructor
 	///
-	virtual ~Taf() = default;
+	virtual ~Tafd() = default;
 
 
 	/// @brief match xia main trigger and build events

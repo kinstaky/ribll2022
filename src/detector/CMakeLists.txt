@@ -19,9 +19,9 @@ target_link_libraries(
 # adssd library
 add_library(
 	adssd
-	adssd.cpp taf.cpp tab.cpp
-	${DETECTOR_INCLUDE_DIR}/adssd.h ${DETECTOR_INCLUDE_DIR}/taf.h
-	${DETECTOR_INCLUDE_DIR}/tab.h
+	adssd.cpp tafd.cpp tabd.cpp
+	${DETECTOR_INCLUDE_DIR}/adssd.h ${DETECTOR_INCLUDE_DIR}/tafd.h
+	${DETECTOR_INCLUDE_DIR}/tabd.h
 )
 target_link_libraries(adssd PUBLIC detector event dssd)
 

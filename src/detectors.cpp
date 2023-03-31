@@ -26,15 +26,15 @@ std::shared_ptr<Detector> CreateDetector(
 		return std::make_shared<T0d2>(run, tag);
 	} else if (name == "t0d3") {
 		return std::make_shared<T0d3>(run, tag);
-	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
-		unsigned int index = name[3] - '0';
+	} else if (name.size() == 5 && name.substr(0, 4) == "tafd") {
+		unsigned int index = name[4] - '0';
 		if (index <= 5) {
-			return std::make_shared<Taf>(run, index, tag);
+			return std::make_shared<Tafd>(run, index, tag);
 		}
-	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
-		unsigned int index = name[3] - '0';
+	} else if (name.size() == 5 && name.substr(0, 4) == "tab") {
+		unsigned int index = name[4] - '0';
 		if (index <= 5) {
-			return std::make_shared<Tab>(run, index, tag);
+			return std::make_shared<Tabd>(run, index, tag);
 		}
 	} else if (name == "tafcsi" || name == "tabcsi") {
 		return std::make_shared<CircularCsi>(run, name, tag);
@@ -63,15 +63,15 @@ std::shared_ptr<Dssd> CreateDssd(
 		return std::make_shared<T0d2>(run, tag);
 	} else if (name == "t0d3") {
 		return std::make_shared<T0d3>(run, tag);
-	} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
-		unsigned int index = name[3] - '0';
+	} else if (name.size() == 5 && name.substr(0, 4) == "tafd") {
+		unsigned int index = name[4] - '0';
 		if (index <= 5) {
-			return std::make_shared<Taf>(run, index, tag);
+			return std::make_shared<Tafd>(run, index, tag);
 		}
-	} else if (name.size() == 4 && name.substr(0, 3) == "tab") {
-		unsigned int index = name[3] - '0';
+	} else if (name.size() == 4 && name.substr(0, 4) == "tab") {
+		unsigned int index = name[4] - '0';
 		if (index <= 5) {
-			return std::make_shared<Tab>(run, index, tag);
+			return std::make_shared<Tabd>(run, index, tag);
 		}
 	}
 
@@ -214,7 +214,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 	// XIA trigger output file name
 	TString xt_output_file_name;
 	xt_output_file_name.Form(
-		"%s%sxt-map-%sta-%04u.root",
+		"%s%sxt-map-nc-%sta-%04u.root",
 		kGenerateDataPath, kMappingDir, trigger_tag.c_str(), run
 	);
 	// XIA merged trigger output file

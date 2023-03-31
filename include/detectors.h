@@ -13,8 +13,8 @@
 #include "include/detector/t0d1.h"
 #include "include/detector/t0d2.h"
 #include "include/detector/t0d3.h"
-#include "include/detector/taf.h"
-#include "include/detector/tab.h"
+#include "include/detector/tafd.h"
+#include "include/detector/tabd.h"
 
 namespace ribll {
 

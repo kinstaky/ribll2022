@@ -1,11 +1,11 @@
-#include "include/detector/taf.h"
+#include "include/detector/tafd.h"
 
 #include <TMath.h>
 
 namespace ribll {
 
-const ROOT::Math::Polar3DVector taf_center(0.1025, 0.0, 0.0);
-const std::pair<double, double> taf_radius_ranges[6] = {
+const ROOT::Math::Polar3DVector tafd_center(0.1025, 0.0, 0.0);
+const std::pair<double, double> tafd_radius_ranges[6] = {
 	{0.068, 0.1705},
 	{0.068, 0.1705},
 	{0.068, 0.1705},
@@ -13,7 +13,7 @@ const std::pair<double, double> taf_radius_ranges[6] = {
 	{0.068, 0.1705},
 	{0.068, 0.1705}
 };
-const std::pair<double, double> taf_phi_ranges[6] = {
+const std::pair<double, double> tafd_phi_ranges[6] = {
 	{117.6*TMath::DegToRad(), 62.4*TMath::DegToRad()},
 	{57.6*TMath::DegToRad(), 2.4*TMath::DegToRad()},
 	{-2.4*TMath::DegToRad(), -57.6*TMath::DegToRad()},
@@ -23,18 +23,18 @@ const std::pair<double, double> taf_phi_ranges[6] = {
 };
 
 
-Taf::Taf(unsigned int run, unsigned int index, const std::string &tag)
-: Adssd(run, "taf"+std::to_string(index), tag)
+Tafd::Tafd(unsigned int run, unsigned int index, const std::string &tag)
+: Adssd(run, "tafd"+std::to_string(index), tag)
 , index_(index) {
 
-	center_ = taf_center;
-	radius_range_ = taf_radius_ranges[index];
-	phi_range_ = taf_phi_ranges[index];
+	center_ = tafd_center;
+	radius_range_ = tafd_radius_ranges[index];
+	phi_range_ = tafd_phi_ranges[index];
 }
 
 
-int Taf::MatchTrigger(double, double) {
-	if (name_ == "taf0" || name_ == "taf1") {
+int Tafd::MatchTrigger(double, double) {
+	if (name_ == "tafd0" || name_ == "tafd1") {
 		return Detector::VmeMatchTrigger<DssdFundamentalEvent>();
 	}
 	std::cerr << "Error: Use ExtractTrigger instead.\n";
@@ -42,11 +42,11 @@ int Taf::MatchTrigger(double, double) {
 }
 
 
-int Taf::ExtractTrigger(
+int Tafd::ExtractTrigger(
 	double window_left,
 	double window_right
 ) {
-	if (name_ == "taf0" || name_ == "taf1") {
+	if (name_ == "tafd0" || name_ == "tafd1") {
 		std::cerr << "Error: Use MatchTrigger instead.\n";
 		return -1;
 	}
@@ -54,7 +54,7 @@ int Taf::ExtractTrigger(
 }
 
 
-int Taf::NormalizeSides(TChain *chain, bool iteration) {
+int Tafd::NormalizeSides(TChain *chain, bool iteration) {
 	if (SideNormalize(chain, 0, 4, iteration)) {
 		std::cerr << "Error: Normalize first side failed.\n";
 		return -1;
@@ -67,7 +67,7 @@ int Taf::NormalizeSides(TChain *chain, bool iteration) {
 }
 
 
-bool Taf::NormEnergyCheck(size_t, const DssdFundamentalEvent &event) {
+bool Tafd::NormEnergyCheck(size_t, const DssdFundamentalEvent &event) {
 	if (index_ == 0) {
 		if (event.front_energy[0] > 1e4 || event.back_energy[0] > 1e4) {
 			return false;
