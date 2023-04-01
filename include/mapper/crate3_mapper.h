@@ -27,9 +27,10 @@ public:
 
 
 	/// @brief mapping function
+	/// @param[in] independent independent to XIA
 	/// @returns 0 for success, -1 otherwise
 	///
-	int Map();
+	int Map(bool independent = false);
 
 private:
 
@@ -41,23 +42,26 @@ private:
 
 
 	/// @brief create ppac output tree
+	/// @param[in] independent independent to XIA
 	/// @returns index of tree
 	///
-	size_t CreatePPACTree();
+	size_t CreatePPACTree(bool independent = false);
 
 
 	/// @brief create ADSSD output tree
 	/// @param[in] name detector name
+	/// @param[in] independent independent to XIA
 	/// @returns index of tree
 	///
-	size_t CreateADSSDTree(const char *name);
+	size_t CreateADSSDTree(const char *name, bool independent = false);
 
 
 
 	/// @brief create ToF output tree
+	/// @param[in] independent independent to XIA
 	/// @returns index of tree
 	///
-	size_t CreateTofTree();
+	size_t CreateTofTree(bool independent = false);
 
 
 	/// @brief fill data into output tree by index

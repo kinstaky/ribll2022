@@ -20,9 +20,9 @@ void PrintUsage(const char *name) {
 		"  crate             Choose crate to mapping, 0, 1, 2 for xia and 3 for vme\n"
 		"                      default(without this argument) is all.\n"
 		"Options:\n"
-
 		"  -h                Print this help information.\n"
-		"  -n                Map without threshold.\n";
+		"  -n                Map without threshold.\n"
+		"  -i				 Map crate3 independent to XIA.\n";
 	return;
 }
 
@@ -32,6 +32,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] no_threshold map without threshold
+/// @param[out] independet map crate3 independent to XIA
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -40,11 +41,13 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	bool &no_threshold
+	bool &no_threshold,
+	bool &independent
 ) {
 	// initialize
 	help = false;
 	no_threshold = false;
+	independent = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -57,6 +60,8 @@ int ParseArguments(
 			return 0;
 		} else if (argv[result][1] == 'n') {
 			no_threshold = true;
+		} else if (argv[result][1] == 'i') {
+			independent = true;
 		} else {
 			return -result;
 		}
@@ -75,8 +80,13 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// threshold flag
 	bool no_threshold = false;
+	// independent flag
+	bool independent = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, no_threshold);
+	int pos_start = ParseArguments(
+		argc, argv,
+		help, no_threshold, independent
+	);
 
 	// need help
 	if (help) {
@@ -121,13 +131,13 @@ int main(int argc, char **argv) {
 		}
 	} else if (crate == 3) {
 		Crate3Mapper crate3(run);
-		if (crate3.Map()) {
+		if (crate3.Map(independent)) {
 			std::cerr << "Error: Mapping crate 3 failed.\n";
 		}
 	} else {
 		std::cerr << "Error: Invalid crate number " << crate << "\n";
 		return -1;
 	}
-	
+
 	return 0;
 }

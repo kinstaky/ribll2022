@@ -55,6 +55,8 @@ int Adssd::Merge(double energy_diff) {
 	// for convenient
 	unsigned short &fhit = fundamental_event.front_hit;
 	unsigned short &bhit = fundamental_event.back_hit;
+	unsigned short *fs = fundamental_event.front_strip;
+	unsigned short *bs = fundamental_event.back_strip;
 	double *fe = fundamental_event.front_energy;
 	double *be = fundamental_event.back_energy;
 
@@ -110,10 +112,12 @@ int Adssd::Merge(double energy_diff) {
 
 		if (fhit == 1 && bhit == 1) {
 			if (fe[0] < 1e4 && be[0] < 1e4) {
+				fe[0] = NormEnergy(0, fs[0], fe[0]);
+				be[0] = NormEnergy(1, bs[1], be[0]);
 				double diff = RelativeDifference(fe[0], be[0]);
 				hrd->Fill(diff);
 				if (diff < energy_diff) {
-					merge_event.energy[0] = fe[0];
+					merge_event.energy[0] = be[0];
 					auto position = CalculatePosition(
 						fundamental_event.front_strip[0],
 						fundamental_event.back_strip[0]

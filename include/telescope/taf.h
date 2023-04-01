@@ -19,7 +19,7 @@ public:
 	/// @brief track particle
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Track();
+	virtual int Track() override;
 
 private:
 	unsigned int index_;

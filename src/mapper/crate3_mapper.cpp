@@ -30,59 +30,75 @@ TTree* Crate3Mapper::Initialize(const char *file_name) {
 }
 
 
-size_t Crate3Mapper::CreatePPACTree() {
+size_t Crate3Mapper::CreatePPACTree(bool independent) {
 	// output file name
 	TString file_name;
 	file_name.Form(
-		"%s%svppac-map-%04d.root",
-		kGenerateDataPath, kMappingDir, run_
+		"%s%svppac-%s-%04d.root",
+		kGenerateDataPath,
+		independent ? kFundamentalDir : kMappingDir,
+		independent ? "fundamental" : "map",
+		run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", "tree of vppac");
 	ppac_event_.SetupOutput(opt);
-	opt->Branch("timestamp", &align_time_, "ts/L");
+	if (!independent) {
+		opt->Branch("timestamp", &align_time_, "ts/L");
+	}
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-size_t Crate3Mapper::CreateADSSDTree(const char *name) {
+size_t Crate3Mapper::CreateADSSDTree(const char *name, bool independent) {
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-map-%04d.root",
-		kGenerateDataPath, kMappingDir, name, run_
+		"%s%s%s-%s-%04d.root",
+		kGenerateDataPath,
+		independent ? kFundamentalDir : kMappingDir,
+		name,
+		independent ? "fundamental" : "map",
+		run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	dssd_event_.SetupOutput(opt);
-	opt->Branch("timestamp", &align_time_, "ts/L");
+	if (!independent) {
+		opt->Branch("timestamp", &align_time_, "ts/L");
+	}
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-size_t Crate3Mapper::CreateTofTree() {
+size_t Crate3Mapper::CreateTofTree(bool independent) {
 	TString file_name;
 	file_name.Form(
-		"%s%svtof-map-%04d.root",
-		kGenerateDataPath, kMappingDir, run_
+		"%s%svtof-%s-%04d.root",
+		kGenerateDataPath,
+		independent ? kFundamentalDir : kMappingDir,
+		independent ? "fundamental" : "map",
+		run_
 	);
 	opfs_.push_back(new TFile(file_name, "recreate"));
 
 	TTree *opt = new TTree("tree", "tree of vtof");
 	tof_event_.SetupOutput(opt);
-	opt->Branch("timestamp", &align_time_, "ts/L");
+	if (!independent) {
+		opt->Branch("timestamp", &align_time_, "ts/L");
+	}
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;
 }
 
 
-int Crate3Mapper::Map() {
+int Crate3Mapper::Map(bool independent) {
 	// input decode file name
 	TString input_file_name;
 	input_file_name.Form(
@@ -103,38 +119,46 @@ int Crate3Mapper::Map() {
 		"%s%salign-%04d.root",
 		kGenerateDataPath, kAlignDir, run_
 	);
-	// add friend to combine with align tree
-	if (!ipt->AddFriend("at=tree", align_file_name)) {
-		std::cerr << "Error: Add friend from "
-			<< align_file_name << " failed.\n";
-		return -1;
-	}
-	// setup align tree branch
-	ipt->SetBranchAddress("at.xia_time", &align_time_);
-
 	// align-gdc file name
 	TString align_gdc_file_name;
 	align_gdc_file_name.Form(
 		"%s%salign-gdc-%04u.root",
 		kGenerateDataPath, kAlignDir, run_
 	);
-	// add friend to combine with align-gdc tree
-	if (!ipt->AddFriend("ag=tree", align_gdc_file_name)) {
-		std::cerr << "Error: Add friend from "
-			<< align_gdc_file_name << "failed.\n";
-		return -1;
+
+	if (!independent) {
+		// add friend to combine with align tree
+		if (!ipt->AddFriend("at=tree", align_file_name)) {
+			std::cerr << "Error: Add friend from "
+				<< align_file_name << " failed.\n";
+			return -1;
+		}
+		// add friend to combine with align-gdc tree
+		if (!ipt->AddFriend("ag=tree", align_gdc_file_name)) {
+			std::cerr << "Error: Add friend from "
+				<< align_gdc_file_name << "failed.\n";
+			return -1;
+		}
+		// setup align tree branch
+		ipt->SetBranchAddress("at.xia_time", &align_time_);
+		// setup align-gdc tree branch
+		ipt->SetBranchAddress("ag.gmulti", align_gmulti_);
+		ipt->SetBranchAddress("ag.gdc", align_gdc_);
 	}
-	// setup align-gdc tree branch
-	ipt->SetBranchAddress("ag.gmulti", align_gmulti_);
-	ipt->SetBranchAddress("ag.gdc", align_gdc_);
 
 	// create output trees
-	size_t vtof_index = CreateTofTree();
-	size_t vppac_index = CreatePPACTree();
-	size_t taf_index[2] = {CreateADSSDTree("tafd0"), CreateADSSDTree("tafd1")};
-	size_t tab_index[6];
+	size_t vtof_index = CreateTofTree(independent);
+	size_t vppac_index = CreatePPACTree(independent);
+	size_t tafd_index[2] = {
+		CreateADSSDTree("tafd0", independent),
+		CreateADSSDTree("tafd1", independent)
+	};
+	size_t tabd_index[6];
 	for (size_t i = 0; i < 6; ++i) {
-		tab_index[i] = CreateADSSDTree(("tab" + std::to_string(i)).c_str());
+		tabd_index[i] = CreateADSSDTree(
+			("tabd" + std::to_string(i)).c_str(),
+			independent
+		);
 	}
 
 
@@ -233,8 +257,12 @@ int Crate3Mapper::Map() {
 					if (index >= 8) break;
 					dssd_event_.front_strip[index] = j;
 					dssd_event_.front_energy[index] = energy;
-					dssd_event_.front_time[index]
-						= (align_gdc_[i*16+j][0] - align_gdc_[127][0]) * 0.1;
+					if (!independent) {
+						dssd_event_.front_time[index]
+							= (align_gdc_[i*16+j][0] - align_gdc_[127][0]) * 0.1;
+					} else {
+						dssd_event_.front_time[index] = 0.0;
+					}
 					++dssd_event_.front_hit;
 				}
 			}
@@ -254,7 +282,7 @@ int Crate3Mapper::Map() {
 				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
 				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
 			) {
-				FillTree(taf_index[i]);
+				FillTree(tafd_index[i]);
 			}
 		}
 
@@ -292,7 +320,7 @@ int Crate3Mapper::Map() {
 				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
 				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
 			) {
-				FillTree(tab_index[i]);
+				FillTree(tabd_index[i]);
 			}
 		}
 	}
