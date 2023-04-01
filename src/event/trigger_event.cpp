@@ -2,10 +2,13 @@
 
 namespace ribll {
 
-void TriggerEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("time", &time);
-	tree->SetBranchAddress("timestamp", &timestamp);
-	tree->SetBranchAddress("cfd", &cfd_flag);
+void TriggerEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"time").c_str(), &time);
+	tree->SetBranchAddress((prefix+"timestamp").c_str(), &timestamp);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
 }
 
 

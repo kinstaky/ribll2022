@@ -1,11 +1,11 @@
-#ifndef __TRIGGER_EVENT_H__
-#define __TRIGGER_EVENT_H__
+#ifndef __TELECOPE_EVENT_H__
+#define __TELECOPE_EVENT_H__
 
 #include "include/event/event.h"
 
 namespace ribll {
 
-class TriggerEvent : public Event {
+class TelescopeEvent : public Event {
 public:
 
 	/// @brief setup branches of input tree
@@ -24,11 +24,16 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	double time;
-	long long timestamp;
-	bool cfd_flag;
+	unsigned short particle;
+	unsigned short layer[4];
+	unsigned short flag[4];
+	double energy[4][8];
+	double radius[4][8];
+	double theta[4][8];
+	double phi[4][8];
 };
 
-}
 
-#endif		// __TRIGGER_EVENT_H__
+}		// namespace ribll
+
+#endif		// __TELECOPE_EVENT_H__

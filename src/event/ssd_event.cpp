@@ -2,10 +2,13 @@
 
 namespace ribll {
 
-void SsdEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("cfd", &cfd_flag);
-	tree->SetBranchAddress("time", &time);
-	tree->SetBranchAddress("energy", &energy);
+void SsdEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
+	tree->SetBranchAddress((prefix+"time").c_str(), &time);
+	tree->SetBranchAddress((prefix+"energy").c_str(), &energy);
 }
 
 

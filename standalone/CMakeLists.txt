@@ -33,9 +33,9 @@ target_link_libraries(normalize PUBLIC detectors)
 add_executable(merge merge.cpp)
 target_link_libraries(merge PUBLIC detectors)
 
-# # telescope
-# add_executable(tele telescope.cpp)
-# target_link_libraries(tele PUBLIC telescope)
+# track
+add_executable(track track.cpp)
+target_link_libraries(track PUBLIC telescopes)
 
 # # ppac correlation
 # add_executable(ppac_correlation ppac_correlation.cpp)

@@ -6,6 +6,7 @@ add_subdirectory(detector)
 add_subdirectory(event)
 add_subdirectory(mapper)
 add_subdirectory(statistics)
+add_subdirectory(telescope)
 
 # alignment
 add_library(
@@ -39,16 +40,12 @@ target_link_libraries(
 	PUBLIC event ROOT::Core ROOT::RIO ROOT::Tree
 )
 
-# # telescope
-# add_library(
-# 	telescope
-# 	telescope.cpp ${PROJECT_INCLUDE_DIR}/telescope.h ${PROJECT_INCLUDE_DIR}/defs.h
-# )
-# target_include_directories(
-# 	telescope
-# 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
-# )
-# target_link_libraries(
-# 	telescope
-# 	PUBLIC detector ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
-# )
+# telescopes
+add_library(
+	telescopes
+	telescopes.cpp ${PROJECT_INCLUDE_DIR}/telescopes.h
+)
+target_link_libraries(
+	telescopes
+	PUBLIC taf
+)

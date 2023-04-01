@@ -11,8 +11,9 @@ class Event {
 public:
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
 	///
-	virtual void SetupInput(TTree *tree) = 0;
+	virtual void SetupInput(TTree *tree, const std::string &prefix) = 0;
 
 
 	/// @brief setup branches of output tree

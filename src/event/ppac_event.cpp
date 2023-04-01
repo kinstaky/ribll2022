@@ -2,11 +2,14 @@
 
 namespace ribll {
 
-void PpacMapEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("index", &index);
-	tree->SetBranchAddress("side", &side);
-	tree->SetBranchAddress("cfd", &cfd_flag);
-	tree->SetBranchAddress("time", &time);
+void PpacMapEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"index").c_str(), &index);
+	tree->SetBranchAddress((prefix+"side").c_str(), &side);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
+	tree->SetBranchAddress((prefix+"time").c_str(), &time);
 }
 
 
@@ -18,17 +21,20 @@ void PpacMapEvent::SetupOutput(TTree *tree) {
 }
 
 
-void PpacFundamentalEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("flag", &flag);
-	tree->SetBranchAddress("cfd", &cfd_flag);
-	tree->SetBranchAddress("hit", &hit);
-	tree->SetBranchAddress("xhit", &x_hit);
-	tree->SetBranchAddress("yhit", &y_hit);
-	tree->SetBranchAddress("x1", x1);
-	tree->SetBranchAddress("x2", x2);
-	tree->SetBranchAddress("y1", y1);
-	tree->SetBranchAddress("y2", y2);
-	tree->SetBranchAddress("anode", anode);
+void PpacFundamentalEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"flag").c_str(), &flag);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
+	tree->SetBranchAddress((prefix+"hit").c_str(), &hit);
+	tree->SetBranchAddress((prefix+"xhit").c_str(), &x_hit);
+	tree->SetBranchAddress((prefix+"yhit").c_str(), &y_hit);
+	tree->SetBranchAddress((prefix+"x1").c_str(), x1);
+	tree->SetBranchAddress((prefix+"x2").c_str(), x2);
+	tree->SetBranchAddress((prefix+"y1").c_str(), y1);
+	tree->SetBranchAddress((prefix+"y2").c_str(), y2);
+	tree->SetBranchAddress((prefix+"anode").c_str(), anode);
 }
 
 

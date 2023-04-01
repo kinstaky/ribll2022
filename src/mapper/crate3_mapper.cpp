@@ -131,7 +131,7 @@ int Crate3Mapper::Map() {
 	// create output trees
 	size_t vtof_index = CreateTofTree();
 	size_t vppac_index = CreatePPACTree();
-	size_t taf_index[2] = {CreateADSSDTree("taf0"), CreateADSSDTree("taf1")};
+	size_t taf_index[2] = {CreateADSSDTree("tafd0"), CreateADSSDTree("tafd1")};
 	size_t tab_index[6];
 	for (size_t i = 0; i < 6; ++i) {
 		tab_index[i] = CreateADSSDTree(("tab" + std::to_string(i)).c_str());

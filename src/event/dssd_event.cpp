@@ -2,12 +2,15 @@
 
 namespace ribll {
 
-void DssdMapEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("side", &side);
-	tree->SetBranchAddress("strip", &strip);
-	tree->SetBranchAddress("cfd", &cfd_flag);
-	tree->SetBranchAddress("time", &time);
-	tree->SetBranchAddress("energy", &energy);
+void DssdMapEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"side").c_str(), &side);
+	tree->SetBranchAddress((prefix+"strip").c_str(), &strip);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
+	tree->SetBranchAddress((prefix+"time").c_str(), &time);
+	tree->SetBranchAddress((prefix+"energy").c_str(), &energy);
 }
 
 
@@ -20,16 +23,19 @@ void DssdMapEvent::SetupOutput(TTree *tree) {
 }
 
 
-void DssdFundamentalEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("front_hit", &front_hit);
-	tree->SetBranchAddress("back_hit", &back_hit);
-	tree->SetBranchAddress("cfd", &cfd_flag);
-	tree->SetBranchAddress("front_strip", front_strip);
-	tree->SetBranchAddress("back_strip", back_strip);
-	tree->SetBranchAddress("front_time", front_time);
-	tree->SetBranchAddress("back_time", back_time);
-	tree->SetBranchAddress("front_energy", front_energy);
-	tree->SetBranchAddress("back_energy", back_energy);
+void DssdFundamentalEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"front_hit").c_str(), &front_hit);
+	tree->SetBranchAddress((prefix+"back_hit").c_str(), &back_hit);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
+	tree->SetBranchAddress((prefix+"front_strip").c_str(), front_strip);
+	tree->SetBranchAddress((prefix+"back_strip").c_str(), back_strip);
+	tree->SetBranchAddress((prefix+"front_time").c_str(), front_time);
+	tree->SetBranchAddress((prefix+"back_time").c_str(), back_time);
+	tree->SetBranchAddress((prefix+"front_energy").c_str(), front_energy);
+	tree->SetBranchAddress((prefix+"back_energy").c_str(), back_energy);
 }
 
 
@@ -46,12 +52,15 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 }
 
 
-void DssdMergeEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("hit", &hit);
-	tree->SetBranchAddress("radius", radius);
-	tree->SetBranchAddress("theta", theta);
-	tree->SetBranchAddress("phi", phi);
-	tree->SetBranchAddress("energy", energy);
+void DssdMergeEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"hit").c_str(), &hit);
+	tree->SetBranchAddress((prefix+"radius").c_str(), radius);
+	tree->SetBranchAddress((prefix+"theta").c_str(), theta);
+	tree->SetBranchAddress((prefix+"phi").c_str(), phi);
+	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
 }
 
 

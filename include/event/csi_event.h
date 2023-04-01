@@ -10,8 +10,12 @@ public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pinter to input tree
+	/// @param[in] prefix prefix of variables for friend tree
 	///
-	virtual void SetupInput(TTree *tree) override;
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
 
 
 	/// @brief setup branches of output tree
@@ -32,8 +36,12 @@ public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
 	///
-	virtual void SetupInput(TTree *tree) override;
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
 
 
 	/// @brief setup branches of output tree
@@ -54,8 +62,12 @@ public:
 
 	/// @brief setup branches of input tree
 	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
 	///
-	virtual void SetupInput(TTree *tree) override;
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
 
 
 	/// @brief setup branches of output tree

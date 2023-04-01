@@ -2,10 +2,13 @@
 
 namespace ribll {
 
-void TofMapEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("time", &time);
-	tree->SetBranchAddress("index", &index);
-	tree->SetBranchAddress("cfd", &cfd_flag);
+void TofMapEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"time").c_str(), &time);
+	tree->SetBranchAddress((prefix+"index").c_str(), &index);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
 }
 
 
@@ -16,9 +19,12 @@ void TofMapEvent::SetupOutput(TTree *tree) {
 }
 
 
-void TofFundamentalEvent::SetupInput(TTree *tree) {
-	tree->SetBranchAddress("time", time);
-	tree->SetBranchAddress("cfd", &cfd_flag);
+void TofFundamentalEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"time").c_str(), time);
+	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
 }
 
 

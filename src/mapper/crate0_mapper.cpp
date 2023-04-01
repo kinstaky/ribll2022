@@ -25,10 +25,10 @@ int Crate0Mapper::Map(bool threshold) {
 	size_t vme_trigger_index = CreateTriggerTree("vt", threshold);
 	size_t xia_trigger_index = CreateTriggerTree("xt", threshold);
 	size_t xia_ppac_index = CreateOutputTree("xppac", threshold);
-	size_t taf2_index = CreateOutputTree("taf2", threshold);
-	size_t taf3_index = CreateOutputTree("taf3", threshold);
-	size_t taf4_index = CreateOutputTree("taf4", threshold);
-	size_t taf5_index = CreateOutputTree("taf5", threshold);
+	size_t taf2_index = CreateOutputTree("tafd2", threshold);
+	size_t taf3_index = CreateOutputTree("tafd3", threshold);
+	size_t taf4_index = CreateOutputTree("tafd4", threshold);
+	size_t taf5_index = CreateOutputTree("tafd5", threshold);
 	size_t t0s1_index = CreateOutputTree("t0s1", threshold);
 	size_t t0s2_index = CreateOutputTree("t0s2", threshold);
 	size_t t0s3_index = CreateOutputTree("t0s3", threshold);

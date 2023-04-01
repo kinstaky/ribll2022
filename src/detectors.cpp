@@ -188,7 +188,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		// detector output file name
 		TString taf_output_file_name;
 		taf_output_file_name.Form(
-			"%s%staf%d-fundamental-%sta-%04u.root",
+			"%s%stafd%d-fundamental-%sta-%04u.root",
 			kGenerateDataPath, kFundamentalDir,
 			i, trigger_tag.c_str(), run
 		);

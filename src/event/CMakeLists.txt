@@ -12,6 +12,7 @@ set(
 	${EVENT_INCLUDE_DIR}/ssd_event.h
 	${EVENT_INCLUDE_DIR}/tof_event.h
 	${EVENT_INCLUDE_DIR}/trigger_event.h
+	${EVENT_INCLUDE_DIR}/telescope_event.h
 )
 
 set(
@@ -22,6 +23,7 @@ set(
 	ssd_event.cpp
 	tof_event.cpp
 	trigger_event.cpp
+	telescope_event.cpp
 )
 
 # event library
