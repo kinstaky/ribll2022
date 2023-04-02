@@ -37,6 +37,10 @@ target_link_libraries(merge PUBLIC detectors)
 add_executable(track track.cpp)
 target_link_libraries(track PUBLIC telescopes)
 
+# calibrate
+add_executable(calibrate calibrate.cpp)
+target_link_libraries(calibrate PUBLIC telescopes)
+
 # # ppac correlation
 # add_executable(ppac_correlation ppac_correlation.cpp)
 # target_include_directories(ppac_correlation PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)

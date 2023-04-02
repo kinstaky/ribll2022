@@ -17,7 +17,19 @@ Telescope::Telescope(
 
 
 int Telescope::Track() {
-	std::cerr << "Error: Not implemented yet.\n";
+	std::cerr << "Error: Telescope::Track not implemented yet.\n";
+	return -1;
+}
+
+
+int Telescope::Calibrate() {
+	std::cerr << "Error: Telescope::Calibrate not implemented yet.\n";
+	return -1;
+}
+
+
+int Telescope::AlphaCalibrate() {
+	std::cerr << "Error: Telescope::AlphaCalibrate not implemented yet.\n";
 	return -1;
 }
 

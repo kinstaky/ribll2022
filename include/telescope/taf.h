@@ -21,6 +21,18 @@ public:
 	///
 	virtual int Track() override;
 
+
+	/// @brief calibrate this telescope
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Calibrate() override;
+
+
+	/// @brief calibrate with alpha source
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int AlphaCalibrate() override;
+
 private:
 	unsigned int index_;
 };

@@ -29,6 +29,7 @@ const char* const kBeamDir = "beam/";
 const char* const kNormalizeDir = "normalize/";
 const char* const kMergeDir = "merge/";
 const char* const kTelescopeDir = "telescope/";
+const char* const kCalibrationDir = "calibration/";
 
 const char* const kCheckDir = "check/";
 const char* const kShowDir = "show/";
