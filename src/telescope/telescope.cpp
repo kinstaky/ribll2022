@@ -49,8 +49,8 @@ int Telescope::CsiCalibrate() {
 
 double Telescope::CalculateCsiEnergy(
 	const std::string &projectile,
-	double si_energy,
 	double theta,
+	double si_energy,
 	double si_thick,
 	double dead_si_thick,
 	double dead_al_thick,
@@ -61,7 +61,7 @@ double Telescope::CalculateCsiEnergy(
 	el::EnergyLossCalculator mylar(projectile, "Mylar");
 
 	// epsilon, stop if reach this standard
-	double eps = 1e-3;
+	double eps = 1e-4;
 	// sensitive thickness in Si
 	double si_sensitive_thick = si_thick - dead_si_thick * 2;
 	// cos(theta)
@@ -69,8 +69,8 @@ double Telescope::CalculateCsiEnergy(
 
 	// lower bound of the total energy
 	double lower_bound = si.Energy(si_thick / cos_theta);
-	// something went wrong if the Si energy is lower than the lower bound
-	if (si_energy < lower_bound) return -1e5;
+	// something went wrong if the Si energy is larger than the lower bound
+	if (si_energy > lower_bound) return -1e5;
 
 	// current distance of upper bound and lower bound
 	double current_step = 1.0;
@@ -89,7 +89,7 @@ double Telescope::CalculateCsiEnergy(
 		double residual_energy = si.Energy(si_range);
 		// loss energy undern current total energy
 		double loss_energy = upper_bound - residual_energy;
-		if (loss_energy < si_energy) {
+		if (loss_energy > si_energy) {
 			// current total energy is too small
 			// increase the lower bound and uppper bound
 			lower_bound = upper_bound;
@@ -120,8 +120,8 @@ double Telescope::CalculateCsiEnergy(
 		// loss energy undern current total energy
 		current_si_energy = current_total_energy - residual_energy;
 		// change the upper or lower bound
-		if (current_si_energy < si_energy) {
-			// current Si energy loss too small, increase lower bound
+		if (current_si_energy > si_energy) {
+			// current Si energy loss too large, increase lower bound
 			lower_bound = current_total_energy;
 		} else {
 			// current Si energy loss too large, decrease upper bound
@@ -139,21 +139,21 @@ double Telescope::CalculateCsiEnergy(
 	// residual range after the sensitive layer and dead Si layer
 	range -= (si_sensitive_thick + dead_si_thick) / cos_theta;
 	// residual energy after sensitive layer and dead Si layer
-	energy -= si.Energy(range);
+	energy = si.Energy(range);
 
 	// incident range in Al material
 	range = al.Range(energy);
 	// residual range after the dead Al layer
 	range -= dead_al_thick / cos_theta;
 	// residual energy after the dead Al layer
-	energy -= al.Energy(range);
+	energy = al.Energy(range);
 
 	// incident range in Mylar material
 	range = mylar.Range(energy);
 	// residual range after the Mylar layer
 	range -= mylar_thick / cos_theta;
 	// residual energy after the Mylar layer
-	energy -= mylar.Energy(range);
+	energy = mylar.Energy(range);
 
 	return energy;
 }

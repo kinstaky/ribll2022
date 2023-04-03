@@ -15,6 +15,15 @@
 
 namespace ribll {
 
+// thickness of tafd
+const double tafd_thick[6] = {151.0, 152.0, 156.0, 150.0, 150.0, 150.0};
+// center phi angle of tafd, to distinguish CsI index
+const double tafd_center_phi[6] = {
+	90.0*TMath::DegToRad(), 30.0*TMath::DegToRad(),
+	-30.0*TMath::DegToRad(), -90.0*TMath::DegToRad(),
+	-150.0*TMath::DegToRad(), 150.0*TMath::DegToRad()
+};
+
 // run used for alpha calibration
 const unsigned int alpha_calibration_run[6] = {816, 0, 0, 0, 0, 0};
 // energy of alpha source, in MeV
@@ -52,12 +61,92 @@ const unsigned int particles_mass[particle_types] = {
 const unsigned int particles_charge[particle_types] = {
 	1, 1, 1, 2, 2
 };
+// isotope types
+const size_t isotope_types = 2;
+// isotope start index in particles array above
+const size_t isotope_index[isotope_types] = {0, 3};
 // phi angle types
-const size_t phi_types = 2;
+const size_t theta_types = 2;
 // phi angle names
-const char* const phi_names[phi_types] = {
+const char* const theta_names[theta_types] = {
 	"l08", "g08"
 };
+
+
+/// @brief L = pedo + a0 * E ^ ((a1+A) / (a2+A))
+/// @param[in] x energy (MeV)
+/// @param[in] par par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
+///		par[3]=a2-a1>0, par[4]=A, par[5]=offset
+/// @returns channel
+double LinearExp(double *x, double *par) {
+	double e = x[0] - par[5];
+	return par[0] + par[1] * TMath::Power(
+		e,
+		((par[2]+par[4]) / (par[2]+par[3]+par[4]))
+	);
+}
+
+// /// @brief E = ((L - pedo) / a0) ^ ((a2+A) / (a1+A))
+// /// @param[in] x channel
+// /// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
+// ///		par[3]=a2-a1>0, par[4]=A, par[5]=offset
+// /// @returns energy (MeV)
+// double LinearExpInverse(double *x, double *par) {
+// 	return TMath::Power(
+// 		(x[0] - par[5] - par[0]) / par[1],
+// 		(par[2]+par[3]+par[4]) / (par[2]+par[4])
+// 	);
+// }
+
+/// @brief fitting function of H isotopes in CsI with offset
+/// @param[in] x energy (MeV)
+/// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
+///		par[3]=a2-a1>0
+/// @returns channel
+double HFit(double *x, double *par) {
+	double fpar[6];
+	for(int i = 0; i < 4; ++i) fpar[i] = par[i];
+	if (x[0] <= 200) {
+		fpar[4] = 1.0;
+		fpar[5] = 0.0;
+	} else if (x[0] <= 400) {
+		fpar[4] = 2.0;
+		fpar[5] = 200.0;
+	} else {
+		fpar[4] = 3.0;
+		fpar[5] = 400.0;
+	}
+  return LinearExp(x, fpar);
+}
+
+
+/// @brief L = pedo + a0 * (E - a1 * A * Z^2 * ln(1 + E/(a1*A*Z^2)))
+/// @param[in] x Energy(MeV)
+/// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
+///		par[3]=A, par[4]=offset
+/// @returns channel
+double LinearLog(double *x, double *par) {
+	double t = par[2] * par[3] * 4.0;
+	double e = x[0] - par[4];
+	return par[0] + par[1] * (e - t * TMath::Log(e/t + 1.0));
+}
+
+/// @brief fitting function for He isotope in CsI with offset
+/// @param[in] x energy (MeV)
+/// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1
+/// @returns channel
+double HeFit(double *x, double *par) {
+	double fpar[6];
+	for(int i = 0; i < 3; ++i) fpar[i] = par[i];
+	if (x[0] <= 200.0) {
+		fpar[3] = 4.0;
+		fpar[4] = 0.0;
+	} else {
+		fpar[3] = 3.0;
+		fpar[4] = 200.0;
+	}
+	return LinearLog(x, fpar);
+}
 
 
 Taf::Taf(unsigned int run, unsigned int index, const std::string &tag)
@@ -141,7 +230,7 @@ int Taf::Track() {
 	// total number of entries
 	long long entries = ipt->GetEntries();
 	// 1/100 of entries
-	long long entry100 = entries / 100;
+	long long entry100 = entries / 100 + 1;
 	// show start
 	printf("Tracking %s telescope   0%%", name_.c_str());
 	fflush(stdout);
@@ -309,10 +398,10 @@ int Taf::ParticleIdentify() {
 	opt->Branch("charge", charge, "z[p]/i");
 
 	// read cut from files
-	TCutG *pid_cuts[particle_types*phi_types];
-	for (size_t i = 0; i < phi_types; ++i) {
+	TCutG *pid_cuts[particle_types*theta_types];
+	for (size_t i = 0; i < theta_types; ++i) {
 		for (size_t j = 0; j < particle_types; ++j) {
-			TCutG *cut = ReadCut(particle_names[j], phi_names[i]);
+			TCutG *cut = ReadCut(particle_names[j], theta_names[i]);
 			if (!cut) return -1;
 			pid_cuts[i*particle_types+j] = cut;
 		}
@@ -340,8 +429,8 @@ int Taf::ParticleIdentify() {
 			// point position in pid graph
 			double x = tele.energy[0][1];
 			double y = tele.energy[0][0];
-			// cut index offset in case phi angle difference
-			size_t cut_offset = tele.phi[0][0] < 0.8 ? 0 : particle_types;
+			// cut index offset in case theta angle difference
+			size_t cut_offset = tele.theta[0][0] < 0.8 ? 0 : particle_types;
 			// particle identification
 			for (size_t i = 0; i < particle_types; ++i) {
 				if (pid_cuts[cut_offset+i]->IsInside(x, y)) {
@@ -366,7 +455,7 @@ int Taf::ParticleIdentify() {
 
 
 int Taf::Calibrate() {
-	if (AlphaCalibrate()) return -1;
+	// if (AlphaCalibrate()) return -1;
 	if (CsiCalibrate()) return -1;
 	return 0;
 }
@@ -500,7 +589,201 @@ int Taf::AlphaCalibrate() {
 
 
 int Taf::CsiCalibrate() {
-	
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile *ipf = new TFile(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	TelescopeEvent tele;
+	// setup output branches
+	tele.SetupInput(ipt);
+
+	// add pid file
+	TString pid_file_name;
+	pid_file_name.Form(
+		"%s%s%s-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	if (!ipt->AddFriend("pid=tree", pid_file_name)) {
+		std::cerr << "Error: Add pid file "
+			<< pid_file_name << " failed.\n";
+		return -1;
+	}
+	// particle mass number
+	unsigned int mass[4];
+	// particle charge number
+	unsigned int charge[4];
+	// setup input branches
+	ipt->SetBranchAddress("pid.mass", mass);
+	ipt->SetBranchAddress("pid.charge", charge);
+
+	// output root file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-calibration-%04u.root",
+		kGenerateDataPath,
+		kCalibrationDir,
+		(std::string("taf") + name_[3] + "csi").c_str(),
+		run_
+	);
+	// output file
+	TFile *opf = new TFile(output_file_name, "recreate");
+	// output calibration graphs, the first index is for CsI index
+	// the second index is for phi index
+	// the third index is for isotopes
+	TGraph *gcali[2][theta_types][isotope_types];
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < theta_types; ++j) {
+			for (size_t k = 0; k < isotope_types; ++k) {
+				gcali[i][j][k] = new TGraph;
+			}
+		}
+	}
+	// pid graph with calculated CsI energy
+	TGraph *pid = new TGraph;
+
+	// get tafd calibration parameters
+	TString param_file_name;
+	param_file_name.Form(
+		"%s%s%s-alpha-cali-param.txt",
+		kGenerateDataPath,
+		kCalibrationDir,
+		(name_.substr(0, 3) + "d" + name_[3]).c_str()
+	);
+	std::ifstream fin(param_file_name.Data());
+	if (!fin.good()) {
+		std::cerr << "Error: Open file "
+			<< param_file_name << " failed.\n";
+		return -1;
+	}
+	// tafd calibration parameters
+	double tafd_param[2];
+	// read parameters from file
+	fin >> tafd_param[0] >> tafd_param[1];
+	// close file
+	fin.close();
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Filling CsI calibration graph   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get events
+		ipt->GetEntry(entry);
+		if (tele.particle != 1 || tele.layer[0] != 2) continue;
+		// calculate first index in graph array case by phi angle
+		size_t csi_index = tele.phi[0][0] > tafd_center_phi[index_] ? 0 : 1;
+		// calculate second index in graph array case by theta angle
+		size_t theta_index = tele.theta[0][0] < 0.8 ? 0 : 1;
+		// calculated CsI energy
+		double csi_energy = -1e4;
+		// CsI channel number
+		double csi_channel = tele.energy[0][1];
+		for (size_t i = 0; i < particle_types; ++i) {
+			// jump if not the identified particle
+			if (
+				charge[0] != particles_charge[i]
+				|| mass[0] != particles_mass[i]
+			) continue;
+
+			// calculate CsI energy
+			csi_energy = CalculateCsiEnergy(
+				particle_names[i],
+				tele.theta[0][0],
+				tafd_param[0] + tafd_param[1] * tele.energy[0][0],
+				tafd_thick[index_]
+			);
+			// fill the appropriate graph, the first index is chosen by phi
+			// the second index is chosen ny theta and charge number
+			// 25000 offset in channel to disinguish different isotopes
+			// charge[0]-1 is the isotope, 0 for H, 1 for He
+			// i - isotope_index[charge[0]-1] is offset in isotope, this
+			// disinguishes between isotopes
+			gcali[csi_index][theta_index][charge[0]-1]->AddPoint(
+				csi_energy + 200 * (i - isotope_index[charge[0]-1]),
+				csi_channel
+			);
+			pid->AddPoint(csi_energy, tafd_param[0] + tafd_param[1] * tele.energy[0][0]);
+		}
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// fitting
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < theta_types; ++j) {
+			// fit H isotopes
+			TF1 *fitH = new TF1(
+				TString::Format("fH_c%ld_%s", i, theta_names[j]),
+				HFit, 0, 600, 4
+			);
+			fitH->FixParameter(0, 0.0);
+			fitH->SetParLimits(2, 0, 1000);
+			fitH->SetParLimits(3, 0, 100);
+			gcali[i][j][0]->Fit(fitH, "QR+ rob=0.8");
+std::cout << "----------------------------\n"
+<< "csi " << i << " theta " << theta_names[j] << " H fitting\n"
+<< fitH->GetParameter(0) << " " << fitH->GetParameter(1)
+<< " " << fitH->GetParameter(2) << " " << fitH->GetParameter(3) << "\n";
+
+			// fit He isotopes
+			TF1 *fitHe = new TF1(
+				TString::Format("fH_c%ld_%s", i, theta_names[j]),
+				HeFit, 0, 400, 3
+			);
+			fitHe->FixParameter(0, 0.0);
+			fitHe->SetParLimits(2, 0, 100);
+			gcali[i][j][1]->Fit(fitHe, "QR+");
+std::cout << "----------------------------\n"
+<< "csi " << i << " theta " << theta_names[j] << " He fitting\n"
+<< fitHe->GetParameter(0) << " " << fitHe->GetParameter(1)
+<< " " << fitHe->GetParameter(2) << "\n";
+		}
+	}
+
+	opf->cd();
+	// save graphs
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < theta_types; ++j) {
+			for (size_t k = 0; k < isotope_types; ++k) {
+				gcali[i][j][k]->Write(TString::Format(
+					"g_c%ld_%s_%ld", i, theta_names[j], k
+				));
+			}
+		}
+	}
+	pid->Write("pid");
+	// close files
+	opf->Close();
+	ipf->Close();
+
 	return 0;
 }
 
