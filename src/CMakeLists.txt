@@ -49,3 +49,17 @@ target_link_libraries(
 	telescopes
 	PUBLIC taf
 )
+
+# energy loss
+add_library(
+	energy_loss
+	energy_loss.cpp ${PROJECT_INCLUDE_DIR}/energy_loss.h
+)
+target_include_directories(
+	energy_loss
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+)
+target_link_libraries(
+	energy_loss
+	PUBLIC ROOT::Core ROOT::RIO ROOT::Hist
+)

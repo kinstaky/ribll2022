@@ -14,7 +14,7 @@ target_include_directories(
 )
 target_link_libraries(
 	telescope
-	PUBLIC statistics
+	PUBLIC statistics energy_loss
 	ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist ROOT::Graf
 )
 

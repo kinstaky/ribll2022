@@ -59,5 +59,9 @@ target_link_libraries(calibrate PUBLIC telescopes)
 # target_include_directories(reftof PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
 # target_link_libraries(reftof PUBLIC ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist)
 
+# initialize energy loss calculator
+add_executable(ielc init_energy_loss.cpp)
+target_link_libraries(ielc PUBLIC energy_loss)
+
 add_subdirectory(check)
 add_subdirectory(show)
