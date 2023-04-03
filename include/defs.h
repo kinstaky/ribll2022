@@ -30,9 +30,11 @@ const char* const kNormalizeDir = "normalize/";
 const char* const kMergeDir = "merge/";
 const char* const kTelescopeDir = "telescope/";
 const char* const kCalibrationDir = "calibration/";
+const char* const kParticleIdentifyDir = "pid/";
 
 const char* const kCheckDir = "check/";
 const char* const kShowDir = "show/";
+const char* const kEnergyLossDir = "energy_loss/";
 
 
 //-----------------------------------------------------------------------------

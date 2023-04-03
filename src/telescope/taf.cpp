@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include <TCutG.h>
 #include <TF1.h>
 #include <TFitResult.h>
 #include <TGraph.h>
@@ -35,6 +36,27 @@ const double alpha_fit_range[6][6] = {
 	{0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
 	{0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
 	{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+};
+
+// particle types
+const size_t particle_types = 5;
+// particle names
+const char* const particle_names[particle_types] = {
+	"1H", "2H", "3H", "4He", "3He"
+};
+// particle mass
+const unsigned int particles_mass[particle_types] = {
+	1, 2, 3, 4, 3
+};
+// particle charge
+const unsigned int particles_charge[particle_types] = {
+	1, 1, 1, 2, 2
+};
+// phi angle types
+const size_t phi_types = 2;
+// phi angle names
+const char* const phi_names[phi_types] = {
+	"l08", "g08"
 };
 
 
@@ -201,9 +223,151 @@ int Taf::Track() {
 	return 0;
 }
 
+TCutG* ReadCut(const char *particle, const char *phi) {
+	// cut file name
+	TString cut_file_name;
+	cut_file_name.Form(
+		"%s%scut/taf0-%s-%s.txt",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		particle,
+		phi
+	);
+	// open cut file to read points
+	std::ifstream fin(cut_file_name.Data());
+	if (!fin.good()) {
+		std::cerr << "Error: Open file "
+			<< cut_file_name << " failed.\n";
+		return nullptr;
+	}
+	// result
+	TCutG *result = new TCutG;
+	// point index
+	int point;
+	// point positions
+	double x, y;
+	// loop to read points
+	while (fin.good()) {
+		fin >> point >> x >> y;
+		result->SetPoint(point, x, y);
+	}
+	// close file
+	fin.close();
+	return result;
+}
+
+
+int Taf::ParticleIdentify() {
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile *ipf = new TFile(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf->Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	TelescopeEvent tele;
+	// setup output branches
+	tele.SetupInput(ipt);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile *opf = new TFile(output_file_name, "recreate");
+	// output tree
+	TTree *opt = new TTree("tree", "particle type");
+	// output data
+	// particle number
+	unsigned short particle_num;
+	// A, mass number of particle
+	unsigned int mass[4];
+	// Z, change number of particle
+	unsigned int charge[4];
+	// setup output branches
+	opt->Branch("particle", &particle_num, "p/s");
+	opt->Branch("mass", mass, "a[p]/i");
+	opt->Branch("charge", charge, "z[p]/i");
+
+	// read cut from files
+	TCutG *pid_cuts[particle_types*phi_types];
+	for (size_t i = 0; i < phi_types; ++i) {
+		for (size_t j = 0; j < particle_types; ++j) {
+			TCutG *cut = ReadCut(particle_names[j], phi_names[i]);
+			if (!cut) return -1;
+			pid_cuts[i*particle_types+j] = cut;
+		}
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Identifying particle   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		particle_num = tele.particle;
+		if (tele.particle == 1 && tele.layer[0] == 2) {
+			// initialize
+			mass[0] = 0;
+			// point position in pid graph
+			double x = tele.energy[0][1];
+			double y = tele.energy[0][0];
+			// cut index offset in case phi angle difference
+			size_t cut_offset = tele.phi[0][0] < 0.8 ? 0 : particle_types;
+			// particle identification
+			for (size_t i = 0; i < particle_types; ++i) {
+				if (pid_cuts[cut_offset+i]->IsInside(x, y)) {
+					mass[0] = particles_mass[i];
+					charge[0] = particles_charge[i];
+					break;
+				}
+			}
+		}
+		opt->Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save and close files
+	opt->Write();
+	opf->Close();
+	ipf->Close();
+
+	return 0;
+}
+
 
 int Taf::Calibrate() {
 	if (AlphaCalibrate()) return -1;
+	if (CsiCalibrate()) return -1;
 	return 0;
 }
 
@@ -331,6 +495,12 @@ int Taf::AlphaCalibrate() {
 	// close input file
 	ipf->Close();
 
+	return 0;
+}
+
+
+int Taf::CsiCalibrate() {
+	
 	return 0;
 }
 

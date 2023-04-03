@@ -14,7 +14,8 @@ target_include_directories(
 )
 target_link_libraries(
 	telescope
-	PUBLIC statistics ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist
+	PUBLIC statistics
+	ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist ROOT::Graf
 )
 
 # taf library

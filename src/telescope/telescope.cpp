@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <TMath.h>
+
 namespace ribll {
 
 Telescope::Telescope(
@@ -22,6 +24,11 @@ int Telescope::Track() {
 }
 
 
+int Telescope::ParticleIdentify() {
+	std::cerr << "Error: Telescope::ParticleIdentify not implemented yet.\n";
+	return -1;
+}
+
 int Telescope::Calibrate() {
 	std::cerr << "Error: Telescope::Calibrate not implemented yet.\n";
 	return -1;
@@ -30,6 +37,12 @@ int Telescope::Calibrate() {
 
 int Telescope::AlphaCalibrate() {
 	std::cerr << "Error: Telescope::AlphaCalibrate not implemented yet.\n";
+	return -1;
+}
+
+
+int Telescope::CsiCalibrate() {
+	std::cerr << "Error: Telescope::CsiCalibrate not implemented yet.\n";
 	return -1;
 }
 

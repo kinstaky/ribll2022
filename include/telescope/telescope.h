@@ -37,6 +37,13 @@ public:
 	///
 	virtual int Track();
 
+
+	/// @brief identify particle in telescope
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ParticleIdentify();
+
+
 	/// @brief calibrate this telescope
 	/// @returns 0 if success, -1 otherwise
 	///
@@ -48,7 +55,14 @@ public:
 	///
 	virtual int AlphaCalibrate();
 
+
+	/// @brief calibrate csi with pid
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int CsiCalibrate();
+
 protected:
+
 	unsigned int run_;
 	std::string name_;
 	std::string tag_;

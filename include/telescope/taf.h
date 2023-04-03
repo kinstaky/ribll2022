@@ -22,6 +22,12 @@ public:
 	virtual int Track() override;
 
 
+	/// @brief identify particle in telescope
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ParticleIdentify() override;
+
+
 	/// @brief calibrate this telescope
 	/// @returns 0 if success, -1 otherwise
 	///
@@ -32,6 +38,12 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int AlphaCalibrate() override;
+
+
+	/// @brief calibrate csi with pid
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int CsiCalibrate() override;
 
 private:
 	unsigned int index_;

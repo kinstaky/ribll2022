@@ -37,6 +37,10 @@ target_link_libraries(merge PUBLIC detectors)
 add_executable(track track.cpp)
 target_link_libraries(track PUBLIC telescopes)
 
+# pid
+add_executable(pid particle_identify.cpp)
+target_link_libraries(pid PUBLIC telescopes)
+
 # calibrate
 add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate PUBLIC telescopes)

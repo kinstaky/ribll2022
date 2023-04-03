@@ -56,7 +56,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 endif()
 
 # find root
-find_package(ROOT 6.26 REQUIRED COMPONENTS Core RIO Tree Hist)
+find_package(ROOT 6.26 REQUIRED COMPONENTS Core RIO Tree Hist Graf)
 
 # The complied library code
 add_subdirectory(src)
