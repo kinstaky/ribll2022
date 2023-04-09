@@ -24,8 +24,8 @@ int Show(unsigned int run, const std::string &name) {
 		"%s%s%s-fundamental-%04u.root",
 		kGenerateDataPath, kFundamentalDir, name.c_str(), run
 	);
-	TFile *ipf = new TFile(input_file_name, "read");
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TFile ipf(input_file_name, "read");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< input_file_name << " failed.\n";
@@ -61,9 +61,10 @@ int Show(unsigned int run, const std::string &name) {
 	ipt->SetBranchAddress("back_strip", bs);
 
 	// histograms to store coincident entries with different CsI(Tl)
-	TH1F *h[2];
-	h[0] = new TH1F("hls", (name + " low strips").c_str(), 12, 0, 12);
-	h[1] = new TH1F("hhs", (name + " high strips").c_str(), 12, 0, 12);
+	TH1F h[2]{
+		TH1F("hls", (name + " low strips").c_str(), 12, 0, 12),
+		TH1F("hhs", (name + " high strips").c_str(), 12, 0, 12)
+	};
 
 	// total entries
 	long long entries = ipt->GetEntries();
@@ -73,15 +74,15 @@ int Show(unsigned int run, const std::string &name) {
 		if (fhit != 1 || bhit != 1) continue;
 		for (int i = 0; i < 12; ++i) {
 			if (csi_time[i] > 0) {
-				h[bs[0]>=4]->Fill(i);
+				h[bs[0]>=4].Fill(i);
 			}
 		}
 	}
 
 	// print to output pdf file
-	h[0]->Draw();
+	h[0].Draw();
 	c1->Print(output_file_name, ("Title:" + name + " low strips").c_str());
-	h[1]->Draw();
+	h[1].Draw();
 	c1->Print(output_file_name, ("Title:" + name + " high strips").c_str());
 
 	return 0;
@@ -105,9 +106,9 @@ int main(int argc, char **argv) {
 	);
 
 	// add first title page to output pdf file
-	TPaveText *first_page = new TPaveText(0.05, 0.1, 0.95, 0.9);
-	first_page->AddText("PDF for showing TAF and TAB csi mapping");
-	first_page->Draw();
+	TPaveText first_page(0.05, 0.1, 0.95, 0.9);
+	first_page.AddText("PDF for showing TAF and TAB csi mapping");
+	first_page.Draw();
 	c1->Print(output_file_name + "(", "Title:start");
 
 	// show TAF
@@ -127,11 +128,11 @@ int main(int argc, char **argv) {
 	}
 
 	// add last ending page
-	TCanvas *c2 = new TCanvas;
-	TPaveText *last_page = new TPaveText(0.05, 0.1, 0.95, 0.9);
-	last_page->AddText("END");
-	last_page->Draw();
-	c2->Print(output_file_name + ")", "Title:end");
+	TCanvas c2;
+	TPaveText last_page(0.05, 0.1, 0.95, 0.9);
+	last_page.AddText("END");
+	last_page.Draw();
+	c2.Print(output_file_name + ")", "Title:end");
 
 	return 0;
 }

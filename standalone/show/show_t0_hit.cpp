@@ -24,9 +24,9 @@ void PrintHit(
 		run
 	);
 	// file
-	TFile *ipf = new TFile(t0d1_file_name, "read");
+	TFile ipf(t0d1_file_name, "read");
 	// tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< t0d1_file_name << " failed.\n";
@@ -75,6 +75,8 @@ void PrintHit(
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
+	// close file
+	ipf.Close();
 
 	statistics.Write();
 	statistics.Print();

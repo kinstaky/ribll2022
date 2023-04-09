@@ -27,9 +27,9 @@ int main(int argc, char **argv) {
 		kGenerateDataPath, kMappingDir, run
 	);
 	// input file
-	TFile *ipf = new TFile(input_file_name, "read");
+	TFile ipf(input_file_name, "read");
 	// input tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< input_file_name << " failed.\n";
@@ -46,9 +46,9 @@ int main(int argc, char **argv) {
 		kGenerateDataPath, kShowDir, run
 	);
 	// output file
-	TFile *opf = new TFile(output_file_name, "recreate");
+	TFile opf(output_file_name, "recreate");
 	// output histogram
-	TH1F *hp = new TH1F("hp", "time period of XIA trigger", 1000, 0, 100'000);
+	TH1F hp("hp", "time period of XIA trigger", 1000, 0, 100'000);
 
 	// last entry's trigger time
 	double last_time;
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 		// period
 		double period = trigger_time - last_time;
 		// fill period
-		hp->Fill(period);
+		hp.Fill(period);
 		// check if shorter than min time
 		min_time = period < min_time ? period : min_time;
 		// update trigger time of last entry
@@ -89,10 +89,10 @@ int main(int argc, char **argv) {
 	std::cout << "\b\b\b\b100%\n";
 
 	// write histogram to output file
-	hp->Write();
+	hp.Write();
 	// close files
-	opf->Close();
-	ipf->Close();
+	opf.Close();
+	ipf.Close();
 
 	XiaTriggerPeriodStatistics statistics(run, min_time);
 	statistics.Write();

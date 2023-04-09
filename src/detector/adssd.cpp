@@ -117,7 +117,7 @@ int Adssd::Merge(double energy_diff) {
 				double diff = RelativeDifference(fe[0], be[0]);
 				hrd->Fill(diff);
 				if (diff < energy_diff) {
-					merge_event.energy[0] = be[0];
+					merge_event.energy[0] = fe[0];
 					auto position = CalculatePosition(
 						fundamental_event.front_strip[0],
 						fundamental_event.back_strip[0]

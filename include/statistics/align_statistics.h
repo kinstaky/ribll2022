@@ -17,13 +17,13 @@ public:
 	/// @param[in] run run number
 	/// @param[in] xia_events total number of XIA events
 	/// @param[in] vme_events total number of VME events
-	/// @param[in] calibration_parameters array of calibration parameters
+	/// @param[in] group group number
 	///
 	AlignStatistics(
 		unsigned int run,
 		long long xia_events,
 		long long vme_events,
-		double *calibration_parameters
+		unsigned int group
 	);
 
 
@@ -70,6 +70,21 @@ public:
 	);
 
 
+	/// @brief get total number of XIA events
+	/// @returns XIA events count
+	///
+	inline long long XiaEvents() const {
+		return xia_events_;
+	}
+
+
+	/// @brief get total number of VME events
+	/// @returns VME events count
+	inline long long VmeEvents() const {
+		return vme_events_;
+	}
+
+
 	// number of VME events can be aligned
 	long long align_events;
 	// number of VME events match more than one VME trigger in XIA
@@ -82,8 +97,8 @@ private:
 	long long xia_events_;
 	// total number of VME events
 	long long vme_events_;
-	// pointer to calibration parameters
-	double calibration_param_[2];
+	// group number
+	unsigned int group_;
 };
 
 }		// namespace ribll

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <map>
 
 #include "include/alignment.h"
 
@@ -16,7 +17,9 @@ void PrintUsage(const char *name) {
 	return;
 }
 
-
+const std::map<int, int> group_map = {
+	{624, 90}
+};
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
@@ -24,10 +27,20 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
+	// run number
 	int run = atoi(argv[1]);
 
-	Alignment align(run, 30, 2000000, -10000000000, 10000000000);
-	align.SetVerbose();
+	int group = 100;
+	auto search = group_map.find(run);
+	if (search != group_map.end()) {
+		group = search->second;
+	}
+
+	Alignment align(
+		run, group, 10'000'000,
+		-10'000'000'000, 10'000'000'000
+	);
+	align.SetVerbose(true);
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";
 		return -1;

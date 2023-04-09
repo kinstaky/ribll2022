@@ -28,9 +28,9 @@ int main(int argc, char **argv) {
 		kCrate3Path, kCrate3FileName, run
 	);
 	// input VME file
-	TFile *vme_file = new TFile(vme_file_name, "read");
+	TFile vme_file(vme_file_name, "read");
 	// input VME tree
-	TTree *vme_tree = (TTree*)vme_file->Get("tree");
+	TTree *vme_tree = (TTree*)vme_file.Get("tree");
 	if (!vme_tree) {
 		std::cerr << "Error: Get tree from "
 			<< vme_file_name << " failed.\n";
@@ -61,18 +61,18 @@ int main(int argc, char **argv) {
 		}
 	}
 	// close input file
-	vme_file->Close();
+	vme_file.Close();
 
 	// output file
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%sshow-gdc-offset-%04d.root",
+		"%s%sgdc-offset-%04d.root",
 		kGenerateDataPath, kShowDir, run
 	);
 	// output file
-	TFile *opf = new TFile(output_file_name, "recreate");
+	TFile opf(output_file_name, "recreate");
 	// output match histogram
-	TGraph *gm[2] = {new TGraph, new TGraph};
+	TGraph gm[2];
 
 	int size = energy[0].size();
 	for (int offset = -range; offset < range; ++offset) {
@@ -84,12 +84,12 @@ int main(int argc, char **argv) {
 				if (energy[j][i] && time[j][i+offset]) ++match[j/16];
 			}
 		}
-		gm[0]->AddPoint(offset, match[0]);
-		gm[1]->AddPoint(offset, match[1]);
+		gm[0].AddPoint(offset, match[0]);
+		gm[1].AddPoint(offset, match[1]);
 	}
-	gm[0]->Write("gm0");
-	gm[1]->Write("gm1");
-	opf->Close();
+	gm[0].Write("gm0");
+	gm[1].Write("gm1");
+	opf.Close();
 
 	return 0;
 }

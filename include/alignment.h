@@ -6,6 +6,8 @@
 
 #include <TGraph.h>
 
+#include "include/statistics/align_statistics.h"
+
 namespace ribll {
 
 class Alignment {
@@ -45,35 +47,36 @@ public:
 		verbose_ = verbose;
 	}
 
+
+	/// @brief get statistics
+	/// @returns align statistics
+	inline AlignStatistics GetStatistics() const {
+		return statistics_;
+	}
+
 private:
 
 	/// @brief read VME trigger time recored by XIA
-	/// @returns 0 for successful, 1 otherwise
+	/// @returns 0 for successful, -1 otherwise
 	///
 	int ReadXiaTime();
 
 
 	/// @brief read VME time recored in v830 plugin (sdc in data)
-	/// @returns 0 for successful, 1 otherwise
+	/// @returns 0 for successful, -1 otherwise
 	///
 	int ReadVmeTime();
 
 
 	/// @brief align XIA and VME events in groups
-	/// @returns 0 for successful, 1 otherwise
 	///
-	TGraph* GroupAlignment();
+	void GroupAlignment();
 
 
-	/// @brief record alignment result in root file and txt file
-	/// @param[in] calibration_param calibration parameters, k and b
-	/// @returns 0 for successful, 1 otherwise
+	/// @brief align VME's second v1190
+	/// @returns 0 for success, -1 otherwise
 	///
-	int BuildResult(double *calibration_param);
-
-
 	int AlignGdc();
-
 
 	// run number
 	unsigned int run_;
@@ -89,6 +92,9 @@ private:
 	std::vector<long long> xia_times_;
 	// vme time list
 	std::vector<long long> vme_times_;
+
+	// align statistics
+	AlignStatistics statistics_;
 
 	// print processing information
 	bool verbose_;

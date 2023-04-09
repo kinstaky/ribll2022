@@ -49,3 +49,14 @@ target_link_libraries(
 	show_gdc_offset
 	PUBLIC ROOT::Core ROOT::Tree ROOT::RIO ROOT::Graf
 )
+
+# show align group
+add_executable(show_align_group show_align_group.cpp)
+target_include_directories(
+	show_align_group
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(
+	show_align_group
+	PUBLIC alignment
+)

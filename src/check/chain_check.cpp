@@ -136,8 +136,7 @@ bool CheckTime(
 		store_time =
 			ReadEditTime<MapStatistics>(file_name, statistics.Key());
 	} else if (type == "align") {
-		double tmp[2];
-		AlignStatistics statistics(run, 0, 0, tmp);
+		AlignStatistics statistics(run, 0, 0, 0);
 		store_time =
 			ReadEditTime<AlignStatistics>(file_name, statistics.Key());
 	} else if (type == "match") {

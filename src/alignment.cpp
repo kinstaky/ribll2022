@@ -37,88 +37,87 @@ Alignment::~Alignment() {
 
 
 int Alignment::ReadXiaTime() {
-	// set xia input file name
+	// XIA input file name
 	TString file_name;
 	file_name.Form("%s%svt-map-%04d.root", kGenerateDataPath, kMappingDir, run_);
-	// read root file
-	TFile *ipf = new TFile(file_name, "read");
-	if (!ipf) {
-		std::cerr << "Error: open file " << file_name << " failed.\n";
-		return -1;
-	}
-	// get tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	// XIA input file
+	TFile ipf(file_name, "read");
+	// XIA input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: get tree from " << file_name << " failed.\n";
-		ipf->Close();
 		return -1;
 	}
 	// set branches
 	long long xia_time;
 	ipt->SetBranchAddress("timestamp", &xia_time);
 
-	// show process
+	// initialize array
+	xia_times_.clear();
+
+	// show start
 	printf("reading xia events   0%%");
 	fflush(stdout);
-	Long64_t nentry100 = ipt->GetEntries() / 100 + 1;
-	xia_times_.clear();
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
-		if (entry % nentry100 == 0) {
-			printf("\b\b\b\b%3lld%%", entry / nentry100);
+	// 1/100 of total entries
+	long long entry100 = ipt->GetEntries() / 100 + 1;
+	for (long long entry = 0; entry < ipt->GetEntries(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
 
 		ipt->GetEntry(entry);
 		xia_times_.push_back(xia_time);
-
 	}
+	// show finish
 	printf("\b\b\b\b100%%\n");
-
 	// sort the timestamp from xia
 	std::sort(xia_times_.begin(), xia_times_.end());
-
-	ipf->Close();
+	// close input file
+	ipf.Close();
 	return 0;
 }
 
 
 int Alignment::ReadVmeTime() {
-	// set vme input file name
+	// VME input file name
 	TString file_name;
 	file_name.Form("%s%s%04d.root", kCrate3Path, kCrate3FileName, run_);
-	// raed root file
-	TFile *ipf = new TFile(file_name, "read");
-	if (!ipf) {
-		std::cerr << "Error: open file " << file_name << " failed.\n";
-		return -1;
-	}
-	// get tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	// VME event input file
+	TFile ipf(file_name, "read");
+	// VME input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: get tree from " << file_name << " failed.\n";
-		ipf->Close();
 		return -1;
 	}
 	// set branches
-	ULong64_t sdc[32];
+	unsigned long long sdc[32];
 	ipt->SetBranchAddress("sdc", sdc);
 
-	// show process
+	// initialize
+	vme_times_.clear();
+	// offset cause by bit flip
+	unsigned long long bit_flip_offset = 0;
+	// last timestamp for checking bit flip
+	unsigned long long last_timestamp = 0;
+	// 1/100 of total entries
+	long long entry100 = ipt->GetEntries() / 100 + 1;
+	// show start
 	printf("reading vme events   0%%");
 	fflush(stdout);
-	Long64_t nentry100 = ipt->GetEntries() / 100 + 1;
-	vme_times_.clear();
-	ULong64_t bit_flip_offset = 0;
-	ULong64_t last_timestamp = 0;
-	for (Long64_t entry = 0; entry < ipt->GetEntries(); ++entry) {
-		if (entry % nentry100 == 0) {
-			printf("\b\b\b\b%3lld%%", entry / nentry100);
+	for (long long entry = 0; entry < ipt->GetEntries(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
 
 		ipt->GetEntry(entry);
 		// calculate timestamp
-		ULong64_t timestamp = (sdc[kScalerIndex] + bit_flip_offset) * kScalerPeriod;
+		unsigned long long timestamp =
+			(sdc[kScalerIndex] + bit_flip_offset) * kScalerPeriod;
 		// check sdc over range
 		if (timestamp < last_timestamp) {
 			bit_flip_offset += 1llu << 32;
@@ -128,167 +127,60 @@ int Alignment::ReadVmeTime() {
 
 		// record it
 		vme_times_.push_back(timestamp);
-
 	}
+	// show finish
 	printf("\b\b\b\b100%%\n");
-
-	ipf->Close();
+	// close input file
+	ipf.Close();
 	return 0;
 }
 
-
-TGraph* Alignment::GroupAlignment() {
-	// graph for xia-vme calibration
-	TGraph *result = new TGraph;
-	// array of group hit
-	TGraph **offset_hit = new TGraph*[group_num_];
-	// array of group average hit
-	TGraph **offset_average_hit = new TGraph*[group_num_];
-	// hit of different group
-	TGraph *groups_hit = new TGraph;
-	// time window of different group
-	TH1F **group_window = new TH1F*[group_num_];
-	// offsets of different group
-	std::vector<double> group_offset;
-
-	// first group loop to find the group offset
-	size_t group_size = vme_times_.size() / group_num_ + 1;
-	double last_offset = 0;
-	for (int g = 0; g < group_num_; ++g) {
-		if (verbose_) {
-			std::cout << "group " << g << "\n";
-		}
-		// first children loop that finding the offset
-		offset_hit[g] = new TGraph;
-		offset_average_hit[g] = new TGraph;
-		double max_hit = 0;
-		double max_hit_offset = 0;
-		double low_bound = g < 3 ? search_low_bound_ : last_offset - 5 * search_window_;
-		double high_bound = g < 3 ? search_high_bound_ : last_offset + 5 * search_window_;
-		int group_point = 0;
-		for (double offset = low_bound; offset <= high_bound; offset += search_window_) {
-			int ievent_count = 0;
-			Double_t hit = 0.0;
-
-			for (
-				size_t vme_entry = group_size * g;
-				vme_entry < group_size * (g + 1) && vme_entry < vme_times_.size();
-				++vme_entry
-			) {
-				Long64_t vme_time = vme_times_[vme_entry];
-				++ievent_count;
-				for (
-					auto xia_iter = std::lower_bound(
-						xia_times_.begin(),
-						xia_times_.end(),
-						vme_time - search_window_ + offset
-					);
-					xia_iter != xia_times_.end();
-					++xia_iter
-				) {
-					if (*xia_iter > vme_time + search_window_ + offset) break;
-					++hit;
-				}
-			}
-
-			offset_hit[g]->SetPoint(group_point, offset, hit);
-			Double_t average_hit = hit / ievent_count;
-			if (max_hit < average_hit) {
-				max_hit = average_hit;
-				max_hit_offset = offset;
-			}
-			offset_average_hit[g]->SetPoint(group_point, offset, average_hit);
-			++group_point;
+struct Edge {
+	// left edge
+	double left;
+	// right edge
+	double right;
+};
 
 
-			if (verbose_ && (Long64_t)offset % 1000000000 == 0) {
-				std::cout << "  " << std::setprecision(10)
-					<< offset / 1000000000.0 << " s  "
-					<< hit << "  " << average_hit << "\n";
+Edge EdgeDetect(TH1F *hist) {
+	const double threshold = 3;
+	const int check_num = 4;
+	// detect rise edge
+	bool detect = false;
+	// return result of left edge and right edge
+	Edge result{0.0, 0.0};
+	// bins of histogram
+	int bins = hist->GetNbinsX();
+	for (int i = 1; i <= bins-check_num+1; ++i) {
+		int over_threshold = 0;
+		for (int j = 0; j < check_num; ++j) {
+			if (hist->GetBinContent(i+j) > threshold) {
+				++over_threshold;
 			}
 		}
+		if (!detect) {
+			if (over_threshold == check_num) {
 
-		offset_hit[g]->Write(TString::Format("offset_hit%d", g));
-		offset_average_hit[g]->Write(TString::Format("offset_ave_hit%d", g));
-		groups_hit->SetPoint(g, g, max_hit_offset);
-		group_offset.push_back(max_hit_offset);
-		last_offset = max_hit_offset;
-
-		if (verbose_) {
-			std::cout << "----------------------------------------\n"
-				<< "group " << g << ", hit " << max_hit << ", offset " << max_hit_offset << "\n"
-				<< "----------------------------------------\n";
-		}
-
-
-		// second children loop to save the search window
-		group_window[g] = new TH1F(
-			TString::Format("group_window%d", g), "window", 1000, -search_window_, search_window_
-		);
-		for (
-			size_t vme_entry = group_size * g;
-			vme_entry < group_size * (g + 1) && vme_entry < vme_times_.size();
-			++vme_entry
-		) {
-			Long64_t vme_time = vme_times_[vme_entry];
-			for (
-				auto xia_iter = std::lower_bound(
-					xia_times_.begin(),
-					xia_times_.end(),
-					vme_time - search_window_ + max_hit_offset
-				);
-				xia_iter != xia_times_.end();
-				++xia_iter
-			) {
-				if (*xia_iter > vme_time + search_window_ + max_hit_offset) break;
-				group_window[g]->Fill(*xia_iter - vme_time - max_hit_offset);
+				detect = true;
+				result.left = hist->GetBinCenter(i);
+				result.right = result.left;
 			}
-		}
-		group_window[g]->Write(TString::Format("group_window%d", g));
-
-
-		// third children loop to fill the xia-timestamp:vme-timestamp calibration graph
-		int result_point = 0;
-		for (
-			size_t vme_entry = group_size * g;
-			vme_entry < group_size * (g + 1) && vme_entry < vme_times_.size();
-			++vme_entry
-		) {
-			Long64_t vme_time = vme_times_[vme_entry];
-			double xia_time;
-			int local_hit = 0;
-			for (
-				auto xia_iter = std::lower_bound(
-					xia_times_.begin(),
-					xia_times_.end(),
-					vme_time - search_window_ + group_offset[g]
-				);
-				xia_iter != xia_times_.end();
-				++xia_iter
-			) {
-				if (*xia_iter > vme_time + search_window_ + group_offset[g]) break;
-				++local_hit;
-				xia_time = *xia_iter;
-			}
-			if (local_hit == 1) {
-				result->SetPoint(result_point++, vme_time, xia_time);
-			}
+		} else if (over_threshold == 0) {
+			result.right = hist->GetBinCenter(i);
+			break;
 		}
 	}
-	groups_hit->Write("groups_hit");
-
 	return result;
 }
 
-
-int Alignment::BuildResult(double *calibration_param) {
-	// time window for all events
-	TH1F *time_window =new TH1F(
-		"ht", "total time window", 1000, -search_window_, search_window_
-	);
-	// result tree
+void Alignment::GroupAlignment() {
+	// offset-group graph in first, second. third match
+	TGraph offset_vs_group[3];
+	// window-group graph, in first, second, third match
+	TGraph window_vs_group[3];
+	// output tree
 	TTree *opt = new TTree("tree", "alignment result");
-	// output data
 	// output match VME trigger time recorded in XIA
 	long long xia_time;
 	// output vme trigger time recorded in VME
@@ -297,72 +189,287 @@ int Alignment::BuildResult(double *calibration_param) {
 	opt->Branch("xia_time", &xia_time, "xt/L");
 	opt->Branch("vme_time", &vme_time, "vt/L");
 
-
-	AlignStatistics statistics(
-		run_,
-		xia_times_.size(),
-		vme_times_.size(),
-		calibration_param
+	// initialize statistics
+	statistics_ = AlignStatistics(
+		run_, xia_times_.size(), vme_times_.size(),  group_num_
 	);
 
-	// total entries in loop
-	size_t entries = vme_times_.size();
-	// 1/100 of total entries, for showing process
-	size_t entry100 = entries / 100 + 1;
-	// show begin
-	printf("Building result   0%%");
-	fflush(stdout);
-	for (size_t vme_entry = 0; vme_entry < entries; ++vme_entry) {
-		// show process
-		if (vme_entry % entry100 == 0) {
-			printf("\b\b\b\b%3ld%%", vme_entry / entry100);
-			fflush(stdout);
+	// group size
+	size_t group_size = vme_times_.size() / group_num_ + 1;
+	// lower bound of offset in each group, set general for the first group
+	double lower_bound = search_low_bound_;
+	// upper bound of offset in each group, set general for the first group
+	double upper_bound = search_high_bound_;
+	for (int group = 0; group < group_num_; ++group) {
+		if (verbose_) {
+			std::cout << "----------------------------------------\n"
+				<< "group " << group << "\n";
 		}
 
-		// number of VME trigger in XIA match this VME event
-		size_t match_count = 0;
+		// start VME event index of this group
+		size_t group_start_index = group_size * group;
+		// end VME event index of this group
+		size_t group_end_index = group_size * (group + 1);
+		group_end_index = group_end_index < vme_times_.size()
+			? group_end_index : vme_times_.size();
 
-
-		// calculate VME events time
-		vme_time =
-			calibration_param[0] +
-			calibration_param[1] * vme_times_[vme_entry];
-
-		// search for VME trigger in XIA
+		// maximum match rate in all offsets
+		double max_match_rate = 0;
+		// offset of max match rate
+		double max_match_offset = 0;
+		// graph of match rate VS offset
+		TGraph match_rate_vs_offset;
+		// loop to search the for the offset with fixed steps
 		for (
-			auto xia_iter = std::lower_bound(
-				xia_times_.begin(),
-				xia_times_.end(),
-				vme_time - search_window_
-			);
-			xia_iter != xia_times_.end();
-			++xia_iter
+			double offset = lower_bound;
+			offset <= upper_bound;
+			offset += search_window_
 		) {
-			if (*xia_iter > vme_time + search_window_) break;
-			++match_count;
-			xia_time = *xia_iter;
+			// number of matched events
+			long long match_events = 0;
+			// first time match to search for the max match rate
+			for (
+				size_t vme_entry = group_start_index;
+				vme_entry < group_end_index;
+				++vme_entry
+			) {
+				// break the loop if reach the end of array
+				if (vme_entry >= vme_times_.size()) break;
+				// VME time
+				long long vme_time = vme_times_[vme_entry];
+				// loop XIA events to find match events
+				for (
+					auto xia_iter = std::lower_bound(
+						xia_times_.begin(),
+						xia_times_.end(),
+						vme_time + offset - search_window_
+					);
+					xia_iter != xia_times_.end();
+					++xia_iter
+				) {
+					if (*xia_iter > vme_time + offset + search_window_) break;
+					++match_events;
+				}
+			}
+			// record match rate in graph
+			double match_rate = double(match_events) / double(group_size);
+			match_rate_vs_offset.AddPoint(offset, match_rate);
+			if (max_match_rate < match_rate) {
+				max_match_rate = match_rate;
+				max_match_offset = offset;
+			}
+			// show match rate of each seconds
+			if (verbose_ && (long long)offset % 1'000'000'000 == 0) {
+				std::cout << "  " << std::setprecision(10)
+					<< offset / 1'000'000'000.0 << " s"
+					<< "  max match rate " << max_match_rate
+					<< "  offset " << max_match_offset << "\n";
+			}
 		}
-		if (match_count == 1) {
-			++statistics.align_events;
-			time_window->Fill(xia_time - vme_time);
-		} else {
-			++statistics.oversize_events;
-			// set to -1.0 as placeholder
+		// save rate-offset graph
+		match_rate_vs_offset.Write(TString::Format("rate%d", group));
+
+		// current offset
+		double offset = max_match_offset;
+		// current window
+		double window = search_window_;
+		// total number of match events
+		long long match_events = 0;
+		// oversize events
+		long long oversize = 0;
+		// write to graph
+		offset_vs_group[0].AddPoint(group, offset);
+		window_vs_group[0].AddPoint(group, window);
+
+		// time window for first match
+		TH1F first_match_window(
+			TString::Format("ht%d_1", group), "window", 1000, -window, window
+		);
+		// first match out of the loop to calculate the average and variance
+		for (
+			size_t vme_entry = group_start_index;
+			vme_entry < group_end_index;
+			++vme_entry
+		) {
+			// break the loop if reach the end of array
+			if (vme_entry >= vme_times_.size()) break;
+			// VME time
+			long long vme_time = vme_times_[vme_entry];
+			// match count of current VME event
+			int match_count = 0;
+			// loop XIA events to find match events
+			for (
+				auto xia_iter = std::lower_bound(
+					xia_times_.begin(),
+					xia_times_.end(),
+					vme_time + offset - window
+				);
+				xia_iter != xia_times_.end();
+				++xia_iter
+			) {
+				if (*xia_iter > vme_time + offset + window) break;
+				double difference = double(*xia_iter - vme_time - offset);
+				first_match_window.Fill(difference);
+				++match_events;
+				++match_count;
+			}
+			if (match_count > 1) ++oversize;
+		}
+		// detect edge
+		Edge edge = EdgeDetect(&first_match_window);
+		// save time window
+		first_match_window.Write();
+		// show the first match result
+		if (verbose_) {
+			std::cout << "group " << group
+				<< ", first match offset " << offset
+				<< ", window " << window
+				<< ", rate " << double(match_events) / group_size
+				<< ", oversize " << oversize << "\n"
+				<< "edge left " << edge.left
+				<< ", edge right " << edge.right << "\n";
+		}
+
+		// the second match to adjust the offset and window
+		// initialize
+		offset += (edge.left + edge.right) / 2.0;
+		window = (edge.right - edge.left) * 2.0;
+		match_events = 0;
+		oversize = 0;
+		// write to graph
+		offset_vs_group[1].AddPoint(group, offset);
+		window_vs_group[1].AddPoint(group, window);
+		// time window in the second match
+		TH1F second_match_window(
+			TString::Format("ht%d_2", group), "window", 100, -window, window
+		);
+		// the second match
+		for (
+			size_t vme_entry = group_start_index;
+			vme_entry < group_end_index;
+			++vme_entry
+		) {
+			// break the loop if reach the end of array
+			if (vme_entry >= vme_times_.size()) break;
+			// VME time
+			long long vme_time = vme_times_[vme_entry];
+			// match count of current VME event
+			int match_count = 0;
+			// loop XIA events to find match events
+			for (
+				auto xia_iter = std::lower_bound(
+					xia_times_.begin(),
+					xia_times_.end(),
+					vme_time + offset - window
+				);
+				xia_iter != xia_times_.end();
+				++xia_iter
+			) {
+				if (*xia_iter > vme_time + offset + window) break;
+				double difference = double(*xia_iter - vme_time - offset);
+				second_match_window.Fill(difference);
+				++match_events;
+				++match_count;
+			}
+			if (match_count > 1) ++oversize;
+		}
+		// detect edge
+		edge = EdgeDetect(&second_match_window);
+		// save time window
+		second_match_window.Write();
+
+		// show the second match result
+		if (verbose_) {
+			std::cout
+				<< "group " << group
+				<< ", second match offset " << offset
+				<< ", window " << window
+				<< ", rate " << double(match_events) / group_size
+				<< ", oversize " << oversize << "\n"
+				<< "edge left " << edge.left
+				<< ", edge right " << edge.right << "\n";
+		}
+
+		// the third match to fill the tree
+		// initialize
+		offset += (edge.left + edge.right) / 2.0;
+		window = (edge.right - edge.left) / 1.8;
+		match_events = 0;
+		oversize = 0;
+		// write to graph
+		offset_vs_group[2].AddPoint(group, offset);
+		window_vs_group[2].AddPoint(group, window);
+		// time window in the third match
+		TH1F third_match_window(
+			TString::Format("ht%d_3", group), "window", 100, -window, window
+		);
+		// the third match to fill the tree
+		for (
+			size_t vme_entry = group_start_index;
+			vme_entry < group_end_index;
+			++vme_entry
+		) {
+			// break the loop if reach the end of array
+			if (vme_entry >= vme_times_.size()) break;
+			// VME time
+			vme_time = vme_times_[vme_entry];
+			// match count of current VME event
+			int match_count = 0;
+			// initialize XIA time
 			xia_time = -1.0;
+			// loop XIA events to find match events
+			for (
+				auto xia_iter = std::lower_bound(
+					xia_times_.begin(),
+					xia_times_.end(),
+					vme_time + offset - window
+				);
+				xia_iter != xia_times_.end();
+				++xia_iter
+			) {
+				if (*xia_iter > vme_time + offset + window) break;
+				double difference = double(*xia_iter - vme_time - offset);
+				third_match_window.Fill(difference);
+				++match_events;
+				++match_count;
+				xia_time = *xia_iter;
+			}
+			if (match_count == 1) {
+				++statistics_.align_events;
+			} else if (match_count > 1) {
+				++oversize;
+				++statistics_.oversize_events;
+			}
+			opt->Fill();
+		}
+		// save time window
+		third_match_window.Write();
+		// show the third match result
+		if (verbose_) {
+			std::cout
+				<< "group " << group
+				<< ", third match offset " << offset
+				<< ", window " << window
+				<< ", rate " << double(match_events) / group_size
+				<< ", oversize " << oversize << "\n"
+				<< "----------------------------------------\n";
 		}
 
-		opt->Fill();
+		// upate lower bound and upper bound
+		lower_bound = max_match_offset - 2 * search_window_;
+		upper_bound = max_match_offset + 2 * search_window_;
 	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
-
+	// save tree
 	opt->Write();
-	time_window->Write();
-
-	statistics.Write();
-	statistics.Print();
-
-	return 0;
+	// save offsets and windows
+	for (int i = 0; i < 3; ++i) {
+		offset_vs_group[i].Write(TString::Format("goffset%d", i));
+		window_vs_group[i].Write(TString::Format("gwindow%d", i));
+	}
+	// save and print statistics
+	statistics_.Write();
+	statistics_.Print();
+	return;
 }
 
 
@@ -485,33 +592,15 @@ int Alignment::Align() {
 	}
 
 	// setup output alignment cache file
-	TString cache_file_name;
-	cache_file_name.Form("%s%salign-%04d.root", kGenerateDataPath, kAlignDir, run_);
-	TFile *cache_file = new TFile(cache_file_name, "recreate");
-
-	TGraph *xia_vme_time = GroupAlignment();
-	if (!xia_vme_time) {
-		std::cerr << "Error: group alignment failed.\n";
-		return -1;
-	}
-
-	// calibration
-	TF1 *time_fit = new TF1("time_fit", "pol1", 0, 5e12);
-	if (verbose_) {
-		xia_vme_time->Fit(time_fit, "R+");
-	} else {
-		xia_vme_time->Fit(time_fit, "RQ+");
-	}
-	Double_t calibration_param[2];
-	time_fit->GetParameters(calibration_param);
-	std::cout << "Calibration p0 " << std::setprecision(15) << calibration_param[0]
-		<< ", p1 " << std::setprecision(15) << calibration_param[1] << "\n";
-	xia_vme_time->Write("calibration");
-
-	BuildResult(calibration_param);
-
-	cache_file->Close();
-
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%salign-%04d.root",
+		kGenerateDataPath, kAlignDir, run_
+	);
+	// output file
+	TFile output_file(output_file_name, "recreate");
+	GroupAlignment();
+	output_file.Close();
 
 	// align gdc
 	if (AlignGdc()) {
