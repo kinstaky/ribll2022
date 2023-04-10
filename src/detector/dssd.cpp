@@ -140,10 +140,10 @@ int FillEventInExtract(
 	double trigger_time,
 	const std::multimap<double, DssdMapEvent> &match_map,
 	DssdFundamentalEvent &fundamental_event,
-	std::vector<MatchTriggerStatistics> &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	return
-		FillEvent(trigger_time, match_map, fundamental_event, statistics[0]);
+		FillEvent(trigger_time, match_map, fundamental_event, statistics);
 }
 
 
@@ -164,7 +164,7 @@ int Dssd::ExtractTrigger(
 	double window_right
 ) {
 	return Detector::ExtractTrigger<DssdMapEvent, DssdFundamentalEvent>(
-		{name_},
+		name_,
 		window_left,
 		window_right,
 		FillEventInExtract

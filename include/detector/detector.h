@@ -88,7 +88,7 @@ public:
 	/// @brief template of extract trigger
 	/// @tparam MapEvent type of map event
 	/// @tparam FundamentalEvent type of fndamental event
-	/// @param[in] extract_tags tags after extraction
+	/// @param[in] extract_tag tag after extraction
 	/// @param[in] window_left left edge of match window
 	/// @param[in] window_right right edge of match window
 	/// @param[in] fill_event function to convert map event
@@ -96,14 +96,14 @@ public:
 	///
 	template<typename MapEvent, typename FundamentalEvent>
 	int ExtractTrigger(
-		const std::vector<std::string> &extract_tags,
+		const std::string &extract_tag,
 		double window_left,
 		double window_right,
 		int (*fill_event)(
 			double trigger_time,
 			const std::multimap<double, MapEvent> &match_map,
 			FundamentalEvent &fundamental_event,
-			std::vector<MatchTriggerStatistics> &statistics
+			MatchTriggerStatistics &statistics
 		)
 	);
 
@@ -498,14 +498,14 @@ int Detector::VmeMatchTrigger() {
 
 template<typename MapEvent, typename FundamentalEvent>
 int Detector::ExtractTrigger(
-	const std::vector<std::string> &extract_tags,
+	const std::string &extract_tag,
 	double window_left,
 	double window_right,
 	int (*fill_event)(
 		double trigger_time,
 		const std::multimap<double, MapEvent> &match_map,
 		FundamentalEvent &fundamental_event,
-		std::vector<MatchTriggerStatistics> &statistics
+		MatchTriggerStatistics &statistics
 	)
 ) {
 	const double look_window = 10'000;
@@ -513,8 +513,9 @@ int Detector::ExtractTrigger(
 	// trigger times
 	std::vector<double> trigger_times;
 	// histogram for look window
-	TH1F *hist_look_window =
-		new TH1F("ht", "look window", 1000, -look_window, look_window);
+	TH1F hist_look_window(
+		"ht", "look window", 1000, -look_window, look_window
+	);
 	// detector's match events in map
 	std::multimap<double, MapEvent> match_map;
 	// detector entries
@@ -522,7 +523,7 @@ int Detector::ExtractTrigger(
 	// get detector entries, trigger times and match map
 	detector_entries = FillMatchMap<MapEvent>(
 		look_window,
-		hist_look_window,
+		&hist_look_window,
 		window_left,
 		window_right,
 		trigger_times,
@@ -531,16 +532,6 @@ int Detector::ExtractTrigger(
 	// return error
 	if (detector_entries < 0) return -1;
 
-	// output files and trees
-	// output extracted trigger files
-	std::vector<TFile*> out_trigger_files;
-	// output detector fundamental event files
-	std::vector<TFile*> out_detector_files;
-	// output extracted trigger trees
-	std::vector<TTree*> out_trigger_trees;
-	// output detector fundamental event trees
-	std::vector<TTree*> out_detector_trees;
-
 	// output data
 	// output trigger event
 	double xia_trigger_time;
@@ -548,59 +539,50 @@ int Detector::ExtractTrigger(
 	FundamentalEvent fundamental_event;
 
 
-	for (const std::string &tag : extract_tags) {
-		// setup output extracted trigger files and trees
-		// output extracted trigger file name
-		TString out_trigger_file_name;
-		out_trigger_file_name.Form(
-			"%s%sxt-map-%s%s-%04u.root",
-			kGenerateDataPath,
-			kMappingDir,
-			tag_.empty() ? "" : (tag_+"-").c_str(),
-			tag.c_str(),
-			run_
-		);
-		out_trigger_files.push_back(
-			new TFile(out_trigger_file_name, "recreate")
-		);
-		// output extracted trigger tree
-		TTree* out_trigger_tree =
-			new TTree("tree", "tree of extracted trigger");
-		out_trigger_trees.push_back(out_trigger_tree);
-		// setup output trigger branch
-		out_trigger_tree->Branch("time", &xia_trigger_time, "t/D");
+	// setup output extracted trigger files and trees
+	// output extracted trigger file name
+	TString out_trigger_file_name;
+	out_trigger_file_name.Form(
+		"%s%sxt-map-%s%s-%04u.root",
+		kGenerateDataPath,
+		kMappingDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		extract_tag.c_str(),
+		run_
+	);
+	TFile out_trigger_file(out_trigger_file_name, "recreate");
+	// output extracted trigger tree
+	TTree out_trigger_tree("tree", "tree of extracted trigger");
+	// setup output trigger branch
+	out_trigger_tree.Branch("time", &xia_trigger_time, "t/D");
 
-		// setup output detector fundamental file and tree
-		// output detector file name
-		TString out_detector_file_name;
-		out_detector_file_name.Form(
-			"%s%s%s-fundamental-%s%s-%04u.root",
-			kGenerateDataPath,
-			kFundamentalDir,
-			name_.c_str(),
-			tag_.empty() ? "" : (tag_+"-").c_str(),
-			tag.c_str(),
-			run_
-		);
-		// output fundamental file
-		out_detector_files.push_back(
-			new TFile(out_detector_file_name, "recreate")
-		);
-		// output detector tree
-		TTree *out_detector_tree =
-			new TTree("tree", "tree of fundamental event match trigger");
-		out_detector_trees.push_back(out_detector_tree);
-		// setup output detector branch
-		fundamental_event.SetupOutput(out_detector_tree);
-	}
+	// setup output detector fundamental file and tree
+	// output detector file name
+	TString out_detector_file_name;
+	out_detector_file_name.Form(
+		"%s%s%s-fundamental-%s%s-%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		extract_tag.c_str(),
+		run_
+	);
+	// output fundamental file
+	TFile out_detector_file(out_detector_file_name, "recreate");
+	// output detector tree
+	TTree out_detector_tree(
+		"tree", "tree of fundamental event match trigger"
+	);
+	// setup output detector branch
+	fundamental_event.SetupOutput(&out_detector_tree);
 
 	// statistics
-	std::vector<MatchTriggerStatistics> statistics;
-	for (const std::string &tag : extract_tags) {
-		statistics.emplace_back(
-			run_, name_, tag_, tag, trigger_times.size(), detector_entries
-		);
-	}
+	MatchTriggerStatistics statistics(
+		run_, name_,
+		tag_, extract_tag,
+		trigger_times.size(), detector_entries
+	);
 
 	// show begin
 	printf("Writing %s fundamental events   0%%", name_.c_str());
@@ -627,31 +609,27 @@ int Detector::ExtractTrigger(
 
 		xia_trigger_time = trigger_times[entry];
 		if (fill_index >= 0) {
-			out_trigger_trees[fill_index]->Fill();
-			out_detector_trees[fill_index]->Fill();
+			out_trigger_tree.Fill();
+			out_detector_tree.Fill();
 		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	for (size_t i = 0; i < out_trigger_files.size(); ++i) {
-		// write trigger tree and close file
-		out_trigger_files[i]->cd();
-		out_trigger_trees[i]->Write();
-		out_trigger_files[i]->Close();
-		// wirte detector tree, look window and close file
-		out_detector_files[i]->cd();
-		out_detector_trees[i]->Write();
-		hist_look_window->Write();
-		out_detector_files[i]->Close();
-	}
+	// write trigger tree and close file
+	out_trigger_file.cd();
+	out_trigger_tree.Write();
+	out_trigger_file.Close();
+	// wirte detector tree, look window and close file
+	out_detector_file.cd();
+	out_detector_tree.Write();
+	hist_look_window.Write();
+	out_detector_file.Close();
 
-	for (MatchTriggerStatistics &s : statistics) {
-		// save statistics
-		s.Write();
-		// show statistics
-		s.Print();
-	}
+	// save statistics
+	statistics.Write();
+	// show statistics
+	statistics.Print();
 
 	return 0;
 }

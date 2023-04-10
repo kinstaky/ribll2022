@@ -19,18 +19,32 @@ int TimeReference(unsigned int run, const std::string &tag) {
 		run
 	);
 	// ppac file
-	TFile *ppac_file = new TFile(ppac_file_name, "read");
+	TFile ppac_file(ppac_file_name, "read");
 	// ppac tree
-	TTree *ppac_tree = (TTree*)ppac_file->Get("tree");
+	TTree *ppac_tree = (TTree*)ppac_file.Get("tree");
 	if (!ppac_tree) {
 		std::cerr << "Error: Get tree from "
 			<< ppac_file_name << " failed.\n";
 		return -1;
 	}
+	// input tof file
+	TString tof_file_name;
+	tof_file_name.Form(
+		"%s%stof-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag.empty() ? "" : (tag+"-").c_str(),
+		run
+	);
+	// add friend
+	ppac_tree->AddFriend("tof=tree", tof_file_name);
 	// input xppac event
 	PpacFundamentalEvent ppac_event;
+	// input tof event
+	TofFundamentalEvent tof_event;
 	// setup input branches
 	ppac_event.SetupInput(ppac_tree);
+	tof_event.SetupInput(ppac_tree, "tof.");
 
 	// output reference file name
 	TString ref_file_name;
@@ -42,13 +56,13 @@ int TimeReference(unsigned int run, const std::string &tag) {
 		run
 	);
 	// output reference file
-	TFile *ref_file = new TFile(ref_file_name, "recreate");
+	TFile ref_file(ref_file_name, "recreate");
 	// output reference tree
-	TTree *ref_tree = new TTree("tree", "reference time");
+	TTree ref_tree("tree", "reference time");
 	// output reference time
 	double ref_time;
 	// setup output tree branch
-	ref_tree->Branch("time", &ref_time, "t/D");
+	ref_tree.Branch("time", &ref_time, "t/D");
 
 	// total number of entries
 	long long entries = ppac_tree->GetEntries();
@@ -85,19 +99,67 @@ int TimeReference(unsigned int run, const std::string &tag) {
 		} else if (
 			(ppac_event.flag & 0x210) == 0x210
 			&& ppac_event.anode[0] - ppac_event.anode[1] > -2
-			&& ppac_event.anode[0] - ppac_event.anode[1] < 1.5		
+			&& ppac_event.anode[0] - ppac_event.anode[1] < 1.5
 		) {
 			// a0 and a1
 			ref_time = ppac_event.anode[1] + 14.2;
+		} else if (
+			(ppac_event.flag & 0x4000) == 0x4000
+			&& tof_event.time[1] > -9e4
+			&& tof_event.time[1] - ppac_event.anode[2] > -2
+			&& tof_event.time[1] - ppac_event.anode[2] < 5
+		) {
+			// t1 and a2
+			ref_time = ppac_event.anode[2];
+		} else if (
+			(ppac_event.flag & 0x200) == 0x200
+			&& tof_event.time[1] > -9e4
+			&& tof_event.time[1] - ppac_event.anode[1] > 13
+			&& tof_event.time[1] - ppac_event.anode[1] < 17
+		) {
+			// t1 and a1
+			ref_time = ppac_event.anode[1] + 14.2;
+		} else if (
+			(ppac_event.flag & 0x10) == 0x10
+			&& tof_event.time[1] > -9e4
+			&& tof_event.time[1] - ppac_event.anode[0] > 13
+			&& tof_event.time[1] - ppac_event.anode[0] < 17
+		) {
+			// t1 and a0
+			ref_time = ppac_event.anode[0] + 13.9;
+		} else if (
+			(ppac_event.flag & 0x4000) == 0x4000
+			&& tof_event.time[0] > -9e4
+			&& tof_event.time[0] - ppac_event.anode[2] > -60
+			&& tof_event.time[0] - ppac_event.anode[2] < -55
+		) {
+			// t0 and a2
+			ref_time = ppac_event.anode[2];
+		} else if (
+			(ppac_event.flag & 0x200) == 0x200
+			&& tof_event.time[0] > -9e4
+			&& tof_event.time[0] - ppac_event.anode[1] > -46
+			&& tof_event.time[0] - ppac_event.anode[1] < -41
+		) {
+			// t0 and a1
+			ref_time = ppac_event.anode[1] + 14.2;
+		} else if (
+			(ppac_event.flag & 0x10) == 0x10
+			&& tof_event.time[0] > -9e4
+			&& tof_event.time[0] - ppac_event.anode[0] > -46
+			&& tof_event.time[0] - ppac_event.anode[0] < -41
+		) {
+			// t0 and a0
+			ref_time = ppac_event.anode[0] + 13.9;
 		}
-		ref_tree->Fill();
+		ref_tree.Fill();
 	}
 	printf("\b\b\b\b100%%\n");
 
 	// save tree and close files
-	ref_tree->Write();
-	ref_file->Close();
-	ppac_file->Close();
+	ref_tree.Write();
+	ref_file.Close();
+	ppac_file.Close();
 
 	return 0;
 }

@@ -23,7 +23,7 @@ int FillEvent(
 	double trigger_time,
 	const std::multimap<double, TriggerEvent> &match_map,
 	TriggerEvent &fundamental_event,
-	std::vector<MatchTriggerStatistics> &statistics
+	MatchTriggerStatistics &statistics
 ) {
 	fundamental_event.time = -1e5;
 	fundamental_event.cfd_flag = 0;
@@ -35,12 +35,12 @@ int FillEvent(
 		fundamental_event.time = event.time - trigger_time;
 		fundamental_event.timestamp = event.timestamp;
 		fundamental_event.cfd_flag = event.cfd_flag;
-		++statistics[0].match_events;
-		++statistics[0].used_events;
+		++statistics.match_events;
+		++statistics.used_events;
 
 		return 0;
 	} else if (match_count > 1) {
-		++statistics[0].oversize_events;
+		++statistics.oversize_events;
 	}
 	return -1;
 }

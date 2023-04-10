@@ -31,7 +31,7 @@ std::shared_ptr<Detector> CreateDetector(
 		if (index <= 5) {
 			return std::make_shared<Tafd>(run, index, tag);
 		}
-	} else if (name.size() == 5 && name.substr(0, 4) == "tab") {
+	} else if (name.size() == 5 && name.substr(0, 4) == "tabd") {
 		unsigned int index = name[4] - '0';
 		if (index <= 5) {
 			return std::make_shared<Tabd>(run, index, tag);
@@ -68,7 +68,7 @@ std::shared_ptr<Dssd> CreateDssd(
 		if (index <= 5) {
 			return std::make_shared<Tafd>(run, index, tag);
 		}
-	} else if (name.size() == 4 && name.substr(0, 4) == "tab") {
+	} else if (name.size() == 4 && name.substr(0, 4) == "tabd") {
 		unsigned int index = name[4] - '0';
 		if (index <= 5) {
 			return std::make_shared<Tabd>(run, index, tag);
@@ -106,7 +106,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		// detector input file name
 		TString taf_input_file_name;
 		taf_input_file_name.Form(
-			"%s%staf%d-fundamental-%staf%d-%04u.root",
+			"%s%stafd%d-fundamental-%stafd%d-%04u.root",
 			kGenerateDataPath, kFundamentalDir,
 			i, trigger_tag.c_str(), i, run
 		);
@@ -123,7 +123,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 		// XIA trigger file name
 		TString xt_file_name;
 		xt_file_name.Form(
-			"%s%sxt-map-%staf%d-%04u.root",
+			"%s%sxt-map-%stafd%d-%04u.root",
 			kGenerateDataPath, kMappingDir, trigger_tag.c_str(), i, run
 		);
 		// add XIA trigger to detector input tree

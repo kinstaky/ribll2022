@@ -2,6 +2,7 @@
 #define __TIME_REFERENCE_H__
 
 #include "include/event/ppac_event.h"
+#include "include/event/tof_event.h"
 #include "include/defs.h"
 
 namespace ribll {
