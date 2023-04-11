@@ -3,6 +3,7 @@
 #include <TChain.h>
 #include <TF1.h>
 #include <TGraph.h>
+#include <TH2F.h>
 
 #include "include/event/dssd_event.h"
 
@@ -247,7 +248,7 @@ int Dssd::WriteNormalizeParameters() {
 }
 
 
-bool Dssd::NormEnergyCheck(size_t, const DssdFundamentalEvent&) {
+bool Dssd::NormEnergyCheck(size_t, const DssdFundamentalEvent&) const {
 	return true;
 }
 
@@ -508,15 +509,134 @@ int Dssd::Normalize(
 	}
 
 	// write trees
-	std::cout << "---------------------------------------------------------\n"; 
-	for (unsigned int i = run_; i < run_ + length; i++) {
-		if (WriteNormalizeFiles(i, tag_)) {
-			std::cerr << "Error: Write normalized energy to file in run "
-				<< i << " failed.\n";
-			return -1;
-		}
+	// std::cout << "---------------------------------------------------------\n"; 
+	// for (unsigned int i = run_; i < run_ + length; i++) {
+	// 	if (WriteNormalizeFiles(i, tag_)) {
+	// 		std::cerr << "Error: Write normalized energy to file in run "
+	// 			<< i << " failed.\n";
+	// 		return -1;
+	// 	}
+	// }
+
+	return 0;
+}
+
+
+int Dssd::ShowNormalize() {
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << "failed.\n";
+		return -1;
+	}
+	// input event
+	DssdFundamentalEvent event;
+	// setup input branches
+	event.SetupInput(ipt);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-norm-result-%s%04u.root",
+		kGenerateDataPath,
+		kShowDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// energy difference range
+	const double diff_e_range = 5000;
+	// 2D hisogram fe VS be
+	TH2F fe_vs_be("hfbe", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
+	// 2D histogram fe-be VS fs
+	TH2F diff_e_vs_fs(
+		"hefs", "fe-be:fs",
+		FrontStrip(), 0, FrontStrip(), 1000, -diff_e_range, diff_e_range
+	);
+	// 2D histogram fe-be VS bs
+	TH2F diff_e_vs_bs(
+		"hebs", "fe-be:bs",
+		BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
+	);
+	// 2D histogram fe-be VS fe
+	TH2F diff_e_vs_fe(
+		"hefe", "fe-be:fe",
+		1000, 0, 60000, 1000, -diff_e_range, diff_e_range
+	);
+	// 2D histogram fe-be VS be
+	TH2F diff_e_vs_be(
+		"hebe", "fe-be:be",
+		1000, 0, 60000, 1000, -diff_e_range, diff_e_range
+	);
+	// 1D histogram fe-be
+	TH1F diff_e("hde", "fe-be", 1000, -diff_e_range, diff_e_range);
+	// 1D histogram abs(fe-be)/(fe+be)
+	TH1F relative_diff_e("hrde", "(fe-be)/(fe+be)", 1000, 0, 1);
+
+	// read normalize parameters
+	if (ReadNormalizeParameters()) {
+		std::cerr << "Error: Read normalize parameters failed.\n";
+		return -1;
 	}
 
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of total number of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Showing normalize result   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		if (event.front_hit != 1 || event.back_hit != 1) continue;
+		unsigned short fs = event.front_strip[0];
+		unsigned short bs = event.back_strip[0];
+		double fe = NormEnergy(0, fs, event.front_energy[0]);
+		double be = NormEnergy(1, bs, event.back_energy[0]);
+		// double fe = event.front_energy[0];
+		// double be = event.back_energy[0];
+		fe_vs_be.Fill(be, fe);
+		diff_e_vs_fs.Fill(fs, fe-be);
+		diff_e_vs_bs.Fill(bs, fe-be);
+		diff_e_vs_fe.Fill(fe, fe-be);
+		diff_e_vs_be.Fill(be, fe-be);
+		diff_e.Fill(fe-be);
+		relative_diff_e.Fill(fabs(fe-be)/(fe+be));
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// save histograms
+	fe_vs_be.Write();
+	diff_e_vs_fs.Write();
+	diff_e_vs_bs.Write();
+	diff_e_vs_fe.Write();
+	diff_e_vs_be.Write();
+	diff_e.Write();
+	relative_diff_e.Write();
+	// close files
+	opf.Close();
+	ipf.Close();
 	return 0;
 }
 

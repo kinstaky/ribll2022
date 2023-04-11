@@ -67,7 +67,7 @@ int Tafd::NormalizeSides(TChain *chain, bool iteration) {
 }
 
 
-bool Tafd::NormEnergyCheck(size_t, const DssdFundamentalEvent &event) {
+bool Tafd::NormEnergyCheck(size_t, const DssdFundamentalEvent &event) const {
 	if (index_ == 0) {
 		if (event.front_energy[0] > 1e4 || event.back_energy[0] > 1e4) {
 			return false;

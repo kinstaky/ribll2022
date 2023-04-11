@@ -7,6 +7,26 @@ T0d2::T0d2(unsigned int run, const std::string &tag)
 }
 
 
+int T0d2::NormalizeSides(TChain *chain, bool iteration) {
+	if (SideNormalize(chain, 0, 19, iteration)) {
+		std::cerr << "Error: Normalize first side failed.\n";
+		return -1;
+	}
+	if (SideNormalize(chain, 1, 14, iteration)) {
+		std::cerr << "Error: Normalize second side failed.\n";
+		return -1;
+	}
+	return 0;
+}
+
+
+bool T0d2::NormEnergyCheck(
+	size_t,
+	const DssdFundamentalEvent&
+) const {
+	return true;
+}
+
 // bool T0D2::NormalizeFrontEnergyCheck(
 // 	const CorrelatedEvent &correlation,
 // 	bool iteration

@@ -112,6 +112,12 @@ public:
 	}
 
 
+	/// @brief show normalize result
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ShowNormalize();
+
+
 	//-------------------------------------------------------------------------
 	//							merge
 	//-------------------------------------------------------------------------
@@ -175,7 +181,10 @@ protected:
 	/// @param[in] event fundamental event
 	/// @returns true if pass check, false not pass
 	///
-	virtual bool NormEnergyCheck(size_t side, const DssdFundamentalEvent &event);
+	virtual bool NormEnergyCheck(
+		size_t side,
+		const DssdFundamentalEvent &event
+	) const;
 
 
 	// normalize parameters, first index is side,

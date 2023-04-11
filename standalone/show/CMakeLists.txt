@@ -60,3 +60,9 @@ target_link_libraries(
 	show_align_group
 	PUBLIC alignment
 )
+
+# show normalize result
+add_executable(show_normalize show_normalize.cpp)
+target_link_libraries(
+	show_normalize PRIVATE detectors
+)

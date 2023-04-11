@@ -60,7 +60,7 @@ protected:
 	virtual bool NormEnergyCheck(
 		size_t side,
 		const DssdFundamentalEvent &event
-	) override;
+	) const override;
 
 private:
 	// detector index, 0 to 5
