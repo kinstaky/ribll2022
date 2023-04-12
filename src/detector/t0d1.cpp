@@ -2,10 +2,36 @@
 
 namespace ribll {
 
+const ROOT::Math::XYZVector t0d1_center{0.0, 0.0, 0.1};
+const std::pair<double, double> t0d1_x_range{-0.032, 0.032};
+const std::pair<double, double> t0d1_y_range{-0.032, 0.032};
+
 T0d1::T0d1(unsigned int run, const std::string &tag)
 : Dssd(run, "t0d1", tag) {
+
+	center_ = t0d1_center;
+	x_range_ = t0d1_x_range;
+	y_range_ = t0d1_y_range;
 }
 
+//-----------------------------------------------------------------------------
+//								geometry
+//-----------------------------------------------------------------------------
+
+ROOT::Math::XYZVector T0d1::CalculatePosition(double fs, double bs) const {
+	double x = (x_range_.second - x_range_.first) / FrontStrip();
+	x = x * (fs + 0.5) + x_range_.first;
+	double y = (y_range_.second - y_range_.first) / BackStrip();
+	y = y * (bs + 0.5) + y_range_.first;
+	ROOT::Math::XYZVector result(x, y, 0.0);
+	result += center_;
+	return result;
+}
+
+
+//-----------------------------------------------------------------------------
+//								normalize
+//-----------------------------------------------------------------------------
 
 int T0d1::NormalizeSides(TChain *chain, bool iteration) {
 	if (SideNormalize(chain, 0, 26, iteration)) {
@@ -28,119 +54,6 @@ bool T0d1::NormEnergyCheck(
 }
 
 
-int T0d1::Merge(double) {
-	// // input file name
-	// TString fundamental_file_name;
-	// fundamental_file_name.Form(
-	// 	"%s%s%s-fundamental-%s%04u.root",
-	// 	kGenerateDataPath,
-	// 	kFundamentalDir,
-	// 	name_.c_str(),
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
-	// // input file
-	// TFile *ipf = new TFile(fundamental_file_name, "read");
-	// // input tree
-	// TTree *ipt = (TTree*)ipf->Get("tree");
-	// if (!ipt) {
-	// 	std::cerr << "Error: Get tree from "
-	// 		<< fundamental_file_name << " failed.\n";
-	// }
-	// // input event
-	// DssdFundamentalEvent fundamental_event;
-	// // setup input branches
-	// fundamental_event.SetupInput(ipt);
-	// // for convenient
-	// unsigned short &fhit = fundamental_event.front_hit;
-	// unsigned short &bhit = fundamental_event.back_hit;
-	// unsigned short *fs = fundamental_event.front_strip;
-	// unsigned short *bs = fundamental_event.back_strip;
-	// double *fe = fundamental_event.front_energy;
-	// double *be = fundamental_event.back_energy;
-
-	// // output file name
-	// TString merge_file_name;
-	// merge_file_name.Form(
-	// 	"%s%s%s-merge-%s%04u.root",
-	// 	kGenerateDataPath,
-	// 	kMergeDir,
-	// 	name_.c_str(),
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
-	// // output file
-	// TFile *opf = new TFile(merge_file_name, "recreate");
-	// // relatetive difference of front and back side energy
-	// TH1F *hrd = new TH1F(
-	// 	"hrd", "relateive difference of front and back side energy",
-	// 	1000, 0.0, 1.0
-	// );
-	// // output tree
-	// TTree *opt = new TTree("tree", "tree of merged events");
-	// // output event
-	// DssdMergeEvent merge_event;
-	// // setup output branches
-	// merge_event.SetupOutput(opt);
-
-	// // read normalized parameters
-	// if (ReadNormalizeParameters()) {
-	// 	std::cerr << "Error: Read normalize parameters failed.\n";
-	// 	return -1;
-	// }
-
-	// // total number of entries
-	// long long entries = ipt->GetEntries();
-	// // 1/100 of entries
-	// long long entry100 = entries / 100;
-	// // show start
-	// printf("Writing merged events   0%%");
-	// fflush(stdout);
-	// // loop over events
-	// for (long long entry = 0; entry < entries; ++entry) {
-	// 	// show process
-	// 	if (entry % entry100 == 0) {
-	// 		printf("\b\b\b\b%3lld%%", entry / entry100);
-	// 		fflush(stdout);
-	// 	}
-
-	// 	ipt->GetEntry(entry);
-	// 	// initialize
-	// 	merge_event.hit = 0;
-
-	// 	if (fhit == 1 && bhit == 1) {
-	// 		if (fe[0] < 1e4 && be[0] < 1e4) {
-	// 			fe[0] = NormEnergy(0, fs[0], fe[0]);
-	// 			be[0] = NormEnergy(1, bs[1], be[0]);
-	// 			double diff = RelativeDifference(fe[0], be[0]);
-	// 			hrd->Fill(diff);
-	// 			if (diff < energy_diff) {
-	// 				merge_event.energy[0] = fe[0];
-	// 				auto position = CalculatePosition(
-	// 					fundamental_event.front_strip[0],
-	// 					fundamental_event.back_strip[0]
-	// 				);
-	// 				merge_event.radius[0] = position.R();
-	// 				merge_event.phi[0] = position.Phi();
-	// 				merge_event.theta[0] = position.Theta();
-	// 				merge_event.hit = 1;
-	// 			}
-	// 		}
-	// 	}
-
-	// 	opt->Fill();
-	// }
-	// // show finish
-	// printf("\b\b\b\b100%%\n");
-
-	// // save and close files
-	// hrd->Write();
-	// opt->Write();
-	// opf->Close();
-	// ipf->Close();
-
-	return 0;
-}
 
 // bool T0D1::NormalizeFrontEnergyCheck(
 // 	const CorrelatedEvent &correlation,

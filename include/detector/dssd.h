@@ -4,9 +4,13 @@
 #include <string>
 
 #include <TChain.h>
+#include <TMath.h>
+#include <Math/Vector3D.h>
 
 #include "include/detector/detector.h"
 #include "include/event/dssd_event.h"
+#include "include/statistics/merge_statistics.h"
+#include "include/statistics/merge_case_statistics.h"
 
 namespace ribll {
 
@@ -51,11 +55,11 @@ public:
 
 
 	/// @brief return strip number based on side
-	/// @param[in] side 0 for front side, 1 for back side 
+	/// @param[in] side 0 for front side, 1 for back side
 	/// @returns strip number
 	///
 	virtual inline size_t Strip(int side) const {
-		return side == 0 ? FrontStrip() : BackStrip(); 
+		return side == 0 ? FrontStrip() : BackStrip();
 	}
 
 
@@ -101,9 +105,9 @@ public:
 
 
 	/// @brief get normalized energy based on parameters
-	/// @param[in] side 0 for front, 1 for back 
-	/// @param[in] strip strip index 
-	/// @param[in] energy energy 
+	/// @param[in] side 0 for front, 1 for back
+	/// @param[in] strip strip index
+	/// @param[in] energy energy
 	/// @returns normaized energy
 	///
 	inline double NormEnergy(int side, int strip, double energy) {
@@ -131,7 +135,22 @@ public:
 protected:
 
 	//-------------------------------------------------------------------------
-	//							normalize
+	//						geometry function
+	//-------------------------------------------------------------------------
+
+	/// @brief calculate the position from strip index
+	/// @param[in] front_strip front strip
+	/// @param[in] back_strip front strip
+	/// @returns vector point to the position
+	///
+	virtual ROOT::Math::XYZVector CalculatePosition(
+		double front_strip,
+		double back_strip
+	) const;
+
+
+	//-------------------------------------------------------------------------
+	//						normalize function
 	//-------------------------------------------------------------------------
 
 	/// @brief read normalize parameters form file
@@ -186,6 +205,19 @@ protected:
 		const DssdFundamentalEvent &event
 	) const;
 
+
+
+	//-------------------------------------------------------------------------
+	//						geometry member
+	//-------------------------------------------------------------------------
+
+	ROOT::Math::XYZVector center_;
+	std::pair<double, double> x_range_;
+	std::pair<double, double> y_range_;
+
+	//-------------------------------------------------------------------------
+	//						normalize member
+	//-------------------------------------------------------------------------
 
 	// normalize parameters, first index is side,
 	// second index is strip, third index is p0 and p1

@@ -30,7 +30,8 @@ void MatchTriggerStatistics::Write() {
 
 
 void MatchTriggerStatistics::Print() const {
-	std::cout << (tag_.empty() ? "origin" : tag_) << " trigger"
+	std::cout << detector_ << " "
+		<< (tag_ == "-" ? "origin" : tag_) << " trigger"
 		<< (extract_tag_.empty() ? "" : " extracting " + extract_tag_) << "\n"
 		<< "Match rate "
 		<< match_events << " / " << reference_events_ << "  "
@@ -96,9 +97,7 @@ std::ostream& operator<<(
 		<< "," << double(sta.used_events) / double(sta.mapped_events_)
 		<< "," << double(sta.oversize_events) / double(sta.reference_events_)
 		<< "," << double(sta.conflict_events) / double(sta.mapped_events_);
-
 	WriteStatisticsTime(os, sta.store_time_);
-
 	return os;
 }
 

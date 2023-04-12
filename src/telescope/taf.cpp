@@ -197,7 +197,7 @@ int Taf::Track() {
 	}
 
 	// input tafd event
-	DssdMergeEvent tafd;
+	AdssdMergeEvent tafd;
 	// input tafcsi event
 	CircularCsiFundamentalEvent tafcsi;
 	// setup input branches

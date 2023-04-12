@@ -97,6 +97,33 @@ public:
 
 
 	unsigned short hit;
+	unsigned int case_tag;
+	double x[4];
+	double y[4];
+	double z[4];
+	double energy[4];
+};
+
+
+class AdssdMergeEvent : public Event {
+public:
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
+	///
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[in] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+
+	unsigned short hit;
 	double radius[4];
 	double theta[4];
 	double phi[4];

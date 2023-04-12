@@ -39,17 +39,33 @@ public:
 		return 64;
 	}
 
-	//-------------------------------------------------------------------------
-	//								merge
-	//-------------------------------------------------------------------------
+	// //-------------------------------------------------------------------------
+	// //								merge
+	// //-------------------------------------------------------------------------
 
-	/// @brief merge adjacent event in the same side and merge events of two sides
-	/// @param[in] energy_diff tolerant energy relateive difference
-	/// @returns 0 if success, -1 otherwise
-	///
-	virtual int Merge(double energy_diff) override;
+	// /// @brief merge adjacent event in the same side and merge events of two sides
+	// /// @param[in] energy_diff tolerant energy relateive difference
+	// /// @returns 0 if success, -1 otherwise
+	// ///
+	// virtual int Merge(double energy_diff) override;
 
 protected:
+
+	//-------------------------------------------------------------------------
+	//								geometry
+	//-------------------------------------------------------------------------
+
+	/// @brief calculate the position from strip index
+	/// @param[in] front_strip front strip
+	/// @param[in] back_strip front strip
+	/// @returns vector point to the position
+	///
+	virtual ROOT::Math::XYZVector CalculatePosition(
+		double front_strip,
+		double back_strip
+	) const override;
+
+
 	//-------------------------------------------------------------------------
 	//								normalize
 	//-------------------------------------------------------------------------

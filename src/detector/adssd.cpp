@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include <TMath.h>
-
 namespace ribll {
 
 Adssd::Adssd(
@@ -81,7 +79,7 @@ int Adssd::Merge(double energy_diff) {
 	// output tree
 	TTree *opt = new TTree("tree", "tree of merged events");
 	// output event
-	DssdMergeEvent merge_event;
+	AdssdMergeEvent merge_event;
 	// setup output branches
 	merge_event.SetupOutput(opt);
 
@@ -118,10 +116,7 @@ int Adssd::Merge(double energy_diff) {
 				hrd->Fill(diff);
 				if (diff < energy_diff) {
 					merge_event.energy[0] = fe[0];
-					auto position = CalculatePosition(
-						fundamental_event.front_strip[0],
-						fundamental_event.back_strip[0]
-					);
+					auto position = CalculatePosition(fs[0], bs[0]);
 					merge_event.radius[0] = position.R();
 					merge_event.phi[0] = position.Phi();
 					merge_event.theta[0] = position.Theta();

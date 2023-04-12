@@ -57,6 +57,29 @@ void DssdMergeEvent::SetupInput(
 	const std::string &prefix
 ) {
 	tree->SetBranchAddress((prefix+"hit").c_str(), &hit);
+	tree->SetBranchAddress((prefix+"case").c_str(), &case_tag);
+	tree->SetBranchAddress((prefix+"x").c_str(), x);
+	tree->SetBranchAddress((prefix+"y").c_str(), y);
+	tree->SetBranchAddress((prefix+"z").c_str(), z);
+	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
+}
+
+
+void DssdMergeEvent::SetupOutput(TTree *tree) {
+	tree->Branch("hit", &hit, "hit/s");
+	tree->Branch("case", &case_tag, "case/i");
+	tree->Branch("x", x, "x[hit]/D");
+	tree->Branch("y", y, "y[hit]/D");
+	tree->Branch("z", z, "z[hit]/D");
+	tree->Branch("energy", energy, "e[hit]/D");
+}
+
+
+void AdssdMergeEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"hit").c_str(), &hit);
 	tree->SetBranchAddress((prefix+"radius").c_str(), radius);
 	tree->SetBranchAddress((prefix+"theta").c_str(), theta);
 	tree->SetBranchAddress((prefix+"phi").c_str(), phi);
@@ -64,7 +87,7 @@ void DssdMergeEvent::SetupInput(
 }
 
 
-void DssdMergeEvent::SetupOutput(TTree *tree) {
+void AdssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("hit", &hit, "hit/s");
 	tree->Branch("radius", radius, "r[hit]/D");
 	tree->Branch("theta", theta, "theta[hit]/D");
