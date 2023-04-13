@@ -1315,7 +1315,7 @@ int Dssd::Merge(double energy_diff) {
 		int case_num = 2*fhit  + bhit - 3;
 		// check case is in the 7 cases memtioned
 		if (case_num < 0 || case_num >= 6 || abs(fhit-bhit) > 1) {
-			opt.Fill();	
+			opt.Fill();
 			continue;
 		}
 		// call merge function to fill merge_event
@@ -1331,6 +1331,7 @@ int Dssd::Merge(double energy_diff) {
 				CalculatePosition(merge_event.x[i], merge_event.y[i]);
 			merge_event.x[i] = position.X();
 			merge_event.y[i] = position.Y();
+			merge_event.z[i] = position.Z();
 		}
 		SortMergeEvent(merge_event);
 		opt.Fill();

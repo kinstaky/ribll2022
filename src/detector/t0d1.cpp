@@ -2,9 +2,12 @@
 
 namespace ribll {
 
-const ROOT::Math::XYZVector t0d1_center{0.0, 0.0, 0.1};
-const std::pair<double, double> t0d1_x_range{-0.032, 0.032};
-const std::pair<double, double> t0d1_y_range{-0.032, 0.032};
+// center of t0d1, in mm
+const ROOT::Math::XYZVector t0d1_center{0.0, 0.0, 100.0};
+// x range of t0d1, in mm
+const std::pair<double, double> t0d1_x_range{-32.0, 32.0};
+// y range of t0d1, in mm
+const std::pair<double, double> t0d1_y_range{-32.0, 32.0};
 
 T0d1::T0d1(unsigned int run, const std::string &tag)
 : Dssd(run, "t0d1", tag) {
@@ -19,10 +22,10 @@ T0d1::T0d1(unsigned int run, const std::string &tag)
 //-----------------------------------------------------------------------------
 
 ROOT::Math::XYZVector T0d1::CalculatePosition(double fs, double bs) const {
-	double x = (x_range_.second - x_range_.first) / FrontStrip();
-	x = x * (fs + 0.5) + x_range_.first;
-	double y = (y_range_.second - y_range_.first) / BackStrip();
-	y = y * (bs + 0.5) + y_range_.first;
+	double x = (x_range_.second - x_range_.first) / BackStrip();
+	x = x * (bs + 0.5) + x_range_.first;
+	double y = (y_range_.second - y_range_.first) / FrontStrip();
+	y = y * (fs + 0.5) + y_range_.first;
 	ROOT::Math::XYZVector result(x, y, 0.0);
 	result += center_;
 	return result;

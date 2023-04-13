@@ -66,3 +66,9 @@ add_executable(show_normalize show_normalize.cpp)
 target_link_libraries(
 	show_normalize PRIVATE detectors
 )
+
+# show t0 center
+add_executable(show_t0_center show_t0_center.cpp)
+target_link_libraries(
+	show_t0_center PRIVATE event ROOT::Graf
+)

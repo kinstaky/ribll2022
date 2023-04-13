@@ -214,7 +214,7 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 	// XIA trigger output file name
 	TString xt_output_file_name;
 	xt_output_file_name.Form(
-		"%s%sxt-map-nc-%sta-%04u.root",
+		"%s%sxt-map-%sta-%04u.root",
 		kGenerateDataPath, kMappingDir, trigger_tag.c_str(), run
 	);
 	// XIA merged trigger output file
