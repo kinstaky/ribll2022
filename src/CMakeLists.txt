@@ -47,7 +47,7 @@ add_library(
 )
 target_link_libraries(
 	telescopes
-	PUBLIC taf
+	PUBLIC taf t0
 )
 
 # energy loss

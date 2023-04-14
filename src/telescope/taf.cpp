@@ -155,7 +155,7 @@ Taf::Taf(unsigned int run, unsigned int index, const std::string &tag)
 }
 
 
-int Taf::Track() {
+int Taf::Track(double) {
 	std::vector<TString> file_names;
 	// add tafd
 	file_names.push_back(

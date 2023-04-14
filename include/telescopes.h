@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "include/telescope/taf.h"
+#include "include/telescope/t0.h"
 
 namespace ribll {
 

@@ -14,7 +14,7 @@ MergeStatistics::MergeStatistics(
 , two_hit(0)
 , three_hit(0)
 , detector_(detector)
-, tag_(tag) {
+, tag_(tag.empty() ? "-" : tag) {
 }
 
 

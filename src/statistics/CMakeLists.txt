@@ -12,6 +12,8 @@ set(
 	${STATISTICS_INCLUDE_DIR}/match_trigger_statistics.h
 	${STATISTICS_INCLUDE_DIR}/merge_case_statistics.h
 	${STATISTICS_INCLUDE_DIR}/merge_statistics.h
+	${STATISTICS_INCLUDE_DIR}/track_statistics.h
+	${STATISTICS_INCLUDE_DIR}/track_dssd_statistics.h
 
 	${STATISTICS_INCLUDE_DIR}/xt_period_statistics.h
 	${STATISTICS_INCLUDE_DIR}/beam_identify_statistics.h
@@ -27,6 +29,8 @@ set(
 	match_trigger_statistics.cpp
 	merge_case_statistics.cpp
 	merge_statistics.cpp
+	track_statistics.cpp
+	track_dssd_statistics.cpp
 
 	xt_period_statistics.cpp
 	beam_identify_statistics.cpp

@@ -21,6 +21,13 @@ target_link_libraries(
 # taf library
 add_library(
 	taf
-	taf.cpp ${TELESCOPE_INCLUDE_DIR}/telescope.h
+	taf.cpp ${TELESCOPE_INCLUDE_DIR}/taf.h
 )
 target_link_libraries(taf PUBLIC telescope event)
+
+# t0 library
+add_library(
+	t0
+	t0.cpp ${TELESCOPE_INCLUDE_DIR}/t0.h
+)
+target_link_libraries(t0 PUBLIC telescope event)

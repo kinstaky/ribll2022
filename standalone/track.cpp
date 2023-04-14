@@ -7,9 +7,10 @@
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run telescope\n"
-		"  run               Set run number\n"
-		"  detector          Set telescope name\n"
+	std::cout << "Usage: " << name << " [options] run telescope [tolerance]\n"
+		"  run               Set run number.\n"
+		"  telescope         Set telescope name.\n"
+		"  tolerance         Set angle tolerance, default is 0.0.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n";
@@ -58,7 +59,7 @@ int ParseArguments(
 }
 
 int main(int argc, char **argv) {
-	if (argc < 2) {
+	if (argc < 4) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -96,6 +97,8 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[pos_start]);
 	std::string telescope_name = argv[pos_start+1];
+	double tolerance = 0.0;
+	if (pos_start + 2 < argc) tolerance = atof(argv[pos_start+2]);
 
 	std::shared_ptr<Telescope> telescope =
 		CreateTelescope(telescope_name, run, tag);
@@ -104,7 +107,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (telescope->Track()) {
+	if (telescope->Track(tolerance)) {
 		std::cerr << "Error: Track " << telescope_name << " failed.\n";
 		return -1;
 	}
