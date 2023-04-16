@@ -20,6 +20,12 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Track(double angle_tolerance) override;
+
+
+	/// @brief identify particle in telescope
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ParticleIdentify() override;
 private:
 
 };

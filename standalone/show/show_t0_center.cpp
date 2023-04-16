@@ -46,13 +46,23 @@ int main(int argc, char **argv) {
 		kGenerateDataPath, kMergeDir, run
 	);
 	tree->AddFriend("d2=tree", d2_file_name);
+	// t0d3 file name
+	TString d3_file_name;
+	d3_file_name.Form(
+		"%s%st0d3-merge-ta-%04u.root",
+		kGenerateDataPath, kMergeDir, run
+	);
+	tree->AddFriend("d3=tree", d3_file_name);
 	// input d1 event
 	DssdMergeEvent d1_event;
 	// input d2 event
 	DssdMergeEvent d2_event;
+	// input d3 event
+	DssdMergeEvent d3_event;
 	// setup branches
 	d1_event.SetupInput(tree);
 	d2_event.SetupInput(tree, "d2.");
+	d3_event.SetupInput(tree, "d3.");
 
 	// output file name
 	TString output_file_name;
@@ -64,9 +74,9 @@ int main(int argc, char **argv) {
 	TFile opf(output_file_name, "recreate");
 
 	// lower bound to search
-	double lower_bound = 110.0;
+	double lower_bound = 100.0;
 	// step of distance
-	double step = 1.0;
+	double step = 100.0;
 	// only one extreme value in cos(theta) VS distance
 	bool one_extreme_value = true;
 	// loop layer
@@ -105,7 +115,7 @@ int main(int argc, char **argv) {
 			// loop events and fill the histogram
 			for (long long entry = 0; entry < tree->GetEntriesFast(); ++entry) {
 				tree->GetEntry(entry);
-				if (d1_event.hit != 1 || d2_event.hit != 1) continue;
+				if (d1_event.hit != 1 || d2_event.hit != 1 || d3_event.hit==0) continue;
 				// d1 particle position
 				ROOT::Math::XYZVector d1_pos(
 					d1_event.x[0]+1.0, d1_event.y[0]+1.0, d1_event.z[0]
@@ -114,7 +124,12 @@ int main(int argc, char **argv) {
 				ROOT::Math::XYZVector d2_pos(
 					d2_event.x[0], d2_event.y[0], d2_distance
 				);
+				// // d3 particle position
+				ROOT::Math::XYZVector d3_pos(
+					d3_event.x[0], d3_event.y[0], d2_distance
+				);
 				double cos_theta = d1_pos.Dot(d2_pos) / (d1_pos.R() * d2_pos.R());
+				// double cos_theta = d1_pos.Dot(d3_pos) / (d1_pos.R() * d3_pos.R());
 				hist_cos_theta[i].Fill(cos_theta);
 				average_cos_theta += cos_theta;
 				++count;

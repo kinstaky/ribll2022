@@ -4,7 +4,9 @@
 #include <TH1F.h>
 
 #include "include/event/dssd_event.h"
+#include "include/event/ssd_event.h"
 #include "include/event/t0_event.h"
+#include "include/event/particle_type_event.h"
 #include "include/statistics/track_statistics.h"
 #include "include/statistics/track_dssd_statistics.h"
 
@@ -180,6 +182,36 @@ void TrackDssdEvent(
 }
 
 
+/// @brief track T0 SSD events
+/// @param[in] s1 T0S1 event
+/// @param[in] s2 T0S2 event
+/// @param[in] s3 T0S3 event
+/// @param[out] t0 T0 telescope event
+void TrackSsdEvent(
+	const SsdEvent &s1,
+	const SsdEvent &s2,
+	const SsdEvent &s3,
+	T0Event &t0
+) {
+	// jump if DSSD not track
+	if (t0.num == 0) return;
+	t0.ssd_flag = 0;
+	if (s1.time > -9e4) {
+		t0.ssd_flag |= 0x1;
+		t0.ssd_energy[0] = s1.energy;
+	}
+	if (s2.time > -9e4) {
+		t0.ssd_flag |= 0x2;
+		t0.ssd_energy[1] = s2.energy;
+	}
+	if (s3.time > -9e4) {
+		t0.ssd_flag |= 0x4;
+		t0.ssd_energy[2] = s3.energy;
+	}
+	return;
+}
+
+
 int T0::Track(double angle_tolerance) {
 	// T0D1 merge file name
 	TString d1_file_name;
@@ -219,6 +251,36 @@ int T0::Track(double angle_tolerance) {
 		run_
 	);
 	ipt->AddFriend("d3=tree", d3_file_name);
+	// T0S1 fundamental file name
+	TString s1_file_name;
+	s1_file_name.Form(
+		"%s%st0s1-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s1=tree", s1_file_name);
+	// T0S2 fundamental file name
+	TString s2_file_name;
+	s2_file_name.Form(
+		"%s%st0s2-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s2=tree", s2_file_name);
+	// T0S3 fundamental file name
+	TString s3_file_name;
+	s3_file_name.Form(
+		"%s%st0s3-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s3=tree", s3_file_name);
 	// d1 event
 	DssdMergeEvent d1_event;
 	d1_event.SetupInput(ipt);
@@ -228,6 +290,15 @@ int T0::Track(double angle_tolerance) {
 	// d3 event
 	DssdMergeEvent d3_event;
 	d3_event.SetupInput(ipt, "d3.");
+	// s1 event
+	SsdEvent s1_event;
+	s1_event.SetupInput(ipt, "s1.");
+	// s2 event
+	SsdEvent s2_event;
+	s2_event.SetupInput(ipt, "s2.");
+	// s3 event
+	SsdEvent s3_event;
+	s3_event.SetupInput(ipt, "s3.");
 
 	// T0 telescope file name
 	TString t0_file_name;
@@ -285,6 +356,7 @@ int T0::Track(double angle_tolerance) {
 			t0_event,
 			angle_window
 		);
+		TrackSsdEvent(s1_event, s2_event, s3_event, t0_event);
 		opt.Fill();
 		// update statistics
 		if (t0_event.num > 0) {
@@ -325,5 +397,289 @@ int T0::Track(double angle_tolerance) {
 
 	return 0;
 }
+
+
+int DssdParticleIdentify(
+	const T0Event &t0,
+	size_t index,
+	const std::vector<ParticleCut> &d1d2_cuts,
+	const std::vector<ParticleCut> &d2d3_cuts,
+	ParticleTypeEvent &type
+) {
+	if (t0.flag[index] == 0x3) {
+		// particle pass 2 DSSD
+		for (const auto &cut : d1d2_cuts) {
+			if (cut.cut->IsInside(t0.energy[index][1], t0.energy[index][0])) {
+				// particle is in cuts, recored the charge and mass number
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 1;
+				return 1;
+			}
+		}
+	} else if (t0.flag[index] == 0x7) {
+		// particle pass all 3 DSSD
+		for (const auto &cut : d2d3_cuts) {
+			if (cut.cut->IsInside(t0.energy[index][2], t0.energy[index][1])) {
+				// particle is in cuts, recored the charge and mass number
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 2;
+				return 2;
+			}
+		}
+	}
+	type.layer[index] = -1;
+	return -1;
+}
+
+
+int SsdParticleIdentify(
+	const T0Event &t0,
+	size_t index,
+	const std::vector<ParticleCut> &d3s1_cuts,
+	const std::vector<ParticleCut> &s1s2_cuts,
+	const std::vector<ParticleCut> &s2s3_cuts,
+	const std::unique_ptr<TCutG> &s1s2_cross_cut,
+	ParticleTypeEvent &type
+) {
+	if (t0.flag[index] != 0x7) return -1;
+	// the true ssd flag, since there is cross signal in T0S2 from T0S1,
+	// check this first and correct the ssd flag
+	unsigned short ssd_flag = t0.ssd_flag;
+	if (
+		ssd_flag == 0x3
+		&& s1s2_cross_cut->IsInside(t0.ssd_energy[1], t0.ssd_energy[0])
+	) {
+		// this is cross signal, correct it
+		ssd_flag = 0x1;
+	}
+	// identify particle in different conditions
+	if (ssd_flag == 0x1) {
+		// particle stop in the first SSD
+		for (const auto &cut : d3s1_cuts) {
+			if (cut.cut->IsInside(t0.ssd_energy[0], t0.energy[index][2])) {
+				// particle is in cuts, record the charge and mass
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 3;
+				return 3;
+			}
+		}
+	} else if (ssd_flag == 0x3) {
+		// particle stop in the second SSD
+		for (const auto &cut : s1s2_cuts) {
+			if (cut.cut->IsInside(t0.ssd_energy[1], t0.ssd_energy[0])) {
+				// particle is in cuts, record the charge and mass
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 4;
+				return 4;
+			}
+		}
+	} else if (ssd_flag == 0x7) {
+		// particle stop in the third SSD or CsI(Tl)
+		if (s2s3_cuts[0].cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
+			type.charge[index] = s2s3_cuts[0].charge;
+			type.mass[index] = s2s3_cuts[0].mass;
+			type.layer[index] = 5;
+			return 5;
+		}
+		if (s2s3_cuts[1].cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
+			type.charge[index] = s2s3_cuts[1].charge;
+			type.mass[index] = s2s3_cuts[1].mass;
+			type.layer[index] = 6;
+			return 6;
+		}
+	}
+	type.layer[index] = -1;
+	return -1;
+}
+
+
+int T0::ParticleIdentify() {
+	// input t0 telescope file name
+	TString t0_file_name;
+	t0_file_name.Form(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// t0 file
+	TFile t0_file(t0_file_name, "read");
+	// t0 tree
+	TTree *ipt = (TTree*)t0_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< t0_file_name << " failed.\n";
+		t0_file.Close();
+		return -1;
+	}
+	// input event
+	T0Event t0_event;
+	// setup input branches
+	t0_event.SetupInput(ipt);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%st0-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// output tree
+	TTree opt("tree", "particle type");
+	// output data
+	ParticleTypeEvent type_event;
+	// setup output branches
+	type_event.SetupOutput(&opt);
+
+	// T0D1-D2 cuts
+	std::vector<ParticleCut> d1d2_cuts;
+	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
+	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
+	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
+	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
+	d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
+	d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
+	d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+	d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
+	d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
+	d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
+	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	// T0D2-D3 cuts
+	std::vector<ParticleCut> d2d3_cuts;
+	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
+	d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
+	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+	// T0D3-S1 cuts
+	std::vector<ParticleCut> d3s1_cuts;
+	// d3s1_cuts.push_back({1, 1, ReadCut("d3s1", "1H")});
+	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
+	// d3s1_cuts.push_back({1, 3, ReadCut("d3s1", "3H")});
+	// d3s1_cuts.push_back({2, 3, ReadCut("d3s1", "3He")});
+	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+
+	// T0S1-S2 cuts
+	std::vector<ParticleCut> s1s2_cuts;
+	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
+	// s1s2_cuts.push_back({1, 2, ReadCut("s1s2", "2H")});
+	// s1s2_cuts.push_back({1, 3, ReadCut("s1s2", "3H")});
+	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+	// T0S2-S3 cuts
+	std::vector<ParticleCut> s2s3_cuts;
+	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
+	// s2s3_cuts.push_back({1, 2, ReadCut("s2s3", "2H")});
+	// s2s3_cuts.push_back({1, 3, ReadCut("s2s3", "3H")});
+	// s2s3_cuts.push_back({1, 0, ReadCut("s2s3", "0H")});
+	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
+	s2s3_cuts.push_back({2, 4, ReadCut("s2s3-t", "4He")});
+	// special cut of S1-S2 interaction
+	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
+
+	//statistics
+	long long total = 0;
+	long long id11 = 0;
+	long long id21 = 0;
+	long long id22 = 0;
+
+	// total number of particles
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Identifying T0 particles   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		// initialize output event
+		type_event.num = t0_event.num;
+		for (unsigned short i = 0; i < type_event.num; ++i) {
+			type_event.charge[i] = 0;
+			type_event.mass[i] = 0;
+			type_event.layer[i] = -1;
+		}
+		// identify particles
+		if (t0_event.num == 1) {
+			++total;
+			int identify = DssdParticleIdentify(
+				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+			);
+			if (
+				identify <= 0
+				&& t0_event.flag[0] == 0x7
+				&& t0_event.ssd_flag != 0
+			) {
+				identify = SsdParticleIdentify(
+					t0_event, 0,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					type_event
+				);
+			}
+			if (identify > 0) ++id11;
+		} else if (t0_event.num == 2) {
+			++total;
+			int identify0 = DssdParticleIdentify(
+				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+			);
+			int identify1 = DssdParticleIdentify(
+				t0_event, 1, d1d2_cuts, d2d3_cuts, type_event
+			);
+			if (identify0 <= 0 && identify1 > 0) {
+				int identify = SsdParticleIdentify(
+					t0_event, 0,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					type_event
+				);
+				if (identify > 0) ++id22;
+				else ++id21;
+			} else if (identify0 > 0 && identify1 <= 0) {
+				int identify = SsdParticleIdentify(
+					t0_event, 1,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					type_event
+				);
+				if (identify > 0) ++id22;
+				else ++id21;
+			} else if (identify0 > 0 && identify1 > 0) {
+				++id22;
+			}
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// write tree
+	opt.Write();
+	// close files
+	opf.Close();
+	t0_file.Close();
+
+	// show statistics
+	std::cout << "Particle identify in T0\n"
+		<< "Idnetify 1/1 " << id11 << " / " << total
+		<< "  " << double(id11) / double(total) << "\n"
+		<< "Idnetify 1/2 " << id21 << " / " << total
+		<< "  " << double(id21) / double(total) << "\n"
+		<< "Idnetify 2/2 " << id22 << " / " << total
+		<< "  " << double(id22) / double(total) << "\n";
+	return 0;
+}
+
 
 }		// namespace ribll

@@ -312,39 +312,6 @@ int Taf::Track(double) {
 	return 0;
 }
 
-TCutG* ReadCut(const char *particle, const char *phi) {
-	// cut file name
-	TString cut_file_name;
-	cut_file_name.Form(
-		"%s%scut/taf0-%s-%s.txt",
-		kGenerateDataPath,
-		kParticleIdentifyDir,
-		particle,
-		phi
-	);
-	// open cut file to read points
-	std::ifstream fin(cut_file_name.Data());
-	if (!fin.good()) {
-		std::cerr << "Error: Open file "
-			<< cut_file_name << " failed.\n";
-		return nullptr;
-	}
-	// result
-	TCutG *result = new TCutG;
-	// point index
-	int point;
-	// point positions
-	double x, y;
-	// loop to read points
-	while (fin.good()) {
-		fin >> point >> x >> y;
-		result->SetPoint(point, x, y);
-	}
-	// close file
-	fin.close();
-	return result;
-}
-
 
 int Taf::ParticleIdentify() {
 	// input file name
@@ -398,12 +365,12 @@ int Taf::ParticleIdentify() {
 	opt->Branch("charge", charge, "z[p]/i");
 
 	// read cut from files
-	TCutG *pid_cuts[particle_types*theta_types];
+	std::unique_ptr<TCutG> pid_cuts[particle_types*theta_types];
 	for (size_t i = 0; i < theta_types; ++i) {
 		for (size_t j = 0; j < particle_types; ++j) {
-			TCutG *cut = ReadCut(particle_names[j], theta_names[i]);
+			auto cut = ReadCut(theta_names[i], particle_names[j]);
 			if (!cut) return -1;
-			pid_cuts[i*particle_types+j] = cut;
+			pid_cuts[i*particle_types+j] = std::move(cut);
 		}
 	}
 

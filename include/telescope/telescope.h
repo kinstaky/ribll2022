@@ -1,17 +1,26 @@
 #ifndef __TELECOPE_H__
 #define __TELECOPE_H__
 
+#include <iostream>
+#include <string>
+#include <memory>
+
+#include <TCutG.h>
 #include <TString.h>
 #include <TFile.h>
 #include <TTree.h>
-
-#include <iostream>
-#include <string>
 
 #include "include/defs.h"
 #include "include/energy_loss.h"
 
 namespace ribll {
+
+struct ParticleCut {
+	unsigned short charge;
+	unsigned short mass;
+	std::unique_ptr<TCutG> cut;
+};
+
 
 class Telescope {
 public:
@@ -65,6 +74,7 @@ public:
 
 protected:
 
+
 	/// @brief calculate the energy in CsI based on the energy in last Si
 	/// @param[in] projectile projectile particle, e.g. 1H, 4He
 	/// @param[in] theta theta of projectile particle
@@ -87,6 +97,17 @@ protected:
 		double dead_al_thick = 0.3,
 		double mylar_thick = 2.0
 	);
+
+
+	/// @brief read cut from file
+	/// @param[in] prefix prefix of the cut
+	/// @param[in] particle particle type
+	/// @returns pointer to the cut if success, nullptr otherwise
+	///
+	std::unique_ptr<TCutG> ReadCut(
+		const char *prefix,
+		const char *particle
+	) const;
 
 
 	unsigned int run_;

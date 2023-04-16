@@ -1,6 +1,7 @@
 #include "include/telescope/telescope.h"
 
 #include <iostream>
+#include <fstream>
 
 #include <TMath.h>
 
@@ -156,6 +157,44 @@ double Telescope::CalculateCsiEnergy(
 	energy = mylar.Energy(range);
 
 	return energy;
+}
+
+
+std::unique_ptr<TCutG> Telescope::ReadCut(
+	const char *prefix,
+	const char *particle
+) const {
+		// cut file name
+	TString cut_file_name;
+	cut_file_name.Form(
+		"%s%scut/%s-%s-%s.txt",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		name_.c_str(),
+		prefix,
+		particle
+	);
+	// open cut file to read points
+	std::ifstream fin(cut_file_name.Data());
+	if (!fin.good()) {
+		std::cerr << "Error: Open file "
+			<< cut_file_name << " failed.\n";
+		return nullptr;
+	}
+	// result
+	std::unique_ptr<TCutG> result = std::make_unique<TCutG>();
+	// point index
+	int point;
+	// point positions
+	double x, y;
+	// loop to read points
+	while (fin.good()) {
+		fin >> point >> x >> y;
+		result->SetPoint(point, x, y);
+	}
+	// close file
+	fin.close();
+	return result;
 }
 
 }		// namespace ribll
