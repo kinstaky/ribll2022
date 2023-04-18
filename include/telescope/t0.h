@@ -26,6 +26,12 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int ParticleIdentify() override;
+
+
+	/// @brief calibrate this telescope
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Calibrate() override;
 private:
 
 };

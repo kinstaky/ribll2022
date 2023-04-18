@@ -11,7 +11,9 @@
 #include <TTree.h>
 
 #include "include/defs.h"
-#include "include/energy_loss.h"
+#include "include/calculator/range_energy_calculator.h"
+#include "include/calculator/delta_energy_calculator.h"
+#include "include/calculator/csi_energy_calculator.h"
 
 namespace ribll {
 
@@ -72,32 +74,15 @@ public:
 	///
 	virtual int CsiCalibrate();
 
-protected:
 
-
-	/// @brief calculate the energy in CsI based on the energy in last Si
-	/// @param[in] projectile projectile particle, e.g. 1H, 4He
-	/// @param[in] theta theta of projectile particle
-	/// @param[in] si_energy energy loss in last Si, in MeV
-	/// @param[in] si_thick base thickness of last Si, in um
-	/// @param[in] dead_si_thick dead Si thickness of last Si, in um
-	/// @param[in] dead_al_thick dead Al thickness of last Si, in um
-	/// @param[in] mylar_thick Mylar thickness of CsI, in um
-	/// @returns energy should be lost in CsI if success,
-	/// 	-1e5 for energy can't pierce the Si
-	///		-2e5 for energy larger the maximum energy in calculator
-	///		-3e5 for iteration over maximun iterations
+	/// @brief get layers of Si detector
+	/// @returns layers of Si detector
 	///
-	double CalculateCsiEnergy(
-		const std::string &projectile,
-		double theta,
-		double si_energy,
-		double si_thick,
-		double dead_si_thick = 0.5,
-		double dead_al_thick = 0.3,
-		double mylar_thick = 2.0
-	);
+	virtual inline size_t Layers() const {
+		return 1;
+	}
 
+protected:
 
 	/// @brief read cut from file
 	/// @param[in] prefix prefix of the cut
@@ -110,9 +95,26 @@ protected:
 	) const;
 
 
+	/// @brief read calibrate parameters from file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int ReadCalibrateParameters();
+
+
+	/// @brief write calibrate parameters to file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteCalibrateParameters() const;
+
+
+	// run number
 	unsigned int run_;
+	// telescope name, e.g. t0, taf0
 	std::string name_;
+	// trigger tag
 	std::string tag_;
+	// calibrate parameters
+	double cali_params_[12];
 };
 
 }		// namespace ribll

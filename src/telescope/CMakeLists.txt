@@ -14,7 +14,9 @@ target_include_directories(
 )
 target_link_libraries(
 	telescope
-	PUBLIC statistics energy_loss
+	PUBLIC
+	statistics
+	range_energy_calculator delta_energy_calculator csi_energy_calculator
 	ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist ROOT::Graf
 )
 

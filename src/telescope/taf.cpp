@@ -649,6 +649,12 @@ int Taf::CsiCalibrate() {
 	// close file
 	fin.close();
 
+	// CsI energy calculator
+	std::vector<elc::CsiEnergyCalculator> csi_calculators;
+	for (size_t i = 0; i < particle_types; ++i) {
+		csi_calculators.emplace_back(particle_names[i]);
+	}
+
 	// total number of entries
 	long long entries = ipt->GetEntries();
 	// 1/100 of entries
@@ -681,8 +687,7 @@ int Taf::CsiCalibrate() {
 			) continue;
 
 			// calculate CsI energy
-			csi_energy = CalculateCsiEnergy(
-				particle_names[i],
+			csi_energy = csi_calculators[i].Energy(
 				tele.theta[0][0],
 				tafd_param[0] + tafd_param[1] * tele.energy[0][0],
 				tafd_thick[index_]

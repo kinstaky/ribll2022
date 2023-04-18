@@ -1,7 +1,9 @@
 #include "include/telescope/t0.h"
 
-#include <Math/Vector3D.h>
+#include <TF1.h>
+#include <TGraph.h>
 #include <TH1F.h>
+#include <Math/Vector3D.h>
 
 #include "include/event/dssd_event.h"
 #include "include/event/ssd_event.h"
@@ -11,6 +13,15 @@
 #include "include/statistics/track_dssd_statistics.h"
 
 namespace ribll {
+
+const double initial_calibration_parameters[12] = {
+	0.16, 0.005,
+	0.24, 0.0065,
+	-0.8, 0.005,
+	1.5, 0.0023,
+	-0.8, 0.002,
+	0.15, 0.0024
+};
 
 T0::T0(unsigned int run, const std::string &tag)
 : Telescope(run, "t0", tag) {
@@ -440,10 +451,11 @@ int SsdParticleIdentify(
 	const std::vector<ParticleCut> &d3s1_cuts,
 	const std::vector<ParticleCut> &s1s2_cuts,
 	const std::vector<ParticleCut> &s2s3_cuts,
+	const std::vector<ParticleCut> &s2s3_pass_cuts,
 	const std::unique_ptr<TCutG> &s1s2_cross_cut,
 	ParticleTypeEvent &type
 ) {
-	if (t0.flag[index] != 0x7) return -1;
+	// if (t0.flag[index] != 0x7) return -1;
 	// the true ssd flag, since there is cross signal in T0S2 from T0S1,
 	// check this first and correct the ssd flag
 	unsigned short ssd_flag = t0.ssd_flag;
@@ -479,17 +491,21 @@ int SsdParticleIdentify(
 		}
 	} else if (ssd_flag == 0x7) {
 		// particle stop in the third SSD or CsI(Tl)
-		if (s2s3_cuts[0].cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
-			type.charge[index] = s2s3_cuts[0].charge;
-			type.mass[index] = s2s3_cuts[0].mass;
-			type.layer[index] = 5;
-			return 5;
+		for (const auto &cut : s2s3_cuts) {
+			if (cut.cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 5;
+				return 5;
+			}
 		}
-		if (s2s3_cuts[1].cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
-			type.charge[index] = s2s3_cuts[1].charge;
-			type.mass[index] = s2s3_cuts[1].mass;
-			type.layer[index] = 6;
-			return 6;
+		for (const auto &cut : s2s3_pass_cuts) {
+			if (cut.cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
+				type.charge[index] = cut.charge;
+				type.mass[index] = cut.mass;
+				type.layer[index] = 6;
+				return 6;
+			}
 		}
 	}
 	type.layer[index] = -1;
@@ -562,26 +578,17 @@ int T0::ParticleIdentify() {
 	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
 	// T0D3-S1 cuts
 	std::vector<ParticleCut> d3s1_cuts;
-	// d3s1_cuts.push_back({1, 1, ReadCut("d3s1", "1H")});
-	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
-	// d3s1_cuts.push_back({1, 3, ReadCut("d3s1", "3H")});
-	// d3s1_cuts.push_back({2, 3, ReadCut("d3s1", "3He")});
 	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
 
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_cuts;
-	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
-	// s1s2_cuts.push_back({1, 2, ReadCut("s1s2", "2H")});
-	// s1s2_cuts.push_back({1, 3, ReadCut("s1s2", "3H")});
 	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
 	// T0S2-S3 cuts
 	std::vector<ParticleCut> s2s3_cuts;
-	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
-	// s2s3_cuts.push_back({1, 2, ReadCut("s2s3", "2H")});
-	// s2s3_cuts.push_back({1, 3, ReadCut("s2s3", "3H")});
-	// s2s3_cuts.push_back({1, 0, ReadCut("s2s3", "0H")});
 	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
-	s2s3_cuts.push_back({2, 4, ReadCut("s2s3-t", "4He")});
+	// T0S2-S3 pass cuts
+	std::vector<ParticleCut> s2s3_pass_cuts;
+	s2s3_pass_cuts.push_back({2, 4, ReadCut("s2s3-t", "4He")});
 	// special cut of S1-S2 interaction
 	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
 
@@ -626,7 +633,8 @@ int T0::ParticleIdentify() {
 			) {
 				identify = SsdParticleIdentify(
 					t0_event, 0,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
 					type_event
 				);
 			}
@@ -639,18 +647,23 @@ int T0::ParticleIdentify() {
 			int identify1 = DssdParticleIdentify(
 				t0_event, 1, d1d2_cuts, d2d3_cuts, type_event
 			);
-			if (identify0 <= 0 && identify1 > 0) {
+			if (identify0 <= 0 && identify1 > 0 && t0_event.flag[0] == 0x7) {
 				int identify = SsdParticleIdentify(
 					t0_event, 0,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id22;
 				else ++id21;
-			} else if (identify0 > 0 && identify1 <= 0) {
+			} else if (
+				identify0 > 0 && identify1 <= 0
+				&& t0_event.flag[1] == 0x7
+			) {
 				int identify = SsdParticleIdentify(
 					t0_event, 1,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s1s2_cross_cut,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id22;
@@ -681,5 +694,257 @@ int T0::ParticleIdentify() {
 	return 0;
 }
 
+
+
+struct ParticlePidInfo {
+	// layer, 0 for d1d2, 1 for d2d3, 2 for d3s1, 3 for s1s2, 4 for s2s3
+	unsigned short layer;
+	// particle type, 0 for 1H, 1 for 2H, 2 for 4He,
+	// 3 for 7Li, 4 for 10Be, 5 for 14C
+	unsigned short type;
+	// charge number of this particle
+	unsigned short charge;
+	// mass number of this particle
+	unsigned short mass;
+	// left bound of pid
+	double left;
+	// right bound of pid
+	double right;
+	// offset of this layer
+	double offset;
+};
+
+
+const std::vector<ParticlePidInfo> pid_info {
+	// d1d2
+	{0, 2, 2, 4, 4000.0, 8000.0, 0.0},
+	{0, 3, 3, 7, 8000.0, 13'000.0, 0.0},
+	{0, 4, 4, 10, 13'000.0, 24'000.0, 0.0},
+	{0, 5, 6, 14, 36'000.0, 52'000.0, 0.0},
+	// d2d3
+	{1, 2, 2, 4, 5000.0, 9000.0, 55'000.0},
+	{1, 3, 3, 7, 10'000.0, 16'000.0, 55'000.0},
+	{1, 4, 4, 10, 20'000.0, 26'000.0, 55'000.0},
+	// d3s1
+	{2, 1, 1, 2, 1900.0, 2400.0, 85'000.0},
+	{2, 2, 2, 4, 5200.0, 9500.0, 85'000.0},
+	// s1s2
+	{3, 0, 1, 1, 3500.0, 5000.0, 95'000.0},
+	{3, 2, 2, 4, 13'500.0, 25'000.0, 95'000.0},
+	// s2s3
+	{4, 0, 1, 1, 3500.0, 5500.0, 120'000.0},
+	{4, 2, 2, 4, 13'500.0, 22'500.0, 120'000.0}
+};
+
+class PidFitFunc {
+public:
+	PidFitFunc(
+		const std::string &telescope,
+		const std::vector<std::string> &projectiles
+	) {
+		for (const std::string &p : projectiles) {
+			calculators_.emplace_back(telescope, p);
+		}
+	}
+
+	double operator()(double *x, double *par) const {
+		// identify particle
+		for (const auto &info : pid_info) {
+			if (
+				x[0] > info.left + info.offset
+				&& x[0] < info.right + info.offset
+			) {
+				double de = par[info.layer*2] + par[info.layer*2+1] * (x[0] - info.offset);
+				double e = calculators_[info.type].Energy(info.layer, de);
+				return (e - par[info.layer*2+2]) / par[info.layer*2+3];
+			}
+		}
+		return 0.0;
+	}
+private:
+	std::vector<elc::DeltaEnergyCalculator> calculators_;
+};
+
+int T0::Calibrate() {
+	// telescope file name
+	TString telescope_file_name;
+	telescope_file_name.Form(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// telescope file
+	TFile telescope_file(telescope_file_name, "read");
+	// telescope tree
+	TTree *ipt = (TTree*)telescope_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< telescope_file_name << " failed.\n";
+		return -1;
+	}
+	// input telescope event
+	T0Event t0_event;
+	// setup input branches
+	t0_event.SetupInput(ipt);
+
+	// output calibration root file name
+	TString calibration_file_name;
+	calibration_file_name.Form(
+		"%s%st0-calibration-%s%04u.root",
+		kGenerateDataPath,
+		kCalibrationDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output calibration file
+	TFile calibration_file(calibration_file_name, "recreate");
+	// output E-VS-dE graph, with offset for different layers in dE
+	TGraph e_vs_de_offset;
+
+	// T0D1-D2 cuts
+	std::vector<ParticleCut> d1d2_cuts;
+	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
+	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
+	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	// T0D2-D3 cuts
+	std::vector<ParticleCut> d2d3_cuts;
+	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
+	d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
+	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+	// T0D3-S1 cuts
+	std::vector<ParticleCut> d3s1_cuts;
+	d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
+	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+
+	// T0S1-S2 cuts
+	std::vector<ParticleCut> s1s2_cuts;
+	s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
+	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+	// T0S2-S3 cuts
+	std::vector<ParticleCut> s2s3_cuts;
+	s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
+	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
+	// T0S2-S3 pass cuts
+	std::vector<ParticleCut> s2s3_pass_cuts;
+	// special cut of S1-S2 interaction
+	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
+
+	// type event for filter
+	ParticleTypeEvent type_event;
+	type_event.num = 1;
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Filling events to graph   0%%");
+	fflush(stdout);
+	// loop to fill events to graph
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		// initialize type event
+		type_event.charge[0] = type_event.mass[0] = 0;
+		// only use num==1 events to calibrate
+		if (t0_event.num != 1) continue;
+		int layer = DssdParticleIdentify(
+			t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+		);
+		double delta_energy = -1e5;
+		double energy = -1e5;
+		// check layer and get dE and E
+		if (layer == 1 || layer == 2) {
+			delta_energy = t0_event.energy[0][layer-1];
+			energy = t0_event.energy[0][layer];
+			for (const auto &info : pid_info) {
+				if (
+					info.layer == layer - 1
+					&& info.charge == type_event.charge[0]
+					&& info.mass == type_event.mass[0]
+					&& delta_energy > info.left
+					&& delta_energy < info.right
+				) {
+					e_vs_de_offset.AddPoint(
+						delta_energy + info.offset, energy
+					);
+					break;
+				}
+			}
+		}
+		layer = SsdParticleIdentify(
+			t0_event, 0,
+			d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts, s1s2_cross_cut,
+			type_event
+		);
+		if (layer == 3) {
+			delta_energy = t0_event.energy[0][2];
+			energy = t0_event.ssd_energy[0];
+		} else if (layer == 4 || layer == 5) {
+			delta_energy = t0_event.ssd_energy[layer-4];
+			energy = t0_event.ssd_energy[layer-3];
+		}
+		if (layer < 3 || layer > 5) continue;
+		for (const auto &info : pid_info) {
+			if (
+				info.layer == layer - 1
+				&& info.charge == type_event.charge[0]
+				&& info.mass == type_event.mass[0]
+				&& delta_energy > info.left
+				&& delta_energy < info.right
+			) {
+				e_vs_de_offset.AddPoint(
+					delta_energy + info.offset, energy
+				);
+				break;
+			}
+		}
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+
+	std::vector<std::string> projectiles{
+		"1H", "2H", "4He", "7Li", "10Be", "14C"
+	};
+	PidFitFunc pid_fit("t0", projectiles);
+	// fit function
+	TF1 fcali("fcali", pid_fit, 0.0, 150'000.0, 12);
+	fcali.SetNpx(10000);
+	for (size_t i = 0; i < 12; ++i) {
+		fcali.SetParameter(i, initial_calibration_parameters[i]);
+	}
+	// fit
+	e_vs_de_offset.Fit(&fcali, "R+");
+
+	// get parameters from fitting
+	for (size_t i = 0; i < 12; ++i) {
+		cali_params_[i] = fcali.GetParameter(i);
+	}
+	// save parameters to txt file
+	if (WriteCalibrateParameters()) {
+		calibration_file.Close();
+		telescope_file.Close();
+		return -1;
+	}
+
+	// save graph
+	calibration_file.cd();
+	e_vs_de_offset.Write("gcali");
+	// close files
+	calibration_file.Close();
+	telescope_file.Close();
+
+	return 0;
+}
 
 }		// namespace ribll

@@ -1,6 +1,8 @@
 #ifndef __GLOBAL_DEF_H__
 #define __GLOBAL_DEF_H__
 
+#include <vector>
+
 namespace ribll {
 
 //-----------------------------------------------------------------------------
@@ -34,7 +36,7 @@ const char* const kParticleIdentifyDir = "pid/";
 
 const char* const kCheckDir = "check/";
 const char* const kShowDir = "show/";
-const char* const kEnergyLossDir = "energy_loss/";
+const char* const kEnergyCalculateDir = "energy_calculate/";
 
 
 //-----------------------------------------------------------------------------
@@ -64,6 +66,9 @@ const unsigned long long vtaf_back_channel[vtaf_num] = {8, 0};
 //-----------------------------------------------------------------------------
 const unsigned long long ppac_num = 3;
 
+const std::vector<double> t0_thickness{
+	1010.0, 1504.0, 1501.0, 1434.0, 1532.0, 1540.0
+};
 
 }
 

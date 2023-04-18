@@ -1,18 +1,56 @@
-#include "include/energy_loss.h"
+#include "include/calculator/range_energy_calculator.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
-
-#include <TString.h>
 
 #include "include/defs.h"
 
 namespace ribll {
 
-namespace el {
+namespace elc {
 
-int Initialize(const std::vector<ProjectileMaterial> &list) {
+
+RangeEnergyCalculator::RangeEnergyCalculator(
+	const std::string &projectile,
+	const std::string &material
+)
+: projectile_(projectile)
+, material_(material) {
+
+	// get projectile mass number
+	std::stringstream ss;
+	ss << projectile;
+	ss >> mass_;
+
+	input_file_ = nullptr;
+	range_energy_func_ = nullptr;
+	energy_range_func_ = nullptr;
+
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-%s.root",
+		kGenerateDataPath,
+		kEnergyCalculateDir,
+		projectile_.c_str(),
+		material_.c_str()
+	);
+	// input file
+	input_file_ = new TFile(input_file_name, "read");
+	range_energy_func_ = (TSpline3*)input_file_->Get("re");
+	energy_range_func_ = (TSpline3*)input_file_->Get("er");
+}
+
+
+RangeEnergyCalculator::~RangeEnergyCalculator() {
+	if (input_file_) input_file_->Close();
+}
+
+
+int RangeEnergyCalculator::Initialize(
+	const std::vector<ProjectileMaterial> &list
+) {
 	// data
 	// projectile mass number
 	int mass = 0;
@@ -34,7 +72,7 @@ int Initialize(const std::vector<ProjectileMaterial> &list) {
 		lise_file_name.Form(
 			"%s%s%s-%s.txt",
 			kGenerateDataPath,
-			kEnergyLossDir,
+			kEnergyCalculateDir,
 			projectile.c_str(),
 			material.c_str()
 		);
@@ -70,7 +108,7 @@ int Initialize(const std::vector<ProjectileMaterial> &list) {
 		root_file_name.Form(
 			"%s%s%s-%s.root",
 			kGenerateDataPath,
-			kEnergyLossDir,
+			kEnergyCalculateDir,
 			projectile.c_str(),
 			material.c_str()
 		);
@@ -100,52 +138,6 @@ int Initialize(const std::vector<ProjectileMaterial> &list) {
 	return 0;
 }
 
+}	// namespace elc
 
-EnergyLossCalculator::EnergyLossCalculator(
-	const std::string &projectile,
-	const std::string &material
-)
-: projectile_(projectile)
-, material_(material) {
-
-	// get projectile mass number
-	std::stringstream ss;
-	ss << projectile;
-	ss >> mass_;
-
-	input_file_ = nullptr;
-	range_energy_func_ = nullptr;
-	energy_range_func_ = nullptr;
-
-	// input file name
-	TString input_file_name;
-	input_file_name.Form(
-		"%s%s%s-%s.root",
-		kGenerateDataPath,
-		kEnergyLossDir,
-		projectile_.c_str(),
-		material_.c_str()
-	);
-	// input file
-	input_file_ = new TFile(input_file_name, "read");
-	range_energy_func_ = (TSpline3*)input_file_->Get("re");
-	energy_range_func_ = (TSpline3*)input_file_->Get("er");
-}
-
-
-EnergyLossCalculator::~EnergyLossCalculator() {
-	if (input_file_) input_file_->Close();
-}
-
-
-double EnergyLossCalculator::Range(double energy) const {
-	return range_energy_func_->Eval(energy);
-}
-
-double EnergyLossCalculator::Energy(double range) const {
-	return energy_range_func_->Eval(range);
-}
-
-}		// namespace el
-
-}		// namespace ribll
+}	// namespace ribll

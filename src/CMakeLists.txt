@@ -7,6 +7,7 @@ add_subdirectory(event)
 add_subdirectory(mapper)
 add_subdirectory(statistics)
 add_subdirectory(telescope)
+add_subdirectory(calculator)
 
 # alignment
 add_library(
@@ -48,18 +49,4 @@ add_library(
 target_link_libraries(
 	telescopes
 	PUBLIC taf t0
-)
-
-# energy loss
-add_library(
-	energy_loss
-	energy_loss.cpp ${PROJECT_INCLUDE_DIR}/energy_loss.h
-)
-target_include_directories(
-	energy_loss
-	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
-)
-target_link_libraries(
-	energy_loss
-	PUBLIC ROOT::Core ROOT::RIO ROOT::Hist
 )

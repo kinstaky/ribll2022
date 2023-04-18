@@ -1,5 +1,5 @@
-#ifndef __ENERGY_LOSS_H__
-#define __ENERGY_LOSS_H__
+#ifndef __RANGE_ENERGY_CALCULATOR_H__
+#define __RANGE_ENERGY_CALCULATOR_H__
 
 #include <string>
 
@@ -8,27 +8,18 @@
 
 namespace ribll {
 
-// namespace energy loss
-namespace el {
+namespace elc {
 
 typedef std::pair<std::string, std::string> ProjectileMaterial;
 
-
-/// @brief convert the projectile material function from LISE++ to TSpline3
-/// @param[in] list list of projectile material combination
-/// @returns 0 if success, -1 otherwise
-///
-int Initialize(const std::vector<ProjectileMaterial> &list);
-
-
-class EnergyLossCalculator {
+class RangeEnergyCalculator {
 public:
 
 	/// @brief constructor
 	/// @param[in] projectile incident particle, e.g. 1H, 4He
 	/// @param[in] material loss in material, e.g. Si, Al, Mylar
 	///
-	EnergyLossCalculator(
+	RangeEnergyCalculator(
 		const std::string &projectile,
 		const std::string &material
 	);
@@ -36,7 +27,14 @@ public:
 
 	/// @brief destructor
 	///
-	~EnergyLossCalculator();
+	~RangeEnergyCalculator();
+
+
+	/// @brief convert the projectile material function from LISE++ to TSpline3
+	/// @param[in] list list of projectile material combination
+	/// @returns 0 if success, -1 otherwise
+	///
+	static int Initialize(const std::vector<ProjectileMaterial> &list);
 
 
 	/// @brief get mass number of the projectile
@@ -50,14 +48,18 @@ public:
 	/// @param[in] energy incident energy in MeV
 	/// @returns incident range in um
 	///
-	double Range(double energy) const;
+	inline double Range(double energy) const {
+		return range_energy_func_->Eval(energy);
+	}
 
 
 	/// @brief calculate the incident energy (MeV) from range (um)
 	/// @param[in] range incident range in um
 	/// @returns incident energy in MeV
 	///
-	double Energy(double range) const;
+	inline double Energy(double range) const {
+		return energy_range_func_->Eval(range);
+	}
 
 
 	/// @brief get maximun energy in the calculator 
@@ -82,8 +84,8 @@ private:
 	TSpline3 *range_energy_func_;
 };
 
-}		// namespace el
+}	// namespace elc
 
-}		// namespace ribll
+}	// namespace ribll
 
-#endif		// __ENERGY_LOSS_H__
+#endif 	// __RANGE_ENERGY_CALCULATOR_

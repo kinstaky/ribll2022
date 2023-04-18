@@ -1,0 +1,6 @@
+# init energy loss
+add_executable(initialize_energy_calculator initialize_energy_calculator.cpp)
+target_link_libraries(
+	initialize_energy_calculator
+	PRIVATE range_energy_calculator delta_energy_calculator
+)
