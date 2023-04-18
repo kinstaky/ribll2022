@@ -45,6 +45,10 @@ target_link_libraries(pid PUBLIC telescopes)
 add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate PUBLIC telescopes)
 
+# particle
+add_executable(particle particle.cpp)
+target_link_libraries(particle PRIVATE telescopes)
+
 # # ppac correlation
 # add_executable(ppac_correlation ppac_correlation.cpp)
 # target_include_directories(ppac_correlation PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)

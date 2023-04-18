@@ -82,6 +82,12 @@ public:
 		return 1;
 	}
 
+
+	/// @brief rebuild the particle from layers of detectors
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Particle();
+
 protected:
 
 	/// @brief read cut from file

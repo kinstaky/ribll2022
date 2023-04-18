@@ -48,6 +48,12 @@ int Telescope::CsiCalibrate() {
 }
 
 
+int Telescope::Particle() {
+	std::cerr << "Error: Telescope::Particle not implemented yet.\n";
+	return -1;
+}
+
+
 std::unique_ptr<TCutG> Telescope::ReadCut(
 	const char *prefix,
 	const char *particle

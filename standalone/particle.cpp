@@ -12,9 +12,7 @@ void PrintUsage(const char *name) {
 		"  telescope         Set telescope name\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n"
-		"  -a                Alpha calibrate.\n"
-		"  -c                CsI calibrate.\n";
+		"  -t tag            Set trigger tag.\n";
 }
 
 /// @brief parse arguments
@@ -22,8 +20,6 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
-/// @param[out] alpha_calibrate alpha calibration
-/// @param[out] csi_calibrate csi calibration
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -32,15 +28,11 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag,
-	bool &alpha_calibrate,
-	bool &csi_calibrate
+	std::string &trigger_tag
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
-	alpha_calibrate = false;
-	csi_calibrate = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -58,10 +50,6 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
-		} else if (argv[result][1] == 'a') {
-			alpha_calibrate = true;
-		} else if (argv[result][1] == 'c') {
-			csi_calibrate = true;
 		} else {
 			return -result;
 		}
@@ -79,12 +67,8 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
-	// alpha calibration
-	bool alpha = false;
-	// csi calibration
-	bool csi = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag, alpha, csi);
+	int pos_start = ParseArguments(argc, argv, help, tag);
 
 	// need help
 	if (help) {
@@ -120,24 +104,9 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (alpha) {
-		if (telescope->AlphaCalibrate()) {
-			std::cerr << "Error: Alpha calibrate "
-				<< telescope_name << " failed.\n";
-			return -1;
-		}
-	} else if (csi) {
-		if (telescope->CsiCalibrate()) {
-			std::cerr << "Error: Calibrate CsI(Tl) in "
-				<< telescope_name << " failed.\n";
-			return -1;
-		}
-	} else {
-		if (telescope->Calibrate()) {
-			std::cerr << "Error: Calibrate "
-				<< telescope_name << " failed.\n";
-			return -1;
-		}
+	if (telescope->Particle()) {
+		std::cerr << "Error: Idnetify particle in " << telescope_name << " failed.\n";
+		return -1;
 	}
 	return 0;
 }

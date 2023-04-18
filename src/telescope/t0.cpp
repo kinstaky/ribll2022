@@ -3,11 +3,13 @@
 #include <TF1.h>
 #include <TGraph.h>
 #include <TH1F.h>
+#include <TMath.h>
 #include <Math/Vector3D.h>
 
 #include "include/event/dssd_event.h"
 #include "include/event/ssd_event.h"
 #include "include/event/t0_event.h"
+#include "include/event/particle_event.h"
 #include "include/event/particle_type_event.h"
 #include "include/statistics/track_statistics.h"
 #include "include/statistics/track_dssd_statistics.h"
@@ -946,5 +948,210 @@ int T0::Calibrate() {
 
 	return 0;
 }
+
+
+/// @brief calculate momentum from energy considering relative effects
+/// @param[in] kinetic_energy kinetic energy of particle, in MeV
+/// @param[in] mass mass number of particle
+/// @returns momentum value of particle
+///
+double MomentumFromEnergy(double kinetic_energy, double mass) {
+	// atomic mass constant
+	constexpr double u = 931.494;
+	// double energy = kinetic_energy + mass * u;
+	// double p = sqrt(energy * energy - mass*mass*u*u);
+	return sqrt(kinetic_energy * (kinetic_energy + 2.0*mass*u));
+}
+
+
+int T0::Particle() {
+	// telescope file name
+	TString telescope_file_name;
+	telescope_file_name.Form(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// telescope file
+	TFile telescope_file(telescope_file_name, "read");
+	// input telescope tree
+	TTree *ipt = (TTree*)telescope_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< telescope_file_name << " failed.\n";
+		return -1;
+	}
+	// particle type file name
+	TString particle_type_file_name;
+	particle_type_file_name.Form(
+		"%s%st0-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("type=tree", particle_type_file_name);
+	// input telescope event
+	T0Event t0_event;
+	// input type event
+	ParticleTypeEvent type_event;
+	// setup input branches
+	t0_event.SetupInput(ipt);
+	type_event.SetupInput(ipt, "type.");
+
+	// output file name
+	TString particle_file_name;
+	particle_file_name.Form(
+		"%s%st0-particle-%s%04u.root",
+		kGenerateDataPath,
+		kParticleDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile particle_file(particle_file_name, "recreate");
+	// particle tree
+	TTree opt("tree", "t0 particles");
+	// output particle event
+	ParticleEvent particle_event;
+	// setup output branches
+	particle_event.SetupOutput(&opt);
+
+	// read calibrate parameters
+	if (ReadCalibrateParameters()) {
+		std::cerr << "Errro: Read calibrate parameters failed.\n";
+		return -1;
+	}
+
+	// CsI energy calculator
+	elc::CsiEnergyCalculator csi_calculator("4He");
+
+	// totla number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Rebuilding particle   0%%");
+	fflush(stdout);
+	// loop events
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		// initialize particle event
+		particle_event.num = 0;
+		for (unsigned short i = 0; i < t0_event.num; ++i) {
+			// jump confuesd particles
+			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
+
+			// fill charge number
+			particle_event.charge[particle_event.num] = type_event.charge[i];
+			// fill mass number
+			particle_event.mass[particle_event.num] = type_event.mass[i];
+
+			// calculate energy from all Si detectors
+			double energy =
+				TotalEnergy(t0_event, type_event, i, csi_calculator);
+			// fill energy
+			particle_event.energy[particle_event.num] = energy;
+
+			// calculate momentum value from energy
+			double momentum = MomentumFromEnergy(energy, type_event.mass[i]);
+			// get momentum direction from Si strips
+			ROOT::Math::XYZVector direction(0.0, 0.0, 0.0);
+			if (t0_event.flag[i] == 0x3) {
+				direction.SetXYZ(
+					t0_event.x[i][1] - t0_event.x[i][0],
+					t0_event.y[i][1] - t0_event.y[i][0],
+					t0_event.z[i][1] - t0_event.z[i][0]
+				);
+			} else if (t0_event.flag[i] == 0x7) {
+				direction.SetXYZ(
+					t0_event.x[i][2] - t0_event.x[i][0],
+					t0_event.y[i][2] - t0_event.y[i][0],
+					t0_event.z[i][2] - t0_event.z[i][0]
+				);
+			} else {
+				std::cerr << "Error: Should not be here in T0::Particle.\n";
+				return -1;
+			}
+			direction = direction.Unit();
+			// fill px, py, pz
+			particle_event.px[particle_event.num] = direction.X() * momentum;
+			particle_event.py[particle_event.num] = direction.Y() * momentum;
+			particle_event.pz[particle_event.num] = direction.Z() * momentum;
+			++particle_event.num;
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save particle tree
+	particle_file.cd();
+	opt.Write();
+	// close files
+	particle_file.Close();
+	telescope_file.Close();
+
+	return 0;
+}
+
+
+double T0::TotalEnergy(
+	const T0Event &t0,
+	const ParticleTypeEvent &type,
+	const size_t index,
+	const elc::CsiEnergyCalculator &csi_calculator
+) const {
+	// total energy
+	double energy = 0.0;
+	// DSSD layers particle hit
+	size_t dssd_layer = type.layer[index] == 1 ? 1 : 2;
+	for (size_t i = 0; i <= dssd_layer; ++i) {
+		// add calibrated DSSD energy
+		energy += CaliEnergy(i, t0.energy[index][i]);
+	}
+	// return energy if particle stop at T0D2
+	if (dssd_layer == 1) return energy;
+
+	size_t ssd_layer = type.layer[index] < 5 ? type.layer[index] : 5;
+	ssd_layer -= 2;
+	for (size_t i = 0; i < ssd_layer; ++i) {
+		// add calibrated SSD energy
+		energy += CaliEnergy(i+3, t0.ssd_energy[i]);
+	}
+	// return energy if particle stop in Si
+	if (type.layer[index] != 6) return energy;
+
+	double thickness = 0.0;
+	for (size_t i = 0; i < 6; ++i) thickness += t0_thickness[i];
+	// calculate energy in CsI(Tl)
+	double csi_energy = csi_calculator.Energy(
+		0.0, energy, thickness
+	);
+
+std::cout << "\n" << index << "/" << type.num << "\n";
+for (int i = 0; i < 3; ++i) std::cout << CaliEnergy(i, t0.energy[index][i]) << "  ";
+std::cout << "\n";
+for (int i = 0; i < 3; ++i) std::cout << CaliEnergy(i+3, t0.ssd_energy[i]) << "  ";
+std::cout << "\n";
+std::cout << "csi " << csi_energy << "\n";
+std::cout << "total " << energy + csi_energy << "\n";
+
+	
+	// add calculated CsI energy
+	energy += csi_energy;
+	// return energy
+	return energy;
+}
+
 
 }		// namespace ribll
