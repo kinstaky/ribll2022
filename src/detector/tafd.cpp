@@ -4,14 +4,14 @@
 
 namespace ribll {
 
-const ROOT::Math::Polar3DVector tafd_center(0.1025, 0.0, 0.0);
+const ROOT::Math::Polar3DVector tafd_center(135.0, 0.0, 0.0);
 const std::pair<double, double> tafd_radius_ranges[6] = {
-	{0.068, 0.1705},
-	{0.068, 0.1705},
-	{0.068, 0.1705},
-	{0.068, 0.1705},
-	{0.068, 0.1705},
-	{0.068, 0.1705}
+	{68, 170.5},
+	{68, 170.5},
+	{68, 170.5},
+	{68, 170.5},
+	{68, 170.5},
+	{68, 170.5}
 };
 const std::pair<double, double> tafd_phi_ranges[6] = {
 	{117.6*TMath::DegToRad(), 62.4*TMath::DegToRad()},

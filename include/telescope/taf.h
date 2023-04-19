@@ -46,6 +46,12 @@ public:
 	///
 	virtual int CsiCalibrate() override;
 
+
+	/// @brief rebuild the particle from layers of detectors
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Particle() override;
+
 private:
 	unsigned int index_;
 };

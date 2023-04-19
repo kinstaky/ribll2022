@@ -8,6 +8,7 @@
 #include <TGraph.h>
 #include <TH1F.h>
 #include <TMath.h>
+#include <Math/Vector3D.h>
 
 #include "include/event/dssd_event.h"
 #include "include/event/csi_event.h"
@@ -499,7 +500,7 @@ int Taf::ParticleIdentify() {
 		type_event.layer[0] = 0;
 		// only particle hits on TAFD and CsI
 		// could be identified by dE-E method
-		if (tele.flag[0] == 0x3 || tele.flag[0] == 0x7) {
+		if (tele.flag[0] == 0x3 || tele.flag[0] == 0x5) {
 			// delta energy lost in TAFD
 			double &de = tele.energy[0][0];
 			// energy lost in CsI
@@ -509,7 +510,7 @@ int Taf::ParticleIdentify() {
 			// add 2 if theta is over 0.8
 			cut_index += tele.theta[0][0] > 0.8 ? 2 : 0;
 			// add 1 if hit the CsI-B
-			cut_index += tele.flag[0] == 0x7 ? 1 : 0;
+			cut_index += tele.flag[0] == 0x5 ? 1 : 0;
 			// loop the cuts to identify particle
 			for (const auto &cut : cuts[cut_index]) {
 				if (cut.cut->IsInside(e, de)) {
@@ -766,6 +767,145 @@ int Taf::AlphaCalibrate() {
 	}
 	// close output file
 	opf.Close();
+
+	return 0;
+}
+
+
+int Taf::Particle() {
+	// telescope file name
+	TString telescope_file_name;
+	telescope_file_name.Form(
+		"%s%s%s-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// telescope file
+	TFile telescope_file(telescope_file_name, "read");
+	// input telescope tree
+	TTree *ipt = (TTree*)telescope_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< telescope_file_name << " failed.\n";
+		return -1;
+	}
+	// particle type file name
+	TString particle_type_file_name;
+	particle_type_file_name.Form(
+		"%s%s%s-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("type=tree", particle_type_file_name);
+	// input telescope event
+	TaEvent ta_event;
+	// input type event
+	ParticleTypeEvent type_event;
+	// setup input branches
+	ta_event.SetupInput(ipt);
+	type_event.SetupInput(ipt, "type.");
+
+	// output file name
+	TString particle_file_name;
+	particle_file_name.Form(
+		"%s%s%s-particle-%s%04u.root",
+		kGenerateDataPath,
+		kParticleDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile particle_file(particle_file_name, "recreate");
+	// particle tree
+	TTree opt("tree", "taf particles");
+	// output particle event
+	ParticleEvent particle_event;
+	// setup output branches
+	particle_event.SetupOutput(&opt);
+
+	// CsI energy calculators
+	elc::CsiEnergyCalculator csi_calculators[4]{
+		elc::CsiEnergyCalculator("1H"),
+		elc::CsiEnergyCalculator("2H"),
+		elc::CsiEnergyCalculator("3H"),
+		elc::CsiEnergyCalculator("4He")
+	};
+
+	// totla number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Rebuilding particle   0%%");
+	fflush(stdout);
+	// loop events
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		// initialize particle event
+		particle_event.num = 0;
+		if (
+			type_event.num == 1
+			&& type_event.layer[0] == 1
+			&& type_event.charge[0] > 0
+			&& type_event.mass[0] > 0
+		) {
+			particle_event.num = 1;
+			// fill particle charge number
+			particle_event.charge[0] = type_event.charge[0];
+			// fill particle mass number
+			particle_event.mass[0] = type_event.mass[0];
+
+			// TAFD energy
+			double si_energy = ta_event.energy[0][0];
+			// get calculator index, here is a trick.
+			// In calculators array, 0-1H, 1-2H, 2-3H, 3-4He.
+			// The mass number is index+1 in coincidence.
+			size_t calculator_index = type_event.mass[0] - 1;
+			// calculate CsI energy from TAFD energy
+			double csi_energy = csi_calculators[calculator_index].Energy(
+				ta_event.theta[0][0], si_energy, tafd_thick[index_]
+			);
+			// calculate the total energy
+			particle_event.energy[0] = si_energy + csi_energy;
+
+			// calcuate the position
+			ROOT::Math::Polar3DVector position(
+				ta_event.radius[0][0], ta_event.theta[0][0], ta_event.phi[0][0]
+			);
+			particle_event.x[0] = position.X();
+			particle_event.y[0] = position.Y();
+			particle_event.z[0] = position.Z();
+
+			// leave empty momentum since the reaction point is unknown
+			particle_event.px[0] = 0.0;
+			particle_event.py[0] = 0.0;
+			particle_event.pz[0] = 0.0;
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save particle tree
+	particle_file.cd();
+	opt.Write();
+	// close files
+	particle_file.Close();
+	telescope_file.Close();
 
 	return 0;
 }

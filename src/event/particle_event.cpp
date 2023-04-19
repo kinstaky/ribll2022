@@ -10,6 +10,9 @@ void ParticleEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"charge").c_str(), charge);
 	tree->SetBranchAddress((prefix+"mass").c_str(), mass);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
+	tree->SetBranchAddress((prefix+"x").c_str(), x);
+	tree->SetBranchAddress((prefix+"y").c_str(), y);
+	tree->SetBranchAddress((prefix+"z").c_str(), z);
 	tree->SetBranchAddress((prefix+"px").c_str(), px);
 	tree->SetBranchAddress((prefix+"py").c_str(), py);
 	tree->SetBranchAddress((prefix+"pz").c_str(), pz);
@@ -18,9 +21,12 @@ void ParticleEvent::SetupInput(
 
 void ParticleEvent::SetupOutput(TTree *tree) {
 	tree->Branch("num", &num, "num/s");
-	tree->Branch("charge", charge, "z[num]/s");
-	tree->Branch("mass", mass, "a[num]/s");
+	tree->Branch("charge", charge, "Z[num]/s");
+	tree->Branch("mass", mass, "A[num]/s");
 	tree->Branch("energy", energy, "e[num]/D");
+	tree->Branch("x", x, "x[num]/D");
+	tree->Branch("y", y, "y[num]/D");
+	tree->Branch("z", z, "z[num]/D");
 	tree->Branch("px", px, "px[num]/D");
 	tree->Branch("py", py, "py[num]/D");
 	tree->Branch("pz", pz, "pz[num]/D");

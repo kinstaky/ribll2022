@@ -125,6 +125,20 @@ protected:
 	double cali_params_[12];
 };
 
+/// @brief calculate momentum from energy considering relative effects
+/// @param[in] kinetic_energy kinetic energy of particle, in MeV
+/// @param[in] mass mass number of particle
+/// @returns momentum value of particle
+///
+inline double MomentumFromEnergy(double kinetic_energy, double mass) {
+	// atomic mass constant
+	constexpr double u = 931.494;
+	// double energy = kinetic_energy + mass * u;
+	// double p = sqrt(energy * energy - mass*mass*u*u);
+	return sqrt(kinetic_energy * (kinetic_energy + 2.0*mass*u));
+}
+
+
 }		// namespace ribll
 
 #endif		// __TELECOPE_H__

@@ -950,20 +950,6 @@ int T0::Calibrate() {
 }
 
 
-/// @brief calculate momentum from energy considering relative effects
-/// @param[in] kinetic_energy kinetic energy of particle, in MeV
-/// @param[in] mass mass number of particle
-/// @returns momentum value of particle
-///
-double MomentumFromEnergy(double kinetic_energy, double mass) {
-	// atomic mass constant
-	constexpr double u = 931.494;
-	// double energy = kinetic_energy + mass * u;
-	// double p = sqrt(energy * energy - mass*mass*u*u);
-	return sqrt(kinetic_energy * (kinetic_energy + 2.0*mass*u));
-}
-
-
 int T0::Particle() {
 	// telescope file name
 	TString telescope_file_name;
@@ -1061,6 +1047,11 @@ int T0::Particle() {
 				TotalEnergy(t0_event, type_event, i, csi_calculator);
 			// fill energy
 			particle_event.energy[particle_event.num] = energy;
+
+			// set particle position
+			particle_event.x[particle_event.num] = t0_event.x[i][0];
+			particle_event.y[particle_event.num] = t0_event.y[i][0];
+			particle_event.z[particle_event.num] = t0_event.z[i][0];
 
 			// calculate momentum value from energy
 			double momentum = MomentumFromEnergy(energy, type_event.mass[i]);

@@ -149,4 +149,5 @@ int Telescope::WriteCalibrateParameters() const {
 	return 0;
 }
 
+
 }		// namespace ribll

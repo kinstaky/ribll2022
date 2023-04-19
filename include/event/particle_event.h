@@ -28,6 +28,9 @@ public:
 	unsigned short charge[4];
 	unsigned short mass[4];
 	double energy[4];
+	double x[4];
+	double y[4];
+	double z[4];
 	double px[4];
 	double py[4];
 	double pz[4];
