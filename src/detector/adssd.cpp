@@ -27,7 +27,7 @@ ROOT::Math::Polar3DVector Adssd::CalculatePosition(
 }
 
 
-int Adssd::Merge(double energy_diff) {
+int Adssd::Merge(double) {
 	// input file name
 	TString fundamental_file_name;
 	fundamental_file_name.Form(
@@ -39,9 +39,9 @@ int Adssd::Merge(double energy_diff) {
 		run_
 	);
 	// input file
-	TFile *ipf = new TFile(fundamental_file_name, "read");
+	TFile ipf(fundamental_file_name, "read");
 	// input tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< fundamental_file_name << " failed.\n";
@@ -56,7 +56,6 @@ int Adssd::Merge(double energy_diff) {
 	unsigned short *fs = fundamental_event.front_strip;
 	unsigned short *bs = fundamental_event.back_strip;
 	double *fe = fundamental_event.front_energy;
-	double *be = fundamental_event.back_energy;
 
 
 	// output file name
@@ -70,24 +69,40 @@ int Adssd::Merge(double energy_diff) {
 		run_
 	);
 	// output file
-	TFile *opf = new TFile(merge_file_name, "recreate");
-	// relatetive difference of front and back side energy
-	TH1F *hrd = new TH1F(
-		"hrd", "relateive difference of front and back side energy",
-		1000, 0.0, 1.0
-	);
+	TFile opf(merge_file_name, "recreate");
 	// output tree
-	TTree *opt = new TTree("tree", "tree of merged events");
+	TTree opt("tree", "tree of merged events");
 	// output event
 	AdssdMergeEvent merge_event;
 	// setup output branches
-	merge_event.SetupOutput(opt);
+	merge_event.SetupOutput(&opt);
 
-	// read normalized parameters
-	if (ReadNormalizeParameters()) {
-		std::cerr << "Error: Read normalize parameters failed.\n";
+	// calibrated parameters
+	double cali_params[16][2];
+	// calibration parameters file name
+	TString param_file_name;
+	param_file_name.Form(
+		"%s%s%s-alpha-cali-param.txt",
+		kGenerateDataPath,
+		kCalibrationDir,
+		name_.c_str()
+	);
+	// parameters file
+	std::ifstream fin(param_file_name);
+	if (!fin.good()) {
+		std::cerr << "Error: Open file "
+			<< param_file_name << " failed.\n";
 		return -1;
 	}
+	// read parameters from file
+	for (size_t i = 0; i < 16; ++i) {
+		fin >> cali_params[i][0] >> cali_params[i][1];
+		double tmp;
+		fin >> tmp >> tmp >> tmp;
+	}
+	// close parameters file
+	fin.close();
+
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -109,32 +124,26 @@ int Adssd::Merge(double energy_diff) {
 		merge_event.hit = 0;
 
 		if (fhit == 1 && bhit == 1) {
-			if (fe[0] < 1e4 && be[0] < 1e4) {
-				fe[0] = NormEnergy(0, fs[0], fe[0]);
-				be[0] = NormEnergy(1, bs[1], be[0]);
-				double diff = RelativeDifference(fe[0], be[0]);
-				hrd->Fill(diff);
-				if (diff < energy_diff) {
-					merge_event.energy[0] = fe[0];
-					auto position = CalculatePosition(fs[0], bs[0]);
-					merge_event.radius[0] = position.R();
-					merge_event.phi[0] = position.Phi();
-					merge_event.theta[0] = position.Theta();
-					merge_event.hit = 1;
-				}
+			if (fe[0] < 1e4) {
+				fe[0] = cali_params[fs[0]][0] + cali_params[fs[0]][1] * fe[0];
+				merge_event.energy[0] = fe[0];
+				auto position = CalculatePosition(fs[0], bs[0]);
+				merge_event.radius[0] = position.R();
+				merge_event.phi[0] = position.Phi();
+				merge_event.theta[0] = position.Theta();
+				merge_event.hit = 1;
 			}
 		}
 
-		opt->Fill();
+		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
 	// save and close files
-	hrd->Write();
-	opt->Write();
-	opf->Close();
-	ipf->Close();
+	opt.Write();
+	opf.Close();
+	ipf.Close();
 
 	return 0;
 }

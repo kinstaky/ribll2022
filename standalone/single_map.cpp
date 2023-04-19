@@ -22,7 +22,7 @@ void PrintUsage(const char *name) {
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -n                Map without threshold.\n"
-		"  -i				 Map crate3 independent to XIA.\n";
+		"  -i                Map crate3 independent to XIA.\n";
 	return;
 }
 

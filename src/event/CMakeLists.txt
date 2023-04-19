@@ -12,7 +12,7 @@ set(
 	${EVENT_INCLUDE_DIR}/ssd_event.h
 	${EVENT_INCLUDE_DIR}/tof_event.h
 	${EVENT_INCLUDE_DIR}/trigger_event.h
-	${EVENT_INCLUDE_DIR}/telescope_event.h
+	${EVENT_INCLUDE_DIR}/ta_event.h
 	${EVENT_INCLUDE_DIR}/t0_event.h
 	${EVENT_INCLUDE_DIR}/particle_type_event.h
 	${EVENT_INCLUDE_DIR}/particle_event.h
@@ -26,7 +26,7 @@ set(
 	ssd_event.cpp
 	tof_event.cpp
 	trigger_event.cpp
-	telescope_event.cpp
+	ta_event.cpp
 	t0_event.cpp
 	particle_type_event.cpp
 	particle_event.cpp

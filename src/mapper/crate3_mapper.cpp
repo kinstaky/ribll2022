@@ -279,9 +279,15 @@ int Crate3Mapper::Map(bool independent) {
 				}
 			}
 			if (
-				dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
+				!independent
+				&& dssd_event_.front_hit > 0 && dssd_event_.front_hit <= 8
 				&& dssd_event_.back_hit > 0 && dssd_event_.back_hit <= 8
 			) {
+				FillTree(tafd_index[i]);
+			} else if (
+				independent && dssd_event_.front_hit == 1
+			) {
+				dssd_event_.back_hit = 0;
 				FillTree(tafd_index[i]);
 			}
 		}
