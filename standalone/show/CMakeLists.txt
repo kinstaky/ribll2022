@@ -73,6 +73,10 @@ target_link_libraries(
 	show_t0_center PRIVATE event ROOT::Graf
 )
 
-# show t0 pid
+# show T0 pid
 add_executable(show_t0_pid show_t0_pid.cpp)
 target_link_libraries(show_t0_pid PRIVATE event ROOT::Hist)
+
+# show TAF pid
+add_executable(show_taf_pid show_taf_pid.cpp)
+target_link_libraries(show_taf_pid PRIVATE event ROOT::Hist)

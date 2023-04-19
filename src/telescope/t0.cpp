@@ -1138,15 +1138,6 @@ double T0::TotalEnergy(
 		0.0, energy, thickness
 	);
 
-std::cout << "\n" << index << "/" << type.num << "\n";
-for (int i = 0; i < 3; ++i) std::cout << CaliEnergy(i, t0.energy[index][i]) << "  ";
-std::cout << "\n";
-for (int i = 0; i < 3; ++i) std::cout << CaliEnergy(i+3, t0.ssd_energy[i]) << "  ";
-std::cout << "\n";
-std::cout << "csi " << csi_energy << "\n";
-std::cout << "total " << energy + csi_energy << "\n";
-
-	
 	// add calculated CsI energy
 	energy += csi_energy;
 	// return energy

@@ -63,10 +63,10 @@ const double alpha_fit_range[6][16][6] = {
 		{2005.0, 2040.0, 2130.0, 2170.0, 2260.0, 2300.0},
 		{1995.0, 2025.0, 2125.0, 2155.0, 2250.0, 2280.0},
 		{2025.0, 2060.0, 2145.0, 2195.0, 2270.0, 2320.0},
-		{2025.0, 2375.0, 2160.0, 2205.0, 2285.0, 2330.0},
+		{2025.0, 2075.0, 2160.0, 2205.0, 2285.0, 2330.0},
 		{2010.0, 2050.0, 2140.0, 2185.0, 2265.0, 2300.0},
 		{2040.0, 2070.0, 2175.0, 2210.0, 2300.0, 2330.0},
-		{1970.0, 2010.0, 2100.0, 2135.0, 2220.0, 2250.0},
+		{1970.0, 2010.0, 2100.0, 2135.0, 2220.0, 2260.0},
 		{2035.0, 2075.0, 2165.0, 2200.0, 2270.0, 2330.0},
 		{2045.0, 2085.0, 2180.0, 2220.0, 2300.0, 2345.0},
 		{1945.0, 1995.0, 2075.0, 2115.0, 2195.0, 2245.0},
@@ -150,18 +150,18 @@ const double alpha_fit_range[6][16][6] = {
 };
 
 // particle types
-const size_t particle_types = 5;
+const size_t particle_types = 4;
 // particle names
 const char* const particle_names[particle_types] = {
-	"1H", "2H", "3H", "4He", "3He"
+	"1H", "2H", "3H", "4He"
 };
 // particle mass
 const unsigned int particles_mass[particle_types] = {
-	1, 2, 3, 4, 3
+	1, 2, 3, 4
 };
 // particle charge
 const unsigned int particles_charge[particle_types] = {
-	1, 1, 1, 2, 2
+	1, 1, 1, 2
 };
 // isotope types
 const size_t isotope_types = 2;
@@ -171,7 +171,7 @@ const size_t isotope_index[isotope_types] = {0, 3};
 const size_t theta_types = 2;
 // phi angle names
 const char* const theta_names[theta_types] = {
-	"l08", "g08"
+	"l8", "g8"
 };
 
 
@@ -350,7 +350,7 @@ int Taf::Track(double) {
 			tele.flag[i] = 0;
 		}
 
-		if (tafd.hit == 1) {
+		if (tafd.hit == 1 && tafd.energy[0] < 40.0) {
 			++total;
 
 			// record this tafd layer
@@ -364,7 +364,7 @@ int Taf::Track(double) {
 			// whether there two signal in CsI
 			bool conflict = false;
 			for (unsigned int i = 0; i < 2; ++i) {
-				unsigned int csi_index = index_ * 2 + i;
+				int csi_index = index_ * 2 + i;
 				if (tafcsi.time[csi_index] < -9e4) continue;
 				double max_phi = csi_index < 10
 					? 120 - 30 * csi_index
@@ -375,7 +375,6 @@ int Taf::Track(double) {
 					: 450 - 30 * csi_index;
 				min_phi *= TMath::DegToRad();
 				if (tafd.phi[0] > max_phi || tafd.phi[0] < min_phi) continue;
-
 				// check if conflict
 				if (
 					(tele.flag[tele.num] & 0x2) != 0
@@ -394,7 +393,7 @@ int Taf::Track(double) {
 			}
 		}
 
-		if (tele.num > 0) ++match;
+		if (tele.num > 0 && tele.flag[0] > 0x1) ++match;
 
 		opt.Fill();
 	}
@@ -426,9 +425,9 @@ int Taf::ParticleIdentify() {
 		run_
 	);
 	// input file
-	TFile *ipf = new TFile(input_file_name, "read");
+	TFile ipf(input_file_name, "read");
 	// input tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< input_file_name << " failed.\n";
@@ -450,28 +449,25 @@ int Taf::ParticleIdentify() {
 		run_
 	);
 	// output file
-	TFile *opf = new TFile(output_file_name, "recreate");
+	TFile opf(output_file_name, "recreate");
 	// output tree
-	TTree *opt = new TTree("tree", "particle type");
+	TTree opt("tree", "particle type");
 	// output data
-	// particle number
-	unsigned short particle_num;
-	// A, mass number of particle
-	unsigned int mass[4];
-	// Z, change number of particle
-	unsigned int charge[4];
+	ParticleTypeEvent type_event;
 	// setup output branches
-	opt->Branch("particle", &particle_num, "p/s");
-	opt->Branch("mass", mass, "a[p]/i");
-	opt->Branch("charge", charge, "z[p]/i");
+	type_event.SetupOutput(&opt);
 
 	// read cut from files
-	std::unique_ptr<TCutG> pid_cuts[particle_types*theta_types];
-	for (size_t i = 0; i < theta_types; ++i) {
-		for (size_t j = 0; j < particle_types; ++j) {
-			auto cut = ReadCut(theta_names[i], particle_names[j]);
-			if (!cut) return -1;
-			pid_cuts[i*particle_types+j] = std::move(cut);
+	std::vector<ParticleCut> cuts[4];
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < 2; ++j) {
+			std::string cut_tag;
+			cut_tag = i == 0 ? "l8" : "g8";
+			cut_tag += j == 0 ? "-a" : "-b";
+			cuts[i*2+j].push_back({1, 1, ReadCut(cut_tag.c_str(), "1H")});
+			cuts[i*2+j].push_back({1, 2, ReadCut(cut_tag.c_str(), "2H")});
+			cuts[i*2+j].push_back({1, 3, ReadCut(cut_tag.c_str(), "3H")});
+			cuts[i*2+j].push_back({2, 4, ReadCut(cut_tag.c_str(), "4He")});
 		}
 	}
 
@@ -480,7 +476,7 @@ int Taf::ParticleIdentify() {
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
-	printf("Identifying particle   0%%");
+	printf("Identifying %s particle   0%%", name_.c_str());
 	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
@@ -490,33 +486,49 @@ int Taf::ParticleIdentify() {
 		}
 		// get event
 		ipt->GetEntry(entry);
-		particle_num = tele.num;
-		if (tele.num == 1 && tele.flag[0] == 0x3) {
-			// initialize
-			mass[0] = 0;
-			// point position in pid graph
-			double x = tele.energy[0][1];
-			double y = tele.energy[0][0];
-			// cut index offset in case theta angle difference
-			size_t cut_offset = tele.theta[0][0] < 0.8 ? 0 : particle_types;
-			// particle identification
-			for (size_t i = 0; i < particle_types; ++i) {
-				if (pid_cuts[cut_offset+i]->IsInside(x, y)) {
-					mass[0] = particles_mass[i];
-					charge[0] = particles_charge[i];
+		type_event.num = tele.num;
+		// throw more than one particle or zero particle events
+		if (type_event.num != 1) {
+			type_event.num = 0;
+			opt.Fill();
+			continue;
+		}
+		// initialize
+		type_event.mass[0] = 0;
+		type_event.charge[0] = 0;
+		type_event.layer[0] = 0;
+		// only particle hits on TAFD and CsI
+		// could be identified by dE-E method
+		if (tele.flag[0] == 0x3 || tele.flag[0] == 0x7) {
+			// delta energy lost in TAFD
+			double &de = tele.energy[0][0];
+			// energy lost in CsI
+			double &e = tele.energy[0][1];
+			// cut index to choose series of cuts
+			size_t cut_index = 0;
+			// add 2 if theta is over 0.8
+			cut_index += tele.theta[0][0] > 0.8 ? 2 : 0;
+			// add 1 if hit the CsI-B
+			cut_index += tele.flag[0] == 0x7 ? 1 : 0;
+			// loop the cuts to identify particle
+			for (const auto &cut : cuts[cut_index]) {
+				if (cut.cut->IsInside(e, de)) {
+					type_event.charge[0] = cut.charge;
+					type_event.mass[0] = cut.mass;
+					type_event.layer[0] = 1;
 					break;
 				}
 			}
 		}
-		opt->Fill();
+		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
 	// save and close files
-	opt->Write();
-	opf->Close();
-	ipf->Close();
+	opt.Write();
+	opf.Close();
+	ipf.Close();
 
 	return 0;
 }

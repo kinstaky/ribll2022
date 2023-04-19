@@ -14,6 +14,8 @@
 #include "include/calculator/range_energy_calculator.h"
 #include "include/calculator/delta_energy_calculator.h"
 #include "include/calculator/csi_energy_calculator.h"
+#include "include/event/particle_type_event.h"
+#include "include/event/particle_event.h"
 
 namespace ribll {
 

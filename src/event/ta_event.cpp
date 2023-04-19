@@ -16,7 +16,7 @@ void TaEvent::SetupInput(
 
 
 void TaEvent::SetupOutput(TTree *tree) {
-	tree->Branch("particle", &num, "num/s");
+	tree->Branch("num", &num, "num/s");
 	tree->Branch("flag", flag, "f[num]/s");
 	tree->Branch("energy", energy, "e[num][4]/D");
 	tree->Branch("radius", radius, "r[num][4]/D");
