@@ -46,8 +46,12 @@ add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate PUBLIC telescopes)
 
 # particle
-add_executable(particle particle.cpp)
-target_link_libraries(particle PRIVATE telescopes)
+add_executable(rebuild rebuild.cpp)
+target_link_libraries(rebuild PRIVATE telescopes)
+
+# coincide
+add_executable(coincide coincide.cpp)
+target_link_libraries(coincide PRIVATE channel)
 
 # # ppac correlation
 # add_executable(ppac_correlation ppac_correlation.cpp)

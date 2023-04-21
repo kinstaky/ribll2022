@@ -1,5 +1,6 @@
 #include "include/telescope/t0.h"
 
+#include <TChain.h>
 #include <TF1.h>
 #include <TGraph.h>
 #include <TH1F.h>
@@ -768,24 +769,37 @@ private:
 };
 
 int T0::Calibrate() {
-	// telescope file name
-	TString telescope_file_name;
-	telescope_file_name.Form(
-		"%s%st0-telescope-%s%04u.root",
-		kGenerateDataPath,
-		kTelescopeDir,
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
-	);
-	// telescope file
-	TFile telescope_file(telescope_file_name, "read");
-	// telescope tree
-	TTree *ipt = (TTree*)telescope_file.Get("tree");
-	if (!ipt) {
-		std::cerr << "Error: Get tree from "
-			<< telescope_file_name << " failed.\n";
-		return -1;
+	// // telescope file name
+	// TString telescope_file_name;
+	// telescope_file_name.Form(
+	// 	"%s%st0-telescope-%s%04u.root",
+	// 	kGenerateDataPath,
+	// 	kTelescopeDir,
+	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
+	// 	run_
+	// );
+	// // telescope file
+	// TFile telescope_file(telescope_file_name, "read");
+	// // telescope tree
+	// TTree *ipt = (TTree*)telescope_file.Get("tree");
+	// if (!ipt) {
+	// 	std::cerr << "Error: Get tree from "
+	// 		<< telescope_file_name << " failed.\n";
+	// 	return -1;
+	// }
+
+	TChain *ipt = new TChain("chain", "chain ot T0 events");
+	for (int i = 618; i <= 652; ++i) {
+		if (i == 628) continue;
+		ipt->AddFile(TString::Format(
+			"%s%st0-telescope-%s%04d.root/tree",
+			kGenerateDataPath,
+			kTelescopeDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			i
+		));
 	}
+
 	// input telescope event
 	T0Event t0_event;
 	// setup input branches
@@ -935,7 +949,7 @@ int T0::Calibrate() {
 	// save parameters to txt file
 	if (WriteCalibrateParameters()) {
 		calibration_file.Close();
-		telescope_file.Close();
+		// telescope_file.Close();
 		return -1;
 	}
 
@@ -944,13 +958,13 @@ int T0::Calibrate() {
 	e_vs_de_offset.Write("gcali");
 	// close files
 	calibration_file.Close();
-	telescope_file.Close();
+	// telescope_file.Close();
 
 	return 0;
 }
 
 
-int T0::Particle() {
+int T0::Rebuild() {
 	// telescope file name
 	TString telescope_file_name;
 	telescope_file_name.Form(
@@ -1048,36 +1062,61 @@ int T0::Particle() {
 			// fill energy
 			particle_event.energy[particle_event.num] = energy;
 
-			// set particle position
+			// set particle position, T0D1 may has the best resolution
 			particle_event.x[particle_event.num] = t0_event.x[i][0];
 			particle_event.y[particle_event.num] = t0_event.y[i][0];
 			particle_event.z[particle_event.num] = t0_event.z[i][0];
 
-			// calculate momentum value from energy
-			double momentum = MomentumFromEnergy(energy, type_event.mass[i]);
-			// get momentum direction from Si strips
-			ROOT::Math::XYZVector direction(0.0, 0.0, 0.0);
-			if (t0_event.flag[i] == 0x3) {
-				direction.SetXYZ(
-					t0_event.x[i][1] - t0_event.x[i][0],
-					t0_event.y[i][1] - t0_event.y[i][0],
-					t0_event.z[i][1] - t0_event.z[i][0]
-				);
-			} else if (t0_event.flag[i] == 0x7) {
-				direction.SetXYZ(
-					t0_event.x[i][2] - t0_event.x[i][0],
-					t0_event.y[i][2] - t0_event.y[i][0],
-					t0_event.z[i][2] - t0_event.z[i][0]
-				);
-			} else {
-				std::cerr << "Error: Should not be here in T0::Particle.\n";
-				return -1;
-			}
-			direction = direction.Unit();
-			// fill px, py, pz
-			particle_event.px[particle_event.num] = direction.X() * momentum;
-			particle_event.py[particle_event.num] = direction.Y() * momentum;
-			particle_event.pz[particle_event.num] = direction.Z() * momentum;
+			// if (t0_event.flag[i] == 0x3) {
+			// 	particle_event.x[particle_event.num] = t0_event.x[i][1];
+			// 	particle_event.y[particle_event.num] = t0_event.y[i][1];
+			// 	particle_event.z[particle_event.num] = t0_event.z[i][1];
+			// } else if (t0_event.flag[i] == 0x7) {
+			// 	particle_event.x[particle_event.num] = t0_event.x[i][2];
+			// 	particle_event.y[particle_event.num] = t0_event.y[i][2];
+			// 	particle_event.z[particle_event.num] = t0_event.z[i][2];
+			// } else {
+			// 	std::cerr << "Error: Should not be here in T0::Particle.\n";
+			// 	return -1;
+			// }
+
+
+			// leave momentum empty
+			particle_event.px[particle_event.num] = 0.0;
+			particle_event.py[particle_event.num] = 0.0;
+			particle_event.pz[particle_event.num] = 0.0;
+
+			// // calculate momentum value from energy
+			// double momentum = MomentumFromEnergy(energy, AccurateMass(type_event.mass[i]));
+			// // get momentum direction from Si strips
+			// ROOT::Math::XYZVector direction(0.0, 0.0, 0.0);
+			// if (t0_event.flag[i] == 0x3) {
+			// 	// direction.SetXYZ(
+			// 	// 	t0_event.x[i][1] - t0_event.x[i][0],
+			// 	// 	t0_event.y[i][1] - t0_event.y[i][0],
+			// 	// 	t0_event.z[i][1] - t0_event.z[i][0]
+			// 	// );
+			// 	direction.SetXYZ(
+			// 		t0_event.x[i][1], t0_event.y[i][1], t0_event.z[i][1]
+			// 	);
+			// } else if (t0_event.flag[i] == 0x7) {
+			// 	// direction.SetXYZ(
+			// 	// 	t0_event.x[i][2] - t0_event.x[i][0],
+			// 	// 	t0_event.y[i][2] - t0_event.y[i][0],
+			// 	// 	t0_event.z[i][2] - t0_event.z[i][0]
+			// 	// );
+			// 	direction.SetXYZ(
+			// 		t0_event.x[i][2], t0_event.y[i][2], t0_event.z[i][2]
+			// 	);
+			// } else {
+			// 	std::cerr << "Error: Should not be here in T0::Particle.\n";
+			// 	return -1;
+			// }
+			// direction = direction.Unit();
+			// // fill px, py, pz
+			// particle_event.px[particle_event.num] = direction.X() * momentum;
+			// particle_event.py[particle_event.num] = direction.Y() * momentum;
+			// particle_event.pz[particle_event.num] = direction.Z() * momentum;
 			++particle_event.num;
 		}
 		opt.Fill();

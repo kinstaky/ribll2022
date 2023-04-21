@@ -37,7 +37,7 @@ void MergeCaseStatistics::Print() const {
 
 
 std::string MergeCaseStatistics::Title() const {
-	return "run,detector,tag,case,minor,tolerance,total,merge"+title_time;
+	return "run,detector,tag,case,minor,tolerance,total,merge,rate"+title_time;
 }
 
 

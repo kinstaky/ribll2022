@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (telescope->Particle()) {
+	if (telescope->Rebuild()) {
 		std::cerr << "Error: Idnetify particle in " << telescope_name << " failed.\n";
 		return -1;
 	}

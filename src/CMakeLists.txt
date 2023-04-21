@@ -50,3 +50,7 @@ target_link_libraries(
 	telescopes
 	PUBLIC taf t0
 )
+
+# channels
+add_library(channel channel.cpp ${PROJECT_INCLUDE_DIR}/channel.h)
+target_link_libraries(channel PUBLIC event ROOT::Core ROOT::RIO ROOT::Tree)

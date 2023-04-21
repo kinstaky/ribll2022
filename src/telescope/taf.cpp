@@ -772,7 +772,7 @@ int Taf::AlphaCalibrate() {
 }
 
 
-int Taf::Particle() {
+int Taf::Rebuild() {
 	// telescope file name
 	TString telescope_file_name;
 	telescope_file_name.Form(

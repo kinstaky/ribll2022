@@ -16,6 +16,7 @@ set(
 	${EVENT_INCLUDE_DIR}/t0_event.h
 	${EVENT_INCLUDE_DIR}/particle_type_event.h
 	${EVENT_INCLUDE_DIR}/particle_event.h
+	${EVENT_INCLUDE_DIR}/channel_event.h
 )
 
 set(
@@ -30,6 +31,7 @@ set(
 	t0_event.cpp
 	particle_type_event.cpp
 	particle_event.cpp
+	channel_event.cpp
 )
 
 # event library

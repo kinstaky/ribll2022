@@ -34,6 +34,7 @@ const char* const kTelescopeDir = "telescope/";
 const char* const kCalibrationDir = "calibration/";
 const char* const kParticleIdentifyDir = "pid/";
 const char* const kParticleDir = "particle/";
+const char* const kChannelDir = "channel/";
 
 const char* const kCheckDir = "check/";
 const char* const kShowDir = "show/";
