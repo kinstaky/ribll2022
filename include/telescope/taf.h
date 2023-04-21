@@ -35,12 +35,6 @@ public:
 	virtual int Calibrate() override;
 
 
-	/// @brief calibrate with alpha source
-	/// @returns 0 if success, -1 otherwise
-	///
-	virtual int AlphaCalibrate() override;
-
-
 	/// @brief calibrate csi with pid
 	/// @returns 0 if success, -1 otherwise
 	///

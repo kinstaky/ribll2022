@@ -3,13 +3,14 @@
 #include <string>
 
 #include "include/telescopes.h"
+#include "include/detectors.h"
 
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run telescope\n"
-		"  run               Set run number\n"
-		"  telescope         Set telescope name\n"
+	std::cout << "Usage: " << name << " [options] run name\n"
+		"  run               Set run number.\n"
+		"  name              Set telescope/detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n"
@@ -116,8 +117,19 @@ int main(int argc, char **argv) {
 	std::shared_ptr<Telescope> telescope =
 		CreateTelescope(telescope_name, run, tag);
 	if (!telescope) {
-		std::cerr << "Error: Telescope " << telescope_name << " not found.\n";
-		return -1;
+		std::shared_ptr<Detector> detector =
+			CreateDetector(telescope_name, run, tag);
+		if (!detector) {
+			std::cerr << "Error: Telescope/Detector "
+				<< telescope_name << " not found.\n";
+			return -1;
+		}
+		if (detector->Calibrate()) {
+			std::cerr << "Error: Calibrate "
+				<< telescope_name<< " failed.\n";
+			return -1;
+		}
+		return 0;
 	}
 
 	if (alpha) {

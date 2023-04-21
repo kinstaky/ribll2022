@@ -80,14 +80,20 @@ int Detector::ReadTriggerTimes(std::vector<double> &trigger_times) {
 
 int Detector::MatchTrigger(double, double) {
 	// do nothing but report error
-	std::cerr << "Error: MatchTrigger is not implemented yet.\n";
+	std::cerr << "Error: Detector::MatchTrigger is not implemented yet.\n";
 	return -1;
 }
 
 
 int Detector::ExtractTrigger(double, double) {
 	// do nothing but report error
-	std::cerr << "Error: ExtractTrigger is not implemented yet.\n";
+	std::cerr << "Error: Detector::ExtractTrigger is not implemented yet.\n";
+	return -1;
+}
+
+
+int Detector::Calibrate() {
+	std::cerr << "Error: Detector::Calibrate is not implemented yet.\n";
 	return -1;
 }
 

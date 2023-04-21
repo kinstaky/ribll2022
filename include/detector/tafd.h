@@ -42,6 +42,12 @@ public:
 		double window_right
 	) override;
 
+
+	/// @brief calibrate with alpha source
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Calibrate() override;
+
 protected:
 
 	/// @brief normalize both sides, the true normalize

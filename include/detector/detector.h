@@ -107,6 +107,14 @@ public:
 		)
 	);
 
+	//-------------------------------------------------------------------------
+	//							Calibrate
+	//-------------------------------------------------------------------------
+
+	/// @brief calibrate
+	/// @returns 0 if success, -1 otherwise
+	virtual int Calibrate();
+
 protected:
 	// run number
 	unsigned int run_;

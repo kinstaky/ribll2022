@@ -43,7 +43,7 @@ target_link_libraries(pid PUBLIC telescopes)
 
 # calibrate
 add_executable(calibrate calibrate.cpp)
-target_link_libraries(calibrate PUBLIC telescopes)
+target_link_libraries(calibrate PUBLIC detectors telescopes)
 
 # particle
 add_executable(rebuild rebuild.cpp)
