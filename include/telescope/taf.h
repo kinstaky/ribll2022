@@ -30,15 +30,17 @@ public:
 
 
 	/// @brief calibrate this telescope
+	/// @param[in] length number of run to chain
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Calibrate() override;
+	virtual int Calibrate(unsigned int length) override;
 
 
 	/// @brief calibrate csi with pid
+	/// @param[in] length number of runs to chain
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int CsiCalibrate() override;
+	virtual int CsiCalibrate(unsigned int length) override;
 
 
 	/// @brief rebuild the particle from layers of detectors
@@ -46,8 +48,22 @@ public:
 	///
 	virtual int Rebuild() override;
 
+protected:
+
+	/// @brief read CsI calibrate parameters from file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int ReadCsiCalibrateParameters();
+
+
+	/// @brief write CsI calibrate parameters to file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteCsiCalibrateParameters();
+
 private:
 	unsigned int index_;
+	double csi_calibrate_params_[4][4][3];
 };
 
 }		// namespace ribll

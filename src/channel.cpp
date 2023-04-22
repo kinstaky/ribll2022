@@ -248,6 +248,7 @@ int T0TAFChannel::Coincide() {
 				taf[i].num == 1
 				&& taf[i].charge[0] == charges_[t0_num]
 				&& taf[i].mass[0] == masses_[t0_num]
+				&& taf[i].energy[0] > -9e4
 			) {
 				++valid;
 				taf_index = i;

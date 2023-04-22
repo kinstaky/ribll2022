@@ -60,9 +60,10 @@ public:
 
 
 	/// @brief calibrate this telescope
+	/// @param[in] length number of runs to chain
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Calibrate();
+	virtual int Calibrate(unsigned int length);
 
 
 	/// @brief calibrate with alpha source
@@ -72,9 +73,10 @@ public:
 
 
 	/// @brief calibrate csi with pid
+	/// @param[in] length number of runs to chain
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int CsiCalibrate();
+	virtual int CsiCalibrate(unsigned int length);
 
 
 	/// @brief get layers of Si detector

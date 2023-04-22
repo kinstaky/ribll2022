@@ -739,6 +739,7 @@ const std::vector<ParticlePidInfo> pid_info {
 	{4, 2, 2, 4, 13'500.0, 22'500.0, 120'000.0}
 };
 
+
 class PidFitFunc {
 public:
 	PidFitFunc(
@@ -768,31 +769,13 @@ private:
 	std::vector<elc::DeltaEnergyCalculator> calculators_;
 };
 
-int T0::Calibrate() {
-	// // telescope file name
-	// TString telescope_file_name;
-	// telescope_file_name.Form(
-	// 	"%s%st0-telescope-%s%04u.root",
-	// 	kGenerateDataPath,
-	// 	kTelescopeDir,
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
-	// // telescope file
-	// TFile telescope_file(telescope_file_name, "read");
-	// // telescope tree
-	// TTree *ipt = (TTree*)telescope_file.Get("tree");
-	// if (!ipt) {
-	// 	std::cerr << "Error: Get tree from "
-	// 		<< telescope_file_name << " failed.\n";
-	// 	return -1;
-	// }
 
-	TChain *ipt = new TChain("chain", "chain ot T0 events");
-	for (int i = 618; i <= 652; ++i) {
+int T0::Calibrate(unsigned int length) {
+	TChain ipt("chain", "chain of T0 events");
+	for (unsigned int i = run_; i < run_+length; ++i) {
 		if (i == 628) continue;
-		ipt->AddFile(TString::Format(
-			"%s%st0-telescope-%s%04d.root/tree",
+		ipt.AddFile(TString::Format(
+			"%s%st0-telescope-%s%04u.root/tree",
 			kGenerateDataPath,
 			kTelescopeDir,
 			tag_.empty() ? "" : (tag_+"-").c_str(),
@@ -803,7 +786,7 @@ int T0::Calibrate() {
 	// input telescope event
 	T0Event t0_event;
 	// setup input branches
-	t0_event.SetupInput(ipt);
+	t0_event.SetupInput(&ipt);
 
 	// output calibration root file name
 	TString calibration_file_name;
@@ -854,7 +837,7 @@ int T0::Calibrate() {
 	type_event.num = 1;
 
 	// total number of entries
-	long long entries = ipt->GetEntries();
+	long long entries = ipt.GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -868,7 +851,7 @@ int T0::Calibrate() {
 			fflush(stdout);
 		}
 		// get event
-		ipt->GetEntry(entry);
+		ipt.GetEntry(entry);
 		// initialize type event
 		type_event.charge[0] = type_event.mass[0] = 0;
 		// only use num==1 events to calibrate

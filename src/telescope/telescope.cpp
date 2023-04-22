@@ -30,7 +30,7 @@ int Telescope::ParticleIdentify() {
 	return -1;
 }
 
-int Telescope::Calibrate() {
+int Telescope::Calibrate(unsigned int) {
 	std::cerr << "Error: Telescope::Calibrate not implemented yet.\n";
 	return -1;
 }
@@ -42,7 +42,7 @@ int Telescope::AlphaCalibrate() {
 }
 
 
-int Telescope::CsiCalibrate() {
+int Telescope::CsiCalibrate(unsigned int) {
 	std::cerr << "Error: Telescope::CsiCalibrate not implemented yet.\n";
 	return -1;
 }
@@ -95,14 +95,6 @@ std::unique_ptr<TCutG> Telescope::ReadCut(
 int Telescope::ReadCalibrateParameters() {
 	// parameters file name
 	TString file_name;
-	// file_name.Form(
-	// 	"%s%s%s-calibration-param-%s%04u.txt",
-	// 	kGenerateDataPath,
-	// 	kCalibrationDir,
-	// 	name_.c_str(),
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
 	file_name.Form(
 		"%s%s%s-calibration-param%s.txt",
 		kGenerateDataPath,
@@ -131,14 +123,6 @@ int Telescope::ReadCalibrateParameters() {
 int Telescope::WriteCalibrateParameters() const {
 	// parameters file name
 	TString file_name;
-	// file_name.Form(
-	// 	"%s%s%s-calibration-param-%s%04u.txt",
-	// 	kGenerateDataPath,
-	// 	kCalibrationDir,
-	// 	name_.c_str(),
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
 	file_name.Form(
 		"%s%s%s-calibration-param%s.txt",
 		kGenerateDataPath,

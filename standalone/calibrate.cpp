@@ -8,8 +8,9 @@
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run name\n"
+	std::cout << "Usage: " << name << " [options] run length name\n"
 		"  run               Set run number.\n"
+		"  length            Set length of runs to chain.\n"
 		"  name              Set telescope/detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
@@ -71,7 +72,7 @@ int ParseArguments(
 }
 
 int main(int argc, char **argv) {
-	if (argc < 2) {
+	if (argc < 3) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -92,7 +93,6 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return 0;
 	}
-
 	if (pos_start < 0) {
 		if (-pos_start < argc) {
 			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
@@ -102,17 +102,17 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
-
-	if (pos_start + 1 >= argc) {
+	if (pos_start + 2 >= argc) {
 		// positional arguments less than 3
-		std::cerr << "Error: Miss telescope argument.\n";
+		std::cerr << "Error: Miss name argument.\n";
 		PrintUsage(argv[0]);
 		return -1;
 	}
 
 
 	int run = atoi(argv[pos_start]);
-	std::string name = argv[pos_start+1];
+	int length = atoi(argv[pos_start+1]);
+	std::string name = argv[pos_start+2];
 
 	if (name.size() == 5 && name.substr(0, 4) == "tafd") {
 		std::shared_ptr<Detector> detector = CreateDetector(name, run, tag);
@@ -139,13 +139,13 @@ int main(int argc, char **argv) {
 				return -1;
 			}
 		} else if (csi) {
-			if (telescope->CsiCalibrate()) {
+			if (telescope->CsiCalibrate(length)) {
 				std::cerr << "Error: Calibrate CsI(Tl) in "
 					<< name << " failed.\n";
 				return -1;
 			}
 		} else {
-			if (telescope->Calibrate()) {
+			if (telescope->Calibrate(length)) {
 				std::cerr << "Error: Calibrate "
 					<< name << " failed.\n";
 				return -1;

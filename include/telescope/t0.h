@@ -32,9 +32,10 @@ public:
 
 
 	/// @brief calibrate this telescope
+	/// @param[in] length number of run to chain
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Calibrate() override;
+	virtual int Calibrate(unsigned int length) override;
 
 
 	/// @brief get layers of Si detector
