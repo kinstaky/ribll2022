@@ -3,6 +3,7 @@
 #include <string>
 
 #include "include/telescopes.h"
+#include "include/detector/ppac.h"
 
 using namespace ribll;
 
@@ -59,7 +60,7 @@ int ParseArguments(
 }
 
 int main(int argc, char **argv) {
-	if (argc < 4) {
+	if (argc < 3) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -95,21 +96,29 @@ int main(int argc, char **argv) {
 	}
 
 
-	int run = atoi(argv[pos_start]);
-	std::string telescope_name = argv[pos_start+1];
+	unsigned int run = atoi(argv[pos_start]);
+	std::string name = argv[pos_start+1];
 	double tolerance = 0.0;
 	if (pos_start + 2 < argc) tolerance = atof(argv[pos_start+2]);
 
-	std::shared_ptr<Telescope> telescope =
-		CreateTelescope(telescope_name, run, tag);
-	if (!telescope) {
-		std::cerr << "Error: Telescope " << telescope_name << " not found.\n";
-		return -1;
+	if (name == "xppac" || name == "vppac") {
+		Ppac ppac(run, name, tag);
+		if (ppac.Track()) {
+			std::cerr << "Error: Track " << name << " failed.\n";
+			return -1;
+		}
+	} else {
+		std::shared_ptr<Telescope> telescope =
+			CreateTelescope(name, run, tag);
+		if (!telescope) {
+			std::cerr << "Error: Telescope " << name << " not found.\n";
+			return -1;
+		}
+		if (telescope->Track(tolerance)) {
+			std::cerr << "Error: Track " << name << " failed.\n";
+			return -1;
+		}
 	}
 
-	if (telescope->Track(tolerance)) {
-		std::cerr << "Error: Track " << telescope_name << " failed.\n";
-		return -1;
-	}
 	return 0;
 }

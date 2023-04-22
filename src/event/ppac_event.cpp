@@ -51,4 +51,23 @@ void PpacFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("anode", anode, "a[3]/D");
 }
 
+
+void PpacMergeEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"xflag").c_str(), &xflag);
+	tree->SetBranchAddress((prefix+"yflag").c_str(), &yflag);
+	tree->SetBranchAddress((prefix+"x").c_str(), x);
+	tree->SetBranchAddress((prefix+"y").c_str(), y);
+}
+
+
+void PpacMergeEvent::SetupOutput(TTree *tree) {
+	tree->Branch("xflag", &xflag, "xflag/s");
+	tree->Branch("yflag", &yflag, "yflag/s");
+	tree->Branch("x", x, "x[3]/D");
+	tree->Branch("y", y, "y[3]/D");
+}
+
 }

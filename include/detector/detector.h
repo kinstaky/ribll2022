@@ -115,6 +115,12 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	virtual int Calibrate();
 
+
+	/// @brief merge somethin
+	/// @param[in] xxx sea the inherited classesd
+	/// @returns 0 if success, -1 otherwise
+	virtual int Merge(double);
+
 protected:
 	// run number
 	unsigned int run_;

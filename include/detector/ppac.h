@@ -4,8 +4,6 @@
 #include <map>
 #include <vector>
 
-// #include <TROOT.h>
-
 #include "include/detector/detector.h"
 
 
@@ -37,22 +35,18 @@ public:
 	) override;
 
 
-	// /// @brief correlate and build hit events
-	// ///
-	// /// @returns 0 for success, -1 otherwise
-	// ///
-	// int Correlate();
-
-	// int Tracking();
-
-private:
+	/// @brief check the sum of time and get the time difference
+	/// @param double ignore
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Merge(double) override;
 
 
-	// int ReadTrigger();
-
-	// int ReadEvents();
+	/// @brief track PPAC events and calculate the reaction point
+	/// @returns 0 if success, -1 otherwise
+	virtual int Track();
 };
 
-}		// namespace ribll
+}	// namespace ribll
 
-#endif		// __PPAC_H__
+#endif	// __PPAC_H__

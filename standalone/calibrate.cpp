@@ -112,44 +112,48 @@ int main(int argc, char **argv) {
 
 
 	int run = atoi(argv[pos_start]);
-	std::string telescope_name = argv[pos_start+1];
+	std::string name = argv[pos_start+1];
 
-	std::shared_ptr<Telescope> telescope =
-		CreateTelescope(telescope_name, run, tag);
-	if (!telescope) {
-		std::shared_ptr<Detector> detector =
-			CreateDetector(telescope_name, run, tag);
+	if (name.size() == 5 && name.substr(0, 4) == "tafd") {
+		std::shared_ptr<Detector> detector = CreateDetector(name, run, tag);
 		if (!detector) {
-			std::cerr << "Error: Telescope/Detector "
-				<< telescope_name << " not found.\n";
+			std::cerr << "Error: Detector " << name << " not found.\n";
 			return -1;
 		}
 		if (detector->Calibrate()) {
 			std::cerr << "Error: Calibrate "
-				<< telescope_name<< " failed.\n";
-			return -1;
-		}
-		return 0;
-	}
-
-	if (alpha) {
-		if (telescope->AlphaCalibrate()) {
-			std::cerr << "Error: Alpha calibrate "
-				<< telescope_name << " failed.\n";
-			return -1;
-		}
-	} else if (csi) {
-		if (telescope->CsiCalibrate()) {
-			std::cerr << "Error: Calibrate CsI(Tl) in "
-				<< telescope_name << " failed.\n";
+				<< name<< " failed.\n";
 			return -1;
 		}
 	} else {
-		if (telescope->Calibrate()) {
-			std::cerr << "Error: Calibrate "
-				<< telescope_name << " failed.\n";
+		std::shared_ptr<Telescope> telescope = CreateTelescope(name, run, tag);
+		if (!telescope) {
+			std::cerr << "Error: Telescope " << name << " not found.\n";
 			return -1;
 		}
+
+		if (alpha) {
+			if (telescope->AlphaCalibrate()) {
+				std::cerr << "Error: Alpha calibrate "
+					<< name << " failed.\n";
+				return -1;
+			}
+		} else if (csi) {
+			if (telescope->CsiCalibrate()) {
+				std::cerr << "Error: Calibrate CsI(Tl) in "
+					<< name << " failed.\n";
+				return -1;
+			}
+		} else {
+			if (telescope->Calibrate()) {
+				std::cerr << "Error: Calibrate "
+					<< name << " failed.\n";
+				return -1;
+			}
+		}
+
 	}
+
+
 	return 0;
 }

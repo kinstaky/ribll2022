@@ -78,6 +78,31 @@ public:
 };
 
 
+class PpacMergeEvent : public Event {
+public:
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
+	///
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[in] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+
+	unsigned short xflag;
+	unsigned short yflag;
+	double x[3];
+	double y[3];
+};
+
+
 
 
 }

@@ -99,18 +99,18 @@ int main(int argc, char **argv) {
 	int run = atoi(argv[pos_start]);
 	double diff = atof(argv[pos_start+1]);
 	// list of detector names
-	std::vector<std::string> dssd_names;
+	std::vector<std::string> detector_names;
 	for (int i = pos_start+2; i < argc; ++i) {
-		dssd_names.push_back(std::string(argv[i]));
+		detector_names.push_back(std::string(argv[i]));
 	}
 
-	for (auto dssd_name : dssd_names) {
-		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
-		if (!dssd) continue;
+	for (auto name : detector_names) {
+		std::shared_ptr<Detector> detector = CreateDetector(name, run, tag);
+		if (!detector) continue;
 
-		if (dssd->Merge(diff)) {
+		if (detector->Merge(diff)) {
 			std::cerr << "Error: Normalize "
-				<< dssd_name << " failed.\n";
+				<< name << " failed.\n";
 			continue;
 		}
 	}

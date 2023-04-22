@@ -35,7 +35,7 @@ target_link_libraries(merge PUBLIC detectors)
 
 # track
 add_executable(track track.cpp)
-target_link_libraries(track PUBLIC telescopes)
+target_link_libraries(track PUBLIC ppac telescopes)
 
 # pid
 add_executable(pid particle_identify.cpp)
