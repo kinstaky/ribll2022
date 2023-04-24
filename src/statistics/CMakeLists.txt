@@ -10,6 +10,7 @@ set(
 	${STATISTICS_INCLUDE_DIR}/map_statistics.h
 	${STATISTICS_INCLUDE_DIR}/align_statistics.h
 	${STATISTICS_INCLUDE_DIR}/match_trigger_statistics.h
+	${STATISTICS_INCLUDE_DIR}/normalize_statistics.h
 	${STATISTICS_INCLUDE_DIR}/merge_case_statistics.h
 	${STATISTICS_INCLUDE_DIR}/merge_statistics.h
 	${STATISTICS_INCLUDE_DIR}/track_statistics.h
@@ -27,6 +28,7 @@ set(
 	map_statistics.cpp
 	align_statistics.cpp
 	match_trigger_statistics.cpp
+	normalize_statistics.cpp
 	merge_case_statistics.cpp
 	merge_statistics.cpp
 	track_statistics.cpp

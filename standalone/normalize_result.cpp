@@ -1,15 +1,10 @@
-#include <iostream>
-#include <vector>
-#include <string>
-
 #include "include/detectors.h"
 
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run end_run detector\n"
+	std::cout << "Usage: " << name << " [options] run detector[...]\n"
 		"  run               Set run number.\n"
-		"  end_run           Set end number of run to chain, inclusive.\n"
 		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
@@ -70,7 +65,7 @@ int ParseArguments(
 }
 
 int main(int argc, char **argv) {
-	if (argc < 4) {
+	if (argc < 3) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -100,7 +95,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (pos_start + 2 >= argc) {
+	if (pos_start + 1 >= argc) {
 		// positional arguments less than 3
 		std::cerr << "Error: Miss detector argument.\n";
 		PrintUsage(argv[0]);
@@ -109,10 +104,9 @@ int main(int argc, char **argv) {
 
 
 	int run = atoi(argv[pos_start]);
-	int end_run = atoi(argv[pos_start+1]);
 	// list of detector names
 	std::vector<std::string> dssd_names;
-	for (int i = pos_start+2; i < argc; ++i) {
+	for (int i = pos_start+1; i < argc; ++i) {
 		dssd_names.push_back(std::string(argv[i]));
 	}
 
@@ -120,11 +114,10 @@ int main(int argc, char **argv) {
 		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
 		if (!dssd) continue;
 
-		if (dssd->Normalize(end_run, iteration)) {
+		if (dssd->NormalizeResult(iteration)) {
 			std::cerr << "Error: Normalize "
 				<< dssd_name << " failed.\n";
 			continue;
 		}
 	}
-	return 0;
 }

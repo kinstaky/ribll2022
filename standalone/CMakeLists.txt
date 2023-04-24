@@ -29,6 +29,10 @@ target_link_libraries(beam_identify PUBLIC tof)
 add_executable(normalize normalize.cpp)
 target_link_libraries(normalize PUBLIC detectors)
 
+# normalize result
+add_executable(normalize_result normalize_result.cpp)
+target_link_libraries(normalize_result PRIVATE detectors)
+
 # merge
 add_executable(merge merge.cpp)
 target_link_libraries(merge PUBLIC detectors)

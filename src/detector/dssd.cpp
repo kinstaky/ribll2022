@@ -8,6 +8,7 @@
 #include <TH2F.h>
 
 #include "include/event/dssd_event.h"
+#include "include/statistics/normalize_statistics.h"
 
 
 namespace ribll {
@@ -194,12 +195,13 @@ int Dssd::ExtractTrigger(
 //									normalize
 //-----------------------------------------------------------------------------
 
-int Dssd::ReadNormalizeParameters() {
+int Dssd::ReadNormalizeParameters(int iteration) {
 	// setup file name
 	TString file_name;
 	file_name.Form(
-		"%s%s%s.txt",
-		kGenerateDataPath, kNormalizeDir, name_.c_str()
+		"%s%s%s%s.txt",
+		kGenerateDataPath, kNormalizeDir, name_.c_str(),
+		iteration == -1 ? "" : ("-"+std::to_string(iteration)).c_str()
 	);
 	// open file
 	std::ifstream fin(file_name.Data());
@@ -229,12 +231,13 @@ int Dssd::ReadNormalizeParameters() {
 }
 
 
-int Dssd::WriteNormalizeParameters() {
+int Dssd::WriteNormalizeParameters(int iteration) {
 	// setup file name
 	TString file_name;
 	file_name.Form(
-		"%s%s%s.txt",
-		kGenerateDataPath, kNormalizeDir, name_.c_str()
+		"%s%s%s%s.txt",
+		kGenerateDataPath, kNormalizeDir, name_.c_str(),
+		iteration == -1 ? "" : ("-"+std::to_string(iteration)).c_str()
 	);
 	// open output file
 	std::ofstream fout(file_name.Data());
@@ -259,6 +262,11 @@ int Dssd::WriteNormalizeParameters() {
 	}
 	// close file
 	fout.close();
+
+	// write to default parameters file
+	if (iteration != -1) {
+		return WriteNormalizeParameters(-1);
+	}
 
 	return 0;
 }
@@ -368,7 +376,7 @@ int Dssd::NormalizeSides(TChain*, int) {
 }
 
 
-int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
+int Dssd::NormalizeResult(int iteration) {
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(
@@ -376,8 +384,8 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 		kGenerateDataPath,
 		kFundamentalDir,
 		name_.c_str(),
-		tag.empty() ? "" : (tag+"-").c_str(),
-		run
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -389,29 +397,32 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 		return -1;
 	}
 	// input event
-	DssdFundamentalEvent event;
+	DssdNormalizeEvent event;
 	// setup input branches
 	event.SetupInput(ipt);
 
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%s%s-normalize-%s%04u.root",
+		"%s%s%s-normalize-result-%s%04u.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
-		tag.empty() ? "" : (tag+"-").c_str(),
-		run
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// output tree
 	TTree opt("tree", "normalized energy tree");
 	// setup branches
-	opt.Branch("front_hit", &event.front_hit, "fhit/s");
-	opt.Branch("back_hit", &event.back_hit, "bhit/s");
-	opt.Branch("front_energy", event.front_energy, "fe[fhit]/D");
-	opt.Branch("back_energy", event.back_energy, "be[bhit]/D");
+	event.SetupOutput(&opt);
+
+	// read normalize parameters from file
+	if (ReadNormalizeParameters(iteration)) {
+		std::cerr << "Error: Read normalize parameters from file failed.\n";
+		return -1;
+	}
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -420,7 +431,7 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 	// show start
 	printf(
 		"Writing normalized energy for %s in run %u   0%%",
-		name_.c_str(), run
+		name_.c_str(), run_
 	);
 	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
@@ -429,7 +440,7 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
-
+		// get event
 		ipt->GetEntry(entry);
 		for (unsigned short i = 0; i < event.front_hit; ++i) {
 			event.front_energy[i] =
@@ -508,10 +519,14 @@ int Dssd::Normalize(
 	opf.Close();
 
 	// write parameters
-	if (WriteNormalizeParameters()) {
+	if (WriteNormalizeParameters(iteration)) {
 		std::cerr << "Error: write normalize paramters to file failed.\n";
 		return -1;
 	}
+
+	NormalizeStatistics statistics(run_, name_, tag_, end_run, iteration);
+	statistics.Write();
+	statistics.Print();
 	return 0;
 }
 

@@ -104,23 +104,17 @@ public:
 	);
 
 
-	/// @brief get normalized energy based on parameters
-	/// @param[in] side 0 for front, 1 for back
-	/// @param[in] strip strip index
-	/// @param[in] energy energy
-	/// @returns normaized energy
-	///
-	inline double NormEnergy(int side, int strip, double energy) {
-		return norm_params_[side][strip][0]
-			+ norm_params_[side][strip][1] * energy;
-	}
-
-
 	/// @brief show normalize result
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int ShowNormalize();
 
+
+	/// @brief wirte normalized energy to root file
+	/// @param[in] iteration iteration mode
+	/// @returns 0 if success, -1 otherwise
+	///
+	int NormalizeResult(int iteration = 0);
 
 	//-------------------------------------------------------------------------
 	//							merge
@@ -154,15 +148,19 @@ protected:
 	//-------------------------------------------------------------------------
 
 	/// @brief read normalize parameters form file
+	/// @param iteration itertation mode,
+	/// 	-1 to read the file without tag
 	/// @returns 0 if success, -1 otherwise
 	///
-	int ReadNormalizeParameters();
+	int ReadNormalizeParameters(int iteration = -1);
 
 
 	/// @brief write normalize parameters to file
+	/// @param iteration itertation mode,
+	///		-1 for overwriting parameter file without tag
 	/// @returns 0 if success, -1 otherwise
 	///
-	int WriteNormalizeParameters();
+	int WriteNormalizeParameters(int iteration = -1);
 
 
 	/// @brief normalize one side
@@ -187,14 +185,6 @@ protected:
 	virtual int NormalizeSides(TChain *chain, int iteration);
 
 
-	/// @brief wirte normalized energy to root file
-	/// @param[in] run run number
-	/// @param[in] tag trigger tag
-	/// @returns 0 if success, -1 otherwise
-	///
-	int WriteNormalizeFiles(unsigned int run, const std::string &tag);
-
-
 	/// @brief check whether energy is suitable for fitting
 	/// @param[in] side side to normalize
 	/// @param[in] event fundamental event
@@ -206,6 +196,16 @@ protected:
 	) const;
 
 
+	/// @brief get normalized energy based on parameters
+	/// @param[in] side 0 for front, 1 for back
+	/// @param[in] strip strip index
+	/// @param[in] energy energy
+	/// @returns normaized energy
+	///
+	inline double NormEnergy(int side, int strip, double energy) {
+		return norm_params_[side][strip][0]
+			+ norm_params_[side][strip][1] * energy;
+	}
 
 	//-------------------------------------------------------------------------
 	//						geometry member
