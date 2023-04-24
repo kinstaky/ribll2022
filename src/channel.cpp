@@ -23,19 +23,39 @@ const std::map<std::string, unsigned short> element{
 	{"C", 6}
 };
 
-double AccurateMass(unsigned short charge, unsigned short mass) {
+double IonMass(unsigned short charge, unsigned short mass) {
 	constexpr double electron_mass = 5.48579909065e-4;
-	// 2H
-	if (charge == 1 && mass == 2) return 2.01355321 - charge * electron_mass;
-	// 4He
-	if (charge == 2 && mass == 4) return 4.00260325 - charge * electron_mass;
-	// 8Be
-	if (charge == 4 && mass == 8) return 8.00530510 - charge * electron_mass;
-	// 10Be
-	if (charge == 4 && mass == 10) return 10.0135347 - charge * electron_mass;
-	// 14C
-	if (charge == 6 && mass == 14) return 14.0032420 - charge * electron_mass;
-	return double(mass);
+	if (charge == 1) {
+		if (mass == 1) return 1.0072764520;
+		else if (mass == 2) return 2.0135531980;
+		else if (mass == 3) return 3.0155007014;
+	} else if (charge == 2) {
+		// He
+		if (mass == 3) return 3.0149321622;
+		else if (mass == 4) return 4.0015060943;
+		else if (mass == 6) return 6.0177887354;
+	} else if (charge == 3) {
+		// Li
+		if (mass == 6) return 6.0134771477;
+		else if (mass == 7) return  7.0143576949;
+	} else if (charge == 4) {
+		// Be
+		if (mass == 7) return 7.0147343973;
+		else if (mass == 8) return 8.0031108;
+		else if (mass == 9) return 9.0099887420;
+		else if (mass == 10) return 10.0113403769;
+	} else if (charge == 5) {
+		// B
+		if (mass == 10) return 10.0101939628;
+		else if (mass == 11) return 11.0065622673;
+	} else if (charge == 6) {
+		// C
+		if (mass == 12) return 11.9967085206;
+		else if (mass == 13) return 13.0000633559;
+		else if (mass == 14) return 13.9999505089;
+		else if (mass == 15) return 15.0073077289;
+	}
+	return double(mass) - charge * electron_mass;
 }
 
 
@@ -51,10 +71,10 @@ double MomentumFromEnergy(
 ) {
 	// atomic mass constant
 	constexpr double u = 931.494;
-	double accurate_mass = AccurateMass(charge, mass) * u;
+	double ion_mass = IonMass(charge, mass) * u;
 	// double energy = kinetic_energy + mass * u;
 	// double p = sqrt(energy * energy - mass*mass*u*u);
-	return sqrt(kinetic_energy * (kinetic_energy + 2.0*accurate_mass));
+	return sqrt(kinetic_energy * (kinetic_energy + 2.0*ion_mass));
 }
 
 
@@ -66,9 +86,9 @@ double EnergyFromMomentum(
 	// atomic mass constant
 	constexpr double u = 931.494;
 	// accurate mass in MeV/C^2
-	double accurate_mass = AccurateMass(charge, mass) * u;
+	double ion_mass = IonMass(charge, mass) * u;
 
-	return sqrt(momentum*momentum+accurate_mass*accurate_mass)-accurate_mass;
+	return sqrt(momentum*momentum + ion_mass*ion_mass) - ion_mass;
 }
 
 
@@ -146,6 +166,7 @@ T0TAFChannel::T0TAFChannel(
 
 }
 
+constexpr bool recoil = false;
 int T0TAFChannel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
@@ -293,9 +314,19 @@ int T0TAFChannel::Coincide() {
 		);
 		p[t0_num] = p[t0_num].Unit() * momentum;
 		// fill parent nuclear
-		channel.charge[particles_.size()] =
-			channel.charge[0] + channel.charge[1];
-		channel.mass[particles_.size()] = channel.mass[0] + channel.mass[1];
+		channel.charge[particles_.size()] = 0;
+		channel.mass[particles_.size()] = 0;
+		if (recoil) {
+			for (size_t i = 0; i < particles_.size()-1; ++i) {
+				channel.charge[particles_.size()] += channel.charge[i];
+				channel.mass[particles_.size()] += channel.mass[i];
+			}
+		} else {
+			for (size_t i = 0; i < particles_.size(); ++i) {
+				channel.charge[particles_.size()] += channel.charge[i];
+				channel.mass[particles_.size()] += channel.mass[i];
+			}
+		}
 		p.emplace_back(0.0, 0.0, 0.0);
 		for (size_t i = 0; i < particles_.size(); ++i) {
 			p[particles_.size()] += p[i];

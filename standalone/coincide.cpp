@@ -96,11 +96,11 @@ int main(int argc, char **argv) {
 	}
 
 	if (particles.size() == 2) {
-		// T0Channel channel_a(run, particles);
-		// if (channel_a.Coincide()) {
-		// 	std::cerr << "Error: Coincide T0 failed.\n";
-		// 	return -1;
-		// }
+		T0Channel channel_a(run, particles);
+		if (channel_a.Coincide()) {
+			std::cerr << "Error: Coincide T0 failed.\n";
+			return -1;
+		}
 		T0TAFChannel channel_b(run, particles);
 		if (channel_b.Coincide()) {
 			std::cerr << "Error: Coincide T0 TAF failed.\n";

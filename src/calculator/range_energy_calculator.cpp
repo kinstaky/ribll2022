@@ -19,9 +19,24 @@ RangeEnergyCalculator::RangeEnergyCalculator(
 , material_(material) {
 
 	// get projectile mass number
-	std::stringstream ss;
-	ss << projectile;
-	ss >> mass_;
+	if (projectile == "1H") mass_ = 1.0072764520;
+	else if (projectile == "2H")  mass_ = 2.0135531980;
+	else if (projectile == "3H")  mass_ = 3.0155007014;
+	else if (projectile == "3He") mass_ = 3.0149321622;
+	else if (projectile == "4He") mass_ = 4.0015060943;
+	else if (projectile == "6He") mass_ = 6.0177887354;
+	else if (projectile == "6Li") mass_ = 6.0134771477;
+	else if (projectile == "7Li") mass_ = 7.0143576949;
+	else if (projectile == "8Li") mass_ = 8.0208405004;
+	else if (projectile == "7Be") mass_ = 7.0147343973;
+	else if (projectile == "9Be") mass_ = 9.0099887420;
+	else if (projectile == "10Be")mass_ = 10.0113403769;
+	else if (projectile == "10B") mass_ = 10.0101939628;
+	else if (projectile == "11B") mass_ = 11.0065622673;
+	else if (projectile == "12C") mass_ = 11.9967085206;
+	else if (projectile == "13C") mass_ = 13.0000633559;
+	else if (projectile == "14C") mass_ = 13.9999505089;
+	else if (projectile == "15C") mass_ = 15.0073077289;
 
 	input_file_ = nullptr;
 	range_energy_func_ = nullptr;

@@ -74,8 +74,8 @@ private:
 	std::string projectile_;
 	// material
 	std::string material_;
-	// mass number
-	unsigned int mass_;
+	// mass number, u
+	double mass_;
 	// input file storing functions
 	TFile *input_file_;
 	// energy-range function, evaluate energy from range
