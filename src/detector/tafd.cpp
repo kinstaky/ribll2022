@@ -183,7 +183,7 @@ int Tafd::ExtractTrigger(
 }
 
 
-int Tafd::NormalizeSides(TChain *chain, bool iteration) {
+int Tafd::NormalizeSides(TChain *chain, int iteration) {
 	if (SideNormalize(chain, 0, 4, iteration)) {
 		std::cerr << "Error: Normalize first side failed.\n";
 		return -1;
@@ -196,7 +196,7 @@ int Tafd::NormalizeSides(TChain *chain, bool iteration) {
 }
 
 
-bool Tafd::NormEnergyCheck(size_t, const DssdFundamentalEvent &event) const {
+bool Tafd::NormEnergyCheck(size_t, const DssdNormalizeEvent &event) const {
 	if (index_ == 0) {
 		if (event.front_energy[0] > 1e4 || event.back_energy[0] > 1e4) {
 			return false;

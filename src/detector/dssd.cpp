@@ -264,7 +264,7 @@ int Dssd::WriteNormalizeParameters() {
 }
 
 
-bool Dssd::NormEnergyCheck(size_t, const DssdFundamentalEvent&) const {
+bool Dssd::NormEnergyCheck(size_t, const DssdNormalizeEvent&) const {
 	return true;
 }
 
@@ -273,17 +273,14 @@ int Dssd::SideNormalize(
 	TChain *chain,
 	size_t side,
 	size_t ref_strip,
-	bool
+	int
 ) {
-	DssdFundamentalEvent event;
-	event.SetupInput(chain);
+	DssdNormalizeEvent events[2];
+	events[0].SetupInput(chain);
 
 	// energy graph fe:be or be:fe
-	TGraph **ge;
-	ge = new TGraph*[Strip(side)];
-	for (size_t i = 0; i < Strip(side); ++i) {
-		ge[i] = new TGraph;
-	}
+	TGraph *ge;
+	ge = new TGraph[Strip(side)];
 
 	// total number of entries
 	long long entries = chain->GetEntries();
@@ -300,22 +297,22 @@ int Dssd::SideNormalize(
 		}
 		chain->GetEntry(entry);
 		// ignore multiple hit events
-		if (event.front_hit != 1 || event.back_hit != 1) continue;
+		if (events[0].front_hit != 1 || events[0].back_hit != 1) continue;
 
-		unsigned short &fs = event.front_strip[0];
-		unsigned short &bs = event.back_strip[0];
-		double &fe = event.front_energy[0];
-		double &be = event.back_energy[0];
+		unsigned short &fs = events[0].front_strip[0];
+		unsigned short &bs = events[0].back_strip[0];
+		double &fe = events[0].front_energy[0];
+		double &be = events[0].back_energy[0];
 
 		if (side == 0) {
 			// jump if not refer strip
 			if (bs != ref_strip) continue;
-			if (!NormEnergyCheck(side, event)) continue;
-			ge[fs]->AddPoint(fe, NormEnergy(1, bs, be));
+			if (!NormEnergyCheck(side, events[0])) continue;
+			ge[fs].AddPoint(fe, NormEnergy(1, bs, be));
 		} else {
 			if (fs != ref_strip) continue;
-			if (!NormEnergyCheck(side, event)) continue;
-			ge[bs]->AddPoint(be, NormEnergy(0, fs, fe));
+			if (!NormEnergyCheck(side, events[0])) continue;
+			ge[bs].AddPoint(be, NormEnergy(0, fs, fe));
 		}
 	}
 	// show finish
@@ -325,50 +322,47 @@ int Dssd::SideNormalize(
 	std::cout << "side " << side << " normalize parameters.\n";
 	for (size_t i = 0; i < Strip(side); ++i) {
 		// only fits when over 10 points
-		if (ge[i]->GetN() > 10) {
+		if (ge[i].GetN() > 10) {
 			// fitting function
-			TF1 *energy_fit = new TF1("efit", "pol1", 0, 60000);
+			TF1 energy_fit("efit", "pol1", 0, 60000);
 			// set initial value
-			energy_fit->SetParameter(0, 0.0);
-			energy_fit->SetParameter(1, 1.0);
+			energy_fit.SetParameter(0, 0.0);
+			energy_fit.SetParameter(1, 1.0);
 			// fit
-			ge[i]->Fit(energy_fit, "QR+ ROB=0.9");
+			ge[i].Fit(&energy_fit, "QR+ ROB=0.9");
 			// store the normalized parameters
-			norm_params_[side][i][0] = energy_fit->GetParameter(0);
-			norm_params_[side][i][1] = energy_fit->GetParameter(1);
+			norm_params_[side][i][0] = energy_fit.GetParameter(0);
+			norm_params_[side][i][1] = energy_fit.GetParameter(1);
 		}
 		// store the graph
-		ge[i]->Write(TString::Format("g%c%ld", (side ? 'b' : 'f'),i));
+		ge[i].Write(TString::Format("g%c%ld", "fb"[side], i));
 		// print normalized paramters on screen
 		std::cout << i << " " << norm_params_[side][i][0]
 			<< ", " << norm_params_[side][i][1] << "\n";
 	}
 
 	// residual
-	TGraph **res;
-	res = new TGraph*[Strip(side)];
-	for (size_t i = 0; i < Strip(side); i++) res[i] = new TGraph;
+	TGraph *res;
+	res = new TGraph[Strip(side)];
 	for (size_t i = 0; i < Strip(side); ++i) {
-		int point = ge[i]->GetN();
-		double *gex = ge[i]->GetX();
-		double *gey = ge[i]->GetY();
+		int point = ge[i].GetN();
+		double *gex = ge[i].GetX();
+		double *gey = ge[i].GetY();
 		for (int j = 0; j < point; ++j) {
-			res[i]->AddPoint(gex[j], NormEnergy(side, i, gex[j])-gey[j]);
+			res[i].AddPoint(gex[j], NormEnergy(side, i, gex[j])-gey[j]);
 		}
-		res[i]->Write(TString::Format("res%c%ld", side ? 'b' : 'f', i));
+		res[i].Write(TString::Format("res%c%ld", "fb"[side], i));
 	}
 
 	// free memory
-	for (size_t i = 0; i < Strip(side); ++i) {
-		delete ge[i];
-	}
 	delete[] ge;
+	delete[] res;
 
 	return 0;
 }
 
 
-int Dssd::NormalizeSides(TChain*, bool) {
+int Dssd::NormalizeSides(TChain*, int) {
 	std::cerr << "Error: Sides Normalize is not implemented yet.\n";
 	return -1;
 }
@@ -386,9 +380,9 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 		run
 	);
 	// input file
-	TFile *ipf = new TFile(input_file_name, "read");
+	TFile ipf(input_file_name, "read");
 	// input tree
-	TTree *ipt = (TTree*)ipf->Get("tree");
+	TTree *ipt = (TTree*)ipf.Get("tree");
 	if (!ipt) {
 		std::cerr << "Error: Get tree from "
 			<< input_file_name << " failed.\n";
@@ -410,14 +404,14 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 		run
 	);
 	// output file
-	TFile *opf = new TFile(output_file_name, "recreate");
+	TFile opf(output_file_name, "recreate");
 	// output tree
-	TTree *opt = new TTree("tree", "normalized energy tree");
+	TTree opt("tree", "normalized energy tree");
 	// setup branches
-	opt->Branch("front_hit", &event.front_hit, "fhit/s");
-	opt->Branch("back_hit", &event.back_hit, "bhit/s");
-	opt->Branch("front_energy", event.front_energy, "fe[fhit]/D");
-	opt->Branch("back_energy", event.back_energy, "be[bhit]/D");
+	opt.Branch("front_hit", &event.front_hit, "fhit/s");
+	opt.Branch("back_hit", &event.back_hit, "bhit/s");
+	opt.Branch("front_energy", event.front_energy, "fe[fhit]/D");
+	opt.Branch("back_energy", event.back_energy, "be[bhit]/D");
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -445,42 +439,37 @@ int Dssd::WriteNormalizeFiles(unsigned int run, const std::string &tag) {
 			event.back_energy[i] =
 				NormEnergy(1, event.back_strip[i], event.back_energy[i]);
 		}
-		opt->Fill();
+		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
 	// write output tree
-	opt->Write();
+	opt.Write();
 	// close files
-	opf->Close();
-	ipf->Close();
+	opf.Close();
+	ipf.Close();
 
 	return 0;
 }
 
 
 int Dssd::Normalize(
-	unsigned int length,
-	bool iteration
+	unsigned int end_run,
+	int iteration
 ) {
 	// setup input chain
-	TChain *chain = new TChain("tree", "chain");
-	for (unsigned int i = 0; i < length; ++i) {
-		TString file_name;
-		file_name.Form(
-			"%s%s%s-fundamental-%s%04u.root",
+	TChain chain("tree", "chain");
+	for (unsigned int i = run_; i <= end_run; ++i) {
+		if (i == 628) continue;
+		chain.AddFile(TString::Format(
+			"%s%s%s-fundamental-%s%04u.root/tree",
 			kGenerateDataPath,
 			kFundamentalDir,
 			name_.c_str(),
 			tag_.empty() ? "" : (tag_ + "-").c_str(),
-			i+run_
-		);
-		if (!chain->AddFile(file_name)) {
-			std::cerr << "Error: Read file "
-				<< file_name << "failed.\n";
-			return -1;
-		}
+			i
+		));
 	}
 
 	// initialize normalized parameters
@@ -494,46 +483,35 @@ int Dssd::Normalize(
 	}
 
 	// read normalized parameters from file if in iteration mode
-	if (iteration && ReadNormalizeParameters()) {
+	if (iteration > 0 && ReadNormalizeParameters()) {
 		std::cerr << "Error: read normalize parameters from file failed.\n";
 		return -1;
 	}
 
-	// setup normalize record root file
+	// setup normalize root file
 	TString normalize_file_name;
 	normalize_file_name.Form(
-		"%s%s%s-normalize-fit-%s%04u-%u.root",
+		"%s%s%s-normalize-fit-%s%04u-%04u.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
 		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_,
-		length
+		end_run
 	);
 	// output file
-	TFile *opf = new TFile(normalize_file_name, "recreate");
+	TFile opf(normalize_file_name, "recreate");
 
-	if (NormalizeSides(chain, iteration)) return -1;
+	if (NormalizeSides(&chain, iteration)) return -1;
 
 	// close files
-	opf->Close();
+	opf.Close();
 
 	// write parameters
 	if (WriteNormalizeParameters()) {
 		std::cerr << "Error: write normalize paramters to file failed.\n";
 		return -1;
 	}
-
-	// write trees
-	// std::cout << "---------------------------------------------------------\n"; 
-	// for (unsigned int i = run_; i < run_ + length; i++) {
-	// 	if (WriteNormalizeFiles(i, tag_)) {
-	// 		std::cerr << "Error: Write normalized energy to file in run "
-	// 			<< i << " failed.\n";
-	// 		return -1;
-	// 	}
-	// }
-
 	return 0;
 }
 
@@ -676,12 +654,6 @@ int Dssd::ShowNormalize() {
 	ipf.Close();
 	return 0;
 }
-
-
-//-----------------------------------------------------------------------------
-//									merge
-//-----------------------------------------------------------------------------
-
 
 //-----------------------------------------------------------------------------
 //								merge

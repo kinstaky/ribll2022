@@ -78,6 +78,34 @@ public:
 };
 
 
+class DssdNormalizeEvent : public Event {
+public:
+
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
+	///
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[in] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+
+	unsigned short front_hit;
+	unsigned short back_hit;
+	unsigned short front_strip[8];
+	unsigned short back_strip[8];
+	double front_energy[8];
+	double back_energy[8];
+};
+
+
 class DssdMergeEvent : public Event {
 public:
 	/// @brief setup branches of input tree

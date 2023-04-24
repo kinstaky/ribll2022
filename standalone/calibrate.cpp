@@ -8,9 +8,9 @@
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run length name\n"
+	std::cout << "Usage: " << name << " [options] run end_run name\n"
 		"  run               Set run number.\n"
-		"  length            Set length of runs to chain.\n"
+		"  end_run           Set end of run to chain, inclusive.\n"
 		"  name              Set telescope/detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 
 
 	int run = atoi(argv[pos_start]);
-	int length = atoi(argv[pos_start+1]);
+	int end_run = atoi(argv[pos_start+1]);
 	std::string name = argv[pos_start+2];
 
 	if (name.size() == 5 && name.substr(0, 4) == "tafd") {
@@ -139,13 +139,13 @@ int main(int argc, char **argv) {
 				return -1;
 			}
 		} else if (csi) {
-			if (telescope->CsiCalibrate(length)) {
+			if (telescope->CsiCalibrate(end_run)) {
 				std::cerr << "Error: Calibrate CsI(Tl) in "
 					<< name << " failed.\n";
 				return -1;
 			}
 		} else {
-			if (telescope->Calibrate(length)) {
+			if (telescope->Calibrate(end_run)) {
 				std::cerr << "Error: Calibrate "
 					<< name << " failed.\n";
 				return -1;

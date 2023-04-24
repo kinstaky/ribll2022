@@ -7,14 +7,14 @@
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run length detector\n"
-		"  run               Set run number\n"
-		"  length          	 Set number of run to chain\n"
-		"  detector          Set detector name\n"
+	std::cout << "Usage: " << name << " [options] run end_run detector\n"
+		"  run               Set run number.\n"
+		"  end_run           Set end number of run to chain, inclusive.\n"
+		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n"
-		"  -i                Iteration mode.\n";
+		"  -i num            Set iteration mode.\n";
 }
 
 /// @brief parse arguments
@@ -32,7 +32,7 @@ int ParseArguments(
 	char **argv,
 	bool &help,
 	std::string &trigger_tag,
-	bool &iteration
+	int &iteration
 ) {
 	// initialize
 	help = false;
@@ -57,7 +57,11 @@ int ParseArguments(
 			trigger_tag = argv[result];
 		} else if (argv[result][1] == 'i') {
 			// option of iteration flag
-			iteration = true;
+			// get number in next argument
+			++result;
+			// miss arguemnt behind option
+			if (result == argc) return -argc;
+			iteration = atoi(argv[result]);
 		} else {
 			return -result;
 		}
@@ -76,7 +80,7 @@ int main(int argc, char **argv) {
 	// trigger tag
 	std::string tag;
 	// iteration flag
-	bool iteration = false;
+	int iteration = 0;
 	// parse arguments and get start index of positional arguments
 	int pos_start = ParseArguments(argc, argv, help, tag, iteration);
 
@@ -105,7 +109,7 @@ int main(int argc, char **argv) {
 
 
 	int run = atoi(argv[pos_start]);
-	int length = atoi(argv[pos_start+1]);
+	int end_run = atoi(argv[pos_start+1]);
 	// list of detector names
 	std::vector<std::string> dssd_names;
 	for (int i = pos_start+2; i < argc; ++i) {
@@ -116,7 +120,7 @@ int main(int argc, char **argv) {
 		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
 		if (!dssd) continue;
 
-		if (dssd->Normalize(length, false)) {
+		if (dssd->Normalize(end_run, iteration)) {
 			std::cerr << "Error: Normalize "
 				<< dssd_name << " failed.\n";
 			continue;

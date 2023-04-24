@@ -30,17 +30,17 @@ public:
 
 
 	/// @brief calibrate this telescope
-	/// @param[in] length number of run to chain
+	/// @param[in] end_run end of run to chain, inclusive
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Calibrate(unsigned int length) override;
+	virtual int Calibrate(unsigned int end_run) override;
 
 
 	/// @brief calibrate csi with pid
-	/// @param[in] length number of runs to chain
+	/// @param[in] end_run end of run to chain, inclusive
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int CsiCalibrate(unsigned int length) override;
+	virtual int CsiCalibrate(unsigned int end_run) override;
 
 
 	/// @brief rebuild the particle from layers of detectors

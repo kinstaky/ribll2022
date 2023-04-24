@@ -311,9 +311,9 @@ int Taf::ParticleIdentify() {
 }
 
 
-int Taf::Calibrate(unsigned int length) {
+int Taf::Calibrate(unsigned int end_run) {
 	// if (AlphaCalibrate()) return -1;
-	if (CsiCalibrate(length)) return -1;
+	if (CsiCalibrate(end_run)) return -1;
 	return 0;
 }
 
@@ -394,12 +394,12 @@ double HeFit(double *x, double *par) {
 }
 
 
-int Taf::CsiCalibrate(unsigned int length) {
+int Taf::CsiCalibrate(unsigned int end_run) {
 	// taf telescope event chain
 	TChain ipt("taf", "chain of taf events");
 	// particle type event chain
 	TChain type_chain("type", "chain of particle type events");
-	for (unsigned int i = run_; i < run_+length; ++i) {
+	for (unsigned int i = run_; i <= end_run; ++i) {
 		if (i == 628) continue;
 		ipt.AddFile(TString::Format(
 			"%s%s%s-telescope-%s%04u.root/tree",
@@ -435,7 +435,7 @@ int Taf::CsiCalibrate(unsigned int length) {
 		kCalibrationDir,
 		(std::string("taf") + name_[3] + "csi").c_str(),
 		run_,
-		run_+length-1
+		end_run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");

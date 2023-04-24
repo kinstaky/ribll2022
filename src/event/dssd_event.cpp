@@ -52,6 +52,29 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 }
 
 
+void DssdNormalizeEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"front_hit").c_str(), &front_hit);
+	tree->SetBranchAddress((prefix+"back_hit").c_str(), &back_hit);
+	tree->SetBranchAddress((prefix+"front_strip").c_str(), front_strip);
+	tree->SetBranchAddress((prefix+"back_strip").c_str(), back_strip);
+	tree->SetBranchAddress((prefix+"front_energy").c_str(), front_energy);
+	tree->SetBranchAddress((prefix+"back_energy").c_str(), back_energy);
+}
+
+
+void DssdNormalizeEvent::SetupOutput(TTree *tree) {
+	tree->Branch("front_hit", &front_hit, "fhit/s");
+	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("front_strip", front_strip, "fs[fhit]/s");
+	tree->Branch("back_strip", back_strip, "bs[bhit]/s");
+	tree->Branch("front_energy", front_energy, "fe[fhit]/D");
+	tree->Branch("back_energy", back_energy, "be[bhit]/D");
+}
+
+
 void DssdMergeEvent::SetupInput(
 	TTree *tree,
 	const std::string &prefix

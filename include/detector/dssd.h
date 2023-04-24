@@ -94,13 +94,13 @@ public:
 	//-------------------------------------------------------------------------
 
 	/// @brief normalize dssd
-	/// @param[in] length number of files to use
-	/// @param[in] iteration in iteration mode?
+	/// @param[in] end_run end of run to chain, inclusive
+	/// @param[in] iteration iteration mode, default is 0 for normal mode
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Normalize(
-		unsigned int length,
-		bool iteration
+		unsigned int end_run,
+		int iteration = 0
 	);
 
 
@@ -175,16 +175,16 @@ protected:
 		TChain *chain,
 		size_t side,
 		size_t ref_strip,
-		bool iteration
+		int iteration
 	);
 
 
 	/// @brief normalize both sides, the true normalize
 	/// @param[in] chain TChain of input events
-	/// @param[in] iteration iteration mode?
+	/// @param[in] iteration iteration mode
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int NormalizeSides(TChain *chain, bool iteration);
+	virtual int NormalizeSides(TChain *chain, int iteration);
 
 
 	/// @brief wirte normalized energy to root file
@@ -202,7 +202,7 @@ protected:
 	///
 	virtual bool NormEnergyCheck(
 		size_t side,
-		const DssdFundamentalEvent &event
+		const DssdNormalizeEvent &event
 	) const;
 
 

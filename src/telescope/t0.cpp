@@ -770,9 +770,9 @@ private:
 };
 
 
-int T0::Calibrate(unsigned int length) {
+int T0::Calibrate(unsigned int end_run) {
 	TChain ipt("chain", "chain of T0 events");
-	for (unsigned int i = run_; i < run_+length; ++i) {
+	for (unsigned int i = run_; i <= end_run; ++i) {
 		if (i == 628) continue;
 		ipt.AddFile(TString::Format(
 			"%s%st0-telescope-%s%04u.root/tree",
@@ -791,11 +791,12 @@ int T0::Calibrate(unsigned int length) {
 	// output calibration root file name
 	TString calibration_file_name;
 	calibration_file_name.Form(
-		"%s%st0-calibration-%s%04u.root",
+		"%s%st0-calibration-%s%04u-%04u.root",
 		kGenerateDataPath,
 		kCalibrationDir,
 		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
+		run_,
+		end_run
 	);
 	// output calibration file
 	TFile calibration_file(calibration_file_name, "recreate");
