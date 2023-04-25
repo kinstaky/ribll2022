@@ -24,14 +24,14 @@ public:
 
 
 	unsigned short num;
-	unsigned short layer[4];
-	unsigned short flag[4];
+	unsigned short layer[8];
+	unsigned short flag[8];
 	unsigned short ssd_flag;
-	double energy[4][4];
+	double energy[8][4];
 	double ssd_energy[3];
-	double x[4][4];
-	double y[4][4];
-	double z[4][4];
+	double x[8][4];
+	double y[8][4];
+	double z[8][4];
 };
 
 }	// namespace ribll

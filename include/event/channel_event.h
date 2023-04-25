@@ -24,15 +24,15 @@ public:
 
 
 	unsigned short num;
-	unsigned short charge[4];
-	unsigned short mass[4];
-	double energy[4];
-	double px[4];
-	double py[4];
-	double pz[4];
-	double r[4];
-	double theta[4];
-	double phi[4];
+	unsigned short charge[8];
+	unsigned short mass[8];
+	double energy[8];
+	double px[8];
+	double py[8];
+	double pz[8];
+	double r[8];
+	double theta[8];
+	double phi[8];
 };
 
 

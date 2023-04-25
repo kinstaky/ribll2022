@@ -58,7 +58,7 @@ std::unique_ptr<TCutG> Telescope::ReadCut(
 	const char *prefix,
 	const char *particle
 ) const {
-		// cut file name
+	// cut file name
 	TString cut_file_name;
 	cut_file_name.Form(
 		"%s%scut/%s-%s-%s.txt",

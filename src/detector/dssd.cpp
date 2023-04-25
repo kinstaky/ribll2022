@@ -1,6 +1,7 @@
 #include "include/detector/dssd.h"
 
 #include <array>
+#include <exception>
 
 #include <TChain.h>
 #include <TF1.h>
@@ -272,19 +273,20 @@ int Dssd::WriteNormalizeParameters(int iteration) {
 }
 
 
-bool Dssd::NormEnergyCheck(size_t, const DssdNormalizeEvent&) const {
-	return true;
-}
-
-
 int Dssd::SideNormalize(
 	TChain *chain,
 	size_t side,
 	size_t ref_strip,
-	int
+	int iteration
 ) {
-	DssdNormalizeEvent events[2];
-	events[0].SetupInput(chain);
+	// event to normalize
+	DssdNormalizeEvent event;
+	// filter event
+	unsigned short filter;
+	event.SetupInput(chain);
+	if (iteration > 0) {
+		chain->SetBranchAddress("filter.flag", &filter);
+	}
 
 	// energy graph fe:be or be:fe
 	TGraph *ge;
@@ -305,21 +307,20 @@ int Dssd::SideNormalize(
 		}
 		chain->GetEntry(entry);
 		// ignore multiple hit events
-		if (events[0].front_hit != 1 || events[0].back_hit != 1) continue;
+		if (event.front_hit != 1 || event.back_hit != 1) continue;
+		if (iteration > 0 && filter != 0x1) continue;
 
-		unsigned short &fs = events[0].front_strip[0];
-		unsigned short &bs = events[0].back_strip[0];
-		double &fe = events[0].front_energy[0];
-		double &be = events[0].back_energy[0];
+		unsigned short &fs = event.front_strip[0];
+		unsigned short &bs = event.back_strip[0];
+		double &fe = event.front_energy[0];
+		double &be = event.back_energy[0];
 
 		if (side == 0) {
 			// jump if not refer strip
 			if (bs != ref_strip) continue;
-			if (!NormEnergyCheck(side, events[0])) continue;
 			ge[fs].AddPoint(fe, NormEnergy(1, bs, be));
 		} else {
 			if (fs != ref_strip) continue;
-			if (!NormEnergyCheck(side, events[0])) continue;
 			ge[bs].AddPoint(be, NormEnergy(0, fs, fe));
 		}
 	}
@@ -404,12 +405,13 @@ int Dssd::NormalizeResult(int iteration) {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%s%s-normalize-result-%s%04u.root",
+		"%s%s%s-normalize-result-%s%04u-%d.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
 		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
+		run_,
+		iteration
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -465,6 +467,12 @@ int Dssd::NormalizeResult(int iteration) {
 }
 
 
+int Dssd::NormalizeFilter(int) {
+	std::cerr << "Error: NormalizeFilter is not implemented yet.\n";
+	return -1;
+}
+
+
 int Dssd::Normalize(
 	unsigned int end_run,
 	int iteration
@@ -483,6 +491,25 @@ int Dssd::Normalize(
 		));
 	}
 
+	// setup filter chain in iteration mode
+	// filter chain for filtering events
+	TChain filter_chain("filter", "filter chain");
+	if (iteration > 0) {
+		for (unsigned int i = run_; i <= end_run; ++i) {
+			if (i == 628) continue;
+			filter_chain.AddFile(TString::Format(
+				"%s%s%s-filter-%s%04u-%d.root/tree",
+				kGenerateDataPath,
+				kNormalizeDir,
+				name_.c_str(),
+				tag_.empty() ? "" : (tag_ + "-").c_str(),
+				i,
+				iteration
+			));
+		}
+		chain.AddFriend(&filter_chain);
+	}
+
 	// initialize normalized parameters
 	for (size_t i = 0; i < FrontStrip(); ++i) {
 		norm_params_[0][i][0] = 0.0;
@@ -493,22 +520,17 @@ int Dssd::Normalize(
 		norm_params_[1][i][1] = 1.0;
 	}
 
-	// read normalized parameters from file if in iteration mode
-	if (iteration > 0 && ReadNormalizeParameters()) {
-		std::cerr << "Error: read normalize parameters from file failed.\n";
-		return -1;
-	}
-
 	// setup normalize root file
 	TString normalize_file_name;
 	normalize_file_name.Form(
-		"%s%s%s-normalize-fit-%s%04u-%04u.root",
+		"%s%s%s-normalize-fit-%s%04u-%04u%s.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
 		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_,
-		end_run
+		end_run,
+		iteration == 0 ? "" : ("-"+std::to_string(iteration)).c_str()
 	);
 	// output file
 	TFile opf(normalize_file_name, "recreate");
@@ -668,6 +690,32 @@ int Dssd::ShowNormalize() {
 	opf.Close();
 	ipf.Close();
 	return 0;
+}
+
+
+std::unique_ptr<TCutG> Dssd::ReadCut(const std::string &name) const {
+	// open cut file
+	std::ifstream fin(TString::Format(
+		"%s%scut/%s.txt",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		name.c_str()
+	));
+	if (!fin.good()) return nullptr;
+	// cut
+	std::unique_ptr<TCutG> cut = std::make_unique<TCutG>();
+	// point index
+	int point;
+	// point position
+	double x, y;
+	// loop to read points
+	while (fin.good()) {
+		fin >> point >> x >> y;
+		cut->SetPoint(point, x, y);
+	}
+	// close file
+	fin.close();
+	return cut;
 }
 
 //-----------------------------------------------------------------------------
@@ -1127,42 +1175,172 @@ void Merge32Event(
 }
 
 
-// void Merge33Event(
-// 	const DssdFundamentalEvent &fundamental,
-// 	DssdMergeEvent &merge,
-// 	double diff,
-// 	TH1F *hde,
-// 	MergeCaseStatistics* statistics
-// ) {
+/// @brief swap events in fundamental event
+/// @param[inout] event fundamental event
+/// @param[in] side 0 front side, 1 back side
+/// @param[in] i first index to swap
+/// @param[in] j second index to swap
+///
+void SwapFundamentalEvent(DssdFundamentalEvent &event, int side, size_t i, size_t j) {
+	if (side == 0) {
+		double tmp;
+		// swap front energy
+		tmp = event.front_energy[i];
+		event.front_energy[i] = event.front_energy[j];
+		event.front_energy[j] = tmp;
+		// swap front strip
+		tmp = event.front_strip[i];
+		event.front_strip[i] = event.front_strip[j];
+		event.front_strip[j] = tmp;
+	} else {
+		double tmp;
+		// swap back energy
+		tmp = event.back_energy[i];
+		event.back_energy[i] = event.back_energy[j];
+		event.back_energy[j] = tmp;
+		// swap back strip
+		tmp = event.back_strip[i];
+		event.back_strip[i] = event.back_strip[j];
+		event.back_strip[j] = tmp;
+	}
+}
 
-// }
+
+/// @brief sort events in fundmental event by energy
+/// @param[inout] event fundamental event to sort
+///
+void SortFundamentalEvent(DssdFundamentalEvent &event) {
+	if (
+		event.front_hit == 2
+		&& event.front_energy[0] < event.front_energy[1]
+	) {
+		SwapFundamentalEvent(event, 0, 0, 1);
+	} else if (event.front_hit == 3) {
+		if (
+			event.front_energy[0] < event.front_energy[1]
+			&& event.front_energy[0] < event.front_energy[2]
+		) {
+			SwapFundamentalEvent(event, 0, 0, 2);
+		}
+		if (event.front_energy[1] < event.front_energy[2]) {
+			SwapFundamentalEvent(event, 0, 1, 2);
+		}
+		if (event.front_energy[0] < event.front_energy[1]) {
+			SwapFundamentalEvent(event, 0, 0, 1);
+		}
+	}
+	if (
+		event.back_hit == 2
+		&& event.back_energy[0] < event.back_energy[1]
+	) {
+		SwapFundamentalEvent(event, 1, 0, 1);
+	} else if (event.back_hit == 3) {
+		if (
+			event.back_energy[0] < event.back_energy[1]
+			&& event.back_energy[0] < event.back_energy[2]
+		) {
+			SwapFundamentalEvent(event, 1, 0, 2);
+		}
+		if (event.back_energy[1] < event.back_energy[2]) {
+			SwapFundamentalEvent(event, 1, 1, 2);
+		}
+		if (event.back_energy[0] < event.back_energy[1]) {
+			SwapFundamentalEvent(event, 1, 0, 1);
+		}
+	}
+	return;
+}
 
 
-/// @brief recursive selection sort particles in merge event by energy
+void Merge33Event(
+	const DssdFundamentalEvent &fundamental,
+	DssdMergeEvent &merge,
+	double diff_tolerance,
+	TH1F *hde,
+	MergeCaseStatistics* statistics
+) {
+	DssdFundamentalEvent event = fundamental;
+	// sort events
+	SortFundamentalEvent(event);
+	const unsigned short *fs = event.front_strip;
+	const unsigned short *bs = event.back_strip;
+	const double *fe = event.front_energy;
+	const double *be = event.back_energy;
+	// assume that there are three particles and no adjacent strips
+	double diff_a1 = fe[0] - be[0];
+	double diff_a2 = fe[1] - be[1];
+	double diff_a3 = fe[2] - be[2];
+	// fill to histogram
+	hde[0].Fill(diff_a1);
+	hde[0].Fill(diff_a2);
+	hde[0].Fill(diff_a3);
+	++statistics[0].total;
+
+	// fill events
+	if (
+		fabs(diff_a1) < diff_tolerance
+		&& fabs(diff_a2) < diff_tolerance
+		&& fabs(diff_a3) < diff_tolerance
+	) {
+		merge.hit = 3;
+		merge.case_tag = 600;
+		for (int i = 0; i < 3; ++i) {
+			merge.energy[i] = fe[i];
+			merge.x[i] = fs[i];
+			merge.y[i] = bs[i];
+			merge.z[i] = 0.0;
+		}
+		++statistics[0].merged;
+	}
+}
+
+
+/// @brief swap particles in merge event
+/// @param[inout] merge merge event
+/// @param[in] i first index to swap
+/// @param[in] j second index to swap
+///
+void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
+	double tmp;
+	// swap energy
+	tmp = merge.energy[i];
+	merge.energy[i] = merge.energy[j];
+	merge.energy[j] = tmp;
+	// swap x
+	tmp = merge.x[i];
+	merge.x[i] = merge.x[j];
+	merge.x[j] = tmp;
+	// swap y
+	tmp = merge.y[i];
+	merge.y[i] = merge.y[j];
+	merge.y[j] = tmp;
+	// swap z
+	tmp = merge.z[i];
+	merge.z[i] = merge.z[j];
+	merge.z[j] = tmp;
+}
+
+
+/// @brief sort particles in merge event by energy
 /// @param[inout] merge merge event to sort
-/// @param[in] start start index of particles to sort,
-///		assume that particles ahead are sorted
-/// @warning this function can only sort particles under 2
+///
 void SortMergeEvent(DssdMergeEvent &merge) {
 	if (merge.hit <= 1) return;
-	if (merge.hit == 2 && merge.energy[0] < merge.energy[1]) {
-		double tmp;
-		// swap energy
-		tmp = merge.energy[0];
-		merge.energy[0] = merge.energy[1];
-		merge.energy[1] = tmp;
-		// swap x
-		tmp = merge.x[0];
-		merge.x[0] = merge.x[1];
-		merge.x[1] = tmp;
-		// swap y
-		tmp = merge.y[0];
-		merge.y[0] = merge.y[1];
-		merge.y[1] = tmp;
-		// swap z
-		tmp = merge.z[0];
-		merge.z[0] = merge.z[1];
-		merge.z[1] = tmp;
+	else if (merge.hit == 2 && merge.energy[0] < merge.energy[1]) {
+		SwapMergeEvent(merge, 0, 1);
+	} else if (merge.hit == 3) {
+		if (
+			merge.energy[0] < merge.energy[1]
+			&& merge.energy[0] < merge.energy[2]
+		) {
+			SwapMergeEvent(merge, 0, 2);
+		}
+		if (merge.energy[1] < merge.energy[2]) {
+			SwapMergeEvent(merge, 1, 2);
+		}
+		if (merge.energy[0] < merge.energy[1]) {
+			SwapMergeEvent(merge, 0, 1);
+		}
 	}
 	return;
 }
@@ -1222,7 +1400,8 @@ int Dssd::Merge(double energy_diff) {
 		TH1F("hde22a", "fe[a]-be[a]", 400, -2000, 2000),
 		TH1F("hde22b", "fe-be", 400, -2000, 2000),
 		TH1F("hde32a", "fe[a]-be[a], fe[b]-be[b]-be[c]", 400, -2000, 2000),
-		TH1F("hde23a", "fe[a]-be[a], fe[b]+fe[c]-be[b]", 400, -2000, 2000)
+		TH1F("hde23a", "fe[a]-be[a], fe[b]+fe[c]-be[b]", 400, -2000, 2000),
+		TH1F("hde33a", "fe[a]-be[a]", 400, -2000, 2000)
 	};
 	// output tree
 	TTree opt("tree", "tree of merged events");
@@ -1249,7 +1428,8 @@ int Dssd::Merge(double energy_diff) {
 		MergeCaseStatistics(run_, name_, tag_, "f2b2", 0, energy_diff),
 		MergeCaseStatistics(run_, name_, tag_, "f2b2", 1, energy_diff),
 		MergeCaseStatistics(run_, name_, tag_, "f2b3", 0, energy_diff),
-		MergeCaseStatistics(run_, name_, tag_, "f3b2", 0, energy_diff)
+		MergeCaseStatistics(run_, name_, tag_, "f3b2", 0, energy_diff),
+		MergeCaseStatistics(run_, name_, tag_, "f3b3", 0, energy_diff)
 	};
 	// function pointer to function that merge differenct case events
 	void(*MergeFunction[])(
@@ -1263,10 +1443,10 @@ int Dssd::Merge(double energy_diff) {
 		Merge12Event, Merge21Event,
 		Merge22Event,
 		Merge23Event, Merge32Event,
-		// Merge33Event
+		Merge33Event
 	};
 	// start index of different cases in hde and statistics
-	int case_index[]{0, 1, 3, 5, 7, 8};
+	int case_index[]{0, 1, 3, 5, 7, 8, 9};
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1301,7 +1481,7 @@ int Dssd::Merge(double energy_diff) {
 		// 4. f2-b3; 5. f3-b2; 6. f3-b3
 		int case_num = 2*fhit  + bhit - 3;
 		// check case is in the 7 cases memtioned
-		if (case_num < 0 || case_num >= 6 || abs(fhit-bhit) > 1) {
+		if (case_num < 0 || case_num >= 7 || abs(fhit-bhit) > 1) {
 			opt.Fill();
 			continue;
 		}
@@ -1341,6 +1521,8 @@ int Dssd::Merge(double energy_diff) {
 	statistics.two_hit += case_statistics[5].merged;
 	statistics.two_hit += case_statistics[7].merged;
 	statistics.two_hit += case_statistics[8].merged;
+	// summarize three hit merged events
+	statistics.three_hit += case_statistics[9].merged;
 	statistics.merged =
 		statistics.one_hit+ statistics.two_hit + statistics.three_hit;
 	// save and show statistics

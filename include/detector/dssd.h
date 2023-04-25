@@ -4,6 +4,7 @@
 #include <string>
 
 #include <TChain.h>
+#include <TCutG.h>
 #include <TMath.h>
 #include <Math/Vector3D.h>
 
@@ -116,6 +117,13 @@ public:
 	///
 	int NormalizeResult(int iteration = 0);
 
+
+	/// @brief generate filter flag for iteration mode
+	/// @param[in] iteration iteration number
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int NormalizeFilter(int iteration);
+
 	//-------------------------------------------------------------------------
 	//							merge
 	//-------------------------------------------------------------------------
@@ -169,7 +177,7 @@ protected:
 	/// @param[in] ref_strip reference strip from the other side
 	/// @param[in] iteration iteration mode
 	///
-	int SideNormalize(
+	virtual int SideNormalize(
 		TChain *chain,
 		size_t side,
 		size_t ref_strip,
@@ -182,18 +190,10 @@ protected:
 	/// @param[in] iteration iteration mode
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int NormalizeSides(TChain *chain, int iteration);
-
-
-	/// @brief check whether energy is suitable for fitting
-	/// @param[in] side side to normalize
-	/// @param[in] event fundamental event
-	/// @returns true if pass check, false not pass
-	///
-	virtual bool NormEnergyCheck(
-		size_t side,
-		const DssdNormalizeEvent &event
-	) const;
+	virtual int NormalizeSides(
+		TChain *chain,
+		int iteration
+	);
 
 
 	/// @brief get normalized energy based on parameters
@@ -206,6 +206,12 @@ protected:
 		return norm_params_[side][strip][0]
 			+ norm_params_[side][strip][1] * energy;
 	}
+
+
+	/// @brief read cut from file
+	/// @param[in] name file name
+	///
+	std::unique_ptr<TCutG> ReadCut(const std::string &name) const;
 
 	//-------------------------------------------------------------------------
 	//						geometry member

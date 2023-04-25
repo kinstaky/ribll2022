@@ -63,6 +63,7 @@ void TrackDssdEvent(
 	// 1. fill with d1 event if under the angle tolerance
 	// 2. fill to empty slot if none match d1 event found
 	for (unsigned short i = 0; i < d2.hit; ++i) {
+		bool fill = false;
 		for (unsigned short j = 0; j < t0.num; ++j) {
 			// jump if a d2 event has filled
 			if ((t0.flag[j] & 0x2) != 0) continue;
@@ -86,21 +87,23 @@ void TrackDssdEvent(
 					t0.x[j][1] = d2.x[i];
 					t0.y[j][1] = d2.y[i];
 					t0.z[j][1] = d2.z[i];
+					fill = true;
 					// this d2 event has matched, goto next one
 					break;
 				}
-			} else {
-				// none of the d1 events match this d2 event,
-				// put the d2 event to empty slot
-				t0.layer[j] = 1;
-				t0.flag[j] = 0x2;
-				t0.energy[j][0] = 0.0;
-				t0.energy[j][1] = d2.energy[i];
-				t0.x[j][1] = d2.x[i];
-				t0.y[j][1] = d2.y[i];
-				t0.z[j][1] = d2.z[i];
-				++t0.num;
 			}
+		}
+		if (!fill) {
+			// none of the d1 events match this d2 event,
+			// put the d2 event to empty slot
+			t0.layer[t0.num] = 1;
+			t0.flag[t0.num] = 0x2;
+			t0.energy[t0.num][0] = 0.0;
+			t0.energy[t0.num][1] = d2.energy[i];
+			t0.x[t0.num][1] = d2.x[i];
+			t0.y[t0.num][1] = d2.y[i];
+			t0.z[t0.num][1] = d2.z[i];
+			++t0.num;
 		}
 	}
 	// fill d3 event in three cases:
@@ -177,7 +180,7 @@ void TrackDssdEvent(
 	}
 	// discard particles only contains the second layer
 	for (unsigned short i = 0; i < t0.num; ++i) {
-		if (t0.flag[i] == 0x2) {
+		while (t0.flag[i] == 0x2 && i < t0.num) {
 			// this particle only contains d2 event,
 			// discard it and move the following layer ahead
 			for (unsigned short j = i; j < t0.num-1; ++j) {
@@ -189,8 +192,8 @@ void TrackDssdEvent(
 					t0.y[j][k] = t0.y[j+1][k];
 					t0.z[j][k] = t0.z[j+1][k];
 				}
-				t0.num--;
 			}
+			t0.num--;
 		}
 	}
 }

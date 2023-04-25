@@ -33,6 +33,10 @@ target_link_libraries(normalize PUBLIC detectors)
 add_executable(normalize_result normalize_result.cpp)
 target_link_libraries(normalize_result PRIVATE detectors)
 
+# normalize filter
+add_executable(normalize_filter normalize_filter.cpp)
+target_link_libraries(normalize_filter PRIVATE detectors)
+
 # merge
 add_executable(merge merge.cpp)
 target_link_libraries(merge PUBLIC detectors)

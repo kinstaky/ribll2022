@@ -48,26 +48,6 @@ public:
 	///
 	virtual int Calibrate() override;
 
-protected:
-
-	/// @brief normalize both sides, the true normalize
-	/// @param[in] chain TChain of input events
-	/// @param[in] iteration iteration mode
-	/// @returns 0 if success, -1 otherwise
-	///
-	virtual int NormalizeSides(TChain *chain, int iteration) override;
-
-
-	/// @brief check whether energy is suitable for fitting
-	/// @param[in] side side to normalize
-	/// @param[in] event fundamental event
-	/// @returns true if pass check, false not pass
-	///
-	virtual bool NormEnergyCheck(
-		size_t side,
-		const DssdNormalizeEvent &event
-	) const override;
-
 private:
 	// detector index, 0 to 5
 	int index_;

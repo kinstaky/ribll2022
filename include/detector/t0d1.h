@@ -39,15 +39,12 @@ public:
 		return 64;
 	}
 
-	// //-------------------------------------------------------------------------
-	// //								merge
-	// //-------------------------------------------------------------------------
 
-	// /// @brief merge adjacent event in the same side and merge events of two sides
-	// /// @param[in] energy_diff tolerant energy relateive difference
-	// /// @returns 0 if success, -1 otherwise
-	// ///
-	// virtual int Merge(double energy_diff) override;
+	//-------------------------------------------------------------------------
+	//								normalize
+	//-------------------------------------------------------------------------
+
+	int NormalizeFilter(int iteration);
 
 protected:
 
@@ -75,45 +72,10 @@ protected:
 	/// @param[in] iteration iteration mode
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int NormalizeSides(TChain *chain, int iteration) override;
-
-
-	/// @brief check whether energy is suitable for fitting
-	/// @param[in] side side to normalize
-	/// @param[in] event fundamental event
-	/// @returns true if pass check, false not pass
-	///
-	virtual bool NormEnergyCheck(
-		size_t side,
-		const DssdNormalizeEvent &event
-	) const override;
-
-
-// private:
-// 	/// @brief check whether the energy of correlated event can be use in normalization
-// 	/// for back strip
-// 	///
-// 	/// @param[in] correlation corrlated event
-// 	/// @param[in] iteration iteration mode
-// 	/// @returns true if pass, or false otherwise
-// 	///
-// 	virtual bool NormalizeFrontEnergyCheck(
-// 		const CorrelatedEvent &correlation,
-// 		bool iteration
-// 	) override;
-
-
-// 	/// @brief check whether the energy of correlated event can be use in normalization
-// 	/// for front strip
-// 	///
-// 	/// @param[in] correlation correlated event
-// 	/// @param[in] iteration iteration mode
-// 	/// @returns ture if pass, or false otherwise
-// 	///
-// 	virtual bool NormalizeBackEnergyCheck(
-// 		const CorrelatedEvent &correlation,
-// 		bool iteration
-// 	) override;
+	virtual int NormalizeSides(
+		TChain *chain,
+		int iteration
+	) override;
 };
 
 

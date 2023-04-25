@@ -183,36 +183,6 @@ int Tafd::ExtractTrigger(
 }
 
 
-int Tafd::NormalizeSides(TChain *chain, int iteration) {
-	if (SideNormalize(chain, 0, 4, iteration)) {
-		std::cerr << "Error: Normalize first side failed.\n";
-		return -1;
-	}
-	if (SideNormalize(chain, 1, 1, iteration)) {
-		std::cerr << "Error: Normalize second side failed.\n";
-		return -1;
-	}
-	return 0;
-}
-
-
-bool Tafd::NormEnergyCheck(size_t, const DssdNormalizeEvent &event) const {
-	if (index_ == 0) {
-		if (event.front_energy[0] > 1e4 || event.back_energy[0] > 1e4) {
-			return false;
-		}
-	} else if (index_ == 1) {
-		if (event.front_energy[0] > 1e4 || event.back_energy[0] > 1e4) {
-			return false;
-		}
-	} else {
-		return false;
-	}
-	return true;
-}
-
-
-
 int Tafd::Calibrate() {
 	// calibrate tafd with alpha source
 	// output root file name

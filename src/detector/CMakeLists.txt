@@ -36,7 +36,7 @@ add_library(
 	${DETECTOR_INCLUDE_DIR}/dssd.h ${DETECTOR_INCLUDE_DIR}/t0d1.h
 	${DETECTOR_INCLUDE_DIR}/t0d2.h ${DETECTOR_INCLUDE_DIR}/t0d3.h
 )
-target_link_libraries(dssd PUBLIC detector event)
+target_link_libraries(dssd PUBLIC detector event ROOT::Graf)
 
 # ppac library
 add_library(ppac ppac.cpp ${DETECTOR_INCLUDE_DIR}/ppac.h)

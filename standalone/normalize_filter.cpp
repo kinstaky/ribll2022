@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
 		if (!dssd) continue;
 
-		if (dssd->NormalizeResult(iteration)) {
+		if (dssd->NormalizeFilter(iteration)) {
 			std::cerr << "Error: Normalize "
 				<< dssd_name << " failed.\n";
 			continue;
