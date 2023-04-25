@@ -10,7 +10,8 @@ void PrintUsage(const char *name) {
 		"  particle          Set the particle to catch,"
 		"at least 2, at most 3.\n"
 		"Options:\n"
-		"  -h                Print this help information.\n";
+		"  -h                Print this help information.\n"
+		"  -r particle       Set the recoil particle to catch.\n";
 }
 
 
@@ -18,6 +19,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
 /// @param[out] help need help
+/// @param[out] recoil recoil particle to catch
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -25,7 +27,8 @@ void PrintUsage(const char *name) {
 int ParseArguments(
 	int argc,
 	char **argv,
-	bool &help
+	bool &help,
+	std::string &recoil
 ) {
 	// initialize
 	help = false;
@@ -39,6 +42,13 @@ int ParseArguments(
 		if (argv[result][1] == 'h') {
 			help = true;
 			return result;
+		} else if (argv[result][1] == 'r') {
+			// option for catching recoil particle
+			// get particle in next argument
+			++result;
+			// miss argument behind option
+			if (result == argc) return -argc;
+			recoil = std::string(argv[result]);
 		} else {
 			return -result;
 		}
@@ -54,8 +64,10 @@ int main(int argc, char **argv) {
 	}
 	// help flag
 	bool help = false;
+	// recoil particle
+	std::string recoil;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help);
+	int pos_start = ParseArguments(argc, argv, help, recoil);
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
@@ -95,26 +107,40 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (particles.size() == 2) {
-		T0Channel channel_a(run, particles);
-		if (channel_a.Coincide()) {
+	if (recoil.empty()) {
+		T0Channel channel(run, particles, recoil);
+		if (channel.Coincide()) {
 			std::cerr << "Error: Coincide T0 failed.\n";
 			return -1;
 		}
-		T0TAFChannel channel_b(run, particles);
-		if (channel_b.Coincide()) {
-			std::cerr << "Error: Coincide T0 TAF failed.\n";
-			return -1;
-		}
-	} else if (particles.size() == 3) {
-		T0TAFChannel channel(run, particles);
-		if (channel.Coincide()) {
-			std::cerr << "Error: Coincide T0 TAF failed.\n";
-			return -1;
-		}
 	} else {
-		std::cerr << "Error: Should not be here.\n";
-		return -1;
+		T0TAFChannel channel(run, particles, recoil);
+		if (channel.Coincide()) {
+			std::cerr << "Error: Coincide T0TAF failed.\n";
+			return -1;
+		}
 	}
+
+	// if (particles.size() == 2) {
+	// 	T0Channel channel_a(run, particles, recoil);
+	// 	if (channel_a.Coincide()) {
+	// 		std::cerr << "Error: Coincide T0 failed.\n";
+	// 		return -1;
+	// 	}
+	// 	T0TAFChannel channel_b(run, particles, recoil);
+	// 	if (channel_b.Coincide()) {
+	// 		std::cerr << "Error: Coincide T0 TAF failed.\n";
+	// 		return -1;
+	// 	}
+	// } else if (particles.size() == 3) {
+	// 	T0TAFChannel channel(run, particles, recoil);
+	// 	if (channel.Coincide()) {
+	// 		std::cerr << "Error: Coincide T0 TAF failed.\n";
+	// 		return -1;
+	// 	}
+	// } else {
+	// 	std::cerr << "Error: Should not be here.\n";
+	// 	return -1;
+	// }
 	return 0;
 }

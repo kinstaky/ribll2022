@@ -98,23 +98,25 @@ double EnergyFromMomentum(
 
 Channel::Channel(
 	unsigned int run,
-	const std::vector<std::string> &particles
+	const std::vector<std::string> &particles,
+	const std::string &recoil
 )
 : run_(run)
-, particles_(particles){
+, fragments_(particles)
+, recoil_(recoil) {
 
 	for (const auto &p : particles) {
 		if (p.size() < 2 || p.size() > 4) {
 			throw std::runtime_error("Invalid nuclear " + p);
 		}
 		if (p[0] < '0' || p[0] > '9') {
-			throw std::runtime_error("Invalid nuclear" + p);
+			throw std::runtime_error("Invalid nuclear " + p);
 		}
 		if (p.size() == 2) {
 			masses_.push_back(p[0]-'0');
 			auto search = element.find(p.substr(1, 1));
 			if (search == element.end()) {
-				throw std::runtime_error("Invalid nuclear" + p);
+				throw std::runtime_error("Invalid nuclear " + p);
 			}
 			charges_.push_back(search->second);
 		} else if (p.size() == 3) {
@@ -122,7 +124,7 @@ Channel::Channel(
 				masses_.push_back(p[0] - '0');
 				auto search = element.find(p.substr(1, 2));
 				if (search == element.end()) {
-					throw std::runtime_error("Invalid nuclear" + p);
+					throw std::runtime_error("Invalid nuclear " + p);
 				}
 				charges_.push_back(search->second);
 			} else {
@@ -130,23 +132,74 @@ Channel::Channel(
 				masses_.push_back(mass);
 				auto search = element.find(p.substr(2, 1));
 				if (search == element.end()) {
-					throw std::runtime_error("Invalid nuclear" + p);
+					throw std::runtime_error("Invalid nuclear " + p);
 				}
 				charges_.push_back(search->second);
 			}
 		} else if (p.size() == 4) {
 			if (p[1] < '0' || p[1] > '9') {
-				throw std::runtime_error("Invalid nuclear" + p);
+				throw std::runtime_error("Invalid nuclear " + p);
 			}
 			unsigned short mass = (p[0] - '0') * 10 + (p[1] - '0');
 			masses_.push_back(mass);
 			auto search = element.find(p.substr(2, 2));
 			if (search == element.end()) {
-				throw std::runtime_error("Invalid nuclear" + p);
+				throw std::runtime_error("Invalid nuclear " + p);
 			}
 			charges_.push_back(search->second);
 		}
 	}
+
+	if (!recoil.empty()) {
+		if (recoil.size() < 2 || recoil.size() > 4) {
+			throw std::runtime_error("Invalid recoil " + recoil);
+		}
+		if (recoil[0] < '0' || recoil[0] > '9') {
+			throw std::runtime_error("Invalid recoil " + recoil);
+		}
+		if (recoil.size() == 2) {
+			recoil_mass_ = recoil[0]-'0';
+			auto search = element.find(recoil.substr(1, 1));
+			if (search == element.end()) {
+				throw std::runtime_error("Invalid recoil " + recoil);
+			}
+			recoil_charge_ = search->second;
+		} else if (recoil.size() == 3) {
+			if (recoil[1] < '0' || recoil[1] > '9') {
+				recoil_mass_ = recoil[0] - '0';
+				auto search = element.find(recoil.substr(1, 2));
+				if (search == element.end()) {
+					throw std::runtime_error("Invalid recoil " + recoil);
+				}
+				recoil_charge_ = search->second;
+			} else {
+				unsigned short mass = (recoil[0] - '0') * 10 + (recoil[1] - '0');
+				recoil_mass_ = mass;
+				auto search = element.find(recoil.substr(2, 1));
+				if (search == element.end()) {
+					throw std::runtime_error("Invalid recoil " + recoil);
+				}
+				recoil_charge_ = search->second;
+			}
+		} else if (recoil.size() == 4) {
+			if (recoil[1] < '0' || recoil[1] > '9') {
+				throw std::runtime_error("Invalid recoil" + recoil);
+			}
+			unsigned short mass = (recoil[0] - '0') * 10 + (recoil[1] - '0');
+			recoil_mass_ = mass;
+			auto search = element.find(recoil.substr(2, 2));
+			if (search == element.end()) {
+				throw std::runtime_error("Invalid recoil " + recoil);
+			}
+			recoil_charge_ = search->second;
+		}
+	}
+
+
+	for (size_t i = 0; i < fragments_.size(); ++i){
+		std::cout << fragments_.at(i) << " " << charges_.at(i) << "  " << masses_.at(i) << "\n";
+	}
+	std::cout << "recoil " << recoil_ <<  " " << recoil_mass_ << " " << recoil_charge_ << "\n";
 }
 
 int Channel::Coincide() {
@@ -160,13 +213,15 @@ int Channel::Coincide() {
 
 T0TAFChannel::T0TAFChannel(
 	unsigned int run,
-	const std::vector<std::string> &particles
+	const std::vector<std::string> &particles,
+	const std::string &recoil
 )
-: Channel(run, particles) {
+: Channel(run, particles, recoil) {
 
+	if (recoil.empty()) throw std::runtime_error("need recoil");
 }
 
-constexpr bool recoil = false;
+
 int T0TAFChannel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
@@ -210,13 +265,14 @@ int T0TAFChannel::Coincide() {
 
 	// output file name
 	std::string particle_names;
-	for (const auto &p : particles_) particle_names += p + "-";
+	for (const auto &p : fragments_) particle_names += p + "-";
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%st0taf-%s%04u.root",
+		"%s%st0taf-%s%s-%04u.root",
 		kGenerateDataPath,
 		kChannelDir,
 		particle_names.c_str(),
+		recoil_.c_str(),
 		run_
 	);
 	// output file
@@ -227,9 +283,6 @@ int T0TAFChannel::Coincide() {
 	ChannelEvent channel;
 	// setup output branches
 	channel.SetupOutput(&opt);
-
-	// particles number in T0
-	unsigned short t0_num = particles_.size() - 1;
 
 	// total valid events
 	long long total = 0;
@@ -252,9 +305,9 @@ int T0TAFChannel::Coincide() {
 		// get event
 		ipt->GetEntry(entry);
 
-		if (t0.num != t0_num) continue;
+		if (t0.num != fragments_.size()) continue;
 		bool t0_valid = true;
-		for (unsigned short i = 0; i < t0_num; ++i) {
+		for (unsigned short i = 0; i < t0.num; ++i) {
 			if (t0.charge[i] != charges_[i] || t0.mass[i] != masses_[i]) {
 				t0_valid = false;
 				break;
@@ -267,8 +320,8 @@ int T0TAFChannel::Coincide() {
 		for (int i = 0; i < 6; ++i) {
 			if (
 				taf[i].num == 1
-				&& taf[i].charge[0] == charges_[t0_num]
-				&& taf[i].mass[0] == masses_[t0_num]
+				&& taf[i].charge[0] == recoil_charge_
+				&& taf[i].mass[0] == recoil_mass_
 				&& taf[i].energy[0] > -9e4
 			) {
 				++valid;
@@ -283,10 +336,12 @@ int T0TAFChannel::Coincide() {
 			continue;
 		}
 
+		// fill channel particle number
+		channel.num = fragments_.size();
 		// momentums
 		std::vector<ROOT::Math::XYZVector> p;
 		// fill particles from T0
-		for (unsigned short i = 0; i < t0_num; ++i) {
+		for (unsigned short i = 0; i < t0.num; ++i) {
 			channel.charge[i] = t0.charge[i];
 			channel.mass[i] = t0.mass[i];
 			channel.energy[i] = t0.energy[i];
@@ -298,48 +353,6 @@ int T0TAFChannel::Coincide() {
 			);
 			p.emplace_back(t0.x[i], t0.y[i], t0.z[i]);
 			p[i] = p[i].Unit() * momentum;
-		}
-		// fill particles from TAF
-		channel.charge[t0_num] = taf[taf_index].charge[0];
-		channel.mass[t0_num] = taf[taf_index].mass[0];
-		channel.energy[t0_num] = taf[taf_index].energy[0];
-		// calculate momentum
-		double momentum = MomentumFromEnergy(
-			channel.energy[t0_num],
-			channel.charge[t0_num],
-			channel.mass[t0_num]
-		);
-		p.emplace_back(
-			taf[taf_index].x[0], taf[taf_index].y[0], taf[taf_index].z[0]
-		);
-		p[t0_num] = p[t0_num].Unit() * momentum;
-		// fill parent nuclear
-		channel.charge[particles_.size()] = 0;
-		channel.mass[particles_.size()] = 0;
-		if (recoil) {
-			for (size_t i = 0; i < particles_.size()-1; ++i) {
-				channel.charge[particles_.size()] += channel.charge[i];
-				channel.mass[particles_.size()] += channel.mass[i];
-			}
-		} else {
-			for (size_t i = 0; i < particles_.size(); ++i) {
-				channel.charge[particles_.size()] += channel.charge[i];
-				channel.mass[particles_.size()] += channel.mass[i];
-			}
-		}
-		p.emplace_back(0.0, 0.0, 0.0);
-		for (size_t i = 0; i < particles_.size(); ++i) {
-			p[particles_.size()] += p[i];
-		}
-		channel.energy[particles_.size()] =
-			EnergyFromMomentum(
-				p[particles_.size()].R(),
-				channel.charge[particles_.size()],
-				channel.mass[particles_.size()]
-			);
-
-		// fill momentum
-		for (size_t i = 0; i <= particles_.size(); ++i) {
 			channel.px[i] = p[i].X();
 			channel.py[i] = p[i].Y();
 			channel.pz[i] = p[i].Z();
@@ -347,8 +360,54 @@ int T0TAFChannel::Coincide() {
 			channel.theta[i] = p[i].Theta();
 			channel.phi[i] = p[i].Phi();
 		}
-		// fill channel particle number
-		channel.num = particles_.size() + 1;
+
+		// fill particles from TAF
+		channel.recoil = 1;
+		channel.recoil_charge = taf[taf_index].charge[0];
+		channel.recoil_mass = taf[taf_index].mass[0];
+		channel.recoil_energy = taf[taf_index].energy[0];
+		// calculate momentum
+		double momentum = MomentumFromEnergy(
+			channel.recoil_energy,
+			channel.recoil_charge,
+			channel.recoil_mass
+		);
+		// recoil p
+		ROOT::Math::XYZVector rp(
+			taf[taf_index].x[0], taf[taf_index].y[0], taf[taf_index].z[0]
+		);
+		rp = rp.Unit() * momentum;
+		channel.recoil_px = rp.X();
+		channel.recoil_py = rp.Y();
+		channel.recoil_pz = rp.Z();
+		channel.recoil_r = rp.R();
+		channel.recoil_theta = rp.Theta();
+		channel.recoil_phi = rp.Phi();
+
+		// fill parent nuclear
+		channel.parent_charge = 0;
+		channel.parent_mass = 0;
+		for (size_t i = 0; i < channel.num; ++i) {
+			channel.parent_charge += channel.charge[i];
+			channel.parent_mass += channel.mass[i];
+		}
+		// parent p
+		ROOT::Math::XYZVector pp(0.0, 0.0, 0.0);
+		for (size_t i = 0; i < channel.num; ++i) {
+			pp += p[i];
+		}
+		pp += rp;
+		channel.parent_energy = EnergyFromMomentum(
+			pp.R(),
+			channel.parent_charge,
+			channel.parent_mass
+		);
+		channel.parent_px = pp.X();
+		channel.parent_py = pp.Y();
+		channel.parent_pz = pp.Z();
+		channel.parent_r = pp.R();
+		channel.parent_theta = pp.Theta();
+		channel.parent_phi = pp.Phi();
 
 		++total;
 		opt.Fill();
@@ -374,16 +433,19 @@ int T0TAFChannel::Coincide() {
 
 T0Channel::T0Channel(
 	unsigned int run,
-	const std::vector<std::string> &particles
+	const std::vector<std::string> &particles,
+	const std::string &recoil
 )
-: Channel(run, particles) {
+: Channel(run, particles, recoil) {
+
+	if (!recoil.empty()) throw std::runtime_error("no recoil");
 }
 
 int T0Channel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(
-		"%s%st0-particle-%04d.root",
+		"%s%st0-particle-ta-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
 		run_
@@ -404,7 +466,7 @@ int T0Channel::Coincide() {
 
 	// output file name
 	std::string particle_names;
-	for (const auto &p : particles_) particle_names += p + "-";
+	for (const auto &p : fragments_) particle_names += p + "-";
 	TString output_file_name;
 	output_file_name.Form(
 		"%s%st0-%s%04u.root",
@@ -441,9 +503,9 @@ int T0Channel::Coincide() {
 		}
 		// get event
 		ipt->GetEntry(entry);
-		if (t0.num != particles_.size()) continue;
+		if (t0.num != fragments_.size()) continue;
 		bool t0_valid = true;
-		for (unsigned short i = 0; i < particles_.size(); ++i) {
+		for (unsigned short i = 0; i < fragments_.size(); ++i) {
 			if (t0.charge[i] != charges_[i] || t0.mass[i] != masses_[i]) {
 				t0_valid = false;
 				break;
@@ -451,10 +513,13 @@ int T0Channel::Coincide() {
 		}
 		if (!t0_valid) continue;
 
+
+		// fill channel particle number
+		channel.num = t0.num;
 		// momentums
 		std::vector<ROOT::Math::XYZVector> p;
 		// fill particles from T0
-		for (unsigned short i = 0; i < particles_.size(); ++i) {
+		for (unsigned short i = 0; i < channel.num; ++i) {
 			channel.charge[i] = t0.charge[i];
 			channel.mass[i] = t0.mass[i];
 			channel.energy[i] = t0.energy[i];
@@ -466,24 +531,6 @@ int T0Channel::Coincide() {
 			);
 			p.emplace_back(t0.x[i], t0.y[i], t0.z[i]);
 			p[i] = p[i].Unit() * momentum;
-		}
-		// fill parent nuclear
-		channel.charge[particles_.size()] =
-			channel.charge[0] + channel.charge[1];
-		channel.mass[particles_.size()] = channel.mass[0] + channel.mass[1];
-		p.emplace_back(0.0, 0.0, 0.0);
-		for (size_t i = 0; i < particles_.size(); ++i) {
-			p[particles_.size()] += p[i];
-		}
-		channel.energy[particles_.size()] =
-			EnergyFromMomentum(
-				p[particles_.size()].R(),
-				channel.charge[particles_.size()],
-				channel.mass[particles_.size()]
-			);
-
-		// fill momentum
-		for (size_t i = 0; i <= particles_.size(); ++i) {
 			channel.px[i] = p[i].X();
 			channel.py[i] = p[i].Y();
 			channel.pz[i] = p[i].Z();
@@ -491,8 +538,30 @@ int T0Channel::Coincide() {
 			channel.theta[i] = p[i].Theta();
 			channel.phi[i] = p[i].Phi();
 		}
-		// fill particle numebr
-		channel.num = particles_.size() + 1;
+		// fill parent nuclear
+		channel.parent_charge = 0;
+		channel.parent_mass = 0;
+		for (unsigned short i = 0; i < channel.num; ++i) {
+			channel.parent_charge += channel.charge[i];
+			channel.parent_mass += channel.mass[i];
+		}
+		// parent p
+		ROOT::Math::XYZVector pp(0.0, 0.0, 0.0);
+		for (unsigned short i = 0; i < channel.num; ++i) {
+			pp += p[i];
+		}
+		channel.parent_energy = EnergyFromMomentum(
+			pp.R(),
+			channel.parent_charge,
+			channel.parent_mass
+		);
+		// fill parent momentum
+		channel.parent_px = pp.X();
+		channel.parent_py = pp.Y();
+		channel.parent_pz = pp.Z();
+		channel.parent_r = pp.R();
+		channel.parent_theta = pp.Theta();
+		channel.parent_phi = pp.Phi();
 
 		++total;
 		opt.Fill();

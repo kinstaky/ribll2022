@@ -23,16 +23,38 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
+	// fragments
 	unsigned short num;
-	unsigned short charge[8];
-	unsigned short mass[8];
-	double energy[8];
-	double px[8];
-	double py[8];
-	double pz[8];
-	double r[8];
-	double theta[8];
-	double phi[8];
+	unsigned short charge[4];
+	unsigned short mass[4];
+	double energy[4];
+	double px[4];
+	double py[4];
+	double pz[4];
+	double r[4];
+	double theta[4];
+	double phi[4];
+	// input
+	unsigned short parent_charge;
+	unsigned short parent_mass;
+	double parent_energy;
+	double parent_px;
+	double parent_py;
+	double parent_pz;
+	double parent_r;
+	double parent_theta;
+	double parent_phi;
+	// recoil
+	unsigned short recoil;
+	unsigned short recoil_charge;
+	unsigned short recoil_mass;
+	double recoil_energy;
+	double recoil_px;
+	double recoil_py;
+	double recoil_pz;
+	double recoil_r;
+	double recoil_theta;
+	double recoil_phi;
 };
 
 

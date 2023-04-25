@@ -603,6 +603,9 @@ int T0::ParticleIdentify() {
 	long long id11 = 0;
 	long long id21 = 0;
 	long long id22 = 0;
+	long long id31 = 0;
+	long long id32 = 0;
+	long long id33 = 0;
 
 	// total number of particles
 	long long entries = ipt->GetEntries();
@@ -677,6 +680,58 @@ int T0::ParticleIdentify() {
 			} else if (identify0 > 0 && identify1 > 0) {
 				++id22;
 			}
+		} else if (t0_event.num == 3) {
+			++total;
+			int identify0 = DssdParticleIdentify(
+				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+			);
+			int identify1 = DssdParticleIdentify(
+				t0_event, 1, d1d2_cuts, d2d3_cuts, type_event
+			);
+			int identify2 = DssdParticleIdentify(
+				t0_event, 2, d1d2_cuts, d2d3_cuts, type_event
+			);
+			if (identify0 > 0 && identify1 > 0 && identify2 > 0) {
+				++id33;
+			} else if (
+				identify0 <= 0 && identify1 > 0 && identify2 > 0
+				&& t0_event.flag[0] == 0x7
+			) {
+				int identify = SsdParticleIdentify(
+					t0_event, 0,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
+					type_event
+				);
+				if (identify > 0) ++id33;
+				else ++id32;
+			} else if (
+				identify0 > 0 && identify1 <= 0 && identify2 > 0
+				&& t0_event.flag[1] == 0x7
+			) {
+				int identify = SsdParticleIdentify(
+					t0_event, 1,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
+					type_event
+				);
+				if (identify > 0) ++id33;
+				else ++id32;
+			} else if (
+				identify0 > 0 && identify1 > 0 && identify2 <= 0
+				&& t0_event.flag[2] == 0x7
+			) {
+				int identify = SsdParticleIdentify(
+					t0_event, 2,
+					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
+					s1s2_cross_cut,
+					type_event
+				);
+				if (identify > 0) ++id33;
+				else ++id32;
+			} else if (identify0 > 0 || identify1 > 0 || identify2 > 0) {
+				++id31;
+			}
 		}
 		opt.Fill();
 	}
@@ -696,7 +751,13 @@ int T0::ParticleIdentify() {
 		<< "Idnetify 1/2 " << id21 << " / " << total
 		<< "  " << double(id21) / double(total) << "\n"
 		<< "Idnetify 2/2 " << id22 << " / " << total
-		<< "  " << double(id22) / double(total) << "\n";
+		<< "  " << double(id22) / double(total) << "\n"
+		<< "Identify 1/3 " << id31 << " / " << total
+		<< "  " << double(id31) / double(total) << "\n"
+		<< "Identify 2/3 " << id32 << " / " << total
+		<< "  " << double(id32) / double(total) << "\n"
+		<< "Idnetify 3/3 " << id33 << " / " << total
+		<< "  " << double(id33) / double(total) << "\n";
 	return 0;
 }
 
