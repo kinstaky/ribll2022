@@ -195,12 +195,8 @@ Channel::Channel(
 		}
 	}
 
-
-	for (size_t i = 0; i < fragments_.size(); ++i){
-		std::cout << fragments_.at(i) << " " << charges_.at(i) << "  " << masses_.at(i) << "\n";
-	}
-	std::cout << "recoil " << recoil_ <<  " " << recoil_mass_ << " " << recoil_charge_ << "\n";
 }
+
 
 int Channel::Coincide() {
 	std::cerr << "Error: Channel::Coincide not implemented yet.\n";
@@ -253,15 +249,26 @@ int T0TAFChannel::Coincide() {
 			)
 		);
 	}
+	// add XIA PPAC friend
+	ipt->AddFriend("xppac=tree", TString::Format(
+		"%s%sxppac-particle-ta-%04d.root",
+		kGenerateDataPath,
+		kParticleDir,
+		run_
+	));
 	// input T0 particle events
 	ParticleEvent t0;
 	// input TAF particle events
 	ParticleEvent taf[6];
+	// input XIA PPAC particle events
+	ParticleEvent xppac;
 	// setup input branches
 	t0.SetupInput(ipt);
 	for (int i = 0; i < 6; ++i) {
 		taf[i].SetupInput(ipt, "taf"+std::to_string(i)+".");
 	}
+	xppac.SetupInput(ipt, "xppac.");
+
 
 	// output file name
 	std::string particle_names;
@@ -305,6 +312,7 @@ int T0TAFChannel::Coincide() {
 		// get event
 		ipt->GetEntry(entry);
 
+		// check T0 event
 		if (t0.num != fragments_.size()) continue;
 		bool t0_valid = true;
 		for (unsigned short i = 0; i < t0.num; ++i) {
@@ -335,6 +343,9 @@ int T0TAFChannel::Coincide() {
 			++conflict_taf;
 			continue;
 		}
+		// check PPAC tracking
+		if (xppac.num != 4) continue;
+		if ((xppac.x[3]*xppac.x[3]+xppac.y[3]*xppac.y[3]) > 225.0) continue;
 
 		// fill channel particle number
 		channel.num = fragments_.size();
@@ -351,7 +362,7 @@ int T0TAFChannel::Coincide() {
 				channel.charge[i],
 				channel.mass[i]
 			);
-			p.emplace_back(t0.x[i], t0.y[i], t0.z[i]);
+			p.emplace_back(t0.x[i]-xppac.x[3], t0.y[i]-xppac.y[3], t0.z[i]);
 			p[i] = p[i].Unit() * momentum;
 			channel.px[i] = p[i].X();
 			channel.py[i] = p[i].Y();
@@ -374,7 +385,9 @@ int T0TAFChannel::Coincide() {
 		);
 		// recoil p
 		ROOT::Math::XYZVector rp(
-			taf[taf_index].x[0], taf[taf_index].y[0], taf[taf_index].z[0]
+			taf[taf_index].x[0]-xppac.x[3],
+			taf[taf_index].y[0]-xppac.y[3],
+			taf[taf_index].z[0]
 		);
 		rp = rp.Unit() * momentum;
 		channel.recoil_px = rp.X();
@@ -397,11 +410,14 @@ int T0TAFChannel::Coincide() {
 			pp += p[i];
 		}
 		pp += rp;
-		channel.parent_energy = EnergyFromMomentum(
-			pp.R(),
-			channel.parent_charge,
-			channel.parent_mass
-		);
+		channel.parent_energy = 0.0;
+		for (unsigned short i = 0; i < channel.num; ++i) {
+			channel.parent_energy += channel.energy[i]
+				+ IonMass(channel.charge[i], channel.mass[i]) * 931.494;
+		}
+		double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
+
+		channel.parent_energy -= pm;
 		channel.parent_px = pp.X();
 		channel.parent_py = pp.Y();
 		channel.parent_pz = pp.Z();
@@ -445,7 +461,7 @@ int T0Channel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(
-		"%s%st0-particle-ta-%04d.root",
+		"%s%st0-particle-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
 		run_
@@ -550,11 +566,15 @@ int T0Channel::Coincide() {
 		for (unsigned short i = 0; i < channel.num; ++i) {
 			pp += p[i];
 		}
-		channel.parent_energy = EnergyFromMomentum(
-			pp.R(),
-			channel.parent_charge,
-			channel.parent_mass
-		);
+		channel.parent_energy = 0.0;
+		for (unsigned short i = 0; i < channel.num; ++i) {
+			channel.parent_energy += channel.energy[i]
+				+ IonMass(channel.charge[i], channel.mass[i]) * 931.494;
+		}
+		double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
+
+		channel.parent_energy -= pm;
+
 		// fill parent momentum
 		channel.parent_px = pp.X();
 		channel.parent_py = pp.Y();

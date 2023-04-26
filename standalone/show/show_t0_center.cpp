@@ -10,11 +10,14 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include "include/event/dssd_event.h"
+#include "include/event/t0_event.h"
+#include "include/event/particle_type_event.h"
 
 using namespace ribll;
 
-const ROOT::Math::XYZVector d1_center{0.0, 0.0, 10.0};
+const ROOT::Math::XYZVector d1_center{0.0, 0.0, 100.0};
+const ROOT::Math::XYZVector d2_center{0.0, 0.0, 111.76};
+const ROOT::Math::XYZVector d3_center{0.0, 0.0, 123.52};
 
 int main(int argc, char **argv) {
 	if (argc < 2) {
@@ -24,45 +27,35 @@ int main(int argc, char **argv) {
 	}
 	unsigned int run = atoi(argv[1]);
 
-	// t0d1 file name
-	TString d1_file_name;
-	d1_file_name.Form(
-		"%s%st0d1-merge-ta-%04u.root",
-		kGenerateDataPath, kMergeDir, run
+	// t0 file name
+	TString t0_file_name;
+	t0_file_name.Form(
+		"%s%st0-telescope-ta-%04u.root",
+		kGenerateDataPath, kTelescopeDir, run
 	);
 	// d1 file
-	TFile d1_file(d1_file_name, "read");
+	TFile t0_file(t0_file_name, "read");
 	// d1 tree
-	TTree *tree = (TTree*)d1_file.Get("tree");
+	TTree *tree = (TTree*)t0_file.Get("tree");
 	if (!tree) {
 		std::cerr << "Error: Get tree from "
-			<< d1_file_name << " failed.\n";
+			<< t0_file_name << " failed.\n";
 		return -1;
 	}
-	// t0d2 file name
-	TString d2_file_name;
-	d2_file_name.Form(
-		"%s%st0d2-merge-ta-%04u.root",
-		kGenerateDataPath, kMergeDir, run
+	// particle type file name
+	TString type_file_name;
+	type_file_name.Form(
+		"%s%st0-particle-type-ta-%04u.root",
+		kGenerateDataPath, kParticleIdentifyDir, run
 	);
-	tree->AddFriend("d2=tree", d2_file_name);
-	// t0d3 file name
-	TString d3_file_name;
-	d3_file_name.Form(
-		"%s%st0d3-merge-ta-%04u.root",
-		kGenerateDataPath, kMergeDir, run
-	);
-	tree->AddFriend("d3=tree", d3_file_name);
-	// input d1 event
-	DssdMergeEvent d1_event;
-	// input d2 event
-	DssdMergeEvent d2_event;
-	// input d3 event
-	DssdMergeEvent d3_event;
+	tree->AddFriend("type=tree", type_file_name);
+	// input t0 event
+	T0Event t0_event;
+	// input particle type event
+	ParticleTypeEvent type_event;
 	// setup branches
-	d1_event.SetupInput(tree);
-	d2_event.SetupInput(tree, "d2.");
-	d3_event.SetupInput(tree, "d3.");
+	t0_event.SetupInput(tree);
+	type_event.SetupInput(tree, "type.");
 
 	// output file name
 	TString output_file_name;
@@ -74,9 +67,9 @@ int main(int argc, char **argv) {
 	TFile opf(output_file_name, "recreate");
 
 	// lower bound to search
-	double lower_bound = 100.0;
+	double lower_bound = -10.0;
 	// step of distance
-	double step = 100.0;
+	double step = 1.0;
 	// only one extreme value in cos(theta) VS distance
 	bool one_extreme_value = true;
 	// loop layer
@@ -103,7 +96,7 @@ int main(int argc, char **argv) {
 		bool reach_max_cos = false;
 		// loop the d2 distance
 		for (size_t i = 0; i < 20; ++i) {
-			double d2_distance = lower_bound + i*step;
+			double distance = lower_bound + i*step;
 			hist_cos_theta.emplace_back(
 				TString::Format("h%ld", i), "cos(#theta)",
 				100, 0.999, 1
@@ -115,30 +108,34 @@ int main(int argc, char **argv) {
 			// loop events and fill the histogram
 			for (long long entry = 0; entry < tree->GetEntriesFast(); ++entry) {
 				tree->GetEntry(entry);
-				if (d1_event.hit != 1 || d2_event.hit != 1 || d3_event.hit==0) continue;
+				if (
+					t0_event.num < 1 || t0_event.flag[0] != 0x7
+					|| type_event.mass[0] <= 0 || type_event.charge[0] <= 0
+				) continue;
 				// d1 particle position
 				ROOT::Math::XYZVector d1_pos(
-					d1_event.x[0]+1.0, d1_event.y[0]+1.0, d1_event.z[0]
+					t0_event.x[0][0], t0_event.y[0][0], d1_center.Z()
 				);
 				// d2 particle position
 				ROOT::Math::XYZVector d2_pos(
-					d2_event.x[0], d2_event.y[0], d2_distance
+					t0_event.x[0][1]-1.45738+distance, t0_event.y[0][1]-0.31811, d2_center.Z()
 				);
-				// // d3 particle position
-				ROOT::Math::XYZVector d3_pos(
-					d3_event.x[0], d3_event.y[0], d2_distance
-				);
+				// d3 particle position
+				// ROOT::Math::XYZVector d3_pos(
+				// 	t0_event.x[0][2]-2.02242, t0_event.y[0][2]-0.03429, d3_center.Z()
+				// );
 				double cos_theta = d1_pos.Dot(d2_pos) / (d1_pos.R() * d2_pos.R());
 				// double cos_theta = d1_pos.Dot(d3_pos) / (d1_pos.R() * d3_pos.R());
+				// double cos_theta = d2_pos.Dot(d3_pos) / (d2_pos.R() * d3_pos.R());
 				hist_cos_theta[i].Fill(cos_theta);
 				average_cos_theta += cos_theta;
 				++count;
 			}
 			average_cos_theta /= double(count);
-			cos_theta_vs_distance.AddPoint(d2_distance, average_cos_theta);
+			cos_theta_vs_distance.AddPoint(distance, average_cos_theta);
 			if (average_cos_theta > max_cos_theta) {
 				max_cos_theta = average_cos_theta;
-				max_cos_distance = d2_distance;
+				max_cos_distance = distance;
 			}
 			if (average_cos_theta < last_cos_theta && !reach_max_cos) {
 				reach_max_cos = true;
@@ -172,6 +169,6 @@ int main(int argc, char **argv) {
 	}
 	// close files
 	opf.Close();
-	d1_file.Close();
+	t0_file.Close();
 	return 0;
 }

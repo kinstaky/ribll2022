@@ -1098,6 +1098,7 @@ int T0::Rebuild() {
 		for (unsigned short i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
+			if (type_event.layer[i] == 6) continue;
 
 			// fill charge number
 			particle_event.charge[particle_event.num] = type_event.charge[i];

@@ -375,11 +375,11 @@ int Calibrate() {
 double PositionXFromXIA(double time, int index) {
 	double result = 0.0;
 	if (index == 0) {
-		result = (time + 0.1) / 4.0;
+		result = (time + 0.1) / 4.0 + 1.87;
 	} else if (index == 1) {
-		result = (time - 1.1) / 4.0;
+		result = (time - 1.1) / 4.0 - 0.97;
 	} else {
-		result = (time + 9.7) / 4.0;
+		result = (time + 9.7) / 4.0 - 2.52;
 	}
 	// return round(result);
 	return result;
@@ -389,11 +389,11 @@ double PositionXFromXIA(double time, int index) {
 double PositionYFromXIA(double time, size_t index) {
 	double result = 0.0;
 	if (index == 0) {
-		result = round((time + 6.3) / 4.0);
+		result = (time + 10.5) / -4.0 - 0.85;
 	} else if (index == 1) {
-		result = round((time - 17.5) / 4.0);
+		result = (time - 13.9) / -4.0 + 0.25;
 	} else {
-		result = round((time - 0.9) / 4.0);
+		result = (time + 2.9) / -4.0 + 1.42;
 	}
 	// return round(result);
 	return result;
@@ -579,20 +579,23 @@ int Ppac::Track() {
 		if (xhit >= 2 && yhit >= 2) htarget.Fill(xb, yb);
 
 		// rebuild beam particle
+		particle.num = 3;
+		for (size_t i = 0; i < 3; ++i) {
+			particle.x[i] = PositionXFromXIA(merge.x[i], i);
+			particle.y[i] = PositionYFromXIA(merge.y[i], i);
+		}
 		xflag = merge.xflag;
 		yflag = merge.yflag;
 		if (xhit >= 2 && yhit >= 2) {
-			particle.num = 1;
-			particle.x[0] = xb;
-			particle.y[0] = yb;
-			particle.z[0] = 0.0;
+			particle.x[3] = xb;
+			particle.y[3] = yb;
+			particle.z[3] = 0.0;
 			ROOT::Math::XYZVector p(xk, yk, 1.0);
 			p = p.Unit();
-			particle.px[0] = p.X();
-			particle.py[0] = p.Y();
-			particle.pz[0] = p.Z();
-		} else {
-			particle.num = 0;
+			particle.px[3] = p.X();
+			particle.py[3] = p.Y();
+			particle.pz[3] = p.Z();
+			++particle.num;
 		}
 		opt.Fill();
 	}

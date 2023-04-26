@@ -80,3 +80,10 @@ target_link_libraries(show_t0_pid PRIVATE event ROOT::Hist)
 # show TAF pid
 add_executable(show_taf_pid show_taf_pid.cpp)
 target_link_libraries(show_taf_pid PRIVATE event ROOT::Hist)
+
+
+# show PPAC center
+add_executable(show_ppac_center show_ppac_center.cpp)
+target_link_libraries(
+	show_ppac_center PRIVATE event ROOT::Graf
+)
