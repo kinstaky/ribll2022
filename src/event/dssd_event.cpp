@@ -11,6 +11,7 @@ void DssdMapEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"cfd").c_str(), &cfd_flag);
 	tree->SetBranchAddress((prefix+"time").c_str(), &time);
 	tree->SetBranchAddress((prefix+"energy").c_str(), &energy);
+	tree->SetBranchAddress((prefix+"decode_entry").c_str(), &decode_entry);
 }
 
 
@@ -20,6 +21,7 @@ void DssdMapEvent::SetupOutput(TTree *tree) {
 	tree->Branch("cfd", &cfd_flag, "cfd/O");
 	tree->Branch("time", &time, "t/D");
 	tree->Branch("energy", &energy, "e/D");
+	tree->Branch("decode_entry", &decode_entry, "decode_entry/L");
 }
 
 
@@ -36,6 +38,12 @@ void DssdFundamentalEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"back_time").c_str(), back_time);
 	tree->SetBranchAddress((prefix+"front_energy").c_str(), front_energy);
 	tree->SetBranchAddress((prefix+"back_energy").c_str(), back_energy);
+	tree->SetBranchAddress(
+		(prefix+"front_decode_entry").c_str(), front_decode_entry
+	);
+	tree->SetBranchAddress(
+		(prefix+"back_decode_entry").c_str(), back_decode_entry
+	);
 }
 
 
@@ -49,6 +57,8 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("back_time", back_time, "bt[bhit]/D");
 	tree->Branch("front_energy", front_energy, "fe[fhit]/D");
 	tree->Branch("back_energy", back_energy, "be[bhit]/D");
+	tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
+	tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
 }
 
 
@@ -107,6 +117,7 @@ void AdssdMergeEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"theta").c_str(), theta);
 	tree->SetBranchAddress((prefix+"phi").c_str(), phi);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
+	tree->SetBranchAddress((prefix+"decode_entry").c_str(), decode_entry);
 }
 
 
@@ -116,6 +127,7 @@ void AdssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("theta", theta, "theta[hit]/D");
 	tree->Branch("phi", phi, "phi[hit]/D");
 	tree->Branch("energy", energy, "e[hit]/D");
+	tree->Branch("decode_entry", decode_entry, "de[hit]/L");
 }
 
 

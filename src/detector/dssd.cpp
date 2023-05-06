@@ -122,6 +122,7 @@ int FillEvent(
 		fundamental_event.front_energy[i] = front_events[i].energy;
 		fundamental_event.cfd_flag |=
 			front_events[i].cfd_flag ? (1 << i) : 0;
+		fundamental_event.front_decode_entry[i] = front_events[i].decode_entry;
 	}
 	for (unsigned short i = 0; i < fundamental_event.back_hit; ++i) {
 		fundamental_event.back_strip[i] = back_events[i].strip;
@@ -129,6 +130,7 @@ int FillEvent(
 		fundamental_event.back_energy[i] = back_events[i].energy;
 		fundamental_event.cfd_flag |=
 			back_events[i].cfd_flag ? (1 << (i + 8)) : 0;
+		fundamental_event.back_decode_entry[i] = back_events[i].decode_entry;
 	}
 
 	if (

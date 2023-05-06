@@ -29,6 +29,7 @@ public:
 	bool cfd_flag;
 	double time;
 	double energy;
+	long long decode_entry;
 };
 
 
@@ -75,6 +76,8 @@ public:
 	double back_time[8];
 	double front_energy[8];
 	double back_energy[8];
+	long long front_decode_entry[8];
+	long long back_decode_entry[8];
 };
 
 
@@ -156,6 +159,7 @@ public:
 	double theta[4];
 	double phi[4];
 	double energy[4];
+	long long decode_entry[4];
 };
 
 }

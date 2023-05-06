@@ -64,6 +64,7 @@ int Crate0Mapper::Map(bool threshold) {
 		detector_index_ = 0;
 		side_ = 0;
 		strip_ = 0;
+		decode_entry_ = entry;
 
 		if (sid_ == 2) {
 			switch (ch_) {

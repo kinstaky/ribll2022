@@ -118,6 +118,7 @@ size_t XiaMapper::CreateOutputTree(const char *name, bool threshold) {
 	opt->Branch("time", &time_, "t/D");
 	opt->Branch("energy", &energy_, "e/D");
 	opt->Branch("cfd", &cfdft_, "cfd/O");
+	opt->Branch("decode_entry", &decode_entry_, "decode_entry/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;

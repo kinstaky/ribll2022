@@ -10,6 +10,7 @@ set(
 	${MAPPER_INCLUDE_DIR}/crate1_mapper.h
 	${MAPPER_INCLUDE_DIR}/crate2_mapper.h
 	${MAPPER_INCLUDE_DIR}/crate3_mapper.h
+	${MAPPER_INCLUDE_DIR}/trace_mapper.h
 )
 
 set(
@@ -19,6 +20,7 @@ set(
 	crate1_mapper.cpp
 	crate2_mapper.cpp
 	crate3_mapper.cpp
+	trace_mapper.cpp
 )
 
 # MAPPER library

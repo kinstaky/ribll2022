@@ -59,6 +59,7 @@ protected:
 	long long timestamp_;
 	double time_;
 	double energy_;
+	long long decode_entry_;
 
 
 	/// @brief initailize the input tree

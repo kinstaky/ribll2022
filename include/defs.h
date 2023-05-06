@@ -27,6 +27,7 @@ const char* const kMappingDir = "map/";
 const char* const kDecodeDir = "decode/";
 const char* const kAlignDir = "align/";
 const char* const kFundamentalDir = "fundamental/";
+const char* const kTraceDir = "trace/";
 const char* const kBeamDir = "beam/";
 const char* const kNormalizeDir = "normalize/";
 const char* const kMergeDir = "merge/";
