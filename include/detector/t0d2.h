@@ -24,7 +24,21 @@ public:
 	//								normalize
 	//-------------------------------------------------------------------------
 
+	/// @brief filter normalize events
+	/// @param[in] iteration iteration mode
+	/// @returns 0 if success, -1 otherwise
+	///
 	int NormalizeFilter(int iteration);
+
+
+	//-------------------------------------------------------------------------
+	//								time
+	//-------------------------------------------------------------------------
+
+	/// @brief analyze time
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int AnalyzeTime() override;
 
 protected:
 	//-------------------------------------------------------------------------

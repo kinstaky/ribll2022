@@ -61,9 +61,11 @@ int T0d2::NormalizeFilter(int iteration) {
 		// setup output branch
 		opt.Branch("flag", &flag, "f/s");
 
-		// get cut
-		std::unique_ptr<TCutG> cut1 = ReadCut("t0-d1d2-norm-1");
-		std::unique_ptr<TCutG> cut2 = ReadCut("t0-d2d3-norm-1");
+		// get cuts
+		std::unique_ptr<TCutG> cut1 =
+			ReadCut(kParticleIdentifyDir, "t0-d1d2-norm-1");
+		std::unique_ptr<TCutG> cut2 =
+			ReadCut(kParticleIdentifyDir, "t0-d2d3-norm-1");
 		if (!cut1 || !cut2) {
 			std::cerr << "Error: Read cut from file failed.\n";
 			return -1;
@@ -222,6 +224,7 @@ int T0d2::NormalizeFilter(int iteration) {
 	return 0;
 }
 
+
 int T0d2::NormalizeSides(TChain *chain, int iteration) {
 	if (SideNormalize(chain, 0, 19, iteration)) {
 		std::cerr << "Error: Normalize first side failed.\n";
@@ -231,6 +234,139 @@ int T0d2::NormalizeSides(TChain *chain, int iteration) {
 		std::cerr << "Error: Normalize second side failed.\n";
 		return -1;
 	}
+	return 0;
+}
+
+
+
+int T0d2::AnalyzeTime() {
+	// input fundamental file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// reference time file name
+	TString ref_file_name;
+	ref_file_name.Form(
+		"%s%sreftime-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add reference time tree
+	ipt->AddFriend("ref=tree", ref_file_name);
+	// input event
+	DssdFundamentalEvent event;
+	// input reference time
+	double ref_time;
+	// setup input branches
+	event.SetupInput(ipt);
+	ipt->SetBranchAddress("ref.time", &ref_time);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-time-%s%04u.root",
+		kGenerateDataPath,
+		kTimeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// output tree
+	TTree opt("tree", "time");
+	// output time flag event
+	DssdTimeEvent time_event;
+	// setup output branches
+	time_event.SetupOutput(&opt);
+
+	// read cuts
+	std::unique_ptr<TCutG> cutf = ReadCut(kTimeDir, "t0d2-f");
+	std::unique_ptr<TCutG> cutf2 = ReadCut(kTimeDir, "t0d2-f2");
+	std::unique_ptr<TCutG> cutb = ReadCut(kTimeDir, "t0d2-b");
+	std::unique_ptr<TCutG> cutb2 = ReadCut(kTimeDir, "t0d2-b2");
+	if (!cutf || !cutf2 || !cutb || !cutb2) {
+		std::cerr << "Error: Read cut failed.\n";
+		return -1;
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Analyzing time   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		ipt->GetEntry(entry);
+		time_event.front_hit = event.front_hit;
+		time_event.back_hit = event.back_hit;
+		if (ref_time < -9e4) {
+			for (unsigned short i = 0; i < event.front_hit; ++i) {
+				time_event.front_time_flag[i] = 9;
+			}
+			for (unsigned short i = 0; i < event.back_hit; ++i) {
+				time_event.back_time_flag[i] = 9;
+			}
+		} else {
+			for (unsigned short i = 0; i < event.front_hit; ++i) {
+				if (cutf->IsInside(
+					event.front_energy[i], event.front_time[i]-ref_time
+				)) {
+					time_event.front_time_flag[i] = 0;
+				} else if (cutf2->IsInside(
+					event.front_energy[i], event.front_time[i]-ref_time
+				)) {
+					time_event.front_time_flag[i] = 0;
+				} else {
+					time_event.front_time_flag[i] = 8;
+				}
+			}
+			for (unsigned short i = 0; i < event.back_hit; ++i) {
+				if (cutb->IsInside(
+					event.back_energy[i], event.back_time[i]-ref_time
+				)) {
+					time_event.back_time_flag[i] = 0;
+				} else if (cutb2->IsInside(
+					event.back_energy[i], event.back_time[i]-ref_time
+				)) {
+					time_event.back_time_flag[i] = 0;
+				} else {
+					time_event.back_time_flag[i] = 8;
+				}
+			}
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// save tree
+	opt.Write();
+	// close files
+	opf.Close();
+	ipf.Close();
 	return 0;
 }
 

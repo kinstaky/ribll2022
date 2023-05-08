@@ -836,6 +836,28 @@ int Taf::Rebuild() {
 			particle_event.py[0] = 0.0;
 			particle_event.pz[0] = 0.0;
 		}
+		// if (ta_event.num == 1 && ta_event.flag[0] == 0x1 && ta_event.energy[0][0] < 10.0) {
+		// 	particle_event.num = 1;
+		// 	// fill particle charge number
+		// 	particle_event.charge[0] = 1;
+		// 	// fill particle mass number
+		// 	particle_event.mass[0] = 2;
+
+		// 	particle_event.energy[0] = ta_event.energy[0][0];
+
+		// 	// calcuate the position
+		// 	ROOT::Math::Polar3DVector position(
+		// 		ta_event.radius[0][0], ta_event.theta[0][0], ta_event.phi[0][0]
+		// 	);
+		// 	particle_event.x[0] = position.X();
+		// 	particle_event.y[0] = position.Y();
+		// 	particle_event.z[0] = position.Z();
+
+		// 	// leave empty momentum since the reaction point is unknown
+		// 	particle_event.px[0] = 0.0;
+		// 	particle_event.py[0] = 0.0;
+		// 	particle_event.pz[0] = 0.0;
+		// }
 		opt.Fill();
 	}
 	// show finish

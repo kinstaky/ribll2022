@@ -695,12 +695,15 @@ int Dssd::ShowNormalize() {
 }
 
 
-std::unique_ptr<TCutG> Dssd::ReadCut(const std::string &name) const {
+std::unique_ptr<TCutG> Dssd::ReadCut(
+	const std::string &dir,
+	const std::string &name
+) const {
 	// open cut file
 	std::ifstream fin(TString::Format(
 		"%s%scut/%s.txt",
 		kGenerateDataPath,
-		kParticleIdentifyDir,
+		dir.c_str(),
 		name.c_str()
 	));
 	if (!fin.good()) return nullptr;
@@ -726,6 +729,7 @@ std::unique_ptr<TCutG> Dssd::ReadCut(const std::string &name) const {
 
 /// @brief merge front hit 1 and back hit 1 events
 /// @param[in] fundamental input fundamental event
+/// @param[in] time input time event
 /// @param[in] merge output merged event
 /// @param[in] diff_tolerance energy difference tolerance
 /// @param[in] hde histogram to record energy difference
@@ -733,6 +737,7 @@ std::unique_ptr<TCutG> Dssd::ReadCut(const std::string &name) const {
 ///
 void Merge11Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -742,6 +747,8 @@ void Merge11Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that only one particle
 	double diff = fe[0] - be[0];
 	hde[0].Fill(diff);
@@ -755,6 +762,7 @@ void Merge11Event(
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
 		++statistics[0].merged;
 	}
 }
@@ -762,6 +770,7 @@ void Merge11Event(
 
 void Merge12Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -771,6 +780,8 @@ void Merge12Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that ajacent strips in back side
 	double diff_a = fe[0] - be[0] - be[1];
 	if (abs(bs[0]-bs[1]) == 1) hde[0].Fill(diff_a);
@@ -789,6 +800,7 @@ void Merge12Event(
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + bs[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10 + btf[1]*100;
 		++statistics[0].merged;
 	} else if (fabs(diff_b) < diff_tolerance) {
 		merge.hit = 1;
@@ -797,6 +809,7 @@ void Merge12Event(
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
 		++statistics[1].merged;
 	}
 }
@@ -804,6 +817,7 @@ void Merge12Event(
 
 void Merge21Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -813,6 +827,8 @@ void Merge21Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that ajacent strips in front side
 	double diff_a = fe[0] + fe[1] - be[0];
 	if (abs(fs[0]-fs[1]) == 1) hde[0].Fill(diff_a);
@@ -831,6 +847,7 @@ void Merge21Event(
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + ftf[1]*10 + btf[0]*100;
 		++statistics[0].merged;
 	} else if (fabs(diff_b) < diff_tolerance) {
 		// small energy in the seoncd front strip can be neglected,
@@ -841,12 +858,14 @@ void Merge21Event(
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
 		++statistics[1].merged;
 	}
 }
 
 void Merge22Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -856,6 +875,8 @@ void Merge22Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that there are two particles
 	double diff_a11 = fe[0] - be[0];
 	double diff_a12 = fe[1] - be[1];
@@ -892,6 +913,8 @@ void Merge22Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
+		merge.time_flag[1] = ftf[1] + btf[1]*10;
 		++statistics[0].merged;
 	} else if (
 		fabs(diff_a21) < diff_tolerance
@@ -909,6 +932,8 @@ void Merge22Event(
 			merge.x[1] = fs[1];
 			merge.y[1] = bs[0];
 			merge.z[1] = 0.0;
+			merge.time_flag[0] = ftf[0] + btf[1]*10;
+			merge.time_flag[1] = ftf[1] + btf[0]*10;
 		} else {
 			merge.energy[0] = fe[1];
 			merge.x[0] = fs[1];
@@ -918,6 +943,8 @@ void Merge22Event(
 			merge.x[1] = fs[0];
 			merge.y[1] = bs[1];
 			merge.z[1] = 0.0;
+			merge.time_flag[0] = ftf[1] + btf[0]*10;
+			merge.time_flag[1] = ftf[0] + btf[1]*10;
 		}
 		++statistics[0].merged;
 	} else if (
@@ -932,6 +959,7 @@ void Merge22Event(
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
+		merge.time_flag[0] = ftf[0] + ftf[1]*10 + btf[0]*100 + btf[1]*1000;
 		++statistics[1].merged;
 	}
 }
@@ -939,6 +967,7 @@ void Merge22Event(
 
 void Merge23Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -948,6 +977,8 @@ void Merge23Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that there are two particles
 	// 1. bs[0] and bs[1] are adjacent strips
 	double diff_a11 = fe[0] - be[0] - be[1];
@@ -996,6 +1027,8 @@ void Merge23Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[2];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10 + btf[1]*100;
+		merge.time_flag[1] = ftf[1] + btf[2]*10;
 		++statistics[0].merged;
 	} else if (
 		abs(bs[0] - bs[2]) == 1
@@ -1014,6 +1047,8 @@ void Merge23Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10 + btf[2]*100;
+		merge.time_flag[1] = ftf[1] + btf[1]*10;
 		++statistics[0].merged;
 	} else if (
 		abs(bs[1] - bs[2]) == 1
@@ -1033,6 +1068,8 @@ void Merge23Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
+		merge.time_flag[1] = ftf[1] + btf[1]*10 + btf[2]*100;
 		++statistics[0].merged;
 	} else if (
 		abs(bs[1] - bs[2]) == 1
@@ -1052,6 +1089,8 @@ void Merge23Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[0];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[1]*10 + btf[2]*100;
+		merge.time_flag[1] = ftf[1] + btf[0]*10;
 		++statistics[0].merged;
 	}
 }
@@ -1059,6 +1098,7 @@ void Merge23Event(
 
 void Merge32Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -1068,6 +1108,8 @@ void Merge32Event(
 	const unsigned short *bs = fundamental.back_strip;
 	const double *fe = fundamental.front_energy;
 	const double *be = fundamental.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that there are two particles
 	// 1. fs[0] and fs[1] are adjacent strips
 	double diff_a11 = fe[0] + fe[1] - be[0];
@@ -1116,6 +1158,8 @@ void Merge32Event(
 		merge.x[1] = fs[2];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + ftf[1]*10 + btf[0]*100;
+		merge.time_flag[1] = ftf[2] + btf[1]*10;
 		++statistics[0].merged;
 	} else if (
 		abs(fs[0] - fs[2]) == 1
@@ -1134,6 +1178,8 @@ void Merge32Event(
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + ftf[2]*10 + btf[0]*100;
+		merge.time_flag[1] = ftf[1] + btf[1]*10;
 		++statistics[0].merged;
 	} else if (
 		abs(fs[1] - fs[2]) == 1
@@ -1153,6 +1199,8 @@ void Merge32Event(
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[0]*10;
+		merge.time_flag[1] = ftf[1] + ftf[2]*10 + btf[1]*100;
 		++statistics[0].merged;
 	} else if (
 		abs(fs[1] - fs[2]) == 1
@@ -1172,6 +1220,8 @@ void Merge32Event(
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
 		merge.y[1] = bs[0];
 		merge.z[1] = 0.0;
+		merge.time_flag[0] = ftf[0] + btf[1]*10;
+		merge.time_flag[1] = ftf[1] + ftf[2]*10 + btf[0] * 100;
 		++statistics[0].merged;
 	}
 }
@@ -1256,6 +1306,7 @@ void SortFundamentalEvent(DssdFundamentalEvent &event) {
 
 void Merge33Event(
 	const DssdFundamentalEvent &fundamental,
+	const DssdTimeEvent &time,
 	DssdMergeEvent &merge,
 	double diff_tolerance,
 	TH1F *hde,
@@ -1268,6 +1319,8 @@ void Merge33Event(
 	const unsigned short *bs = event.back_strip;
 	const double *fe = event.front_energy;
 	const double *be = event.back_energy;
+	const int *ftf = time.front_time_flag;
+	const int *btf = time.back_time_flag;
 	// assume that there are three particles and no adjacent strips
 	double diff_a1 = fe[0] - be[0];
 	double diff_a2 = fe[1] - be[1];
@@ -1291,6 +1344,7 @@ void Merge33Event(
 			merge.x[i] = fs[i];
 			merge.y[i] = bs[i];
 			merge.z[i] = 0.0;
+			merge.time_flag[i] = ftf[i] + btf[i]*10;
 		}
 		++statistics[0].merged;
 	}
@@ -1368,10 +1422,24 @@ int Dssd::Merge(double energy_diff) {
 		std::cerr << "Error: Get tree from "
 			<< fundamental_file_name << " failed.\n";
 	}
+	// input time file name
+	TString time_file_name;
+	time_file_name.Form(
+		"%s%s%s-time-%s%04u.root",
+		kGenerateDataPath,
+		kTimeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("time=tree", time_file_name);
 	// input event
 	DssdFundamentalEvent fundamental_event;
+	DssdTimeEvent time_event;
 	// setup input branches
 	fundamental_event.SetupInput(ipt);
+	time_event.SetupInput(ipt, "time.");
 	// for convenient
 	unsigned short &fhit = fundamental_event.front_hit;
 	unsigned short &bhit = fundamental_event.back_hit;
@@ -1436,6 +1504,7 @@ int Dssd::Merge(double energy_diff) {
 	// function pointer to function that merge differenct case events
 	void(*MergeFunction[])(
 		const DssdFundamentalEvent&,
+		const DssdTimeEvent&,
 		DssdMergeEvent&,
 		double,
 		TH1F*,
@@ -1490,6 +1559,7 @@ int Dssd::Merge(double energy_diff) {
 		// call merge function to fill merge_event
 		MergeFunction[case_num](
 			fundamental_event,
+			time_event,
 			merge_event,
 			energy_diff,
 			hde + case_index[case_num],
@@ -1538,5 +1608,10 @@ int Dssd::Merge(double energy_diff) {
 	return 0;
 }
 
+
+int Dssd::AnalyzeTime() {
+	std::cerr << "Error: Dssd::AnalyzeTime is not implemented yet.\n";
+	return -1;
+}
 
 }

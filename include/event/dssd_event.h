@@ -81,6 +81,30 @@ public:
 };
 
 
+class DssdTimeEvent : public Event {
+public:
+	/// @brief setup branches of input tree
+	/// @param[in] tree pointer to input tree
+	/// @param[in] prefix prefix of variables for friend tree
+	///
+	virtual void SetupInput(
+		TTree *tree,
+		const std::string &prefix = ""
+	) override;
+
+
+	/// @brief setup branches of output tree
+	/// @param[in] tree pointer to output tree
+	///
+	virtual void SetupOutput(TTree *tree) override;
+
+	unsigned short front_hit;
+	unsigned short back_hit;
+	int front_time_flag[8];
+	int back_time_flag[8];
+};
+
+
 class DssdNormalizeEvent : public Event {
 public:
 
@@ -133,6 +157,7 @@ public:
 	double y[4];
 	double z[4];
 	double energy[4];
+	int time_flag[4];
 };
 
 

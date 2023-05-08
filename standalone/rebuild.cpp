@@ -8,8 +8,8 @@ using namespace ribll;
 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run telescope\n"
-		"  run               Set run number\n"
-		"  telescope         Set telescope name\n"
+		"  run               Set run number.\n"
+		"  telescope         Set telescope name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n";

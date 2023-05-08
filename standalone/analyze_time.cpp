@@ -1,19 +1,21 @@
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "include/telescopes.h"
+#include "include/detectors.h"
 
 using namespace ribll;
 
+
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run telescope\n"
+	std::cout << "Usage: " << name << " [options] run detector\n"
 		"  run               Set run number.\n"
-		"  telescope         Set telescope name.\n"
+		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n";
 }
+
 
 /// @brief parse arguments
 /// @param[in] argc number of arguments
@@ -57,6 +59,7 @@ int ParseArguments(
 	return result;
 }
 
+
 int main(int argc, char **argv) {
 	if (argc < 2) {
 		PrintUsage(argv[0]);
@@ -75,7 +78,6 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return 0;
 	}
-
 	if (pos_start < 0) {
 		if (-pos_start < argc) {
 			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
@@ -85,28 +87,31 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
-
-	if (pos_start + 1 >= argc) {
+	if (pos_start+1 >= argc) {
 		// positional arguments less than 3
-		std::cerr << "Error: Miss telescope argument.\n";
+		std::cerr << "Error: Miss detector argument.\n";
 		PrintUsage(argv[0]);
 		return -1;
 	}
 
 
 	int run = atoi(argv[pos_start]);
-	std::string telescope_name = argv[pos_start+1];
-
-	std::shared_ptr<Telescope> telescope =
-		CreateTelescope(telescope_name, run, tag);
-	if (!telescope) {
-		std::cerr << "Error: Telescope " << telescope_name << " not found.\n";
-		return -1;
+	// list of detector names
+	std::vector<std::string> detector_names;
+	for (int i = pos_start+1; i < argc; ++i) {
+		detector_names.push_back(std::string(argv[i]));
 	}
 
-	if (telescope->ParticleIdentify()) {
-		std::cerr << "Error: Idnetify particle in " << telescope_name << " failed.\n";
-		return -1;
+	for (auto name : detector_names) {
+		std::shared_ptr<Dssd> detector = CreateDssd(name, run, tag);
+		if (!detector) continue;
+
+		if (detector->AnalyzeTime()) {
+			std::cerr << "Error: Analyze time of "
+				<< name << " failed.\n";
+			continue;
+		}
 	}
+
 	return 0;
 }

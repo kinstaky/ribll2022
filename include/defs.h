@@ -28,6 +28,7 @@ const char* const kDecodeDir = "decode/";
 const char* const kAlignDir = "align/";
 const char* const kFundamentalDir = "fundamental/";
 const char* const kTraceDir = "trace/";
+const char* const kTimeDir = "time/";
 const char* const kBeamDir = "beam/";
 const char* const kNormalizeDir = "normalize/";
 const char* const kMergeDir = "merge/";
@@ -40,7 +41,7 @@ const char* const kChannelDir = "channel/";
 const char* const kCheckDir = "check/";
 const char* const kShowDir = "show/";
 const char* const kEnergyCalculateDir = "energy_calculate/";
-
+const char* const kFilterDir = "filter/";
 
 //-----------------------------------------------------------------------------
 //								xia vme alignment

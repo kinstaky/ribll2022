@@ -25,6 +25,10 @@ target_link_libraries(match_trigger PRIVATE detectors)
 add_executable(ref_time ref_time.cpp)
 target_link_libraries(ref_time time_reference)
 
+# analyze time
+add_executable(analyze_time analyze_time.cpp)
+target_link_libraries(analyze_time PRIVATE detectors)
+
 # beam identify
 add_executable(beam_identify beam_identify.cpp)
 target_link_libraries(beam_identify PRIVATE tof)
@@ -36,10 +40,6 @@ target_link_libraries(normalize PRIVATE detectors)
 # normalize result
 add_executable(normalize_result normalize_result.cpp)
 target_link_libraries(normalize_result PRIVATE detectors)
-
-# normalize filter
-add_executable(normalize_filter normalize_filter.cpp)
-target_link_libraries(normalize_filter PRIVATE detectors)
 
 # merge
 add_executable(merge merge.cpp)
@@ -71,4 +71,5 @@ target_link_libraries(coincide PRIVATE channel)
 
 add_subdirectory(calculate)
 add_subdirectory(check)
+add_subdirectory(filter)
 add_subdirectory(show)

@@ -51,6 +51,8 @@ void TrackDssdEvent(
 	t0.num = 0;
 	// fill all d1 events
 	for (unsigned short i = 0; i < d1.hit; ++i) {
+		// if (d1.time_flag[i] != 0) continue;
+		// if (d1.case_tag != 300) continue;
 		t0.layer[t0.num] = 1;
 		t0.flag[t0.num] = 0x1;
 		t0.energy[t0.num][0] = d1.energy[i];
@@ -63,6 +65,8 @@ void TrackDssdEvent(
 	// 1. fill with d1 event if under the angle tolerance
 	// 2. fill to empty slot if none match d1 event found
 	for (unsigned short i = 0; i < d2.hit; ++i) {
+		// if (d2.time_flag[i] != 0) continue;
+		// if (d2.case_tag != 300) continue;
 		bool fill = false;
 		for (unsigned short j = 0; j < t0.num; ++j) {
 			// jump if a d2 event has filled
@@ -111,6 +115,8 @@ void TrackDssdEvent(
 	// 2. fill with only d1 event under angle tolerance
 	// 3. fill with only d2 event under angle tolerance
 	for (unsigned short i = 0; i < d3.hit; ++i) {
+		// if (d3.time_flag[i] != 0) continue;
+		// if (d3.case_tag != 300) continue;
 		// d3 particle position
 		ROOT::Math::XYZVector d3_pos(d3.x[i], d3.y[i], d3.z[i]);
 		for (unsigned short j = 0; j < t0.num; ++j) {

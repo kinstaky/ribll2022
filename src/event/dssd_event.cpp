@@ -38,12 +38,12 @@ void DssdFundamentalEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"back_time").c_str(), back_time);
 	tree->SetBranchAddress((prefix+"front_energy").c_str(), front_energy);
 	tree->SetBranchAddress((prefix+"back_energy").c_str(), back_energy);
-	tree->SetBranchAddress(
-		(prefix+"front_decode_entry").c_str(), front_decode_entry
-	);
-	tree->SetBranchAddress(
-		(prefix+"back_decode_entry").c_str(), back_decode_entry
-	);
+	// tree->SetBranchAddress(
+	// 	(prefix+"front_decode_entry").c_str(), front_decode_entry
+	// );
+	// tree->SetBranchAddress(
+	// 	(prefix+"back_decode_entry").c_str(), back_decode_entry
+	// );
 }
 
 
@@ -57,8 +57,31 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("back_time", back_time, "bt[bhit]/D");
 	tree->Branch("front_energy", front_energy, "fe[fhit]/D");
 	tree->Branch("back_energy", back_energy, "be[bhit]/D");
-	tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
-	tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
+	// tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
+	// tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
+}
+
+
+void DssdTimeEvent::SetupInput(
+	TTree *tree,
+	const std::string &prefix
+) {
+	tree->SetBranchAddress((prefix+"front_hit").c_str(), &front_hit);
+	tree->SetBranchAddress((prefix+"back_hit").c_str(), &back_hit);
+	tree->SetBranchAddress(
+		(prefix+"front_time_flag").c_str(), front_time_flag
+	);
+	tree->SetBranchAddress(
+		(prefix+"back_time_flag").c_str(), back_time_flag
+	);
+}
+
+
+void DssdTimeEvent::SetupOutput(TTree *tree) {
+	tree->Branch("front_hit", &front_hit, "fhit/s");
+	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("front_time_flag", front_time_flag, "ftf[fhit]/I");
+	tree->Branch("back_time_flag", back_time_flag, "btf[bhit]/I");
 }
 
 
@@ -95,6 +118,7 @@ void DssdMergeEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"y").c_str(), y);
 	tree->SetBranchAddress((prefix+"z").c_str(), z);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
+	tree->SetBranchAddress((prefix+"time_flag").c_str(), time_flag);
 }
 
 
@@ -105,6 +129,7 @@ void DssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("y", y, "y[hit]/D");
 	tree->Branch("z", z, "z[hit]/D");
 	tree->Branch("energy", energy, "e[hit]/D");
+	tree->Branch("time_flag", time_flag, "tf[hit]/I");
 }
 
 

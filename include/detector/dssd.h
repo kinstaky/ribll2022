@@ -91,7 +91,7 @@ public:
 
 
 	//-------------------------------------------------------------------------
-	//							normalize
+	//								normalize
 	//-------------------------------------------------------------------------
 
 	/// @brief normalize dssd
@@ -125,7 +125,7 @@ public:
 	virtual int NormalizeFilter(int iteration);
 
 	//-------------------------------------------------------------------------
-	//							merge
+	//								merge
 	//-------------------------------------------------------------------------
 
 	/// @brief merge adjacent event in the same side and merge events of two sides
@@ -133,6 +133,16 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Merge(double energy_diff);
+
+
+	//-------------------------------------------------------------------------
+	//								time
+	//-------------------------------------------------------------------------
+
+	/// @brief analyze time
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int AnalyzeTime();
 
 protected:
 
@@ -209,9 +219,11 @@ protected:
 
 
 	/// @brief read cut from file
+	/// @param[in] dir directory name
 	/// @param[in] name file name
+	/// @returns pointer to cut object
 	///
-	std::unique_ptr<TCutG> ReadCut(const std::string &name) const;
+	std::unique_ptr<TCutG> ReadCut(const std::string &dir, const std::string &name) const;
 
 	//-------------------------------------------------------------------------
 	//						geometry member

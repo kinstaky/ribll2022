@@ -196,7 +196,11 @@ int Adssd::AnalyzeTrace() {
 	// all trace in histogram
 	TH2F hist_trace(
 		"ht", "histogram of all trace",
-		1000, 0, 1000, 1000, -1000, 9000
+		1000, 0, 1000, 2000, 0, 2
+	);
+	// relative value at point
+	TH1F hist_relative(
+		"hr", "relative value at one point", 1000, 0, 1
 	);
 	// graph for checking trace
 	TGraph graph[10];
@@ -336,8 +340,10 @@ int Adssd::AnalyzeTrace() {
 
 		// fill all trace to histogram
 		for (unsigned short i = 0; i < points; ++i) {
-			hist_trace.Fill(i, trace[i]);
+			hist_trace.Fill(i, trace[i]/trace[peak_point]);
 		}
+		// fill relative value at point 500
+		hist_relative.Fill(trace[900]/trace[peak_point]);
 		// fill first 10 trace to graph for checking
 		if (graph_num < 10) {
 			for (unsigned short i = 0; i < points; ++i) {
@@ -369,6 +375,7 @@ int Adssd::AnalyzeTrace() {
 	printf("\b\b\b\b100%%\n");
 	// save graphs
 	hist_trace.Write();
+	hist_relative.Write();
 	for (size_t i = 0; i < graph_num; ++i) {
 		graph[i].Write(TString::Format("g%ld", i));
 	}

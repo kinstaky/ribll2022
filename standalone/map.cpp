@@ -13,7 +13,7 @@
 ///
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run\n"
-		"  run               run number\n"
+		"  run               Set run number.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -n                Map without threshold.\n";

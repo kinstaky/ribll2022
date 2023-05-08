@@ -87,3 +87,7 @@ add_executable(show_ppac_center show_ppac_center.cpp)
 target_link_libraries(
 	show_ppac_center PRIVATE event ROOT::Graf
 )
+
+# show time-energy
+add_executable(show_time_energy show_time_energy.cpp)
+target_link_libraries(show_time_energy PRIVATE event ROOT::Hist)

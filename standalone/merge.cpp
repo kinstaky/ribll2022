@@ -9,9 +9,9 @@ using namespace ribll;
 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run diff detector\n"
-		"  run               Set run number\n"
+		"  run               Set run number.\n"
 		"  diff              Set tolerant energy relative difference.\n"
-		"  detector          Set detector name\n"
+		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n";
