@@ -181,18 +181,26 @@ protected:
 	int WriteNormalizeParameters(int iteration = -1);
 
 
-	/// @brief normalize one side
+	/// @brief normalize some strips in reference some strips in the other side
 	/// @param[in] chain input TChain
 	/// @param[in] side side to normalize, 0 for front, 1 for back
-	/// @param[in] ref_strip reference strip from the other side
-	/// @param[in] iteration iteration mode
+	/// @param[in] ref_start start strip to reference, inclusive
+	/// @param[in] ref_end end strip to reference, exclusive
+	/// @param[in] norm_start start strip to normalize, inclusive
+	/// @param[in] norm_end end strip to normalize, exclusive
+	/// @param[in] iteration iteration mode 
+	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int SideNormalize(
+	virtual int StripsNormalize(
 		TChain *chain,
 		size_t side,
-		size_t ref_strip,
+		size_t ref_start,
+		size_t ref_end,
+		size_t norm_start,
+		size_t norm_end,
 		int iteration
 	);
+
 
 
 	/// @brief normalize both sides, the true normalize
@@ -240,6 +248,9 @@ protected:
 	// normalize parameters, first index is side,
 	// second index is strip, third index is p0 and p1
 	double norm_params_[2][64][2];
+
+private:
+	bool has_normalized_[2][64];
 };
 
 

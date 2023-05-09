@@ -62,6 +62,102 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 }
 
 
+void DssdFundamentalEvent::Sort() {
+	SortSide(0, 0);
+	SortSide(1, 0);
+}
+
+
+void DssdFundamentalEvent::SortSide(size_t side, unsigned short index) {
+	if (side == 0) {
+		// front side
+		if (index == front_hit) return;
+		double max_energy = front_energy[index];
+		unsigned short max_index = index;
+		for (unsigned short i = index+1; i < front_hit; ++i) {
+			if (front_energy[i] > max_energy) {
+				max_energy = front_energy[i];
+				max_index = i;
+			}
+		}
+		Swap(side, index, max_index);
+		SortSide(side, index+1);
+	} else {
+		// back side
+		if (index == back_hit) return;
+		double max_energy = back_energy[index];
+		unsigned short max_index = index;
+		for (unsigned short i = index+1; i < back_hit; ++i) {
+			if (back_energy[i] > max_energy) {
+				max_energy = back_energy[i];
+				max_index = i;
+			}
+		}
+		Swap(side, index, max_index);
+		SortSide(side, index+1);
+	}
+}
+
+
+void DssdFundamentalEvent::Swap(
+	size_t side,
+	unsigned short i,
+	unsigned short j
+) {
+	if (side == 0) {
+		// front side
+		// swap cfd flag
+		unsigned short t1 = (cfd_flag & (1 << i)) >> i;
+		unsigned short t2 = (cfd_flag & (1 << j)) >> j;
+		cfd_flag &= ~(1 << i);
+		cfd_flag &= ~(1 << j);
+		cfd_flag |= t1 << j;
+		cfd_flag |= t2 << i;
+		// swap strip
+		unsigned short ts = front_strip[i];
+		front_strip[i] = front_strip[j];
+		front_strip[j] = ts;
+		// swap time
+		double tt = front_time[i];
+		front_time[i] = front_time[j];
+		front_time[j] = tt;
+		// swap energy
+		double te = front_energy[i];
+		front_energy[i] = front_energy[j];
+		front_energy[j] = te;
+		// swap decode entry
+		long long tde = front_decode_entry[i];
+		front_decode_entry[i] = front_decode_entry[j];
+		front_decode_entry[j] = tde;
+	} else {
+		// back side
+		// swap cfd flag
+		unsigned short t1 = (cfd_flag & (1 << (i+8))) >> (i+8);
+		unsigned short t2 = (cfd_flag & (1 << (j+8))) >> (j+8);
+		cfd_flag &= ~(1 << (i+8));
+		cfd_flag &= ~(1 << (j+8));
+		cfd_flag |= t1 << (j+8);
+		cfd_flag |= t2 << (i+8);
+		// swap strip
+		unsigned short ts = back_strip[i];
+		back_strip[i] = back_strip[j];
+		back_strip[j] = ts;
+		// swap time
+		double tt = back_time[i];
+		back_time[i] = back_time[j];
+		back_time[j] = tt;
+		// swap energy
+		double te = back_energy[i];
+		back_energy[i] = back_energy[j];
+		back_energy[j] = te;
+		// swap decode entry
+		long long tde = back_decode_entry[i];
+		back_decode_entry[i] = back_decode_entry[j];
+		back_decode_entry[j] = tde;
+	}
+}
+
+
 void DssdTimeEvent::SetupInput(
 	TTree *tree,
 	const std::string &prefix

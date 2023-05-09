@@ -226,14 +226,40 @@ int T0d2::NormalizeFilter(int iteration) {
 
 
 int T0d2::NormalizeSides(TChain *chain, int iteration) {
-	if (SideNormalize(chain, 0, 19, iteration)) {
-		std::cerr << "Error: Normalize first side failed.\n";
-		return -1;
+	constexpr size_t side[] = {0, 1, 0, 1, 0, 1};
+	constexpr std::pair<size_t, size_t> ref_strip[] = {
+		{19, 20},
+		{14, 15},
+		{15, 25},
+		{10, 20},
+		{5, 25},
+		{10, 30}
+	};
+	constexpr std::pair<size_t, size_t> norm_strip[] = {
+		{10, 20},
+		{15, 25},
+		{5, 25},
+		{10, 30},
+		{0, 32},
+		{0, 32}
+	};
+
+	for (size_t i = 0; i < 6; ++i) {
+		if (StripsNormalize(
+			chain,
+			side[i],
+			ref_strip[i].first, ref_strip[i].second,
+			norm_strip[i].first, norm_strip[i].second,
+			iteration
+		)) {
+			std::cerr << "Error: Normalize strips [" << norm_strip[i].first << ", "
+				<< norm_strip[i].second << ") in side " << side[i]
+				<< " reference strips [" << ref_strip[i].first << ", "
+				<< ref_strip[i].second << ") failed.\n";
+			return -1;
+		}
 	}
-	if (SideNormalize(chain, 1, 14, iteration)) {
-		std::cerr << "Error: Normalize second side failed.\n";
-		return -1;
-	}
+	return 0;
 	return 0;
 }
 

@@ -275,10 +275,13 @@ int Dssd::WriteNormalizeParameters(int iteration) {
 }
 
 
-int Dssd::SideNormalize(
+int Dssd::StripsNormalize(
 	TChain *chain,
 	size_t side,
-	size_t ref_strip,
+	size_t ref_start,
+	size_t ref_end,
+	size_t norm_start,
+	size_t norm_end,
 	int iteration
 ) {
 	// event to normalize
@@ -291,15 +294,17 @@ int Dssd::SideNormalize(
 	}
 
 	// energy graph fe:be or be:fe
-	TGraph *ge;
-	ge = new TGraph[Strip(side)];
+	TGraph *ge = new TGraph[Strip(side)];
 
 	// total number of entries
 	long long entries = chain->GetEntries();
 	// 1/100 of total entries
 	long long entry100 = entries / 100 + 1;
 	// show start
-	printf("Filling for side %ld refer strip %ld   0%%", side, ref_strip);
+	printf(
+		"Filling for side %ld [%ld, %ld) reference strips [%ld, %ld)   0%%",
+		side, norm_start, norm_end, ref_start, ref_end
+	);
 	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
@@ -318,11 +323,22 @@ int Dssd::SideNormalize(
 		double &be = event.back_energy[0];
 
 		if (side == 0) {
-			// jump if not refer strip
-			if (bs != ref_strip) continue;
+			// jump if not reference strips
+			if (bs < ref_start || bs >= ref_end) continue;
+			// jump if not normalize strips
+			if (fs < norm_start || fs >= norm_end) continue;
+			// jump if has normalized
+			if (has_normalized_[side][fs]) continue;
+			// fill to graph
 			ge[fs].AddPoint(fe, NormEnergy(1, bs, be));
 		} else {
-			if (fs != ref_strip) continue;
+			// jump if not reference strips
+			if (fs < ref_start || fs >= ref_end) continue;
+			// jump if not normalize strips
+			if (bs < norm_start || bs >= norm_end) continue;
+			// jump if has normalized
+			if (has_normalized_[side][bs]) continue;
+			// fill to graph
 			ge[bs].AddPoint(be, NormEnergy(0, fs, fe));
 		}
 	}
@@ -331,9 +347,10 @@ int Dssd::SideNormalize(
 
 	// fitting
 	std::cout << "side " << side << " normalize parameters.\n";
-	for (size_t i = 0; i < Strip(side); ++i) {
+	for (size_t i = norm_start; i < norm_end; ++i) {
+		if (has_normalized_[side][i]) continue;
 		// only fits when over 10 points
-		if (ge[i].GetN() > 10) {
+		if (ge[i].GetN() > 5) {
 			// fitting function
 			TF1 energy_fit("efit", "pol1", 0, 60000);
 			// set initial value
@@ -347,15 +364,17 @@ int Dssd::SideNormalize(
 		}
 		// store the graph
 		ge[i].Write(TString::Format("g%c%ld", "fb"[side], i));
+		// set as normalized
+		has_normalized_[side][i] = true;
 		// print normalized paramters on screen
 		std::cout << i << " " << norm_params_[side][i][0]
 			<< ", " << norm_params_[side][i][1] << "\n";
 	}
 
 	// residual
-	TGraph *res;
-	res = new TGraph[Strip(side)];
-	for (size_t i = 0; i < Strip(side); ++i) {
+	TGraph *res = new TGraph[Strip(side)];
+	for (size_t i = norm_start; i < norm_end; ++i) {
+		if (has_normalized_[side][i]) continue;
 		int point = ge[i].GetN();
 		double *gex = ge[i].GetX();
 		double *gey = ge[i].GetY();
@@ -375,102 +394,6 @@ int Dssd::SideNormalize(
 
 int Dssd::NormalizeSides(TChain*, int) {
 	std::cerr << "Error: Sides Normalize is not implemented yet.\n";
-	return -1;
-}
-
-
-int Dssd::NormalizeResult(int iteration) {
-	// input file name
-	TString input_file_name;
-	input_file_name.Form(
-		"%s%s%s-fundamental-%s%04u.root",
-		kGenerateDataPath,
-		kFundamentalDir,
-		name_.c_str(),
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
-	);
-	// input file
-	TFile ipf(input_file_name, "read");
-	// input tree
-	TTree *ipt = (TTree*)ipf.Get("tree");
-	if (!ipt) {
-		std::cerr << "Error: Get tree from "
-			<< input_file_name << " failed.\n";
-		return -1;
-	}
-	// input event
-	DssdNormalizeEvent event;
-	// setup input branches
-	event.SetupInput(ipt);
-
-	// output file name
-	TString output_file_name;
-	output_file_name.Form(
-		"%s%s%s-normalize-result-%s%04u-%d.root",
-		kGenerateDataPath,
-		kNormalizeDir,
-		name_.c_str(),
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_,
-		iteration
-	);
-	// output file
-	TFile opf(output_file_name, "recreate");
-	// output tree
-	TTree opt("tree", "normalized energy tree");
-	// setup branches
-	event.SetupOutput(&opt);
-
-	// read normalize parameters from file
-	if (ReadNormalizeParameters(iteration)) {
-		std::cerr << "Error: Read normalize parameters from file failed.\n";
-		return -1;
-	}
-
-	// total number of entries
-	long long entries = ipt->GetEntries();
-	// l/100 of entries
-	long long entry100 = entries / 100 + 1;
-	// show start
-	printf(
-		"Writing normalized energy for %s in run %u   0%%",
-		name_.c_str(), run_
-	);
-	fflush(stdout);
-	for (long long entry = 0; entry < entries; ++entry) {
-		// show process
-		if (entry % entry100) {
-			printf("\b\b\b\b%3lld%%", entry / entry100);
-			fflush(stdout);
-		}
-		// get event
-		ipt->GetEntry(entry);
-		for (unsigned short i = 0; i < event.front_hit; ++i) {
-			event.front_energy[i] =
-				NormEnergy(0, event.front_strip[i], event.front_energy[i]);
-		}
-		for (unsigned short i = 0; i < event.back_hit; ++i) {
-			event.back_energy[i] =
-				NormEnergy(1, event.back_strip[i], event.back_energy[i]);
-		}
-		opt.Fill();
-	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
-
-	// write output tree
-	opt.Write();
-	// close files
-	opf.Close();
-	ipf.Close();
-
-	return 0;
-}
-
-
-int Dssd::NormalizeFilter(int) {
-	std::cerr << "Error: NormalizeFilter is not implemented yet.\n";
 	return -1;
 }
 
@@ -537,6 +460,13 @@ int Dssd::Normalize(
 	// output file
 	TFile opf(normalize_file_name, "recreate");
 
+	// initialize
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < 64; ++j) {
+			has_normalized_[i][j] = false;
+		}
+	}
+
 	if (NormalizeSides(&chain, iteration)) return -1;
 
 	// close files
@@ -552,6 +482,223 @@ int Dssd::Normalize(
 	statistics.Write();
 	statistics.Print();
 	return 0;
+}
+
+
+int Dssd::NormalizeResult(int iteration) {
+	// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input filter file name
+	TString filter_file_name;
+	filter_file_name.Form(
+		"%s%s%s-filter-%s%04u-%d.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_ + "-").c_str(),
+		run_,
+		iteration
+	);
+	// add friend
+	ipt->AddFriend("filter=tree", filter_file_name);
+	// input event
+	DssdFundamentalEvent event;
+	// input filter flag
+	unsigned short flag;
+	// setup input branches
+	event.SetupInput(ipt);
+	ipt->SetBranchAddress("filter.flag", &flag);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-result-%s%04u-%d.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_,
+		iteration
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// energy difference range
+	const double diff_e_range = 2000;
+	// 2D hisogram fe VS be
+	TH2F fe_be("hfbe", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
+	// 2D histogram fe-be VS fs
+	TH2F de_fs(
+		"hefs", "fe-be:fs",
+		FrontStrip(), 0, FrontStrip(), 1000, 0, diff_e_range
+	);
+	// 2D histogram fe-be VS bs
+	TH2F de_bs(
+		"hebs", "fe-be:bs",
+		BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
+	);
+	// 2D histogram fe-be VS fe
+	TH2F de_fe(
+		"hefe", "fe-be:fe",
+		1000, 0, 60000, 1000, 0, diff_e_range
+	);
+	// 2D histogram fe-be VS be
+	TH2F de_be(
+		"hebe", "fe-be:be",
+		1000, 0, 60000, 1000, -diff_e_range, diff_e_range
+	);
+	// 1D histogram fe-be
+	TH1F de("hde", "fe-be", 1000, -diff_e_range, diff_e_range);
+	// 1D histogram abs(fe-be)/(fe+be)
+	TH1F rde("hrde", "(fe-be)/(fe+be)", 1000, -1, 1);
+	// 2D histogram (fe-be)/(fe+be) VS fe
+	TH2F rde_fe(
+		"hrdefe", "(fe-be)/(fe+be):fe",
+		1000, 0, 60000, 1000, 0,  1
+	);
+	// 2D hisogram fe VS be with filter
+	TH2F fe_be_f("hfbef", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
+	// 2D histogram fe-be VS fs with filter
+	TH2F de_fs_f(
+		"hefsf", "fe-be:fs",
+		FrontStrip(), 0, FrontStrip(), 1000, 0, diff_e_range
+	);
+	// 2D histogram fe-be VS bs with filter
+	TH2F de_bs_f(
+		"hebsf", "fe-be:bs",
+		BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
+	);
+	// 2D histogram fe-be VS fe with filter
+	TH2F de_fe_f(
+		"hefef", "fe-be:fe",
+		1000, 0, 60000, 1000, 0, diff_e_range
+	);
+	// 2D histogram fe-be VS be with filter
+	TH2F de_be_f(
+		"hebef", "fe-be:be",
+		1000, 0, 60000, 1000, -diff_e_range, diff_e_range
+	);
+	// 1D histogram fe-be with filter
+	TH1F de_f("hdef", "fe-be", 1000, -diff_e_range, diff_e_range);
+	// 1D histogram abs(fe-be)/(fe+be) with filter
+	TH1F rde_f("hrdef", "(fe-be)/(fe+be)", 1000, -1, 1);
+	// 2D histogram (fe-be)/(fe+be) VS fe with filter
+	TH2F rde_fe_f(
+		"hrdefef", "(fe-be)/(fe+be):fe",
+		1000, 0, 60000, 1000, 0,  1
+	);
+	// output tree
+	TTree opt("tree", "normalized energy tree");
+	// setup branches
+	event.SetupOutput(&opt);
+
+	// read normalize parameters from file
+	if (ReadNormalizeParameters(iteration)) {
+		std::cerr << "Error: Read normalize parameters from file failed.\n";
+		return -1;
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// l/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf(
+		"Writing normalized result for %s in run %u   0%%",
+		name_.c_str(), run_
+	);
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		for (unsigned short i = 0; i < event.front_hit; ++i) {
+			event.front_energy[i] =
+				NormEnergy(0, event.front_strip[i], event.front_energy[i]);
+		}
+		for (unsigned short i = 0; i < event.back_hit; ++i) {
+			event.back_energy[i] =
+				NormEnergy(1, event.back_strip[i], event.back_energy[i]);
+		}
+		event.Sort();
+
+		if (event.front_hit == 1 && event.back_hit == 1) {
+			double fe = event.front_energy[0];
+			double be = event.back_energy[0];
+			fe_be.Fill(be, fe);
+			de_fs.Fill(event.front_strip[0], fabs(fe-be));
+			de_bs.Fill(event.back_strip[0], fe-be);
+			de_fe.Fill(fe, fabs(fe-be));
+			de_be.Fill(be, fe-be);
+			de.Fill(fe-be);
+			rde.Fill((fe-be)/(fe+be));
+			rde_fe.Fill(fe, fabs((fe-be)/(fe+be)));
+			if (flag == 1) {
+				fe_be_f.Fill(be, fe);
+				de_fs_f.Fill(event.front_strip[0], fabs(fe-be));
+				de_bs_f.Fill(event.back_strip[0], fe-be);
+				de_fe_f.Fill(fe, fabs(fe-be));
+				de_be_f.Fill(be, fe-be);
+				de_f.Fill(fe-be);
+				rde_f.Fill((fe-be)/(fe+be));
+				rde_fe_f.Fill(fe, fabs((fe-be)/(fe+be)));
+			}
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save histograms
+	fe_be.Write();
+	de_fs.Write();
+	de_bs.Write();
+	de_fe.Write();
+	de_be.Write();
+	de.Write();
+	rde.Write();
+	rde_fe.Write();
+	fe_be_f.Write();
+	de_fs_f.Write();
+	de_bs_f.Write();
+	de_fe_f.Write();
+	de_be_f.Write();
+	de_f.Write();
+	rde_f.Write();
+	rde_fe_f.Write();
+	// write output tree
+	opt.Write();
+	// close files
+	opf.Close();
+	ipf.Close();
+
+	return 0;
+}
+
+
+int Dssd::NormalizeFilter(int) {
+	std::cerr << "Error: NormalizeFilter is not implemented yet.\n";
+	return -1;
 }
 
 

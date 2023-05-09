@@ -67,6 +67,10 @@ public:
 	}
 
 
+	/// @brief sort events by energy
+	///
+	virtual void Sort();
+
 	unsigned short front_hit;
 	unsigned short back_hit;
 	unsigned short cfd_flag;
@@ -78,6 +82,22 @@ public:
 	double back_energy[8];
 	long long front_decode_entry[8];
 	long long back_decode_entry[8];
+
+private:
+
+	/// @brief sort one side by energy start from index
+	/// @param[in] side 0-front, 1-back
+	/// @param[in] index event before this index is sorted
+	///
+	void SortSide(size_t side, unsigned short index);
+
+
+	/// @brief swap two event in one side
+	/// @param[in] side 0-front, 1-back
+	/// @param[in] i first index to swap
+	/// @param[in] j second index to swap
+	///
+	void Swap(size_t side, unsigned short i, unsigned short j);
 };
 
 
