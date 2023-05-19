@@ -1,15 +1,14 @@
-#include "include/detectors.h"
+#include "include/telescopes.h"
 
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run detector[...]\n"
+	std::cout << "Usage: " << name << " [options] run telescope\n"
 		"  run               Set run number.\n"
-		"  detector          Set detector name.\n"
+		"  telescope          Set telescope name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n"
-		"  -i num            Set iteration mode.\n";
+		"  -t tag            Set trigger tag.\n";
 }
 
 /// @brief parse arguments
@@ -17,7 +16,6 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
-/// @param[out] iteartion iteration mode
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -26,13 +24,11 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag,
-	int &iteration
+	std::string &trigger_tag
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
-	iteration = 0;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -50,13 +46,6 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
-		} else if (argv[result][1] == 'i') {
-			// option of iteration flag
-			// get number in next argument
-			++result;
-			// miss arguemnt behind option
-			if (result == argc) return -argc;
-			iteration = atoi(argv[result]);
 		} else {
 			return -result;
 		}
@@ -74,10 +63,8 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
-	// iteration flag
-	int iteration = 0;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag, iteration);
+	int pos_start = ParseArguments(argc, argv, help, tag);
 
 	// need help
 	if (help) {
@@ -105,20 +92,15 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[pos_start]);
 	// list of detector names
-	std::vector<std::string> dssd_names;
-	for (int i = pos_start+1; i < argc; ++i) {
-		dssd_names.push_back(std::string(argv[i]));
-	}
+	std::string telescope_name(argv[pos_start+1]);
+	std::shared_ptr<Telescope> telescope
+		= CreateTelescope(telescope_name, run, tag);
+	if (!telescope) return -1;
 
-	for (auto dssd_name : dssd_names) {
-		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
-		if (!dssd) continue;
-
-		if (dssd->NormalizeResult(iteration)) {
-			std::cerr << "Error: Normalize result from "
-				<< dssd_name << " failed.\n";
-			continue;
-		}
+	if (telescope->CalibrateResult()) {
+		std::cerr << "Error: Generate calibration result of "
+			<< telescope_name << " failed.\n";
+		return -1;
 	}
 
 	return 0;

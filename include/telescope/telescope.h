@@ -92,6 +92,12 @@ public:
 	///
 	virtual int Rebuild();
 
+
+	/// @brief generate calibrate result
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int CalibrateResult();
+
 protected:
 
 	/// @brief read cut from file

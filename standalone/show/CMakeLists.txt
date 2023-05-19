@@ -70,7 +70,7 @@ target_link_libraries(
 # show t0 center
 add_executable(show_t0_center show_t0_center.cpp)
 target_link_libraries(
-	show_t0_center PRIVATE event ROOT::Graf
+	show_t0_center PRIVATE event statistics ROOT::Graf
 )
 
 # show T0 pid
@@ -85,9 +85,13 @@ target_link_libraries(show_taf_pid PRIVATE event ROOT::Hist)
 # show PPAC center
 add_executable(show_ppac_center show_ppac_center.cpp)
 target_link_libraries(
-	show_ppac_center PRIVATE event ROOT::Graf
+	show_ppac_center PRIVATE event statistics ROOT::Graf
 )
 
 # show time-energy
 add_executable(show_time_energy show_time_energy.cpp)
 target_link_libraries(show_time_energy PRIVATE event ROOT::Hist)
+
+# show t0 calibration result
+add_executable(show_calibration show_calibration.cpp)
+target_link_libraries(show_calibration PRIVATE t0)

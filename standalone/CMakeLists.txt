@@ -51,7 +51,7 @@ target_link_libraries(track PRIVATE ppac telescopes)
 
 # analyze trace
 add_executable(analyze_trace analyze_trace.cpp)
-target_link_libraries(analyze_trace PRIVATE detectors)
+target_link_libraries(analyze_trace PRIVATE detectors telescopes)
 
 # pid
 add_executable(pid particle_identify.cpp)
@@ -60,6 +60,10 @@ target_link_libraries(pid PRIVATE telescopes)
 # calibrate
 add_executable(calibrate calibrate.cpp)
 target_link_libraries(calibrate PRIVATE detectors telescopes)
+
+# calibrate result
+add_executable(calibrate_result calibrate_result.cpp)
+target_link_libraries(calibrate_result PRIVATE telescopes)
 
 # particle
 add_executable(rebuild rebuild.cpp)

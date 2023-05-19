@@ -59,10 +59,18 @@ public:
 	virtual std::string Title() const = 0;
 
 
-	/// @brief return run number and detector name pair as key in map
-	/// @returns run number and detector name pair
+	/// @brief return run number in string as key in map
+	/// @returns run numbe in string
 	///
 	virtual std::string Key() const;
+
+
+	/// @brief return run number
+	/// @returns run number
+	/// 
+	inline virtual unsigned int Run() const {
+		return run_;
+	}
 
 
 	/// @brief get store time

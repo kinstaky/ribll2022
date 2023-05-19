@@ -13,50 +13,257 @@ namespace ribll {
 
 constexpr unsigned int kChangePpacRun = 717;
 
-constexpr double sum_x_range[9][2] = {
-	{100, 120},		// x0-a0
-	{100, 120},		// x0-a1
-	{70, 90},		// x0-a2
-	{90, 110},		// x1-a0
-	{90, 110},		// x1-a1
-	{70, 90},		// x1-a2
-	{100, 120},		// x2-a0
-	{100, 120},		// x2-a1
-	{80, 100}		// x3-a0
+constexpr double sum_range[][19][2] = {
+	{
+		// 618 <= run <= 640
+		// x0, y0
+		{100, 120},		// x0-a0
+		{100, 120},		// y0-a0
+		{100, 120},		// x0-a1
+		{100, 120},		// y0-a1
+		{70, 90},		// x0-a2
+		{70, 90},		// y0-a2
+		// x1, y1
+		{85, 105},		// x1-a0
+		{100, 120},		// y1-a0
+		{90, 110},		// x1-a1
+		{100, 120},		// y1-a1
+		{70, 90},		// x1-a2
+		{70, 90},		// y1-a2
+		// x2, y2
+		{100, 120},		// x2-a0
+		{110, 130},		// y2-a0
+		{100, 120},		// x2-a1
+		{110, 130},		// y2-a1
+		{80, 100},		// x2-a2
+		{80, 100}		// y2-a2
+	},
+	{
+		// run == 641, 642, 644, 645, 648, 649, 651
+		// x0, y0
+		{75, 95},		// x0-a0
+		{70, 90},		// y0-a0
+		{85, 105},		// x0-a1
+		{85, 105},		// y0-a1
+		{70, 90},		// x0-a2
+		{70, 90},		// y0-a2
+		// x1, y1
+		{90, 110},		// x1-a0
+		{85, 105},		// y1-a0
+		{100, 120},		// x1-a1
+		{95, 115},		// y1-a1
+		{80, 100},		// x1-a2
+		{80, 100},		// y1-a2
+		// x2, y2
+		{90, 110},		// x2-a0
+		{85, 105},		// y2-a0
+		{100, 120},		// x2-a1
+		{100, 120},		// y2-a1
+		{85, 105},		// x2-a2
+		{85, 105}		// y2-a2
+	},
+	// {
+	// 	// run == 643
+	// 	// x0, y0
+	// 	{85, 105},		// x0-a0
+	// 	{70, 90},		// y0-a0
+	// 	{95, 115},		// x0-a1
+	// 	{85, 105},		// y0-a1
+	// 	{80, 100},		// x0-a2
+	// 	{70, 90},		// y0-a2
+	// 	// x1, y1
+	// 	{90, 110},		// x1-a0
+	// 	{85, 105},		// y1-a0
+	// 	{100, 120},		// x1-a1
+	// 	{95, 115},		// y1-a1
+	// 	{80, 100},		// x1-a2
+	// 	{80, 100},		// y1-a2
+	// 	// x2, y2
+	// 	{100, 120},		// x2-a0
+	// 	{85, 105},		// y2-a0
+	// 	{110, 130},		// x2-a1
+	// 	{100, 120},		// y2-a1
+	// 	{95, 115},		// x2-a2
+	// 	{85, 105}		// y2-a2
+	// },
+	// {
+	// 	// run == 646, 650, 652
+	// 	// x0, y0
+	// 	{75, 95},		// x0-a0
+	// 	{70, 90},		// y0-a0
+	// 	{85, 105},		// x0-a1
+	// 	{85, 105},		// y0-a1
+	// 	{70, 90},		// x0-a2
+	// 	{70, 90},		// y0-a2
+	// 	// x1, y1
+	// 	{90, 110},		// x1-a0
+	// 	{85, 105},		// y1-a0
+	// 	{100, 120},		// x1-a1
+	// 	{95, 115},		// y1-a1
+	// 	{80, 100},		// x1-a2
+	// 	{80, 100},		// y1-a2
+	// 	// x2, y2
+	// 	{100, 120},		// x2-a0
+	// 	{85, 105},		// y2-a0
+	// 	{110, 130},		// x2-a1
+	// 	{100, 120},		// y2-a1
+	// 	{95, 115},		// x2-a2
+	// 	{85, 105}		// y2-a2
+	// },
+	// {
+	// 	// run == 647
+	// 	// x0, y0
+	// 	{75, 95},		// x0-a0
+	// 	{70, 90},		// y0-a0
+	// 	{85, 105},		// x0-a1
+	// 	{85, 105},		// y0-a1
+	// 	{70, 90},		// x0-a2
+	// 	{70, 90},		// y0-a2
+	// 	// x1, y1
+	// 	{80, 100},		// x1-a0
+	// 	{85, 105},		// y1-a0
+	// 	{90, 110},		// x1-a1
+	// 	{95, 115},		// y1-a1
+	// 	{70, 90},		// x1-a2
+	// 	{80, 100},		// y1-a2
+	// 	// x2, y2
+	// 	{90, 110},		// x2-a0
+	// 	{85, 105},		// y2-a0
+	// 	{100, 120},		// x2-a1
+	// 	{100, 120},		// y2-a1
+	// 	{85, 105},		// x2-a2
+	// 	{85, 105}		// y2-a2
+	// },
 };
-constexpr double sum_y_range[9][2] = {
-	{100, 120},		// y0-a0
-	{100, 120},		// y0-a1
-	{70, 90},		// y0-a2
-	{100, 120},		// y1-a0
-	{100, 120},		// y1-a1
-	{70, 90},		// y1-a2
-	{110, 130},		// y2-a0
-	{110, 130},		// y2-a1
-	{80, 100}		// y2-a2
+constexpr double fit_range[][18][2] = {
+	{
+		// 618 <= run <= 640
+		// x0, y0
+		{107, 109},		// x0-a0
+		{106, 108},		// y0-a0
+		{107, 110},		// x0-a1
+		{106, 109},		// y0-a1
+		{79, 82},		// x0-a2
+		{77, 80},		// y0-a2
+		// x1, y1
+		{102, 105},		// x1-a0
+		{109, 112},		// y1-a0
+		{103, 105},		// x1-a1
+		{110.5, 113},	// y1-a1
+		{74, 77},		// x1-a2
+		{81, 84},		// y1-a2
+		// x2, y2
+		{113, 116},		// x2-a0
+		{120, 124},		// y2-a0
+		{114, 117},		// x2-a1
+		{121, 124},		// y2-a1
+		{85.5, 88},		// x2-a2
+		{93.5, 96}		// y2-a2
+	},
+	{
+		// run == 641, 642, 644, 645, 648, 649, 651
+		// x0, y0
+		{83, 86},		// x0-a0
+		{81, 84},		// y0-a0
+		{95, 98},		// x0-a1
+		{94, 97},		// y0-a1
+		{79, 82},		// x0-a2
+		{77, 80},		// y0-a2
+		// x1, y1
+		{94, 97},		// x1-a0
+		{93, 96},		// y1-a0
+		{107, 110},		// x1-a1
+		{106, 109},		// y1-a1
+		{90, 93},		// x1-a2
+		{89, 92},		// y1-a2
+		// x2, y2
+		{97, 100},		// x2-a0
+		{95, 98},		// y2-a0
+		{110, 113},		// x2-a1
+		{107, 110},		// y2-a1
+		{93, 96},		// x2-a2
+		{91, 94}		// y2-a2
+	},
+	// {
+	// 	// run == 643
+	// 	// x0, y0
+	// 	{93, 96},		// x0-a0
+	// 	{81, 84},		// y0-a0
+	// 	{105, 108},		// x0-a1
+	// 	{94, 97},		// y0-a1
+	// 	{89, 92},		// x0-a2
+	// 	{77, 80},		// y0-a2
+	// 	// x1, y1
+	// 	{94, 97},		// x1-a0
+	// 	{93, 96},		// y1-a0
+	// 	{107, 110},		// x1-a1
+	// 	{106, 109},		// y1-a1
+	// 	{90, 93},		// x1-a2
+	// 	{89, 92},		// y1-a2
+	// 	// x2, y2
+	// 	{107, 110},		// x2-a0
+	// 	{95, 98},		// y2-a0
+	// 	{120, 123},		// x2-a1
+	// 	{107, 110},		// y2-a1
+	// 	{103, 106},		// x2-a2
+	// 	{91, 94}		// y2-a2
+	// },
+	// {
+	// 	// run == 646, 650, 652
+	// 	// x0, y0
+	// 	{83, 86},		// x0-a0
+	// 	{81, 84},		// y0-a0
+	// 	{95, 98},		// x0-a1
+	// 	{94, 97},		// y0-a1
+	// 	{79, 82},		// x0-a2
+	// 	{77, 80},		// y0-a2
+	// 	// x1, y1
+	// 	{94, 97},		// x1-a0
+	// 	{93, 96},		// y1-a0
+	// 	{107, 110},		// x1-a1
+	// 	{106, 109},		// y1-a1
+	// 	{90, 93},		// x1-a2
+	// 	{89, 92},		// y1-a2
+	// 	// x2, y2
+	// 	{107, 110},		// x2-a0
+	// 	{95, 98},		// y2-a0
+	// 	{120, 123},		// x2-a1
+	// 	{107, 110},		// y2-a1
+	// 	{103, 106},		// x2-a2
+	// 	{91, 94}		// y2-a2
+	// },
+	// {
+	// 	// run == 647
+	// 	// x0, y0
+	// 	{83, 86},		// x0-a0
+	// 	{81, 84},		// y0-a0
+	// 	{95, 98},		// x0-a1
+	// 	{94, 97},		// y0-a1
+	// 	{79, 82},		// x0-a2
+	// 	{77, 80},		// y0-a2
+	// 	// x1, y1
+	// 	{84, 87},		// x1-a0
+	// 	{93, 96},		// y1-a0
+	// 	{97, 100},		// x1-a1
+	// 	{106, 109},		// y1-a1
+	// 	{80, 83},		// x1-a2
+	// 	{89, 92},		// y1-a2
+	// 	// x2, y2
+	// 	{97, 100},		// x2-a0
+	// 	{95, 98},		// y2-a0
+	// 	{110, 113},		// x2-a1
+	// 	{107, 110},		// y2-a1
+	// 	{93, 96},		// x2-a2
+	// 	{91, 94}		// y2-a2
+	// },
 };
-constexpr double fit_range[18][2] = {
-	// x0 or y0
-	{107, 109},
-	{106, 108},
-	{107, 110},
-	{106, 109},
-	{79, 82},
-	{77, 80},
-	// x1 or y1
-	{102, 105},
-	{109, 112},
-	{103, 105},
-	{110.5, 113},
-	{74, 77},
-	{81, 84},
-	// x2 or y2
-	{113, 116},
-	{120, 124},
-	{114, 117},
-	{121, 124},
-	{85.5, 88},
-	{93.5, 96}
+constexpr double run_correct[][3] = {
+	// run == 643
+	{10, 0, 10},
+	// run == 646, 650, 652
+	{0, 0, 10},
+	// run == 645, 647
+	{0, -10, 0},
 };
 
 
@@ -198,16 +405,51 @@ int Ppac::Merge(double) {
 	TFile opf(output_file_name, "recreate");
 	// output sum time histgrams
 	std::vector<TH1F> hist_sum_time;
+	// range index case by run number
+	size_t range_index = 0;
+	if (run_ > 640) range_index = 1;
 	for (int i = 0; i < 9; ++i) {
+		// left border of sum range
+		double sum_range_left = sum_range[range_index][i*2][0];
+		// right border of sum range
+		double sum_range_right = sum_range[range_index][i*2][1];
+		// add run correction
+		if (run_ == 643) {
+			sum_range_left += run_correct[0][i/3];
+			sum_range_right += run_correct[0][i/3];
+		} else if (run_ == 646 || run_ == 650 || run_ == 652) {
+			sum_range_left += run_correct[1][i/3];
+			sum_range_right += run_correct[1][i/3];
+		} else if (run_ == 645 || run_ == 647) {
+			sum_range_left += run_correct[2][i/3];
+			sum_range_right += run_correct[2][i/3];
+		}
 		hist_sum_time.emplace_back(
 			TString::Format("hsx%da%d", i/3, i%3),
 			TString::Format("sum time of x%d reference a%d", i/3, i%3),
-			1000, sum_x_range[i][0], sum_x_range[i][1]
+			1000, sum_range_left, sum_range_right
 		);
+
+		sum_range_left = sum_range[range_index][i*2+1][0];
+		sum_range_right = sum_range[range_index][i*2+1][1];
 		hist_sum_time.emplace_back(
 			TString::Format("hsy%da%d", i/3, i%3),
 			TString::Format("sum time of y%d reference a%d", i/3, i%3),
-			1000, sum_y_range[i][0], sum_y_range[i][1]
+			1000, sum_range_left, sum_range_right
+		);
+	}
+	// output time difference histogram
+	std::vector<TH1F> hist_diff_time;
+	for (int i = 0; i < 3; ++i) {
+		hist_diff_time.emplace_back(
+			TString::Format("hdx%d", i),
+			TString::Format("diff time of x%d", i),
+			1000, -100, 100
+		);
+		hist_diff_time.emplace_back(
+			TString::Format("hdy%d", i),
+			TString::Format("diff time of y%d", i),
+			1000, -100, 100
 		);
 	}
 	// output tree
@@ -241,7 +483,7 @@ int Ppac::Merge(double) {
 				if ((fundamental.flag & aflag) != aflag) continue;
 				hist_sum_time[(i*3+j)*2].Fill(
 					fundamental.x1[i] + fundamental.x2[i]
-					-fundamental.anode[j] - fundamental.anode[j]
+					- fundamental.anode[j] - fundamental.anode[j]
 				);
 			}
 		}
@@ -254,7 +496,7 @@ int Ppac::Merge(double) {
 				if ((fundamental.flag & aflag) != aflag) continue;
 				hist_sum_time[(i*3+j)*2+1].Fill(
 					fundamental.y1[i] + fundamental.y2[i]
-					-fundamental.anode[j] - fundamental.anode[j]
+					- fundamental.anode[j] - fundamental.anode[j]
 				);
 			}
 		}
@@ -263,16 +505,33 @@ int Ppac::Merge(double) {
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
+	// range get from fitting
 	double range[18][2];
 
 	// fit sum time
 	for (int i = 0; i < 18; ++i) {
+		// left border of fit range
+		double fit_range_left = fit_range[range_index][i][0];
+		// right border of fit range
+		double fit_range_right = fit_range[range_index][i][1];
+		// add run correction
+		if (i % 2 == 0) {
+			// x
+			if (run_ == 643) {
+				fit_range_left += run_correct[0][i/6];
+				fit_range_right += run_correct[0][i/6];
+			} else if (run_ == 646 || run_ == 650 || run_ == 652) {
+				fit_range_left += run_correct[1][i/6];
+				fit_range_left += run_correct[1][i/6];
+			} else if (run_ == 645 || run_ == 647) {
+				fit_range_left += run_correct[2][i/6];
+				fit_range_right += run_correct[2][i/6];
+			}
+		}
 		// fit function
 		TF1 fit(
 			TString::Format("f%c%da%d", "xy"[i%2], i/6, (i%6)/2),
-			"gaus",
-			fit_range[i][0],
-			fit_range[i][1]
+			"gaus", fit_range_left, fit_range_right
 		);
 		hist_sum_time[i].Fit(&fit, "QR+");
 		double mean = fit.GetParameter(1);
@@ -280,7 +539,6 @@ int Ppac::Merge(double) {
 		range[i][0] = mean - sigma * 3.0;
 		range[i][1] = mean + sigma * 3.0;
 	}
-
 
 	// show start
 	printf("Filling merge events   0%%");
@@ -305,9 +563,13 @@ int Ppac::Merge(double) {
 		}
 		// fill x
 		for (int i = 0; i < 3; ++i) {
+			// sum of x in range
 			int x_in_range = 0;
-			unsigned xflag = 0x3 << (i * 5);
+			// x flag
+			unsigned int xflag = 0x3 << (i * 5);
+			// check x flag
 			if ((fundamental.flag & xflag) != xflag) continue;
+			// check x sum
 			for (int j = 0; j < 3; ++j) {
 				unsigned int aflag = 0x10 << (j*5);
 				if ((fundamental.flag & aflag) != aflag) continue;
@@ -318,19 +580,28 @@ int Ppac::Merge(double) {
 					++x_in_range;
 				}
 			}
+			// pass check
 			if (
 				(valid_anode == 1 && x_in_range == 1)
 				|| (valid_anode >= 2 && x_in_range >= 2)
 			) {
+				// fill x flag
 				merge.xflag |= 0x1 << i;
+				// fill x value
 				merge.x[i] = fundamental.x1[i] - fundamental.x2[i];
+				// fill difference histogram
+				hist_diff_time[i*2].Fill(merge.x[i]);
 			}
 		}
 		// fill y
 		for (int i = 0; i < 3; ++i) {
+			// sum of y in range
 			int y_in_range = 0;
-			unsigned yflag = 0xc << (i * 5);
+			// y flag
+			unsigned int yflag = 0xc << (i * 5);
+			// check y flag
 			if ((fundamental.flag & yflag) != yflag) continue;
+			// check sum of y
 			for (int j = 0; j < 3; ++j) {
 				unsigned int aflag = 0x10 << (j*5);
 				if ((fundamental.flag & aflag) != aflag) continue;
@@ -341,12 +612,17 @@ int Ppac::Merge(double) {
 					++y_in_range;
 				}
 			}
+			// pass check
 			if (
 				(valid_anode == 1 && y_in_range == 1)
 				|| (valid_anode >= 2 && y_in_range >= 2)
 			) {
+				// fill y flag
 				merge.yflag |= 0x1 << i;
+				// fill y value
 				merge.y[i] = fundamental.y1[i] - fundamental.y2[i];
+				// fill difference histogram
+				hist_diff_time[i*2+1].Fill(merge.y[i]);
 			}
 		}
 		opt.Fill();
@@ -357,6 +633,7 @@ int Ppac::Merge(double) {
 	opf.cd();
 	// save histograms
 	for (auto &hist : hist_sum_time) hist.Write();
+	for (auto &hist : hist_diff_time) hist.Write();
 	// save tree
 	opt.Write();
 	// close files
@@ -372,29 +649,53 @@ int Calibrate() {
 }
 
 
-double PositionXFromXIA(double time, int index) {
+double PositionXFromXIA(unsigned int run, double time, int index) {
 	double result = 0.0;
-	if (index == 0) {
-		result = (time + 0.1) / 4.0 + 1.87;
-	} else if (index == 1) {
-		result = (time - 1.1) / 4.0 - 0.97;
+	double offset[3];
+	if (run <= 640) {
+		offset[0] = -0.1;
+		offset[1] = 1.3;
+		offset[2] = -9.7;
 	} else {
-		result = (time + 9.7) / 4.0 - 2.52;
+		offset[0] = 15.9;
+		offset[1] = 1.3;
+		offset[2] = 2.3;
+		if (run == 643) {
+			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[0][i];
+		} else if (run == 646 || run == 650 || run == 652) {
+			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[1][i];
+		} else if (run == 645 || run == 647) {
+			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
+		}
 	}
+	double correct[3] = {1.87, -0.97, -2.52};
+	if (run > 640) {
+		correct[0] += -0.03;
+		correct[1] += 0.045;
+	}
+	result = (time - offset[index]) / 4.0 + correct[index];
 	// return round(result);
 	return result;
 }
 
 
-double PositionYFromXIA(double time, size_t index) {
+double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	double result = 0.0;
-	if (index == 0) {
-		result = (time + 10.5) / -4.0 - 0.85;
-	} else if (index == 1) {
-		result = (time - 13.9) / -4.0 + 0.25;
+	double offset[3];
+	if (run <= 640) {
+		offset[0] = -10.7;
+		offset[1] = 13.7;
+		offset[2] = -2.9;
 	} else {
-		result = (time + 2.9) / -4.0 + 1.42;
+		offset[0] = -14.7;
+		offset[1] = 1.7;
+		offset[2] = 3.1;
 	}
+	double correct[3] = {-0.85, 0.25, 1.42};
+	if (run > 640) {
+		correct[2] -= 0.04;
+	}
+	result = (time - offset[index]) / -4.0 + correct[index];
 	// return round(result);
 	return result;
 }
@@ -530,12 +831,12 @@ int Ppac::Track() {
 		// check flag and fill hit and position
 		for (size_t i = 0; i < 3; ++i) {
 			if ((merge.xflag & (1 << i)) != 0) {
-				x_position[xhit] = PositionXFromXIA(merge.x[i], i);
+				x_position[xhit] = PositionXFromXIA(run_, merge.x[i], i);
 				x_index[xhit] = i;
 				++xhit;
 			}
 			if ((merge.yflag & (1 << i)) != 0) {
-				y_position[yhit] = PositionYFromXIA(merge.y[i], i);
+				y_position[yhit] = PositionYFromXIA(run_, merge.y[i], i);
 				y_index[yhit] = i;
 				++yhit;
 			}
@@ -581,8 +882,8 @@ int Ppac::Track() {
 		// rebuild beam particle
 		particle.num = 3;
 		for (size_t i = 0; i < 3; ++i) {
-			particle.x[i] = PositionXFromXIA(merge.x[i], i);
-			particle.y[i] = PositionYFromXIA(merge.y[i], i);
+			particle.x[i] = PositionXFromXIA(run_, merge.x[i], i);
+			particle.y[i] = PositionYFromXIA(run_, merge.y[i], i);
 		}
 		xflag = merge.xflag;
 		yflag = merge.yflag;

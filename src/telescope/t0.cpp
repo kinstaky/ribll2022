@@ -852,7 +852,23 @@ int T0::Calibrate(unsigned int end_run) {
 			i
 		));
 	}
-
+	// TString tele_file_name;
+	// tele_file_name.Form(
+	// 	"%s%st0-telescope-%s%04u.root",
+	// 	kGenerateDataPath,
+	// 	kTelescopeDir,
+	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
+	// 	run_
+	// );
+	// // input file
+	// TFile tele_file(tele_file_name, "read");
+	// // input tree
+	// TTree *ipt = (TTree*)tele_file.Get("tree");
+	// if (!ipt) {
+	// 	std::cerr << "Error: Get tree from "
+	// 		<< tele_file_name << " failed.\n";
+	// 	return -1;
+	// }
 	// input telescope event
 	T0Event t0_event;
 	// setup input branches
@@ -861,12 +877,12 @@ int T0::Calibrate(unsigned int end_run) {
 	// output calibration root file name
 	TString calibration_file_name;
 	calibration_file_name.Form(
-		"%s%st0-calibration-%s%04u-%04u.root",
+		// "%s%st0-calibration-%s%04u-%04u.root",
+		"%s%st0-calibration-%s%04u.root",
 		kGenerateDataPath,
 		kCalibrationDir,
 		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_,
-		end_run
+		run_
 	);
 	// output calibration file
 	TFile calibration_file(calibration_file_name, "recreate");
@@ -876,28 +892,28 @@ int T0::Calibrate(unsigned int end_run) {
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
 	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
 	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
 	// T0D2-D3 cuts
 	std::vector<ParticleCut> d2d3_cuts;
-	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
-	d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
-	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+	// d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
+	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
+	// d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
 	// T0D3-S1 cuts
 	std::vector<ParticleCut> d3s1_cuts;
-	d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
-	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
+	// d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
 
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_cuts;
-	s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
-	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
+	// s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
 	// T0S2-S3 cuts
 	std::vector<ParticleCut> s2s3_cuts;
-	s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
-	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
+	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
+	// s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
 	// T0S2-S3 pass cuts
 	std::vector<ParticleCut> s2s3_pass_cuts;
 	// special cut of S1-S2 interaction
@@ -927,6 +943,7 @@ int T0::Calibrate(unsigned int end_run) {
 		type_event.charge[0] = type_event.mass[0] = 0;
 		// only use num==1 events to calibrate
 		if (t0_event.num != 1) continue;
+		if (t0_event.x[0][0]*t0_event.x[0][0]+t0_event.y[0][0]*t0_event.y[0][0] > 100) continue;
 		int layer = DssdParticleIdentify(
 			t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
 		);
@@ -981,7 +998,6 @@ int T0::Calibrate(unsigned int end_run) {
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
-
 
 	std::vector<std::string> projectiles{
 		"1H", "2H", "4He", "7Li", "10Be", "14C"
@@ -1104,7 +1120,7 @@ int T0::Rebuild() {
 		for (unsigned short i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
-			if (type_event.layer[i] == 6) continue;
+			if (type_event.layer[i] > 1) continue;
 
 			// fill charge number
 			particle_event.charge[particle_event.num] = type_event.charge[i];
@@ -1227,6 +1243,94 @@ double T0::TotalEnergy(
 	energy += csi_energy;
 	// return energy
 	return energy;
+}
+
+
+int T0::ShowCalibration() {
+	return 0;
+}
+
+
+int T0::CalibrateResult() {
+	// telescope file name
+	TString tele_file_name;
+	tele_file_name.Form(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile tele_file(tele_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)tele_file.Get("tree");
+	// input event
+	T0Event t0_event;
+	// setup input branches
+	t0_event.SetupInput(ipt);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%st0-telescope-%scali-%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// output tree
+	TTree opt("tree", "calibrated t0 tree");
+	// setup output branches
+	t0_event.SetupOutput(&opt);
+
+	if (ReadCalibrateParameters()) {
+		std::cerr << "Error: Read calibration parameters failed.\n";
+		return -1;
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Generating calibrate result   0%%");
+	fflush(stdout);
+	// loop to calculate calibrated energy
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+		// calculate DSSD energy
+		for (unsigned short i = 0; i < t0_event.num; ++i) {
+			for (size_t j = 0; j < 3; ++j) {
+				t0_event.energy[i][j] *= cali_params_[j*2+1];
+				t0_event.energy[i][j] += cali_params_[j*2];
+			}
+		}
+		// calculate SSD energy
+		for (size_t j = 0; j < 3; ++j) {
+			t0_event.ssd_energy[j] *= cali_params_[(j+3)*2+1];
+			t0_event.ssd_energy[j] += cali_params_[(j+3)*2];
+		}
+		// fill to tree
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save tree
+	opt.Write();
+	// close files
+	opf.Close();
+	tele_file.Close();
+	return 0;
 }
 
 

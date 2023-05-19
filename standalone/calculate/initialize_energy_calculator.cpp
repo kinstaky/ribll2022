@@ -23,8 +23,17 @@ int main() {
 		{"4He", "Si"},
 		{"4He", "Al"},
 		{"4He", "Mylar"},
+		{"6Li", "Si"},
 		{"7Li", "Si"},
+		{"7Be", "Si"},
+		{"9Be", "Si"},
 		{"10Be", "Si"},
+		{"10B", "Si"},
+		{"11B", "Si"},
+		{"12B", "Si"},
+		{"13B", "Si"},
+		{"12C", "Si"},
+		{"13C", "Si"},
 		{"14C", "Si"}
 	};
 	if (RangeEnergyCalculator::Initialize(list)) {

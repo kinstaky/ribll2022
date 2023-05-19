@@ -38,6 +38,12 @@ public:
 	virtual int Calibrate(unsigned int end_run) override;
 
 
+	/// @brief show calibration result
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ShowCalibration();
+
+
 	/// @brief get layers of Si detector
 	/// @returns layers of Si detector
 	///
@@ -50,6 +56,12 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Rebuild() override;
+
+
+	/// @brief generate calibrate result
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int CalibrateResult();
 
 private:
 
