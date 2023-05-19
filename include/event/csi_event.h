@@ -28,6 +28,7 @@ public:
 	bool cfd_flag;
 	double time;
 	double energy;
+	long long decode_entry;
 };
 
 
@@ -54,6 +55,7 @@ public:
 	unsigned short cfd_flag;
 	double time[12];
 	double energy[12];
+	long long decode_entry[12];
 };
 
 
@@ -80,6 +82,7 @@ public:
 	unsigned short cfd_flag;
 	double time[4];
 	double energy[4];
+	long long decode_entry[4];
 };
 
 }

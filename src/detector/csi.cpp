@@ -36,6 +36,7 @@ void FillEvent(
 
 	// if any channel is valid
 	bool valid = false;
+	// used events
 	unsigned int used_events = 0;
 	// range of events time is equal to trigger time
 	auto range = match_map.equal_range(trigger_time);
@@ -53,6 +54,7 @@ void FillEvent(
 				iter->second.cfd_flag ? (1 << index) : 0;
 			fundamental_event.time[index] = iter->second.time - trigger_time;
 			fundamental_event.energy[index] = iter->second.energy;
+			fundamental_event.decode_entry[index] = iter->second.decode_entry;
 			valid = true;
 			++used_events;
 		}

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "include/detectors.h"
+#include "include/telescopes.h"
 
 using namespace ribll;
 
@@ -99,6 +100,19 @@ int main(int argc, char **argv) {
 			}
 			Tafd tafd(run, index, "");
 			if (tafd.AnalyzeTrace()) {
+				std::cerr << "Error: Analyze trace of " << name
+					<< " failed.\n";
+				continue;
+			}
+		} else if (name.size() == 4 && name.substr(0, 3) == "taf") {
+			unsigned int index = name[3] - '0';
+			if (index > 5) {
+				std::cerr << "Error: Invalid telescope " << name
+					<< " for trace analysis.\n";
+				continue;
+			}
+			Taf taf(run, index, "ta");
+			if (taf.AnalyzeTrace()) {
 				std::cerr << "Error: Analyze trace of " << name
 					<< " failed.\n";
 				continue;

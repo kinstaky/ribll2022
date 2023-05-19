@@ -23,6 +23,12 @@ public:
 	virtual int Track(double angle_tolerance) override;
 
 
+	/// @brief analyze trace
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int AnalyzeTrace();
+
+
 	/// @brief identify particle in telescope
 	/// @returns 0 if success, -1 otherwise
 	///

@@ -96,11 +96,12 @@ int Telescope::ReadCalibrateParameters() {
 	// parameters file name
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-calibration-param%s.txt",
+		"%s%s%s-calibration-param%s-%04u.txt",
 		kGenerateDataPath,
 		kCalibrationDir,
 		name_.c_str(),
-		tag_.empty() ? "" : ("-"+tag_).c_str()
+		tag_.empty() ? "" : ("-"+tag_).c_str(),
+		run_
 	);
 	// parameters file
 	std::ifstream fin(file_name.Data());
@@ -124,11 +125,12 @@ int Telescope::WriteCalibrateParameters() const {
 	// parameters file name
 	TString file_name;
 	file_name.Form(
-		"%s%s%s-calibration-param%s.txt",
+		"%s%s%s-calibration-param%s-%04u.txt",
 		kGenerateDataPath,
 		kCalibrationDir,
 		name_.c_str(),
-		tag_.empty() ? "" : ("-"+tag_).c_str()
+		tag_.empty() ? "" : ("-"+tag_).c_str(),
+		run_
 	);
 	// parameters file
 	std::ofstream fout(file_name.Data());
@@ -145,6 +147,12 @@ int Telescope::WriteCalibrateParameters() const {
 	// close file
 	fout.close();
 	return 0;
+}
+
+
+int Telescope::CalibrateResult() {
+	std::cerr << "Error: Telescope::CalibrateResult is not implemented yet.\n";
+	return -1;
 }
 
 

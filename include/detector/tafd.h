@@ -1,5 +1,5 @@
-#ifndef __TAF_H__
-#define __TAF_H__
+#ifndef __TAFD_H__
+#define __TAFD_H__
 
 #include "include/detector/adssd.h"
 
@@ -55,4 +55,4 @@ private:
 
 }		// namespace ribll
 
-#endif		// __TAF_H__
+#endif		// __TAFD_H__

@@ -8,7 +8,7 @@ public:
 
 	/// @brief constructor
 	/// @param[in] run run number
-/// @param[in] crate crate id, 0, 1 or 2
+	/// @param[in] crate crate id, 0, 1 or 2
 	///
 	TraceMapper(unsigned int run, unsigned int crate);
 

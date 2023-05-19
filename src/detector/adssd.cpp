@@ -4,6 +4,10 @@
 
 #include "TH2F.h"
 #include "TMarker.h"
+#include "TGraph.h"
+#include "TMultiGraph.h"
+
+#include "include/event/ta_event.h"
 
 namespace ribll {
 
@@ -171,13 +175,27 @@ int Adssd::AnalyzeTrace() {
 			<< trace_file_name << " failed.\n";
 		return -1;
 	}
+	// input taf telescope file name
+	TString tele_file_name;
+	tele_file_name.Form(
+		"%s%staf%d-telescope-ta-%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		name_[4] - '0',
+		run_
+	);
+	// add friend
+	ipt->AddFriend("tele=tree", tele_file_name);
 	// trace points
 	unsigned short points;
 	// trace data
 	unsigned short raw_trace[1024];
+	// input tele event
+	TaEvent tele_event;
 	// setup input branches
 	ipt->SetBranchAddress("point", &points);
 	ipt->SetBranchAddress("trace", raw_trace);
+	tele_event.SetupInput(ipt, "tele.");
 
 	// trace in floating numbers
 	double trace[1024];
@@ -204,6 +222,17 @@ int Adssd::AnalyzeTrace() {
 	);
 	// graph for checking trace
 	TGraph graph[10];
+	// trace in the energy range
+	// TH2F energy_trace[20];
+	// for (int i = 0; i < 20; ++i) {
+	// 	energy_trace[i] = TH2F(
+	// 		TString::Format("he%d", i),
+	// 		TString::Format("trace of energy at %d MeV", i+1),
+	// 		1000, 0, 1000,
+	// 		1000, 0, 1000*i
+	// 	);
+	// }
+	TMultiGraph energy_trace[20];
 	// filled graph number
 	size_t graph_num = 0;
 	// output tree
@@ -370,6 +399,25 @@ int Adssd::AnalyzeTrace() {
 
 			++graph_num;
 		}
+		// fill to energy range trace histogram
+		constexpr double energy_range = 0.3;
+		if (tele_event.num == 1 && tele_event.flag[0] == 0x1) {
+			for (int i = 0; i < 20; ++i) {
+				if (
+					tele_event.energy[0][0] < double(i)+energy_range
+					&& tele_event.energy[0][0] > double(i)-energy_range
+				) {
+					TGraph *g = new TGraph;
+					for (unsigned short j = 0; j < points; ++j) {
+						// energy_trace[i].Fill(j, trace[j]);
+						g->AddPoint(j, trace[j]);
+					}
+					energy_trace[i].Add(g);
+					break;
+				}
+			}
+		}
+
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -378,6 +426,9 @@ int Adssd::AnalyzeTrace() {
 	hist_relative.Write();
 	for (size_t i = 0; i < graph_num; ++i) {
 		graph[i].Write(TString::Format("g%ld", i));
+	}
+	for (int i = 0; i < 20; ++i) {
+		energy_trace[i].Write(TString::Format("ge%d", i));
 	}
 	// save tree
 	opt.Write();
