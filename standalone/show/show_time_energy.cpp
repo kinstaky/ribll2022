@@ -6,16 +6,19 @@
 #include <TString.h>
 
 #include "include/event/dssd_event.h"
+#include "include/detectors.h"
 
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run end_run\n"
+	std::cout << "Usage: " << name << " [options] run end_run detector\n"
 		"  run               Set run number.\n"
 		"  end_run           Set the last run to chain, included.\n"
+		"  detector          Set the detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n";
+		"  -t tag            Set trigger tag.\n"
+		"  -n                Use normalized data.\n";
 }
 
 /// @brief parse arguments
@@ -23,6 +26,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
+/// @param[out] normalize use normalized data
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -31,11 +35,13 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag
+	std::string &trigger_tag,
+	bool &normalize
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
+	normalize = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -53,6 +59,8 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
+		} else if (argv[result][1] == 'n') {
+			normalize = true;
 		} else {
 			return -result;
 		}
@@ -61,7 +69,7 @@ int ParseArguments(
 }
 
 int main(int argc, char **argv) {
-	if (argc < 3) {
+	if (argc < 2) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -69,8 +77,10 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
+	// normalize
+	bool normalize = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag);
+	int pos_start = ParseArguments(argc, argv, help, tag, normalize);
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
@@ -87,7 +97,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	// check number of positional arguments
-	if (pos_start+1 >= argc) {
+	if (pos_start+2 >= argc) {
 		// positional arguments less than 3
 		std::cerr << "Error: Miss detector argument.\n";
 		PrintUsage(argv[0]);
@@ -97,6 +107,10 @@ int main(int argc, char **argv) {
 	unsigned int run = atoi(argv[pos_start]);
 	// run length
 	unsigned int end_run = atoi(argv[pos_start+1]);
+	// detector name
+	std::string detector_name(argv[pos_start+2]);
+
+	std::shared_ptr<Dssd> dssd = CreateDssd(detector_name, run, tag);
 
 	// input time reference chain
 	TChain ref_chain("ref", "chain");
@@ -110,107 +124,237 @@ int main(int argc, char **argv) {
 			i
 		));
 	}
-	// input t0d1 chain
-	TChain t0d1_chain("t0d1", "t0d1");
+	// input detector chain
+	TChain detector_chain(detector_name.c_str(), "detector");
 	for (unsigned int i = run; i <= end_run; ++i) {
 		if (i == 628) continue;
-		t0d1_chain.AddFile(TString::Format(
-			"%s%st0d1-fundamental-%s%04u.root/tree",
-			kGenerateDataPath,
-			kFundamentalDir,
-			tag.empty() ? "" : (tag+"-").c_str(),
-			i
-		));
-	}
-	// input t0d2 chain
-	TChain t0d2_chain("t0d2", "t0d2");
-	for (unsigned int i = run; i <= end_run; ++i) {
-		if (i == 628) continue;
-		t0d2_chain.AddFile(TString::Format(
-			"%s%st0d2-fundamental-%s%04u.root/tree",
-			kGenerateDataPath,
-			kFundamentalDir,
-			tag.empty() ? "" : (tag+"-").c_str(),
-			i
-		));
-	}
-	// input t0d3 chain
-	TChain t0d3_chain("t0d3", "t0d3");
-	for (unsigned int i = run; i <= end_run; ++i) {
-		if (i == 628) continue;
-		t0d3_chain.AddFile(TString::Format(
-			"%s%st0d3-fundamental-%s%04u.root/tree",
-			kGenerateDataPath,
-			kFundamentalDir,
-			tag.empty() ? "" : (tag+"-").c_str(),
-			i
-		));
+		if (!normalize) {
+			detector_chain.AddFile(TString::Format(
+				"%s%s%s-fundamental-%s%04u.root/tree",
+				kGenerateDataPath,
+				kFundamentalDir,
+				detector_name.c_str(),
+				tag.empty() ? "" : (tag+"-").c_str(),
+				i
+			));
+		} else {
+			detector_chain.AddFile(TString::Format(
+				"%s%s%s-result-%s%04u-0.root/tree",
+				kGenerateDataPath,
+				kNormalizeDir,
+				detector_name.c_str(),
+				tag.empty() ? "" : (tag+"-").c_str(),
+				i
+			));
+		}
 	}
 	// add friend
-	ref_chain.AddFriend(&t0d1_chain);
-	ref_chain.AddFriend(&t0d2_chain);
-	ref_chain.AddFriend(&t0d3_chain);
+	ref_chain.AddFriend(&detector_chain);
 	// input reference time
 	double ref_time;
-	// input t0d1 fundamental event
-	DssdFundamentalEvent t0d1;
-	// input t0d2 fundamental event
-	DssdFundamentalEvent t0d2;
-	// input t0d3 fundamental event
-	DssdFundamentalEvent t0d3;
+	// input dssd fundamental event
+	DssdFundamentalEvent event;
 	// setup input branches
 	ref_chain.SetBranchAddress("time", &ref_time);
-	t0d1.SetupInput(&ref_chain, "t0d1.");
-	t0d2.SetupInput(&ref_chain, "t0d2.");
-	t0d3.SetupInput(&ref_chain, "t0d3.");
+	event.SetupInput(&ref_chain, (detector_name+".").c_str());
 
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%stime-energy-%s%04u-%04u.root",
+		"%s%s%s-time-energy-%s%s%04u-%04u.root",
 		kGenerateDataPath,
 		kShowDir,
+		detector_name.c_str(),
 		tag.empty() ? "" : (tag+"-").c_str(),
+		normalize ? "norm-" : "",
 		run,
 		end_run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
-	// time-energy histogram of t0d1 front strips [0, 32), [48, 64)
-	TH2F t0d1f1(
-		"hd1f1", "t0d1 front strips [0, 32), [48, 64)",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d1 front strips [32, 48)
-	TH2F t0d1f2(
-		"hd1f2", "t0d1 front strips [32, 48)",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d1 back strips
-	TH2F t0d1b(
-		"hd1b", "t0d1 back strips",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d2 front strips
-	TH2F t0d2f(
-		"hd2f", "t0d2 front strips",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d2 back strips
-	TH2F t0d2b(
-		"hd2b", "t0d2 back strips",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d3 front strips
-	TH2F t0d3f(
-		"hd3f", "t0d3 front strips",
-		1000, 0, 60000, 1000, -200, 800
-	);
-	// time-energy histogram of t0d3 back strips
-	TH2F t0d3b(
-		"hd3b", "t0d3 back strips",
-		1000, 0, 60000, 1000, -200, 800
-	);
+	// time-energy 2D histogram of single strip
+	std::vector<TH2F> time_energy;
+	for (size_t side = 0;  side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			time_energy.emplace_back(
+				TString::Format("%cte%ld", "fb"[side], i),
+				"time energy",
+				1000, 0, 60000,
+				2000, normalize ? -500 : -200,  normalize ? 500 : 800
+			);
+		}
+	}
+	// time-energy 2D histogram of single strip with valid CFD
+	std::vector<TH2F> time_energy_cfd;
+	for (size_t side = 0;  side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			time_energy_cfd.emplace_back(
+				TString::Format("%ctec%ld", "fb"[side], i),
+				"time energy with CFD",
+				1000, 0, 60000,
+				2000, normalize ? -500 : -200, normalize ? 500 : 800
+			);
+		}
+	}
+	// time-energy 2D histogram of single strip with leading edge detected
+	std::vector<TH2F> time_energy_le;
+	for (size_t side = 0;  side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			time_energy_le.emplace_back(
+				TString::Format("%ctel%ld", "fb"[side], i),
+				"time energy with LE",
+				1000, 0, 60000,
+				2000, normalize ? -500 : -200, normalize ? 500 : 800
+			);
+		}
+	}
+	// time 1D histogram of single strip
+	std::vector<TH1F> hist_time;
+	for (size_t side = 0; side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			hist_time.emplace_back(
+				TString::Format("%ct%ld", "fb"[side], i),
+				"time",
+				2000, normalize ? -500 : -200, normalize ? 500 : 800
+			);
+		}
+	}
+	// time 1D histogram of single strip with CFD
+	std::vector<TH1F> hist_time_cfd;
+	for (size_t side = 0; side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			hist_time_cfd.emplace_back(
+				TString::Format("%ctc%ld", "fb"[side], i),
+				"time with CFD",
+				2000, normalize ? -500 : -200, normalize ? 500 : 800
+			);
+		}
+	}
+	// time 1D histogram of single strip with LE
+	std::vector<TH1F> hist_time_le;
+	for (size_t side = 0; side < 2; ++side) {
+		for (size_t i = 0; i < dssd->Strip(side); ++i) {
+			hist_time_le.emplace_back(
+				TString::Format("%ctl%ld", "fb"[side], i),
+				"time with LE",
+				2000, normalize ? -500 : -200, normalize ? 500 : 800
+			);
+		}
+	}
+	// time-energy 2D histogram of single module
+	std::vector<TH2F> time_energy_module;
+	for (size_t i = 0; i < 8; ++i) {
+		time_energy_module.emplace_back(
+			TString::Format("mte%ld", i),
+			"time-energy of single module",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time-energy 2D histogram of single module with CFD
+	std::vector<TH2F> time_energy_module_cfd;
+	for (size_t i = 0; i < 8; ++i) {
+		time_energy_module_cfd.emplace_back(
+			TString::Format("mtec%ld", i),
+			"time-energy of single module with CFD",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time-energy 2D histogram of single module with LE
+	std::vector<TH2F> time_energy_module_le;
+	for (size_t i = 0; i < 8; ++i) {
+		time_energy_module_le.emplace_back(
+			TString::Format("mtel%ld", i),
+			"time-energy of single module with LE",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histogram of single module
+	std::vector<TH1F> time_module;
+	for (size_t i = 0; i < 8; ++i) {
+		time_module.emplace_back(
+			TString::Format("mt%ld", i),
+			"time of single module",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histogram of single module with CFD
+	std::vector<TH1F> time_module_cfd;
+	for (size_t i = 0; i < 8; ++i) {
+		time_module_cfd.emplace_back(
+			TString::Format("mtc%ld", i),
+			"time of single module with CFD",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histogram of single module with LE
+	std::vector<TH1F> time_module_le;
+	for (size_t i = 0; i < 8; ++i) {
+		time_module_le.emplace_back(
+			TString::Format("mtl%ld", i),
+			"time of single module with LE",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time-energy 2D histogram of single side
+	std::vector<TH2F> time_energy_side;
+	for (size_t i = 0; i < 2; ++i) {
+		time_energy_side.emplace_back(
+			TString::Format("ste%ld", i),
+			"time-energy of single side",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time-eneryg 2D histogram of single side with CFD
+	std::vector<TH2F> time_energy_side_cfd;
+	for (size_t i = 0; i < 2; ++i) {
+		time_energy_side_cfd.emplace_back(
+			TString::Format("stec%ld", i),
+			"time-energy of single side with CFD",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time-energy 2D histogram of single side with LE
+	std::vector<TH2F> time_energy_side_le;
+	for (size_t i = 0; i < 2; ++i) {
+		time_energy_side_le.emplace_back(
+			TString::Format("stel%ld", i),
+			"time-energy of single side with LE",
+			1000, 0, 60000,
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histogram of single side
+	std::vector<TH1F> time_side;
+	for (size_t i = 0; i < 2; ++i) {
+		time_side.emplace_back(
+			TString::Format("st%ld", i),
+			"time of single side",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histogram of single side with CFD
+	std::vector<TH1F> time_side_cfd;
+	for (size_t i = 0; i < 2; ++i) {
+		time_side_cfd.emplace_back(
+			TString::Format("stc%ld", i),
+			"time of single side with CFD",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
+	// time 1D histgoram of single side with LE
+	std::vector<TH1F> time_side_le;
+	for (size_t i = 0; i < 2; ++i) {
+		time_side_le.emplace_back(
+			TString::Format("stl%ld", i),
+			"time of single side with LE",
+			2000, normalize ? -500 : -200, normalize ? 500 : 800
+		);
+	}
 
 	// total number of entries
 	long long entries = ref_chain.GetEntries();
@@ -229,43 +373,224 @@ int main(int argc, char **argv) {
 		// get event
 		ref_chain.GetEntry(entry);
 		if (ref_time < -9e4) continue;
-		// fill t0d1
-		for (unsigned short i = 0; i < t0d1.front_hit; ++i) {
-			if (t0d1.front_strip[i] < 32 || t0d1.front_strip[i] >= 48) {
-				t0d1f1.Fill(t0d1.front_energy[i], t0d1.front_time[i]-ref_time);
+		// fill front events
+		for (unsigned short i = 0; i < event.front_hit; ++i) {
+			// fill single strip histograms
+			time_energy[event.front_strip[i]].Fill(
+				event.front_energy[i],
+				event.front_time[i] - ref_time
+			);
+			hist_time[event.front_strip[i]].Fill(
+				event.front_time[i] - ref_time
+			);
+			// fill single module histograms
+			time_energy_module[event.front_strip[i]/16].Fill(
+				event.front_energy[i],
+				event.front_time[i] - ref_time
+			);
+			time_module[event.front_strip[i]/16].Fill(
+				event.front_time[i] - ref_time
+			);
+			// fill single side histograms
+			time_energy_side[0].Fill(
+				event.front_energy[i],
+				event.front_time[i] - ref_time
+			);
+			time_side[0].Fill(
+				event.front_time[i] - ref_time
+			);
+			if ((event.cfd_flag & (1 << i)) == 0) {
+				// fill single strip histograms
+				time_energy_cfd[event.front_strip[i]].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				hist_time_cfd[event.front_strip[i]].Fill(
+					event.front_time[i] - ref_time
+				);
+				// fill single module histograms
+				time_energy_module_cfd[event.front_strip[i]/16].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				time_module_cfd[event.front_strip[i]/16].Fill(
+					event.front_time[i] - ref_time
+				);
+				// fill single side histograms
+				time_energy_side_cfd[0].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				time_side_cfd[0].Fill(
+					event.front_time[i] - ref_time
+				);
 			} else {
-				t0d1f2.Fill(t0d1.front_energy[i], t0d1.front_time[i]-ref_time);
+				// fill single strip histograms
+				time_energy_le[event.front_strip[i]].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				hist_time_le[event.front_strip[i]].Fill(
+					event.front_time[i] - ref_time
+				);
+				// fill single module histograms
+				time_energy_module_le[event.front_strip[i]/16].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				time_module_le[event.front_strip[i]/16].Fill(
+					event.front_time[i] - ref_time
+				);
+				// fill single side histograms
+				time_energy_side_le[0].Fill(
+					event.front_energy[i],
+					event.front_time[i] - ref_time
+				);
+				time_side_le[0].Fill(
+					event.front_time[i] - ref_time
+				);
 			}
 		}
-		for (unsigned short i = 0; i < t0d1.back_hit; ++i) {
-			t0d1b.Fill(t0d1.back_energy[i], t0d1.back_time[i]-ref_time);
-		}
-		// fill t0d2
-		for (unsigned short i = 0; i < t0d2.front_hit; ++i) {
-			t0d2f.Fill(t0d2.front_energy[i], t0d2.front_time[i]-ref_time);
-		}
-		for (unsigned short i = 0; i < t0d2.back_hit; ++i) {
-			t0d2b.Fill(t0d2.back_energy[i], t0d2.back_time[i]-ref_time);
-		}
-		// fill t0d3
-		for (unsigned short i = 0; i < t0d3.front_hit; ++i) {
-			t0d3f.Fill(t0d3.front_energy[i], t0d3.front_time[i]-ref_time);
-		}
-		for (unsigned short i = 0; i < t0d3.back_hit; ++i) {
-			t0d3b.Fill(t0d3.back_energy[i], t0d3.back_time[i]-ref_time);
+		// fill back events
+		for (unsigned short i = 0; i < event.back_hit; ++i) {
+			size_t strip = dssd->Strip(0) + event.back_strip[i];
+			// fill single strip histograms
+			time_energy[strip].Fill(
+				event.back_energy[i],
+				event.back_time[i] - ref_time
+			);
+			hist_time[strip].Fill(
+				event.back_time[i] - ref_time
+			);
+			// fill single module histograms
+			time_energy_module[strip/16].Fill(
+				event.back_energy[i],
+				event.back_time[i] - ref_time
+			);
+			time_module[strip/16].Fill(
+				event.back_time[i] - ref_time
+			);
+			// fill single side histograms
+			time_energy_side[1].Fill(
+				event.back_energy[i],
+				event.back_time[i] - ref_time
+			);
+			time_side[1].Fill(
+				event.back_time[i] - ref_time
+			);
+			if (((event.cfd_flag & (1 << (i + 8)))) == 0) {
+				// fill single strip histograms
+				time_energy_cfd[strip].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				hist_time_cfd[strip].Fill(
+					event.back_time[i] - ref_time
+				);
+				// fill single module histograms
+				time_energy_module_cfd[strip/16].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				time_module_cfd[strip/16].Fill(
+					event.back_time[i] - ref_time
+				);
+				// fill single side histograms
+				time_energy_side_cfd[1].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				time_side_cfd[1].Fill(
+					event.back_time[i] - ref_time
+				);
+			} else {
+				// fill single strip histograms
+				time_energy_le[strip].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				hist_time_le[strip].Fill(
+					event.back_time[i] - ref_time
+				);
+				// fill single module histograms
+				time_energy_module_le[strip/16].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				time_module_le[strip/16].Fill(
+					event.back_time[i] - ref_time
+				);
+				// fill single side histograms
+				time_energy_side_le[1].Fill(
+					event.back_energy[i],
+					event.back_time[i] - ref_time
+				);
+				time_side_le[1].Fill(
+					event.back_time[i] - ref_time
+				);
+			}
 		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	// save time-energy histograms
-	t0d1f1.Write();
-	t0d1f2.Write();
-	t0d1b.Write();
-	t0d2f.Write();
-	t0d2b.Write();
-	t0d3f.Write();
-	t0d3b.Write();
+	// save time-energy histograms of single strip
+	for (TH2F &hist : time_energy) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_cfd) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_le) {
+		hist.Write();
+	}
+	for (TH1F &hist : hist_time) {
+		hist.Write();
+	}
+	for (TH1F &hist : hist_time_cfd) {
+		hist.Write();
+	}
+	for (TH1F &hist : hist_time_le) {
+		hist.Write();
+	}
+	// save time-energy histograms of single module
+	for (TH2F &hist : time_energy_module) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_module_cfd) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_module_le) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_module) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_module_cfd) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_module_le) {
+		hist.Write();
+	}
+	// save time-energy histograms of single side
+	for (TH2F &hist : time_energy_side) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_side_cfd) {
+		hist.Write();
+	}
+	for (TH2F &hist : time_energy_side_le) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_side) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_side_cfd) {
+		hist.Write();
+	}
+	for (TH1F &hist : time_side_le) {
+		hist.Write();
+	}
 	// close files
 	opf.Close();
 	return 0;

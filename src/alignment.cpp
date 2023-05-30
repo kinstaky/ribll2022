@@ -519,7 +519,12 @@ int Alignment::AlignGdc() {
 	long long entries = first_tree->GetEntries();
 
 	// time offset, get from show_gdc_offset
-	long long offset = run_ + 168;
+	long long offset = run_;
+	if (run_ <= 498) offset += 116;
+	else if (run_ <= 500) offset += 117;
+	else if (run_ <= 507) offset += 118;
+	else if (run_ <= 512) offset += 119;
+	else offset += 168;
 
 	// first loop to read from first input file (this run)
 	for (long long entry = offset; entry < entries; ++entry) {

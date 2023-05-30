@@ -90,7 +90,11 @@ target_link_libraries(
 
 # show time-energy
 add_executable(show_time_energy show_time_energy.cpp)
-target_link_libraries(show_time_energy PRIVATE event ROOT::Hist)
+target_link_libraries(show_time_energy PRIVATE detectors event ROOT::Hist)
+
+# show time-energy hit
+add_executable(show_time_energy_hit show_time_energy_hit.cpp)
+target_link_libraries(show_time_energy_hit PRIVATE detectors event ROOT::Hist)
 
 # show t0 calibration result
 add_executable(show_calibration show_calibration.cpp)

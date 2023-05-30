@@ -42,12 +42,23 @@ int main(int argc, char **argv) {
 	// setup input branches
 	vme_tree->SetBranchAddress("gmulti", gmulti);
 	vme_tree->SetBranchAddress("madc", madc);
-
 	std::vector<bool> time[32];
 	std::vector<bool> energy[32];
 
+	// total number of entries
+	long long entries = vme_tree->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Reading values   0%%");
+	fflush(stdout);
 	// read events
 	for (long long entry = 0; entry < vme_tree->GetEntriesFast(); ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
 		vme_tree->GetEntry(entry);
 
 		// read values into arrays
@@ -60,6 +71,8 @@ int main(int argc, char **argv) {
 			);
 		}
 	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
 	// close input file
 	vme_file.Close();
 
@@ -75,7 +88,10 @@ int main(int argc, char **argv) {
 	TGraph gm[2];
 
 	int size = energy[0].size();
-	for (int offset = -range; offset < range; ++offset) {
+	for (int offset = 600; offset < 650; ++offset) {
+		if (offset % 100 == 0) {
+			std::cout << offset << "\n";
+		}
 		int match[2] = {0, 0};
 		for (int i = 0; i < size; ++i) {
 			if (i + offset < 0) continue;

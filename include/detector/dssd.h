@@ -130,9 +130,10 @@ public:
 
 	/// @brief merge adjacent event in the same side and merge events of two sides
 	/// @param[in] energy_diff tolerant energy relateive difference
+	/// @param[in] iteration iteration mode in normalize process
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double energy_diff);
+	virtual int Merge(double energy_diff, int iteration);
 
 
 	//-------------------------------------------------------------------------
@@ -143,6 +144,40 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int AnalyzeTime();
+
+
+	/// @brief normalize time
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int NormalizeTime();
+
+
+	/// @brief filter curve in time-energy histogram
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int FilterTimeCurve();
+
+
+	/// @brief fit time curve in time-energy histogram
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int FitTimeCurve();
+
+
+	/// @brief check whether time curve is appropriate
+	/// @param[in] condition 0-single hit, 1-double hit small, 2-double hit big
+	/// @param[in] side front (0) or back (1)
+	/// @param[in] strip strip number
+	/// @param[in] energy normalized energy
+	/// @param[in] time normalized time
+	/// @returns true if pass time check, false otherwise
+	virtual bool CheckTime(
+		int condition,
+		size_t side,
+		unsigned short strip,
+		double energy,
+		double time
+	);
 
 protected:
 
@@ -188,7 +223,7 @@ protected:
 	/// @param[in] ref_end end strip to reference, exclusive
 	/// @param[in] norm_start start strip to normalize, inclusive
 	/// @param[in] norm_end end strip to normalize, exclusive
-	/// @param[in] iteration iteration mode 
+	/// @param[in] iteration iteration mode
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int StripsNormalize(
@@ -200,7 +235,6 @@ protected:
 		size_t norm_end,
 		int iteration
 	);
-
 
 
 	/// @brief normalize both sides, the true normalize
@@ -233,6 +267,29 @@ protected:
 	///
 	std::unique_ptr<TCutG> ReadCut(const std::string &dir, const std::string &name) const;
 
+
+	//-------------------------------------------------------------------------
+	//							time function
+	//-------------------------------------------------------------------------
+
+	/// @brief read time normalized parameters from file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int ReadNormalizeTimeParameters();
+
+
+	/// @brief write time normalized parameters to file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteNormalizeTimeParameters();
+
+
+	/// @brief read time cuts
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ReadTimeCuts();
+
+
 	//-------------------------------------------------------------------------
 	//						geometry member
 	//-------------------------------------------------------------------------
@@ -248,6 +305,15 @@ protected:
 	// normalize parameters, first index is side,
 	// second index is strip, third index is p0 and p1
 	double norm_params_[2][64][2];
+	// time normalize parameters, first index is side,
+	// second index is strip
+	double norm_time_params_[2][64];
+
+	//-------------------------------------------------------------------------
+	//							time memeber
+	//-------------------------------------------------------------------------
+
+	std::vector<std::unique_ptr<TCutG>> time_cuts_[3];
 
 private:
 	bool has_normalized_[2][64];

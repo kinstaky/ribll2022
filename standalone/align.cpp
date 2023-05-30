@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 		run, group, 10'000'000,
 		-10'000'000'000, 10'000'000'000
 	);
-	align.SetVerbose(true);
+	align.SetVerbose(false);
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";
 		return -1;

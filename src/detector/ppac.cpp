@@ -371,7 +371,7 @@ int Ppac::MatchTrigger(
 }
 
 
-int Ppac::Merge(double) {
+int Ppac::Merge(double, int) {
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(

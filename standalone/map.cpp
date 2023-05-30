@@ -96,7 +96,10 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	ribll::Alignment align(run, 30, 2000000, -10000000000, 10000000000);
+	ribll::Alignment align(
+		run, 100, 10'000'000,
+		-10'000'000'000, 10'000'000'000
+	);
 	align.SetVerbose(false);
 	if (align.Align()) {
 		std::cerr << "Error: Align failed.\n";

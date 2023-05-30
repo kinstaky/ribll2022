@@ -25,6 +25,14 @@ target_link_libraries(match_trigger PRIVATE detectors)
 add_executable(ref_time ref_time.cpp)
 target_link_libraries(ref_time time_reference)
 
+# normalize time
+add_executable(normalize_time normalize_time.cpp)
+target_link_libraries(normalize_time PRIVATE detectors)
+
+# fit time-energy curve
+add_executable(fit_time_curve fit_time_curve.cpp)
+target_link_libraries(fit_time_curve PRIVATE detectors)
+
 # analyze time
 add_executable(analyze_time analyze_time.cpp)
 target_link_libraries(analyze_time PRIVATE detectors)
@@ -77,3 +85,4 @@ add_subdirectory(calculate)
 add_subdirectory(check)
 add_subdirectory(filter)
 add_subdirectory(show)
+add_subdirectory(summary)

@@ -1,23 +1,27 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
 #include "include/detectors.h"
 
 using namespace ribll;
 
+
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run detector[...]\n"
+	std::cout << "Usage: " << name << " [options] run detector\n"
 		"  run               Set run number.\n"
 		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n"
-		"  -i num            Set iteration mode.\n";
+		"  -t tag            Set trigger tag.\n";
 }
+
 
 /// @brief parse arguments
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
-/// @param[out] iteartion iteration mode
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -26,13 +30,11 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag,
-	int &iteration
+	std::string &trigger_tag
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
-	iteration = 0;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -50,13 +52,6 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
-		} else if (argv[result][1] == 'i') {
-			// option of iteration flag
-			// get number in next argument
-			++result;
-			// miss arguemnt behind option
-			if (result == argc) return -argc;
-			iteration = atoi(argv[result]);
 		} else {
 			return -result;
 		}
@@ -64,8 +59,9 @@ int ParseArguments(
 	return result;
 }
 
+
 int main(int argc, char **argv) {
-	if (argc < 3) {
+	if (argc < 2) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -74,17 +70,14 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
-	// iteration flag
-	int iteration = 0;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag, iteration);
+	int pos_start = ParseArguments(argc, argv, help, tag);
 
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
 		return 0;
 	}
-
 	if (pos_start < 0) {
 		if (-pos_start < argc) {
 			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
@@ -94,8 +87,7 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
-
-	if (pos_start + 1 >= argc) {
+	if (pos_start+1 >= argc) {
 		// positional arguments less than 3
 		std::cerr << "Error: Miss detector argument.\n";
 		PrintUsage(argv[0]);
@@ -105,18 +97,18 @@ int main(int argc, char **argv) {
 
 	int run = atoi(argv[pos_start]);
 	// list of detector names
-	std::vector<std::string> dssd_names;
+	std::vector<std::string> detector_names;
 	for (int i = pos_start+1; i < argc; ++i) {
-		dssd_names.push_back(std::string(argv[i]));
+		detector_names.push_back(std::string(argv[i]));
 	}
 
-	for (auto dssd_name : dssd_names) {
-		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
-		if (!dssd) continue;
+	for (auto name : detector_names) {
+		std::shared_ptr<Dssd> detector = CreateDssd(name, run, tag);
+		if (!detector) continue;
 
-		if (dssd->NormalizeFilter(iteration)) {
-			std::cerr << "Error: Normalize filter "
-				<< dssd_name << " failed.\n";
+		if (detector->FitTimeCurve()) {
+			std::cerr << "Error: Fit time curve of "
+				<< name << " failed.\n";
 			continue;
 		}
 	}

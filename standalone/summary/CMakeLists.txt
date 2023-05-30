@@ -1,0 +1,3 @@
+# summarize normalize time
+add_executable(summarize_normalize_time summarize_normalize_time.cpp)
+target_link_libraries(summarize_normalize_time PRIVATE detectors)

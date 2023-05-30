@@ -893,7 +893,7 @@ int T0::Calibrate(unsigned int end_run) {
 	std::vector<ParticleCut> d1d2_cuts;
 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
 	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
+	// d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
 	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
 	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
 	// T0D2-D3 cuts

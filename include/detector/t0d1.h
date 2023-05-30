@@ -60,6 +60,36 @@ public:
 	///
 	virtual int AnalyzeTime() override;
 
+
+	/// @brief filter curve in time-energy histogram
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int FilterTimeCurve() override;
+
+
+	/// @brief fit time curve in time-energy histogram
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int FitTimeCurve() override;
+
+
+	/// @brief check whether time curve is appropriate
+	/// @param[in] condition 0-single hit, 1-double hit small, 2-double hit big
+	/// @param[in] side front (0) or back (1)
+	/// @param[in] strip strip number
+	/// @param[in] energy normalized energy
+	/// @param[in] time normalized time
+	/// @returns true if pass time check, false otherwise
+	///
+	virtual bool CheckTime(
+		int condition,
+		size_t side,
+		unsigned short strip,
+		double energy,
+		double time
+	) override;
+
+
 protected:
 
 	//-------------------------------------------------------------------------
@@ -90,6 +120,12 @@ protected:
 		TChain *chain,
 		int iteration
 	) override;
+
+
+	/// @brief read time cuts
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int ReadTimeCuts() override;
 };
 
 

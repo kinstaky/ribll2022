@@ -156,8 +156,8 @@ int CalculateOffset(
 	TH1F hd[4]{
 		TH1F("d2dx", "T0D2 #Deltax", 1000, -10, 10),
 		TH1F("d2dy", "T0D2 #Deltay", 1000, -10, 10),
-		TH1F("d3dx", "T0D3 #Deltax", 1000, -10, 10),
-		TH1F("d3dy", "T0D3 #Deltay", 1000, -10, 10)
+		TH1F("d3dx", "T0D3 #Deltax", 200, -10, 10),
+		TH1F("d3dy", "T0D3 #Deltay", 200, -10, 10)
 	};
 	TH1F hist_cos_theta[3]{
 		TH1F("d1d2t", "T0 D1D2 cos#theta", 100, 0.99, 1),
@@ -264,10 +264,18 @@ int CalculateOffset(
 
 			if (t0_event.flag[0] == 0x7) {
 				// process d3 event
+				// continuous d3 x
+				double d3x = t0_event.x[i][2];
+				if (int(d3x*2) == d3x*2) {
+					d3x += generator.Rndm() - 0.5;
+				}
+				// continuous d3 y
+				double d3y = t0_event.y[i][2];
+				if (int(d3y*2) == d3y*2) {
+					d3y += generator.Rndm() - 0.5;
+				}
 				// d3 particle position
-				ROOT::Math::XYZVector d3_pos(
-					t0_event.x[0][2], t0_event.y[0][2], d3_center.Z()
-				);
+				ROOT::Math::XYZVector d3_pos(d3x, d3y, d3_center.Z());
 				// d3 position relate to target point
 				ROOT::Math::XYZVector d3_rel_pos = d3_pos - target;
 				// cos(theta) of d1 and d3 relative position
@@ -309,14 +317,14 @@ int CalculateOffset(
 
 	// fit offset
 	for (int i = 0; i < 2; ++i) {
-		TF1 fx(TString::Format("fx%d", i), "gaus", -10, 10);
+		TF1 fx(TString::Format("fx%d", i), "gaus", -4, 2);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);
 		fx.SetParameter(2, 1.0);
 		hd[i*2].Fit(&fx, "QR+");
 		statistics.x_offset[i] = fx.GetParameter(1);
 
-		TF1 fy(TString::Format("fy%d", i), "gaus", -10, 10);
+		TF1 fy(TString::Format("fy%d", i), "gaus", -4, 2);
 		fy.SetParameter(0, 20);
 		fy.SetParameter(1, 0.0);
 		fy.SetParameter(2, 1.0);

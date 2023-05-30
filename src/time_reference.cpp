@@ -9,24 +9,6 @@
 namespace ribll {
 
 int TimeReference(unsigned int run, const std::string &tag) {
-	// input xppac file
-	TString ppac_file_name;
-	ppac_file_name.Form(
-		"%s%sxppac-fundamental-%s%04u.root",
-		kGenerateDataPath,
-		kFundamentalDir,
-		tag.empty() ? "" : (tag+"-").c_str(),
-		run
-	);
-	// ppac file
-	TFile ppac_file(ppac_file_name, "read");
-	// ppac tree
-	TTree *ppac_tree = (TTree*)ppac_file.Get("tree");
-	if (!ppac_tree) {
-		std::cerr << "Error: Get tree from "
-			<< ppac_file_name << " failed.\n";
-		return -1;
-	}
 	// input tof file
 	TString tof_file_name;
 	tof_file_name.Form(
@@ -36,15 +18,33 @@ int TimeReference(unsigned int run, const std::string &tag) {
 		tag.empty() ? "" : (tag+"-").c_str(),
 		run
 	);
-	// add friend
-	ppac_tree->AddFriend("tof=tree", tof_file_name);
-	// input xppac event
-	PpacFundamentalEvent ppac_event;
+	// ppac file
+	TFile ipf(tof_file_name, "read");
+	// ppac tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< tof_file_name << " failed.\n";
+		return -1;
+	}
+	// input xppac file
+	// TString ppac_file_name;
+	// ppac_file_name.Form(
+	// 	"%s%sxppac-fundamental-%s%04u.root",
+	// 	kGenerateDataPath,
+	// 	kFundamentalDir,
+	// 	tag.empty() ? "" : (tag+"-").c_str(),
+	// 	run
+	// );
+	// // add friend
+	// ipt->AddFriend("ppac=tree", ppac_file_name);
 	// input tof event
 	TofFundamentalEvent tof_event;
+	// // input xppac event
+	// PpacFundamentalEvent ppac_event;
 	// setup input branches
-	ppac_event.SetupInput(ppac_tree);
-	tof_event.SetupInput(ppac_tree, "tof.");
+	tof_event.SetupInput(ipt);
+	// ppac_event.SetupInput(ipt, "ppac.");
 
 	// output reference file name
 	TString ref_file_name;
@@ -65,7 +65,7 @@ int TimeReference(unsigned int run, const std::string &tag) {
 	ref_tree.Branch("time", &ref_time, "t/D");
 
 	// total number of entries
-	long long entries = ppac_tree->GetEntries();
+	long long entries = ipt->GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -78,8 +78,8 @@ int TimeReference(unsigned int run, const std::string &tag) {
 			fflush(stdout);
 		}
 
-		// read ppac event
-		ppac_tree->GetEntry(entry);
+		// read event
+		ipt->GetEntry(entry);
 		// initialize
 		ref_time = -1e5;
 		// t1 and t2
@@ -169,7 +169,7 @@ int TimeReference(unsigned int run, const std::string &tag) {
 	// save tree and close files
 	ref_tree.Write();
 	ref_file.Close();
-	ppac_file.Close();
+	ipf.Close();
 
 	return 0;
 }

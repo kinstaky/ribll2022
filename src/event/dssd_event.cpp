@@ -57,8 +57,8 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("back_time", back_time, "bt[bhit]/D");
 	tree->Branch("front_energy", front_energy, "fe[fhit]/D");
 	tree->Branch("back_energy", back_energy, "be[bhit]/D");
-	// tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
-	// tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
+	tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
+	tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
 }
 
 
