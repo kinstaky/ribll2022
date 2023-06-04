@@ -871,5 +871,299 @@ bool T0d1::CheckTime(
 }
 
 
+bool Cut11Beam(
+	DssdFundamentalEvent &event,
+	TH1F &hist_de,
+	TH1F &hist_dt
+) {
+	// for convenience
+	unsigned short &fhit = event.front_hit;
+	unsigned short &bhit = event.back_hit;
+	double *fe = event.front_energy;
+	double *be = event.back_energy;
+	double *ft = event.front_time;
+	double *bt = event.back_time;
+
+	for (unsigned short i = 0; i < fhit; ++i) {
+		// cut single strip beam
+		if (fe[i] < 31'000) continue;
+		for (unsigned short j = 0; j < bhit; ++j) {
+			hist_de.Fill(fe[i] - be[j]);
+			hist_dt.Fill(ft[i] - bt[j]);
+
+			if (
+				fabs(ft[i] - bt[j]) < 80.0
+				&& fabs(fe[i] - be[j]) < 500.0
+			) {
+				// // move front events
+				// for (unsigned short k = i+1; k < fhit; ++k) {
+				// 	fs[k-1] = fs[k];
+				// 	fe[k-1] = fe[k];
+				// 	ft[k-1] = ft[k];
+				// 	cfd |= (cfd >> 1) & (1<<(k-1));
+				// }
+				// // move back events
+				// for (unsigned short k = j+1; k < bhit; ++k) {
+				// 	bs[k-1] = bs[k];
+				// 	be[k-1] = be[k];
+				// 	bt[k-1] = bt[k];
+				// 	cfd |= (cfd >> 1) & (1 <<(k+8-1));
+				// }
+				// --fhit;
+				// --bhit;
+				event.Erase(0, i);
+				event.Erase(1, j);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+bool Cut12Beam(
+	DssdFundamentalEvent &event,
+	TH1F &hist_de,
+	TH1F &hist_dt,
+	TH1F &hist_adt
+) {
+	// for convenience
+	unsigned short &fhit = event.front_hit;
+	unsigned short &bhit = event.back_hit;
+	unsigned short *bs = event.back_strip;
+	double *fe = event.front_energy;
+	double *be = event.back_energy;
+	double *ft = event.front_time;
+	double *bt = event.back_time;
+
+	for (unsigned short i = 0; i < fhit; ++i) {
+		if (fe[i] < 31'000) continue;
+		// search for adjacent strips in back side
+		for (unsigned short j = 0; j < bhit-1; ++j) {
+			for (unsigned short k = j+1; k < bhit; ++k) {
+				if (abs(bs[j]-bs[k]) != 1) continue;
+				hist_de.Fill(fe[i]-be[j]-be[k]);
+				hist_dt.Fill(ft[i]-bt[j]);
+				// hist_dt.Fill(ft[i]-bt[k]);
+				hist_adt.Fill(bt[j]-bt[k]);
+				if (fabs(fe[i]-be[j]-be[k]) > 500) continue;
+				if (fabs(ft[i]-bt[j]) > 80) continue;
+				if (bt[j]-bt[k] < -200 || bt[j]-bt[k] > 20) continue;
+				event.Erase(0, i);
+				event.Erase(1, j);
+				event.Erase(1, k);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+bool Cut21Beam(
+	DssdFundamentalEvent &event,
+	TH1F &hist_de,
+	TH1F &hist_dt,
+	TH1F &hist_adt
+) {
+	// for convenience
+	unsigned short &fhit = event.front_hit;
+	unsigned short &bhit = event.back_hit;
+	unsigned short *fs = event.front_strip;
+	double *fe = event.front_energy;
+	double *be = event.back_energy;
+	double *ft = event.front_time;
+	double *bt = event.back_time;
+
+	for (unsigned short i = 0; i < bhit; ++i) {
+		if (be[i] < 31'000) continue;
+		// search for adjacent strips in back side
+		for (unsigned short j = 0; j < fhit-1; ++j) {
+			for (unsigned short k = j+1; k < fhit; ++k) {
+				if (abs(fs[j]-fs[k]) != 1) continue;
+				hist_de.Fill(be[i]-fe[j]-fe[k]);
+				hist_dt.Fill(bt[i]-ft[j]);
+				// hist_dt.Fill(bt[i]-ft[k]);
+				hist_adt.Fill(ft[j]-ft[k]);
+				if (fabs(be[i]-fe[j]-fe[k]) > 500) continue;
+				if (fabs(bt[i]-ft[j]) > 80) continue;
+				if (ft[j]-ft[k] < -200 || ft[j]-ft[k] > 100) continue;
+				event.Erase(0, j);
+				event.Erase(0, k);
+				event.Erase(1, i);
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+
+bool Cut22Beam(
+	DssdFundamentalEvent &event,
+	TH1F &hist_de,
+	TH1F &hist_dt,
+	TH1F &hist_adt
+) {
+	// for convenience
+	unsigned short &fhit = event.front_hit;
+	unsigned short &bhit = event.back_hit;
+	unsigned short *fs = event.front_strip;
+	unsigned short *bs = event.back_strip;
+	double *fe = event.front_energy;
+	double *be = event.back_energy;
+	double *ft = event.front_time;
+	double *bt = event.back_time;
+
+	for (unsigned short i = 0; i < fhit; ++i) {
+		for (unsigned short j = i+1; j < fhit; ++j) {
+			if (abs(fs[i]-fs[j]) != 1) continue;
+			if (fe[i]+fe[j] < 31'000) continue;
+			// search for adjacent strips in back side
+			for (unsigned short k = 0;  k < bhit; ++k) {
+				for (unsigned short l = k+1; l < bhit; ++l) {
+					if (abs(bs[k]-bs[l] != 1)) continue;
+					hist_de.Fill(fe[i]+fe[j]-be[k]-be[l]);
+					hist_dt.Fill(ft[i]-bt[k]);
+					hist_adt.Fill(ft[i]-ft[j]);
+					hist_adt.Fill(bt[k]-bt[l]);
+					if (fabs(fe[i]+fe[j]-be[k]-be[l]) > 500) continue;
+					if (fabs(ft[i]-bt[k]) > 80) continue;
+					if (ft[i]-ft[j] < -180 || ft[i]-ft[j] > 80) continue;
+					if (bt[k]-bt[l] < -180 || bt[k]-bt[l] > 80) continue;
+					event.Erase(0, i);
+					event.Erase(0, j);
+					event.Erase(1, k);
+					event.Erase(1, l);
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+
+int T0d1::CutBeamThreshold() {
+	// input file name
+	TString input_file_name = TString::Format(
+		"%s%st0d1-result-%s%04u-0.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	DssdFundamentalEvent event;
+	// setup input branches
+	event.SetupInput(ipt);
+
+	// output file name
+	TString output_file_name = TString::Format(
+		"%s%st0d1-result-%sbtc-%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// 1D histogram of energy difference of 11 beam
+	TH1F de_11_beam("de11b", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of time difference of 11 beam
+	TH1F dt_11_beam("dt11b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of energy difference of 12 beam
+	TH1F de_12_beam("de12b", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of time difference of 12 beam
+	TH1F dt_12_beam("dt12b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of time difference of 12 beam ajdacent strips
+	TH1F adt_12_beam("adt12b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of energy difference of 21 beam
+	TH1F de_21_beam("de21b", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of time difference of 21 beam
+	TH1F dt_21_beam("dt21b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of time difference of 12 beam ajdacent strips
+	TH1F adt_21_beam("adt21b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of energy difference of 22 beam
+	TH1F de_22_beam("de22b", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of time difference of 22 beam
+	TH1F dt_22_beam("dt22b", "#Deltat", 1000, -500, 500);
+	// 1D histogram of time difference of 22 beam ajdacent strips
+	TH1F adt_22_beam("adt22b", "#Deltat", 1000, -500, 500);
+	// output tree
+	TTree opt("tree", "normalize result without beam and threshold");
+	// setup output branches
+	event.SetupOutput(&opt);
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100;
+	// show start
+	printf("Cutting events of beam or under threshold   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+
+		while (
+			Cut11Beam(event, de_11_beam, dt_11_beam)
+			|| Cut12Beam(event, de_12_beam, dt_12_beam, adt_12_beam)
+			|| Cut21Beam(event, de_21_beam, dt_21_beam, adt_21_beam)
+			|| Cut22Beam(event, de_22_beam, dt_22_beam, adt_22_beam)
+		);
+		// cut threshold
+		while (
+			event.front_hit > 0
+			&& event.front_energy[event.front_hit-1] < 800.0
+		) {
+			--event.front_hit;
+		}
+		while (
+			event.back_hit > 0
+			&& event.back_energy[event.back_hit-1] < 800.0
+		) {
+			--event.back_hit;
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save histograms
+	de_11_beam.Write();
+	dt_11_beam.Write();
+	de_12_beam.Write();
+	dt_12_beam.Write();
+	adt_12_beam.Write();
+	de_21_beam.Write();
+	dt_21_beam.Write();
+	adt_21_beam.Write();
+	de_22_beam.Write();
+	dt_22_beam.Write();
+	adt_22_beam.Write();
+	// save tree
+	opt.Write();
+	// close files
+	opf.Close();
+	ipf.Close();
+	return 0;
+}
+
+
 }		// namespace ribll
 

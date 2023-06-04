@@ -64,6 +64,16 @@ int TimeReference(unsigned int run, const std::string &tag) {
 	// setup output tree branch
 	ref_tree.Branch("time", &ref_time, "t/D");
 
+	double range_left = -60;
+	double range_right = -57;
+	if (run >= 641 && run < 653) {
+		range_left = -62;
+		range_right = -59;
+	} else if (run >= 653) {
+		range_left = -65;
+		range_right = -62;
+	}
+
 	// total number of entries
 	long long entries = ipt->GetEntries();
 	// 1/100 of entries
@@ -86,8 +96,8 @@ int TimeReference(unsigned int run, const std::string &tag) {
 		if (
 			tof_event.time[0] > -9e4
 			&& tof_event.time[1] > -9e4
-			&& tof_event.time[0]-tof_event.time[1] > -60
-			&& tof_event.time[0]-tof_event.time[1] < -57
+			&& tof_event.time[0]-tof_event.time[1] > range_left
+			&& tof_event.time[0]-tof_event.time[1] < range_right
 		) {
 			ref_time = tof_event.time[1];
 		}

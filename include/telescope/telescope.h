@@ -114,13 +114,13 @@ protected:
 	/// @brief read calibrate parameters from file
 	/// @returns 0 if success, -1 otherwise
 	///
-	int ReadCalibrateParameters();
+	int ReadCalibrateParameters(unsigned int run = 9999);
 
 
 	/// @brief write calibrate parameters to file
 	/// @returns 0 if success, -1 otherwise
 	///
-	int WriteCalibrateParameters() const;
+	int WriteCalibrateParameters(unsigned int run = 9999) const;
 
 
 	// run number

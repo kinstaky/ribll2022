@@ -92,17 +92,34 @@ std::unique_ptr<TCutG> Telescope::ReadCut(
 }
 
 
-int Telescope::ReadCalibrateParameters() {
+int Telescope::ReadCalibrateParameters(unsigned int end_run) {
 	// parameters file name
 	TString file_name;
-	file_name.Form(
-		"%s%s%s-calibration-param%s-%04u.txt",
-		kGenerateDataPath,
-		kCalibrationDir,
-		name_.c_str(),
-		tag_.empty() ? "" : ("-"+tag_).c_str(),
-		run_
-	);
+	if (end_run == 9999) {
+		file_name.Form(
+			"%s%s%s-calibration-param.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str()
+		);
+	} else if (end_run == run_) {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_
+		);
+	} else {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_,
+			end_run
+		);
+	}
 	// parameters file
 	std::ifstream fin(file_name.Data());
 	// check file
@@ -121,17 +138,34 @@ int Telescope::ReadCalibrateParameters() {
 }
 
 
-int Telescope::WriteCalibrateParameters() const {
+int Telescope::WriteCalibrateParameters(unsigned int end_run) const {
 	// parameters file name
 	TString file_name;
-	file_name.Form(
-		"%s%s%s-calibration-param%s-%04u.txt",
-		kGenerateDataPath,
-		kCalibrationDir,
-		name_.c_str(),
-		tag_.empty() ? "" : ("-"+tag_).c_str(),
-		run_
-	);
+	if (end_run == 9999) {
+		file_name.Form(
+			"%s%s%s-calibration-param.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str()
+		);
+	} else if (end_run == run_) {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_
+		);
+	} else {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_,
+			end_run
+		);
+	}
 	// parameters file
 	std::ofstream fout(file_name.Data());
 	// check file

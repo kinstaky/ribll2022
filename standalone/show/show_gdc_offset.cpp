@@ -88,21 +88,37 @@ int main(int argc, char **argv) {
 	TGraph gm[2];
 
 	int size = energy[0].size();
-	for (int offset = 600; offset < 650; ++offset) {
-		if (offset % 100 == 0) {
-			std::cout << offset << "\n";
-		}
+	for (int offset = 500; offset < 1000; ++offset) {
 		int match[2] = {0, 0};
 		for (int i = 0; i < size; ++i) {
 			if (i + offset < 0) continue;
 			if (i + offset >= size) continue;
-			for (int j = 0; j < 32; ++j) {
-				if (energy[j][i] && time[j][i+offset]) ++match[j/16];
-			}
+			// for (int j = 0; j < 32; ++j) {
+			// 	if (energy[j][i] && time[j][i+offset]) ++match[j/16];
+			// }
+			if (energy[0][i] && time[0][i+offset]) ++match[0];
+			if (energy[16][i] && time[16][i+offset]) ++match[1];
 		}
 		gm[0].AddPoint(offset, match[0]);
 		gm[1].AddPoint(offset, match[1]);
 	}
+
+	// find max match in GDC
+	int points = gm[0].GetN();
+	double *offsets = gm[0].GetX();
+	double *match = gm[0].GetY();
+	// max offset
+	double max_offset = offsets[0];
+	// max match number
+	double max_match = match[0];
+	for (int i = 1; i < points; ++i) {
+		if (match[i] > max_match) {
+			max_match = match[i];
+			max_offset = offsets[i];
+		}
+	}
+	std::cout << "GDC 0: " << max_offset << "\n";
+
 	gm[0].Write("gm0");
 	gm[1].Write("gm1");
 	opf.Close();

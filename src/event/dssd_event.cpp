@@ -158,6 +158,28 @@ void DssdFundamentalEvent::Swap(
 }
 
 
+void DssdFundamentalEvent::Erase(size_t side, size_t index) {
+	// move front events
+	if (side == 0) {
+		for (unsigned short i = index+1; i < front_hit; ++i) {
+			front_strip[i-1] = front_strip[i];
+			front_energy[i-1] = front_energy[i];
+			front_time[i-1] = front_time[i];
+			cfd_flag |= (cfd_flag >> 1) & (1<<(i-1));
+		}
+		--front_hit;
+	} else {
+		for (unsigned short i = index+1; i < back_hit; ++i) {
+			back_strip[i-1] = back_strip[i];
+			back_energy[i-1] = back_energy[i];
+			back_time[i-1] = back_time[i];
+			cfd_flag |= (cfd_flag >> 1) & (1<<(i+8-1));
+		}
+		--back_hit;
+	}
+}
+
+
 void DssdTimeEvent::SetupInput(
 	TTree *tree,
 	const std::string &prefix

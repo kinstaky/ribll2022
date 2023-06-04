@@ -10,6 +10,7 @@ namespace ribll {
 //-----------------------------------------------------------------------------
 // decode data
 const char* const kCrate0Path = "/data/d1/RIBLL_2022_C/DecodeFile/Crate1/";
+// const char* const kCrate0Path = "/data/d1/pwl/ribll2022/decode/";
 const char* const kCrate0FileName = "c1data";
 
 const char* const kCrate1Path = "/data/d1/RIBLL_2022_C/DecodeFile/Crate2/";

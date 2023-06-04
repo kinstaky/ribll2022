@@ -28,10 +28,13 @@ public:
 	unsigned short flag[8];
 	unsigned short ssd_flag;
 	double energy[8][4];
+	double time[8][4];
 	double ssd_energy[3];
 	double x[8][4];
 	double y[8][4];
 	double z[8][4];
+	int status[8];
+	int points[8];
 };
 
 }	// namespace ribll

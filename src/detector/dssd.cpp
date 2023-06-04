@@ -509,13 +509,12 @@ int Dssd::NormalizeResult(int iteration) {
 	// input filter file name
 	TString filter_file_name;
 	filter_file_name.Form(
-		"%s%s%s-filter-%s%04u-%d.root",
+		"%s%s%s-filter-%s%04u.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
 		tag_.empty() ? "" : (tag_ + "-").c_str(),
-		run_,
-		iteration
+		run_
 	);
 	if (iteration > 0) {
 		// add friend
@@ -534,13 +533,12 @@ int Dssd::NormalizeResult(int iteration) {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%s%s-result-%s%04u-%d.root",
+		"%s%s%s-result-%s%04u.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
 		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_,
-		iteration
+		run_
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -885,6 +883,11 @@ std::unique_ptr<TCutG> Dssd::ReadCut(
 //-----------------------------------------------------------------------------
 //								merge
 //-----------------------------------------------------------------------------
+
+int Dssd::CutBeamThreshold() {
+	std::cerr << "Error: Dssd::CutBeamThreshold is not implemented yet.\n";
+	return -1;
+}
 
 /// @brief merge front hit 1 and back hit 1 events
 /// @param[in] fundamental input fundamental event

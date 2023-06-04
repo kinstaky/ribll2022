@@ -6,7 +6,7 @@
 namespace ribll {
 
 // center of t0d2, in mm
-const ROOT::Math::XYZVector t0d2_center{0.0, 0.0, 111.76};
+const ROOT::Math::XYZVector t0d2_center{-1.03, -0.86, 111.76};
 // x range of t0d2, in mm
 const std::pair<double, double> t0d2_x_range{-32.0, 32.0};
 // y range of t0d2, in mm

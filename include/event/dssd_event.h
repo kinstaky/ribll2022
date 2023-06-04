@@ -71,6 +71,13 @@ public:
 	///
 	virtual void Sort();
 
+
+	/// @brief erase an event
+	/// @param[in] side 0-front, 1-back
+	/// @param[in] index index of event to be removed
+	///
+	virtual void Erase(size_t side, size_t index);
+
 	unsigned short front_hit;
 	unsigned short back_hit;
 	unsigned short cfd_flag;

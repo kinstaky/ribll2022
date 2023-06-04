@@ -61,79 +61,7 @@ constexpr double sum_range[][19][2] = {
 		{100, 120},		// y2-a1
 		{85, 105},		// x2-a2
 		{85, 105}		// y2-a2
-	},
-	// {
-	// 	// run == 643
-	// 	// x0, y0
-	// 	{85, 105},		// x0-a0
-	// 	{70, 90},		// y0-a0
-	// 	{95, 115},		// x0-a1
-	// 	{85, 105},		// y0-a1
-	// 	{80, 100},		// x0-a2
-	// 	{70, 90},		// y0-a2
-	// 	// x1, y1
-	// 	{90, 110},		// x1-a0
-	// 	{85, 105},		// y1-a0
-	// 	{100, 120},		// x1-a1
-	// 	{95, 115},		// y1-a1
-	// 	{80, 100},		// x1-a2
-	// 	{80, 100},		// y1-a2
-	// 	// x2, y2
-	// 	{100, 120},		// x2-a0
-	// 	{85, 105},		// y2-a0
-	// 	{110, 130},		// x2-a1
-	// 	{100, 120},		// y2-a1
-	// 	{95, 115},		// x2-a2
-	// 	{85, 105}		// y2-a2
-	// },
-	// {
-	// 	// run == 646, 650, 652
-	// 	// x0, y0
-	// 	{75, 95},		// x0-a0
-	// 	{70, 90},		// y0-a0
-	// 	{85, 105},		// x0-a1
-	// 	{85, 105},		// y0-a1
-	// 	{70, 90},		// x0-a2
-	// 	{70, 90},		// y0-a2
-	// 	// x1, y1
-	// 	{90, 110},		// x1-a0
-	// 	{85, 105},		// y1-a0
-	// 	{100, 120},		// x1-a1
-	// 	{95, 115},		// y1-a1
-	// 	{80, 100},		// x1-a2
-	// 	{80, 100},		// y1-a2
-	// 	// x2, y2
-	// 	{100, 120},		// x2-a0
-	// 	{85, 105},		// y2-a0
-	// 	{110, 130},		// x2-a1
-	// 	{100, 120},		// y2-a1
-	// 	{95, 115},		// x2-a2
-	// 	{85, 105}		// y2-a2
-	// },
-	// {
-	// 	// run == 647
-	// 	// x0, y0
-	// 	{75, 95},		// x0-a0
-	// 	{70, 90},		// y0-a0
-	// 	{85, 105},		// x0-a1
-	// 	{85, 105},		// y0-a1
-	// 	{70, 90},		// x0-a2
-	// 	{70, 90},		// y0-a2
-	// 	// x1, y1
-	// 	{80, 100},		// x1-a0
-	// 	{85, 105},		// y1-a0
-	// 	{90, 110},		// x1-a1
-	// 	{95, 115},		// y1-a1
-	// 	{70, 90},		// x1-a2
-	// 	{80, 100},		// y1-a2
-	// 	// x2, y2
-	// 	{90, 110},		// x2-a0
-	// 	{85, 105},		// y2-a0
-	// 	{100, 120},		// x2-a1
-	// 	{100, 120},		// y2-a1
-	// 	{85, 105},		// x2-a2
-	// 	{85, 105}		// y2-a2
-	// },
+	}
 };
 constexpr double fit_range[][18][2] = {
 	{
@@ -183,86 +111,14 @@ constexpr double fit_range[][18][2] = {
 		{107, 110},		// y2-a1
 		{93, 96},		// x2-a2
 		{91, 94}		// y2-a2
-	},
-	// {
-	// 	// run == 643
-	// 	// x0, y0
-	// 	{93, 96},		// x0-a0
-	// 	{81, 84},		// y0-a0
-	// 	{105, 108},		// x0-a1
-	// 	{94, 97},		// y0-a1
-	// 	{89, 92},		// x0-a2
-	// 	{77, 80},		// y0-a2
-	// 	// x1, y1
-	// 	{94, 97},		// x1-a0
-	// 	{93, 96},		// y1-a0
-	// 	{107, 110},		// x1-a1
-	// 	{106, 109},		// y1-a1
-	// 	{90, 93},		// x1-a2
-	// 	{89, 92},		// y1-a2
-	// 	// x2, y2
-	// 	{107, 110},		// x2-a0
-	// 	{95, 98},		// y2-a0
-	// 	{120, 123},		// x2-a1
-	// 	{107, 110},		// y2-a1
-	// 	{103, 106},		// x2-a2
-	// 	{91, 94}		// y2-a2
-	// },
-	// {
-	// 	// run == 646, 650, 652
-	// 	// x0, y0
-	// 	{83, 86},		// x0-a0
-	// 	{81, 84},		// y0-a0
-	// 	{95, 98},		// x0-a1
-	// 	{94, 97},		// y0-a1
-	// 	{79, 82},		// x0-a2
-	// 	{77, 80},		// y0-a2
-	// 	// x1, y1
-	// 	{94, 97},		// x1-a0
-	// 	{93, 96},		// y1-a0
-	// 	{107, 110},		// x1-a1
-	// 	{106, 109},		// y1-a1
-	// 	{90, 93},		// x1-a2
-	// 	{89, 92},		// y1-a2
-	// 	// x2, y2
-	// 	{107, 110},		// x2-a0
-	// 	{95, 98},		// y2-a0
-	// 	{120, 123},		// x2-a1
-	// 	{107, 110},		// y2-a1
-	// 	{103, 106},		// x2-a2
-	// 	{91, 94}		// y2-a2
-	// },
-	// {
-	// 	// run == 647
-	// 	// x0, y0
-	// 	{83, 86},		// x0-a0
-	// 	{81, 84},		// y0-a0
-	// 	{95, 98},		// x0-a1
-	// 	{94, 97},		// y0-a1
-	// 	{79, 82},		// x0-a2
-	// 	{77, 80},		// y0-a2
-	// 	// x1, y1
-	// 	{84, 87},		// x1-a0
-	// 	{93, 96},		// y1-a0
-	// 	{97, 100},		// x1-a1
-	// 	{106, 109},		// y1-a1
-	// 	{80, 83},		// x1-a2
-	// 	{89, 92},		// y1-a2
-	// 	// x2, y2
-	// 	{97, 100},		// x2-a0
-	// 	{95, 98},		// y2-a0
-	// 	{110, 113},		// x2-a1
-	// 	{107, 110},		// y2-a1
-	// 	{93, 96},		// x2-a2
-	// 	{91, 94}		// y2-a2
-	// },
+	}
 };
 constexpr double run_correct[][3] = {
 	// run == 643
 	{10, 0, 10},
-	// run == 646, 650, 652
+	// run == 646, 650, 652, 653, 658, 659, 671
 	{0, 0, 10},
-	// run == 645, 647
+	// run == 645, 647, 654, 655, 665, 668
 	{0, -10, 0},
 };
 
@@ -417,12 +273,29 @@ int Ppac::Merge(double, int) {
 		if (run_ == 643) {
 			sum_range_left += run_correct[0][i/3];
 			sum_range_right += run_correct[0][i/3];
-		} else if (run_ == 646 || run_ == 650 || run_ == 652) {
+		} else if (
+			run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
+			|| run_ == 658 || run_ == 659 || run_ == 671
+		) {
 			sum_range_left += run_correct[1][i/3];
 			sum_range_right += run_correct[1][i/3];
-		} else if (run_ == 645 || run_ == 647) {
+		} else if (
+			run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
+			|| run_ == 665 || run_ == 668
+		) {
 			sum_range_left += run_correct[2][i/3];
 			sum_range_right += run_correct[2][i/3];
+		} else if (run_ == 663) {
+			// x1 -20
+			if (i/3 == 1) {
+				sum_range_left += -20;
+				sum_range_right += -20;
+			}
+			// a0 -10
+			if (i%3 == 0) {
+				sum_range_left += 20;
+				sum_range_right += 20;
+			}
 		}
 		hist_sum_time.emplace_back(
 			TString::Format("hsx%da%d", i/3, i%3),
@@ -432,6 +305,10 @@ int Ppac::Merge(double, int) {
 
 		sum_range_left = sum_range[range_index][i*2+1][0];
 		sum_range_right = sum_range[range_index][i*2+1][1];
+		if (run_ == 663 && i%3 == 0) {
+			sum_range_left += 20;
+			sum_range_right += 20;
+		}
 		hist_sum_time.emplace_back(
 			TString::Format("hsy%da%d", i/3, i%3),
 			TString::Format("sum time of y%d reference a%d", i/3, i%3),
@@ -520,12 +397,30 @@ int Ppac::Merge(double, int) {
 			if (run_ == 643) {
 				fit_range_left += run_correct[0][i/6];
 				fit_range_right += run_correct[0][i/6];
-			} else if (run_ == 646 || run_ == 650 || run_ == 652) {
+			} else if (
+				run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
+				|| run_ == 658 || run_ == 659 || run_ == 671
+			) {
 				fit_range_left += run_correct[1][i/6];
-				fit_range_left += run_correct[1][i/6];
-			} else if (run_ == 645 || run_ == 647) {
+				fit_range_right += run_correct[1][i/6];
+			} else if (
+				run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
+				|| run_ == 665 || run_ == 668
+			) {
 				fit_range_left += run_correct[2][i/6];
 				fit_range_right += run_correct[2][i/6];
+			}
+		}
+		if (run_ == 663) {
+			// x1 -20
+			if (i/6 == 1 && i%2 == 0) {
+				fit_range_left += -20;
+				fit_range_right += -20;
+			}
+			// a0 -10
+			if (i%6 == 0 || i%6 == 1) {
+				fit_range_left += 20;
+				fit_range_right += 20;
 			}
 		}
 		// fit function
@@ -662,9 +557,15 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		offset[2] = 2.3;
 		if (run == 643) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[0][i];
-		} else if (run == 646 || run == 650 || run == 652) {
+		} else if (
+			run == 646 || run == 650 || run == 652 || run == 653
+			|| run == 658 || run == 659 || run == 671
+		) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[1][i];
-		} else if (run == 645 || run == 647) {
+		} else if (
+			run == 645 || run == 647 || run == 654 || run == 655
+			|| run == 665 || run == 668
+		) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
 		}
 	}
@@ -692,8 +593,12 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		offset[2] = 3.1;
 	}
 	double correct[3] = {-0.85, 0.25, 1.42};
-	if (run > 640) {
+	if (run > 640 && run <= 652) {
 		correct[2] -= 0.04;
+	} else {
+		correct[0] -= 0.08;
+		correct[1] += 0.11;
+		correct[2] += 0.08;
 	}
 	result = (time - offset[index]) / -4.0 + correct[index];
 	// return round(result);

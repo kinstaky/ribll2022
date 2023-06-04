@@ -63,6 +63,12 @@ public:
 	///
 	virtual int CalibrateResult();
 
+
+	/// @brief merge and track at the same time
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int MergeAndTrack();
+
 private:
 
 	/// @brief calculate the total kinetic energy lost in telescope

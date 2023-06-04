@@ -64,6 +64,16 @@ public:
 	}
 
 
+	/// @brief calculate the position from strip index
+	/// @param[in] front_strip front strip
+	/// @param[in] back_strip front strip
+	/// @returns vector point to the position
+	///
+	virtual ROOT::Math::XYZVector CalculatePosition(
+		double front_strip,
+		double back_strip
+	) const;
+
 	//-------------------------------------------------------------------------
 	//							match trigger
 	//-------------------------------------------------------------------------
@@ -128,6 +138,12 @@ public:
 	//								merge
 	//-------------------------------------------------------------------------
 
+
+	/// @brief cut beam or events under threshold
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int CutBeamThreshold();
+
 	/// @brief merge adjacent event in the same side and merge events of two sides
 	/// @param[in] energy_diff tolerant energy relateive difference
 	/// @param[in] iteration iteration mode in normalize process
@@ -180,21 +196,6 @@ public:
 	);
 
 protected:
-
-	//-------------------------------------------------------------------------
-	//						geometry function
-	//-------------------------------------------------------------------------
-
-	/// @brief calculate the position from strip index
-	/// @param[in] front_strip front strip
-	/// @param[in] back_strip front strip
-	/// @returns vector point to the position
-	///
-	virtual ROOT::Math::XYZVector CalculatePosition(
-		double front_strip,
-		double back_strip
-	) const;
-
 
 	//-------------------------------------------------------------------------
 	//						normalize function

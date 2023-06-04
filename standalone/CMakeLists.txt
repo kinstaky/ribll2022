@@ -49,6 +49,10 @@ target_link_libraries(normalize PRIVATE detectors)
 add_executable(normalize_result normalize_result.cpp)
 target_link_libraries(normalize_result PRIVATE detectors)
 
+# cut beam threshold
+add_executable(cut_beam_threshold cut_beam_threshold.cpp)
+target_link_libraries(cut_beam_threshold PRIVATE detectors)
+
 # merge
 add_executable(merge merge.cpp)
 target_link_libraries(merge PRIVATE detectors)
@@ -56,6 +60,10 @@ target_link_libraries(merge PRIVATE detectors)
 # track
 add_executable(track track.cpp)
 target_link_libraries(track PRIVATE ppac telescopes)
+
+# merge and track
+add_executable(merge_track merge_and_track.cpp)
+target_link_libraries(merge_track PRIVATE t0)
 
 # analyze trace
 add_executable(analyze_trace analyze_trace.cpp)

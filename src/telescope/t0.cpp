@@ -1,5 +1,7 @@
 #include "include/telescope/t0.h"
 
+#include <queue>
+
 #include <TChain.h>
 #include <TF1.h>
 #include <TGraph.h>
@@ -840,8 +842,22 @@ private:
 };
 
 
+class CurveFit {
+public:
+	CurveFit(): calculator_("t0", "4He") {}
+	double operator()(double *x, double *par) const {
+		double de = par[0] + par[1] * x[0];
+		double e = calculator_.Energy(0, de);
+		return (e - par[2]) / par[3];
+	}
+private:
+	elc::DeltaEnergyCalculator calculator_;
+};
+
+
 int T0::Calibrate(unsigned int end_run) {
-	TChain ipt("chain", "chain of T0 events");
+	// T0 event chain
+	TChain ipt("t0", "chain of T0 events");
 	for (unsigned int i = run_; i <= end_run; ++i) {
 		if (i == 628) continue;
 		ipt.AddFile(TString::Format(
@@ -852,78 +868,57 @@ int T0::Calibrate(unsigned int end_run) {
 			i
 		));
 	}
-	// TString tele_file_name;
-	// tele_file_name.Form(
-	// 	"%s%st0-telescope-%s%04u.root",
-	// 	kGenerateDataPath,
-	// 	kTelescopeDir,
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
-	// // input file
-	// TFile tele_file(tele_file_name, "read");
-	// // input tree
-	// TTree *ipt = (TTree*)tele_file.Get("tree");
-	// if (!ipt) {
-	// 	std::cerr << "Error: Get tree from "
-	// 		<< tele_file_name << " failed.\n";
-	// 	return -1;
-	// }
+	// PPAC event chain
+	TChain ppac_chain("ppac", "chain of PPAC events");
+	for (unsigned int i = run_; i <= end_run; ++i) {
+		if (i == 628) continue;
+		ppac_chain.AddFile(TString::Format(
+			"%s%sxppac-particle-%s%04u.root/tree",
+			kGenerateDataPath,
+			kParticleDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			i
+		));
+	}
+	// add friend
+	ipt.AddFriend(&ppac_chain);
 	// input telescope event
 	T0Event t0_event;
+	// input ppac event
+	ParticleEvent ppac_event;
 	// setup input branches
 	t0_event.SetupInput(&ipt);
+	ppac_event.SetupInput(&ipt, "ppac.");
 
 	// output calibration root file name
 	TString calibration_file_name;
-	calibration_file_name.Form(
-		// "%s%st0-calibration-%s%04u-%04u.root",
-		"%s%st0-calibration-%s%04u.root",
-		kGenerateDataPath,
-		kCalibrationDir,
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
-	);
+	if (run_ == end_run) {
+		calibration_file_name.Form(
+			"%s%st0-calibration-%s%04u.root",
+			kGenerateDataPath,
+			kCalibrationDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			run_
+		);
+	} else {
+		calibration_file_name.Form(
+			"%s%st0-calibration-%s%04u-%04u.root",
+			kGenerateDataPath,
+			kCalibrationDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			run_,
+			end_run
+		);
+	}
 	// output calibration file
 	TFile calibration_file(calibration_file_name, "recreate");
-	// output E-VS-dE graph, with offset for different layers in dE
-	TGraph e_vs_de_offset;
+	// output E-VS-dE graph
+	TGraph e_vs_de;
 
-	// T0D1-D2 cuts
-	std::vector<ParticleCut> d1d2_cuts;
-	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	// d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
-	// T0D2-D3 cuts
-	std::vector<ParticleCut> d2d3_cuts;
-	// d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
-	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
-	// d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
-	// T0D3-S1 cuts
-	std::vector<ParticleCut> d3s1_cuts;
-	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
-	// d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+	// T0D1D2 4He cut
+	std::unique_ptr<TCutG> cut = ReadCut("d1d2", "4He");
 
-	// T0S1-S2 cuts
-	std::vector<ParticleCut> s1s2_cuts;
-	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
-	// s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
-	// T0S2-S3 cuts
-	std::vector<ParticleCut> s2s3_cuts;
-	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
-	// s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
-	// T0S2-S3 pass cuts
-	std::vector<ParticleCut> s2s3_pass_cuts;
-	// special cut of S1-S2 interaction
-	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
-
-	// type event for filter
-	ParticleTypeEvent type_event;
-	type_event.num = 1;
-
-	// total number of entries
+ 	// total number of entries
 	long long entries = ipt.GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
@@ -939,99 +934,246 @@ int T0::Calibrate(unsigned int end_run) {
 		}
 		// get event
 		ipt.GetEntry(entry);
-		// initialize type event
-		type_event.charge[0] = type_event.mass[0] = 0;
-		// only use num==1 events to calibrate
-		if (t0_event.num != 1) continue;
-		if (t0_event.x[0][0]*t0_event.x[0][0]+t0_event.y[0][0]*t0_event.y[0][0] > 100) continue;
-		int layer = DssdParticleIdentify(
-			t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
-		);
-		double delta_energy = -1e5;
-		double energy = -1e5;
-		// check layer and get dE and E
-		if (layer == 1 || layer == 2) {
-			delta_energy = t0_event.energy[0][layer-1];
-			energy = t0_event.energy[0][layer];
-			for (const auto &info : pid_info) {
-				if (
-					info.layer == layer - 1
-					&& info.charge == type_event.charge[0]
-					&& info.mass == type_event.mass[0]
-					&& delta_energy > info.left
-					&& delta_energy < info.right
-				) {
-					e_vs_de_offset.AddPoint(
-						delta_energy + info.offset, energy
-					);
-					break;
-				}
-			}
-		}
-		layer = SsdParticleIdentify(
-			t0_event, 0,
-			d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts, s1s2_cross_cut,
-			type_event
-		);
-		if (layer == 3) {
-			delta_energy = t0_event.energy[0][2];
-			energy = t0_event.ssd_energy[0];
-		} else if (layer == 4 || layer == 5) {
-			delta_energy = t0_event.ssd_energy[layer-4];
-			energy = t0_event.ssd_energy[layer-3];
-		}
-		if (layer < 3 || layer > 5) continue;
-		for (const auto &info : pid_info) {
+		for (unsigned short i = 0; i < t0_event.num; ++i) {
 			if (
-				info.layer == layer - 1
-				&& info.charge == type_event.charge[0]
-				&& info.mass == type_event.mass[0]
-				&& delta_energy > info.left
-				&& delta_energy < info.right
+				cut->IsInside(t0_event.energy[i][1], t0_event.energy[i][0])
+				&& t0_event.status[i] == 1111
+				&& fabs(t0_event.x[i][0] - t0_event.x[i][1]) < 2
+				&& fabs(t0_event.y[i][0] - t0_event.y[i][1]) < 2
+				&& ppac_event.num == 4
+				&& fabs(ppac_event.x[3] - t0_event.x[i][0]) < 2
+				&& fabs(ppac_event.y[3] - t0_event.y[i][0]) < 2
+				// && t0_event.points[i] >= 28
 			) {
-				e_vs_de_offset.AddPoint(
-					delta_energy + info.offset, energy
-				);
-				break;
+				e_vs_de.AddPoint(t0_event.energy[i][0], t0_event.energy[i][1]);
 			}
 		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	std::vector<std::string> projectiles{
-		"1H", "2H", "4He", "7Li", "10Be", "14C"
-	};
-	PidFitFunc pid_fit("t0", projectiles);
+	CurveFit curve_fit;
 	// fit function
-	TF1 fcali("fcali", pid_fit, 0.0, 150'000.0, 12);
+	TF1 fcali("fcali", curve_fit, 4000.0, 8000.0, 4);
 	fcali.SetNpx(10000);
-	for (size_t i = 0; i < 12; ++i) {
+	for (size_t i = 0; i < 4; ++i) {
 		fcali.SetParameter(i, initial_calibration_parameters[i]);
 	}
 	// fit
-	e_vs_de_offset.Fit(&fcali, "R+");
+	e_vs_de.Fit(&fcali, "R+");
 
 	// get parameters from fitting
-	for (size_t i = 0; i < 12; ++i) {
+	for (size_t i = 0; i < 4; ++i) {
 		cali_params_[i] = fcali.GetParameter(i);
 	}
 	// save parameters to txt file
-	if (WriteCalibrateParameters()) {
+	if (WriteCalibrateParameters(end_run)) {
 		calibration_file.Close();
-		// telescope_file.Close();
 		return -1;
 	}
 
 	// save graph
 	calibration_file.cd();
-	e_vs_de_offset.Write("gcali");
+	e_vs_de.Write("gcali");
 	// close files
 	calibration_file.Close();
-	// telescope_file.Close();
 
 	return 0;
 }
+
+
+// int T0::Calibrate(unsigned int end_run) {
+// 	TChain ipt("chain", "chain of T0 events");
+// 	for (unsigned int i = run_; i <= end_run; ++i) {
+// 		if (i == 628) continue;
+// 		ipt.AddFile(TString::Format(
+// 			"%s%st0-telescope-%s%04u.root/tree",
+// 			kGenerateDataPath,
+// 			kTelescopeDir,
+// 			tag_.empty() ? "" : (tag_+"-").c_str(),
+// 			i
+// 		));
+// 	}
+// 	// TString tele_file_name;
+// 	// tele_file_name.Form(
+// 	// 	"%s%st0-telescope-%s%04u.root",
+// 	// 	kGenerateDataPath,
+// 	// 	kTelescopeDir,
+// 	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
+// 	// 	run_
+// 	// );
+// 	// // input file
+// 	// TFile tele_file(tele_file_name, "read");
+// 	// // input tree
+// 	// TTree *ipt = (TTree*)tele_file.Get("tree");
+// 	// if (!ipt) {
+// 	// 	std::cerr << "Error: Get tree from "
+// 	// 		<< tele_file_name << " failed.\n";
+// 	// 	return -1;
+// 	// }
+// 	// input telescope event
+// 	T0Event t0_event;
+// 	// setup input branches
+// 	t0_event.SetupInput(&ipt);
+
+// 	// output calibration root file name
+// 	TString calibration_file_name;
+// 	calibration_file_name.Form(
+// 		// "%s%st0-calibration-%s%04u-%04u.root",
+// 		"%s%st0-calibration-%s%04u.root",
+// 		kGenerateDataPath,
+// 		kCalibrationDir,
+// 		tag_.empty() ? "" : (tag_+"-").c_str(),
+// 		run_
+// 	);
+// 	// output calibration file
+// 	TFile calibration_file(calibration_file_name, "recreate");
+// 	// output E-VS-dE graph, with offset for different layers in dE
+// 	TGraph e_vs_de_offset;
+
+// 	// T0D1-D2 cuts
+// 	std::vector<ParticleCut> d1d2_cuts;
+// 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
+// 	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+// 	// d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
+// 	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+// 	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+// 	// T0D2-D3 cuts
+// 	std::vector<ParticleCut> d2d3_cuts;
+// 	// d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
+// 	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
+// 	// d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+// 	// T0D3-S1 cuts
+// 	std::vector<ParticleCut> d3s1_cuts;
+// 	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
+// 	// d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+
+// 	// T0S1-S2 cuts
+// 	std::vector<ParticleCut> s1s2_cuts;
+// 	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
+// 	// s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+// 	// T0S2-S3 cuts
+// 	std::vector<ParticleCut> s2s3_cuts;
+// 	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
+// 	// s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
+// 	// T0S2-S3 pass cuts
+// 	std::vector<ParticleCut> s2s3_pass_cuts;
+// 	// special cut of S1-S2 interaction
+// 	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
+
+// 	// type event for filter
+// 	ParticleTypeEvent type_event;
+// 	type_event.num = 1;
+
+// 	// total number of entries
+// 	long long entries = ipt.GetEntries();
+// 	// 1/100 of entries
+// 	long long entry100 = entries / 100 + 1;
+// 	// show start
+// 	printf("Filling events to graph   0%%");
+// 	fflush(stdout);
+// 	// loop to fill events to graph
+// 	for (long long entry = 0; entry < entries; ++entry) {
+// 		// show process
+// 		if (entry % entry100 == 0) {
+// 			printf("\b\b\b\b%3lld%%", entry / entry100);
+// 			fflush(stdout);
+// 		}
+// 		// get event
+// 		ipt.GetEntry(entry);
+// 		// initialize type event
+// 		type_event.charge[0] = type_event.mass[0] = 0;
+// 		// only use num==1 events to calibrate
+// 		if (t0_event.num != 1) continue;
+// 		if (t0_event.x[0][0]*t0_event.x[0][0]+t0_event.y[0][0]*t0_event.y[0][0] > 100) continue;
+// 		int layer = DssdParticleIdentify(
+// 			t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+// 		);
+// 		double delta_energy = -1e5;
+// 		double energy = -1e5;
+// 		// check layer and get dE and E
+// 		if (layer == 1 || layer == 2) {
+// 			delta_energy = t0_event.energy[0][layer-1];
+// 			energy = t0_event.energy[0][layer];
+// 			for (const auto &info : pid_info) {
+// 				if (
+// 					info.layer == layer - 1
+// 					&& info.charge == type_event.charge[0]
+// 					&& info.mass == type_event.mass[0]
+// 					&& delta_energy > info.left
+// 					&& delta_energy < info.right
+// 				) {
+// 					e_vs_de_offset.AddPoint(
+// 						delta_energy + info.offset, energy
+// 					);
+// 					break;
+// 				}
+// 			}
+// 		}
+// 		layer = SsdParticleIdentify(
+// 			t0_event, 0,
+// 			d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts, s1s2_cross_cut,
+// 			type_event
+// 		);
+// 		if (layer == 3) {
+// 			delta_energy = t0_event.energy[0][2];
+// 			energy = t0_event.ssd_energy[0];
+// 		} else if (layer == 4 || layer == 5) {
+// 			delta_energy = t0_event.ssd_energy[layer-4];
+// 			energy = t0_event.ssd_energy[layer-3];
+// 		}
+// 		if (layer < 3 || layer > 5) continue;
+// 		for (const auto &info : pid_info) {
+// 			if (
+// 				info.layer == layer - 1
+// 				&& info.charge == type_event.charge[0]
+// 				&& info.mass == type_event.mass[0]
+// 				&& delta_energy > info.left
+// 				&& delta_energy < info.right
+// 			) {
+// 				e_vs_de_offset.AddPoint(
+// 					delta_energy + info.offset, energy
+// 				);
+// 				break;
+// 			}
+// 		}
+// 	}
+// 	// show finish
+// 	printf("\b\b\b\b100%%\n");
+
+// 	std::vector<std::string> projectiles{
+// 		"1H", "2H", "4He", "7Li", "10Be", "14C"
+// 	};
+// 	PidFitFunc pid_fit("t0", projectiles);
+// 	// fit function
+// 	TF1 fcali("fcali", pid_fit, 0.0, 150'000.0, 12);
+// 	fcali.SetNpx(10000);
+// 	for (size_t i = 0; i < 12; ++i) {
+// 		fcali.SetParameter(i, initial_calibration_parameters[i]);
+// 	}
+// 	// fit
+// 	e_vs_de_offset.Fit(&fcali, "R+");
+
+// 	// get parameters from fitting
+// 	for (size_t i = 0; i < 12; ++i) {
+// 		cali_params_[i] = fcali.GetParameter(i);
+// 	}
+// 	// save parameters to txt file
+// 	if (WriteCalibrateParameters()) {
+// 		calibration_file.Close();
+// 		// telescope_file.Close();
+// 		return -1;
+// 	}
+
+// 	// save graph
+// 	calibration_file.cd();
+// 	e_vs_de_offset.Write("gcali");
+// 	// close files
+// 	calibration_file.Close();
+// 	// telescope_file.Close();
+
+// 	return 0;
+// }
 
 
 int T0::Rebuild() {
@@ -1091,7 +1233,7 @@ int T0::Rebuild() {
 	particle_event.SetupOutput(&opt);
 
 	// read calibrate parameters
-	if (ReadCalibrateParameters()) {
+	if (ReadCalibrateParameters() && ReadCalibrateParameters(9999)) {
 		std::cerr << "Errro: Read calibrate parameters failed.\n";
 		return -1;
 	}
@@ -1247,14 +1389,8 @@ double T0::TotalEnergy(
 
 
 int T0::ShowCalibration() {
-	return 0;
-}
-
-
-int T0::CalibrateResult() {
 	// telescope file name
-	TString tele_file_name;
-	tele_file_name.Form(
+	TString tele_file_name = TString::Format(
 		"%s%st0-telescope-%s%04u.root",
 		kGenerateDataPath,
 		kTelescopeDir,
@@ -1265,31 +1401,56 @@ int T0::CalibrateResult() {
 	TFile tele_file(tele_file_name, "read");
 	// input tree
 	TTree *ipt = (TTree*)tele_file.Get("tree");
+	// particle type file name
+	TString pid_file_name = TString::Format(
+		"%s%st0-particle-type-%s%04u.root",
+		kGenerateDataPath,
+		kParticleIdentifyDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("pid=tree", pid_file_name);
 	// input event
 	T0Event t0_event;
+	ParticleTypeEvent type_event;
 	// setup input branches
 	t0_event.SetupInput(ipt);
+	type_event.SetupInput(ipt, "pid.");
 
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%st0-telescope-%scali-%04u.root",
+		"%s%st0-cali-%s%04u.root",
 		kGenerateDataPath,
-		kTelescopeDir,
+		kShowDir,
 		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
-	// output tree
-	TTree opt("tree", "calibrated t0 tree");
-	// setup output branches
-	t0_event.SetupOutput(&opt);
+	// 1D histogram of T0D1 energy difference, all identified particles
+	TH1F d1_identified_de("d1ide", "energy difference", 1000, -10, 10);
+	// 1D histogram of T0D1 energy difference, only 4He
+	TH1F d1_he_de("d1hede", "energy difference", 1000, -10, 10);
+	// 1D histogram of T0D2 energy difference, all identified particles
+	TH1F d2_identified_de("d2ide", "energy difference", 1000, -10, 10);
+	// 1D histogram of T0D2 energy difference, only 4He
+	TH1F d2_he_de("d2hede", "energy difference", 1000, -10, 10);
 
-	if (ReadCalibrateParameters()) {
+	// read calibration parameters from file
+	if (ReadCalibrateParameters(run_)) {
 		std::cerr << "Error: Read calibration parameters failed.\n";
 		return -1;
 	}
+
+	// range-energy calculator
+	std::vector<elc::RangeEnergyCalculator> calculators;
+	calculators.emplace_back("4He", "Si");
+	calculators.emplace_back("6Li", "Si");
+	calculators.emplace_back("7Li", "Si");
+	calculators.emplace_back("9Be", "Si");
+	calculators.emplace_back("10Be", "Si");
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1319,17 +1480,497 @@ int T0::CalibrateResult() {
 			t0_event.ssd_energy[j] *= cali_params_[(j+3)*2+1];
 			t0_event.ssd_energy[j] += cali_params_[(j+3)*2];
 		}
-		// fill to tree
+		// check flag
+		for (unsigned short i = 0; i < t0_event.num; ++i) {
+			if (t0_event.flag[i] != 0x3) continue;
+			if (type_event.mass[i] == 0 || type_event.charge[i] == 0) continue;
+			size_t index = 0;
+			// sum of energy
+			double total_energy = t0_event.energy[i][0] + t0_event.energy[i][1];
+			if (type_event.mass[i] == 4) {
+				index = 0;
+			} else if (type_event.mass[i] == 6) {
+				index = 1;
+			} else if (type_event.mass[i] == 7 && type_event.charge[i] == 3) {
+				index = 2;
+			} else if (type_event.mass[i] == 9 && type_event.charge[i] == 4) {
+				index = 3;
+			} else if (type_event.mass[i] == 10 && type_event.charge[i] == 4) {
+				index = 4;
+			}
+			// incident range
+			double range = calculators[index].Range(total_energy);
+			// d2 range
+			double d2_range = range - t0_thickness[0];
+			// d2 energy
+			double d2_energy = calculators[index].Energy(d2_range);
+			// d1 energy
+			double d1_energy = total_energy - d2_energy;
+			// fill to histogram
+			d1_identified_de.Fill(d1_energy - t0_event.energy[i][0]);
+			d2_identified_de.Fill(d2_energy - t0_event.energy[i][1]);
+			if (index == 0) {
+				d1_he_de.Fill(d1_energy - t0_event.energy[i][0]);
+				d2_he_de.Fill(d2_energy - t0_event.energy[i][1]);
+			}
+
+		}
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save histograms
+	opf.cd();
+	d1_he_de.Write();
+	d2_he_de.Write();
+	d1_identified_de.Write();
+	d2_identified_de.Write();
+	// close files
+	opf.Close();
+	tele_file.Close();
+	return 0;
+}
+
+
+int T0::CalibrateResult() {
+	return 0;
+}
+
+struct StripGroup {
+	double energy;
+	double time;
+	double strip;
+	unsigned int flag;
+	int points;
+	int status;
+};
+
+void SearchStripCombinations(
+	DssdFundamentalEvent &event,
+	TH1F &fadt,
+	TH1F &badt,
+	std::vector<StripGroup> &front_strips,
+	std::vector<StripGroup> &back_strips
+) {
+	// for convenience
+	unsigned short &fhit = event.front_hit;
+	unsigned short &bhit = event.back_hit;
+	double *fe = event.front_energy;
+	double *be = event.back_energy;
+	double *ft = event.front_time;
+	double *bt = event.back_time;
+	unsigned short *fs = event.front_strip;
+	unsigned short *bs = event.back_strip;
+
+	// search for front strips
+	for (unsigned short i = 0; i < fhit; ++i) {
+		front_strips.push_back({fe[i], ft[i], double(fs[i]), 1u<<i, 0, 1});
+		for (unsigned short j = i+1; j < fhit; ++j) {
+			if (abs(fs[i]-fs[j]) == 1) {
+				fadt.Fill(ft[i]-ft[j]);
+			}
+			if (abs(fs[i]-fs[j]) == 1 && fabs(ft[i]-ft[j]) < 200) {
+				front_strips.push_back({
+					fe[i]+fe[j],
+					ft[i],
+					double(fs[i])+fe[j]/(fe[i]+fe[j])*(fs[j]-fs[i]),
+					(1u << i) | (1u << j),
+					-1,
+					2
+				});
+			}
+		}
+	}
+	// search for back strips
+	for (unsigned short i = 0; i < bhit; ++i) {
+		back_strips.push_back({be[i], bt[i], double(bs[i]), 0x100u<<i, 0, 1});
+		for (unsigned short j = i+1; j < bhit; ++j) {
+			if (abs(bs[i]-bs[j]) == 1) {
+				badt.Fill(bt[i]-bt[j]);
+			}
+			if (abs(bs[i]-bs[j]) == 1 && fabs(bt[i]-bt[j]) < 200) {
+				back_strips.push_back({
+					be[i]+be[j],
+					bt[i],
+					double(bs[i])+be[j]/(be[i]+be[j])*(bs[j]-bs[i]),
+					(0x100u << i) | (0x100u << j),
+					-1,
+					2
+				});
+			}
+		}
+	}
+}
+
+
+
+ROOT::Math::XYZVector CalculatePosition(size_t index, double fs, double bs) {
+	if (index == 0) {
+		// T0D1
+		double x = bs + 0.5 - 32;
+		double y = fs + 0.5 - 32;
+		ROOT::Math::XYZVector result (x, y, 100.0);
+		return result;
+	} else if (index == 1){
+		// T0D2
+		double x = 2.0 * (fs + 0.5) - 32.0 - 1.03;
+		double y = 2.0 * (bs + 0.5) - 32.0 - 0.86;
+		ROOT::Math::XYZVector result(x, y, 111.76);
+		return result;
+	}
+	return {0.0, 0.0, 0.0};
+}
+
+
+struct SideCombination {
+	double energy;
+	double time;
+	double x;
+	double y;
+	int points;
+	unsigned int flag;
+	int status;
+};
+
+
+std::vector<SideCombination> SearchSideCombinations(
+	const std::vector<StripGroup> &front,
+	const std::vector<StripGroup> &back,
+	size_t index,
+	TH1F &sde,
+	TH1F &sdt
+) {
+	// result
+	std::vector<SideCombination> result;
+	for (size_t i = 0; i < front.size(); ++i) {
+		for (size_t j = 0; j < back.size(); ++j) {
+			if (fabs(front[i].energy - back[j].energy) > 2000) continue;
+			if (fabs(front[i].time - back[j].time) > 200) continue;
+			sde.Fill(front[i].energy - back[j].energy);
+			sdt.Fill(front[i].time - back[j].time);
+			int points = 0;
+			if (fabs(front[i].energy - back[j].energy) < 500) {
+				points += 4;
+			} else if (fabs(front[i].energy - back[j].energy) < 1000) {
+				points += 2;
+			} else if (fabs(front[i].energy - back[j].energy) < 2000) {
+				points += 1;
+			} else {
+				points -= 5;
+			}
+			if (fabs(front[i].time) - fabs(back[j].time) < 20) {
+				points += 5;
+			} else if (fabs(front[i].time) - fabs(back[j].time) < 80) {
+				points += 3;
+			} else if (fabs(front[i].time) - fabs(back[j].time) < 150) {
+				points += 2;
+			} else if (fabs(front[i].time) - fabs(back[j].time) < 200) {
+				points += 1;
+			} else {
+				points -= 2;
+			}
+			auto position = CalculatePosition(
+				index, front[i].strip, back[j].strip
+			);
+			result.push_back({
+				front[i].energy,
+				front[i].time,
+				position.X(),
+				position.Y(),
+				points + front[i].points + back[j].points,
+				front[i].flag | back[j].flag,
+				front[i].status + back[j].status*10
+			});
+		}
+	}
+	return result;
+}
+
+struct TrackCombination {
+	double energy[2];
+	double time[2];
+	double x[2];
+	double y[2];
+	unsigned int flag[2];
+	int status;
+	int points;
+
+	bool operator<(const TrackCombination& other) const {
+		return points < other.points;
+	}
+};
+
+
+void SearchTrackCombinations(
+	const std::vector<SideCombination>& d1_combinations,
+	const std::vector<SideCombination>& d2_combinations,
+	unsigned int d1_flag,
+	unsigned int d2_flag,
+	TH1F &d1d2dt,
+	TH1F &d1d2dx,
+	TH1F &d1d2dy,
+	TH1F &hist_points,
+	T0Event &t0
+) {
+	// t0.num = 0;
+	std::priority_queue<TrackCombination> queue;
+	for (const auto &d1 : d1_combinations) {
+		for (const auto &d2 : d2_combinations) {
+			if (fabs(d1.x-d2.x) > 4 || fabs(d1.y-d2.y) > 4) continue;
+			if (fabs(d1.time-d2.time) > 400) continue;
+			d1d2dt.Fill(d1.time - d2.time);
+			d1d2dx.Fill(d1.x - d2.x);
+			d1d2dy.Fill(d1.y - d2.y);
+			int points = 0;
+			if (fabs(d1.x-d2.x) < 1.0) {
+				points += 3;
+			} else if (fabs(d1.x-d2.x) < 2.0) {
+				points += 2;
+			} else if (fabs(d1.x-d2.x) < 3.0) {
+				points += 1;
+			}
+			if (fabs(d1.y-d2.y) < 1.0) {
+				points += 3;
+			} else if (fabs(d1.y-d2.y) < 2.0) {
+				points += 2;
+			} else if (fabs(d1.y-d2.y) < 3.0) {
+				points += 1;
+			}
+			if (fabs(d1.time - d2.time) < 20.0) {
+				points += 5;
+			} else if (fabs(d1.time - d2.time) < 80.0) {
+				points += 3;
+			} else if (fabs(d1.time - d2.time) < 150.0) {
+				points += 2;
+			} else if (fabs(d1.time - d2.time) < 200.0) {
+				points += 1;
+			} else {
+				points -= 1;
+			}
+			TrackCombination comb{
+				{d1.energy, d2.energy},
+				{d1.time, d2.time},
+				{d1.x, d2.x},
+				{d1.y, d2.y},
+				{d1.flag, d2.flag},
+				d1.status + d2.status*100,
+				points + d1.points + d2.points
+			};
+			hist_points.Fill(comb.points);
+			queue.push(comb);
+		}
+	}
+	// while (!queue.empty()) {
+	// 	auto comb = queue.top();
+	// 	queue.pop();
+	// 	std::cout << std::hex << "\n"
+	// 		<< "d1_flag " << d1_flag << " comb.flag[0] " << comb.flag[0] << "\n"
+	// 		<< "d2_flag " << d2_flag << " comb.flag[1] " << comb.flag[1] << "\n"
+	// 		<< std::dec << "points " << comb.points << "\n"
+	// 		<< "energy " << comb.energy[0] << "  " << comb.energy[1] << "\n"
+	// 		<< "time " << comb.time[0] << " " << comb.time[1] << "\n"
+	// 		<< "x " << comb.x[0] << " " << comb.x[1] << "\n"
+	// 		<< "y " << comb.y[0] << " " << comb.y[1] << "\n";
+	// }
+	// initialize
+	t0.num = 0;
+	while (!queue.empty() && d1_flag != 0 && d2_flag != 0 && t0.num < 8) {
+		TrackCombination comb = queue.top();
+		queue.pop();
+		if (comb.points < 20) continue;
+		if ((d1_flag & comb.flag[0]) != comb.flag[0]) continue;
+		if ((d2_flag & comb.flag[1]) != comb.flag[1]) continue;
+		d1_flag &= ~comb.flag[0];
+		d2_flag &= ~comb.flag[1];
+		t0.layer[t0.num] = 2;
+		t0.flag[t0.num] = 0x3;
+		t0.energy[t0.num][0] = comb.energy[0];
+		t0.energy[t0.num][1] = comb.energy[1];
+		t0.time[t0.num][0] = comb.time[0];
+		t0.time[t0.num][1] = comb.time[1];
+		t0.x[t0.num][0] = comb.x[0];
+		t0.x[t0.num][1] = comb.x[1];
+		t0.y[t0.num][0] = comb.y[0];
+		t0.y[t0.num][1] = comb.y[1];
+		t0.z[t0.num][0] = 100.0;
+		t0.z[t0.num][1] = 111.76;
+		t0.status[t0.num] = comb.status;
+		t0.points[t0.num] = comb.points;
+		++t0.num;
+	}
+	return;
+}
+
+
+int T0::MergeAndTrack() {
+	// T0D1 file name
+	TString d1_file_name = TString::Format(
+		"%s%st0d1-result-%s%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(d1_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< d1_file_name << " failed.\n";
+		return -1;
+	}
+	// T0D2 file name
+	TString d2_file_name = TString::Format(
+		"%s%st0d2-result-%s%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("d2=tree", d2_file_name);
+	// input d1 event
+	DssdFundamentalEvent d1_event;
+	// input d2 event
+	DssdFundamentalEvent d2_event;
+	// setup input branches
+	d1_event.SetupInput(ipt);
+	d2_event.SetupInput(ipt, "d2.");
+
+	// output file name
+	TString output_file_name = TString::Format(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// 1D histogram of T0D1 front adjacent strip dt
+	TH1F d1_front_adj_dt("d1fadt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D1 back adjacent strip dt
+	TH1F d1_back_adj_dt("d1badt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D2 front adjacent strip dt
+	TH1F d2_front_adj_dt("d2fadt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D2 back adjacent strip dt
+	TH1F d2_back_adj_dt("d2badt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D1 side energy difference
+	TH1F d1_side_de("d1sde", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of T0D1 side time difference
+	TH1F d1_side_dt("d1sdt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D2 side energy difference
+	TH1F d2_side_de("d2sde", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of T0D2 side time difference
+	TH1F d2_side_dt("d2sdt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D1D2 dx
+	TH1F d1d2_dx("d1d2dx", "#Deltax", 100, -10, 10);
+	// 1D histogram of T0D1D2 dy
+	TH1F d1d2_dy("d1d2dy", "#Deltay", 100, -5, 5);
+	// 1D histogram of T0D1D2 dt
+	TH1F d1d2_dt("d1d2dt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of tracking points
+	TH1F track_points("tp", "track points", 100, 0, 100);
+	// output tree
+	TTree opt("tree", "merge and track");
+	// output event
+	T0Event t0_event;
+	// setup output branches
+	t0_event.SetupOutput(&opt);
+
+	// statistics
+	long long particle_num[8];
+	for (size_t i = 0; i < 8; ++i) particle_num[i] = 0;
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// long long entries = 10;
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Merging and tracking T0   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+// std::cout << "--------------------------------\n"
+// 	<< "entry  " << entry << "\n"
+// 	<< "--------------------------------\n";
+		// get event
+		ipt->GetEntry(entry);
+		std::vector<StripGroup> d1_front;
+		std::vector<StripGroup> d1_back;
+		// search for T0D1 strip combinations
+		SearchStripCombinations(
+			d1_event, d1_front_adj_dt, d1_back_adj_dt, d1_front, d1_back
+		);
+		// search for T0D1 side combinations
+		std::vector<SideCombination> d1_comb = SearchSideCombinations(
+			d1_front, d1_back, 0, d1_side_de, d1_side_dt
+		);
+
+		std::vector<StripGroup> d2_front;
+		std::vector<StripGroup> d2_back;
+		// search for T0D2 strip combinations
+		SearchStripCombinations(
+			d2_event, d2_front_adj_dt, d2_back_adj_dt, d2_front, d2_back
+		);
+		// search for T0D2 side combinations
+		std::vector<SideCombination> d2_comb = SearchSideCombinations(
+			d2_front, d2_back, 1, d2_side_de, d2_side_dt
+		);
+		// tracking
+		SearchTrackCombinations(
+			d1_comb,
+			d2_comb,
+			((1 << d1_event.front_hit) | (1 << (d1_event.back_hit+8))) - 0x101,
+			((1 << d2_event.front_hit) | (1 << (d2_event.back_hit+8))) - 0x101,
+			d1d2_dt,
+			d1d2_dx,
+			d1d2_dy,
+			track_points,
+			t0_event
+		);
+		if (t0_event.num <= 8 && t0_event.num > 0) {
+			++particle_num[t0_event.num-1];
+		}
 		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
+	long long total = 0;
+	for (size_t i = 0; i < 8; ++i) {
+		total += particle_num[i];
+	}
+	for (size_t i = 0; i < 8; ++i) {
+		std::cout << "particle " << i+1 << "  events "
+			<< particle_num[i] << " / " << total << "  "
+			<< double(particle_num[i]) / double(total) << "\n";
+	}
+
+	// save histograms
+	d1_front_adj_dt.Write();
+	d1_back_adj_dt.Write();
+	d2_front_adj_dt.Write();
+	d2_back_adj_dt.Write();
+	d1_side_de.Write();
+	d1_side_dt.Write();
+	d2_side_de.Write();
+	d2_side_dt.Write();
+	d1d2_dx.Write();
+	d1d2_dy.Write();
+	d1d2_dt.Write();
+	track_points.Write();
 	// save tree
 	opt.Write();
 	// close files
 	opf.Close();
-	tele_file.Close();
+	ipf.Close();
 	return 0;
 }
 
