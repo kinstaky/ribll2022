@@ -134,11 +134,12 @@ int Adssd::Merge(double, int) {
 		if (fhit == 1 && bhit == 1) {
 			fe[0] = cali_params[fs[0]][0] + cali_params[fs[0]][1] * fe[0];
 			merge_event.energy[0] = fe[0];
+			merge_event.time[0] = fundamental_event.front_time[0];
 			auto position = CalculatePosition(fs[0], bs[0]);
 			merge_event.radius[0] = position.R();
 			merge_event.phi[0] = position.Phi();
-			// merge_event.theta[0] = position.Theta();
-			merge_event.theta[0] = fs[0];
+			merge_event.theta[0] = position.Theta();
+			// merge_event.theta[0] = fs[0];
 			merge_event.decode_entry[0] =
 				fundamental_event.front_decode_entry[0];
 			merge_event.hit = 1;

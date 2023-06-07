@@ -9,23 +9,46 @@ namespace ribll {
 class Channel {
 public:
 
-	Channel(
-		unsigned int run,
-		const std::vector<std::string> &particles,
-		const std::string &recoil = ""
-	);
+	Channel(unsigned int run);
 
 	virtual int Coincide();
 protected:
 	unsigned int run_;
-	std::vector<std::string> fragments_;
-	std::vector<unsigned short> charges_;
-	std::vector<unsigned short> masses_;
-	std::string recoil_;
-	unsigned short recoil_mass_;
-	unsigned short recoil_charge_;
 };
 
+
+class Be8ToTwoAlphaChannel : public Channel {
+public:
+
+	Be8ToTwoAlphaChannel(unsigned int run);
+
+	virtual int Coincide();
+};
+
+
+class C12ToThreeAlphaChannel : public Channel {
+public:
+
+	C12ToThreeAlphaChannel(unsigned int run);
+
+	virtual int Coincide();
+};
+
+
+class C14ToBe10He4TwoBodyChannel : public Channel {
+public:
+	C14ToBe10He4TwoBodyChannel(unsigned int run);
+
+	virtual int Coincide();
+};
+
+
+class C14ToBe10He4ThreeBodyChannel : public Channel {
+public:
+	C14ToBe10He4ThreeBodyChannel(unsigned int run);
+
+	virtual int Coincide();
+};
 
 class T0TAFChannel : public Channel {
 public:

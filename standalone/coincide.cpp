@@ -1,17 +1,20 @@
 #include <iostream>
+#include <memory>
 
 #include "include/channel.h"
 
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run particle..\n"
+	std::cout << "Usage: " << name << " [options] run case\n"
 		"  run               Set run number\n"
-		"  particle          Set the particle to catch,"
-		"at least 2, at most 3.\n"
+		"  case              Set the case:\n"
+		"                      0 -- 8Be->4He+4He\n"
+		"                      1 -- 12C->4He+4He+4He\n"
+		"                      2 -- 14C->10Be+4He 2body\n"
+		"                      3 -- 14C+2H->10Be+4He+2H 3body\n"
 		"Options:\n"
-		"  -h                Print this help information.\n"
-		"  -r particle       Set the recoil particle to catch.\n";
+		"  -h                Print this help information.\n";
 }
 
 
@@ -19,7 +22,6 @@ void PrintUsage(const char *name) {
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
 /// @param[out] help need help
-/// @param[out] recoil recoil particle to catch
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -27,8 +29,7 @@ void PrintUsage(const char *name) {
 int ParseArguments(
 	int argc,
 	char **argv,
-	bool &help,
-	std::string &recoil
+	bool &help
 ) {
 	// initialize
 	help = false;
@@ -42,13 +43,6 @@ int ParseArguments(
 		if (argv[result][1] == 'h') {
 			help = true;
 			return result;
-		} else if (argv[result][1] == 'r') {
-			// option for catching recoil particle
-			// get particle in next argument
-			++result;
-			// miss argument behind option
-			if (result == argc) return -argc;
-			recoil = std::string(argv[result]);
 		} else {
 			return -result;
 		}
@@ -58,16 +52,14 @@ int ParseArguments(
 
 
 int main(int argc, char **argv) {
-	if (argc < 4) {
+	if (argc < 2) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
 	// help flag
 	bool help = false;
-	// recoil particle
-	std::string recoil;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, recoil);
+	int pos_start = ParseArguments(argc, argv, help);
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
@@ -82,24 +74,15 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
-	if (pos_start + 2 >= argc) {
-		// positional arguments less than 3
-		std::cerr << "Error: At least two particles.\n";
-		PrintUsage(argv[0]);
-		return -1;
-	}
-	if (pos_start + 4 < argc) {
-		// positional arguments greater than 4
-		std::cerr << "Error: At most three particles.\n";
+	if (pos_start + 1 >= argc) {
+		// positional arguments less than 2
+		std::cerr << "Error: Parameter case not found.\n";
 		PrintUsage(argv[0]);
 		return -1;
 	}
 	// run number
-	int run = atoi(argv[pos_start]);
-	std::vector<std::string> particles;
-	for (int i = pos_start + 1; i < argc; ++i) {
-		particles.push_back(argv[i]);
-	}
+	unsigned int run = atoi(argv[pos_start]);
+	int condition = atoi(argv[pos_start + 1]);
 
 	// check run
 	if (run == 628) {
@@ -107,40 +90,26 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	if (recoil.empty()) {
-		T0Channel channel(run, particles, recoil);
-		if (channel.Coincide()) {
-			std::cerr << "Error: Coincide T0 failed.\n";
-			return -1;
-		}
+	std::unique_ptr<Channel> channel;
+	if (condition == 0) {
+		// 8Be->4He+4He
+		channel = std::make_unique<Be8ToTwoAlphaChannel>(run);
+	} else if (condition == 1) {
+		// 12C->4He+4He+4He
+		channel = std::make_unique<C12ToThreeAlphaChannel>(run);
+	} else if (condition == 2) {
+		// 14C->10Be+4He 2body
+		channel = std::make_unique<C14ToBe10He4TwoBodyChannel>(run);
+	} else if (condition == 3) {
+		// 14C+2H->10Be+4He+2H 3body
+		channel = std::make_unique<C14ToBe10He4ThreeBodyChannel>(run);
 	} else {
-		T0TAFChannel channel(run, particles, recoil);
-		if (channel.Coincide()) {
-			std::cerr << "Error: Coincide T0TAF failed.\n";
-			return -1;
-		}
+		std::cerr << "Error: Invalid case " << condition << ".\n";
+		return -1;
 	}
-
-	// if (particles.size() == 2) {
-	// 	T0Channel channel_a(run, particles, recoil);
-	// 	if (channel_a.Coincide()) {
-	// 		std::cerr << "Error: Coincide T0 failed.\n";
-	// 		return -1;
-	// 	}
-	// 	T0TAFChannel channel_b(run, particles, recoil);
-	// 	if (channel_b.Coincide()) {
-	// 		std::cerr << "Error: Coincide T0 TAF failed.\n";
-	// 		return -1;
-	// 	}
-	// } else if (particles.size() == 3) {
-	// 	T0TAFChannel channel(run, particles, recoil);
-	// 	if (channel.Coincide()) {
-	// 		std::cerr << "Error: Coincide T0 TAF failed.\n";
-	// 		return -1;
-	// 	}
-	// } else {
-	// 	std::cerr << "Error: Should not be here.\n";
-	// 	return -1;
-	// }
+	if (channel->Coincide()) {
+		std::cerr << "Error: Coincide in case " << condition << " failed.\n";
+		return -1;
+	}
 	return 0;
 }

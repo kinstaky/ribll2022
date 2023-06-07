@@ -260,7 +260,8 @@ void AdssdMergeEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"theta").c_str(), theta);
 	tree->SetBranchAddress((prefix+"phi").c_str(), phi);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
-	tree->SetBranchAddress((prefix+"decode_entry").c_str(), decode_entry);
+	tree->SetBranchAddress((prefix+"time").c_str(), time);
+	// tree->SetBranchAddress((prefix+"decode_entry").c_str(), decode_entry);
 }
 
 
@@ -270,7 +271,8 @@ void AdssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("theta", theta, "theta[hit]/D");
 	tree->Branch("phi", phi, "phi[hit]/D");
 	tree->Branch("energy", energy, "e[hit]/D");
-	tree->Branch("decode_entry", decode_entry, "de[hit]/L");
+	tree->Branch("time", time, "time[hit]/D");
+	// tree->Branch("decode_entry", decode_entry, "de[hit]/L");
 }
 
 

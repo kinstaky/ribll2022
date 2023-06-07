@@ -227,6 +227,216 @@ int Ppac::MatchTrigger(
 }
 
 
+int Ppac::GetSumRange(
+	PpacFundamentalEvent &fundamental,
+	TTree *ipt,
+	double *range
+) {
+	if (tag_.empty()) {
+		// output sum time histgrams
+		std::vector<TH1F> hist_sum_time;
+		// range index case by run number
+		size_t range_index = 0;
+		if (run_ > 640) range_index = 1;
+		for (int i = 0; i < 9; ++i) {
+			// left border of sum range
+			double sum_range_left = sum_range[range_index][i*2][0];
+			// right border of sum range
+			double sum_range_right = sum_range[range_index][i*2][1];
+			// add run correction
+			if (run_ == 643) {
+				sum_range_left += run_correct[0][i/3];
+				sum_range_right += run_correct[0][i/3];
+			} else if (
+				run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
+				|| run_ == 658 || run_ == 659 || run_ == 671
+			) {
+				sum_range_left += run_correct[1][i/3];
+				sum_range_right += run_correct[1][i/3];
+			} else if (
+				run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
+				|| run_ == 665 || run_ == 668
+			) {
+				sum_range_left += run_correct[2][i/3];
+				sum_range_right += run_correct[2][i/3];
+			} else if (run_ == 663) {
+				// x1 -20
+				if (i/3 == 1) {
+					sum_range_left += -20;
+					sum_range_right += -20;
+				}
+				// a0 -10
+				if (i%3 == 0) {
+					sum_range_left += 20;
+					sum_range_right += 20;
+				}
+			}
+			hist_sum_time.emplace_back(
+				TString::Format("hsx%da%d", i/3, i%3),
+				TString::Format("sum time of x%d reference a%d", i/3, i%3),
+				1000, sum_range_left, sum_range_right
+			);
+
+			sum_range_left = sum_range[range_index][i*2+1][0];
+			sum_range_right = sum_range[range_index][i*2+1][1];
+			if (run_ == 663 && i%3 == 0) {
+				sum_range_left += 20;
+				sum_range_right += 20;
+			}
+			hist_sum_time.emplace_back(
+				TString::Format("hsy%da%d", i/3, i%3),
+				TString::Format("sum time of y%d reference a%d", i/3, i%3),
+				1000, sum_range_left, sum_range_right
+			);
+		}
+
+		// total number of entries
+		long long entries = ipt->GetEntries();
+		// 1/100 of entries
+		long long entry100 = entries / 100 + 1;
+		// show start
+		printf("Filling sum time histograms   0%%");
+		fflush(stdout);
+		for (long long entry = 0; entry < entries; ++entry) {
+			// show process
+			if (entry % entry100 == 0) {
+				printf("\b\b\b\b%3lld%%", entry / entry100);
+				fflush(stdout);
+			}
+			ipt->GetEntry(entry);
+			// fill sum time x
+			for (int i = 0; i < 3; ++i) {
+				unsigned int xflag = 0x3 << (5*i);
+				if ((fundamental.flag & xflag) != xflag) continue;
+				for (int j = 0; j < 3; ++j) {
+					unsigned aflag = 0x10 << (5*j);
+					if ((fundamental.flag & aflag) != aflag) continue;
+					hist_sum_time[(i*3+j)*2].Fill(
+						fundamental.x1[i] + fundamental.x2[i]
+						- fundamental.anode[j] - fundamental.anode[j]
+					);
+				}
+			}
+			// fill sum time y
+			for (int i = 0; i < 3; ++i) {
+				unsigned int yflag = 0xc << (5*i);
+				if ((fundamental.flag & yflag) != yflag) continue;
+				for (int j = 0; j < 3; ++j) {
+					unsigned aflag = 0x10 << (5*j);
+					if ((fundamental.flag & aflag) != aflag) continue;
+					hist_sum_time[(i*3+j)*2+1].Fill(
+						fundamental.y1[i] + fundamental.y2[i]
+						- fundamental.anode[j] - fundamental.anode[j]
+					);
+				}
+			}
+
+		}
+		// show finish
+		printf("\b\b\b\b100%%\n");
+
+		// fit sum time
+		for (int i = 0; i < 18; ++i) {
+			// left border of fit range
+			double fit_range_left = fit_range[range_index][i][0];
+			// right border of fit range
+			double fit_range_right = fit_range[range_index][i][1];
+			// add run correction
+			if (i % 2 == 0) {
+				// x
+				if (run_ == 643) {
+					fit_range_left += run_correct[0][i/6];
+					fit_range_right += run_correct[0][i/6];
+				} else if (
+					run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
+					|| run_ == 658 || run_ == 659 || run_ == 671
+				) {
+					fit_range_left += run_correct[1][i/6];
+					fit_range_right += run_correct[1][i/6];
+				} else if (
+					run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
+					|| run_ == 665 || run_ == 668
+				) {
+					fit_range_left += run_correct[2][i/6];
+					fit_range_right += run_correct[2][i/6];
+				}
+			}
+			if (run_ == 663) {
+				// x1 -20
+				if (i/6 == 1 && i%2 == 0) {
+					fit_range_left += -20;
+					fit_range_right += -20;
+				}
+				// a0 -10
+				if (i%6 == 0 || i%6 == 1) {
+					fit_range_left += 20;
+					fit_range_right += 20;
+				}
+			}
+			// fit function
+			TF1 fit(
+				TString::Format("f%c%da%d", "xy"[i%2], i/6, (i%6)/2),
+				"gaus", fit_range_left, fit_range_right
+			);
+			hist_sum_time[i].Fit(&fit, "QR+");
+			double mean = fit.GetParameter(1);
+			double sigma = fit.GetParameter(2);
+			range[i*2] = mean - sigma * 3.0;
+			range[i*2+1] = mean + sigma * 3.0;
+		}
+		// save histograms
+		for (TH1F &hist : hist_sum_time) {
+			hist.Write();
+		}
+
+		// write ranges to file
+		// range file name
+		TString range_file_name = TString::Format(
+			"%s%sxppac-range-%04u.txt",
+			kGenerateDataPath,
+			kTimeDir,
+			run_
+		);
+		// output range text file
+		std::ofstream fout(range_file_name.Data());
+		if (!fout.good()) {
+			std::cerr << "Error: Open range file "
+				<< range_file_name << " failed.\n";
+			return -1;
+		}
+		// write range
+		for (size_t i = 0; i < 18; ++i) {
+			fout << range[i*2] << " " << range[i*2+1] << "\n";
+		}
+		// close file
+		fout.close();
+	} else {
+		// read ranges from file
+		// range file name
+		TString range_file_name = TString::Format(
+			"%s%sxppac-range-%04u.txt",
+			kGenerateDataPath,
+			kTimeDir,
+			run_
+		);
+		// input range file
+		std::ifstream fin(range_file_name.Data());
+		if (!fin.good()) {
+			std::cerr << "Error: Read range file "
+				<< range_file_name << " failed.\n";
+			return -1;
+		}
+		// read range
+		for (size_t i = 0; i < 18; ++i) {
+			fin >> range[i*2] >> range[i*2+1];
+		}
+		// close file
+		fin.close();
+	}
+	return 0;
+}
+
+
 int Ppac::Merge(double, int) {
 	// input file name
 	TString input_file_name;
@@ -259,62 +469,6 @@ int Ppac::Merge(double, int) {
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
-	// output sum time histgrams
-	std::vector<TH1F> hist_sum_time;
-	// range index case by run number
-	size_t range_index = 0;
-	if (run_ > 640) range_index = 1;
-	for (int i = 0; i < 9; ++i) {
-		// left border of sum range
-		double sum_range_left = sum_range[range_index][i*2][0];
-		// right border of sum range
-		double sum_range_right = sum_range[range_index][i*2][1];
-		// add run correction
-		if (run_ == 643) {
-			sum_range_left += run_correct[0][i/3];
-			sum_range_right += run_correct[0][i/3];
-		} else if (
-			run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
-			|| run_ == 658 || run_ == 659 || run_ == 671
-		) {
-			sum_range_left += run_correct[1][i/3];
-			sum_range_right += run_correct[1][i/3];
-		} else if (
-			run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
-			|| run_ == 665 || run_ == 668
-		) {
-			sum_range_left += run_correct[2][i/3];
-			sum_range_right += run_correct[2][i/3];
-		} else if (run_ == 663) {
-			// x1 -20
-			if (i/3 == 1) {
-				sum_range_left += -20;
-				sum_range_right += -20;
-			}
-			// a0 -10
-			if (i%3 == 0) {
-				sum_range_left += 20;
-				sum_range_right += 20;
-			}
-		}
-		hist_sum_time.emplace_back(
-			TString::Format("hsx%da%d", i/3, i%3),
-			TString::Format("sum time of x%d reference a%d", i/3, i%3),
-			1000, sum_range_left, sum_range_right
-		);
-
-		sum_range_left = sum_range[range_index][i*2+1][0];
-		sum_range_right = sum_range[range_index][i*2+1][1];
-		if (run_ == 663 && i%3 == 0) {
-			sum_range_left += 20;
-			sum_range_right += 20;
-		}
-		hist_sum_time.emplace_back(
-			TString::Format("hsy%da%d", i/3, i%3),
-			TString::Format("sum time of y%d reference a%d", i/3, i%3),
-			1000, sum_range_left, sum_range_right
-		);
-	}
 	// output time difference histogram
 	std::vector<TH1F> hist_diff_time;
 	for (int i = 0; i < 3; ++i) {
@@ -336,105 +490,18 @@ int Ppac::Merge(double, int) {
 	// setup output branches
 	merge.SetupOutput(&opt);
 
-
-	// total number of entries
-	long long entries = ipt->GetEntries();
-	// 1/100 of entries
-	long long entry100 = entries / 100 + 1;
-	// show start
-	printf("Filling sum time histograms   0%%");
-	fflush(stdout);
-	for (long long entry = 0; entry < entries; ++entry) {
-		// show process
-		if (entry % entry100 == 0) {
-			printf("\b\b\b\b%3lld%%", entry / entry100);
-			fflush(stdout);
-		}
-		ipt->GetEntry(entry);
-		// fill sum time x
-		for (int i = 0; i < 3; ++i) {
-			unsigned int xflag = 0x3 << (5*i);
-			if ((fundamental.flag & xflag) != xflag) continue;
-			for (int j = 0; j < 3; ++j) {
-				unsigned aflag = 0x10 << (5*j);
-				if ((fundamental.flag & aflag) != aflag) continue;
-				hist_sum_time[(i*3+j)*2].Fill(
-					fundamental.x1[i] + fundamental.x2[i]
-					- fundamental.anode[j] - fundamental.anode[j]
-				);
-			}
-		}
-		// fill sum time y
-		for (int i = 0; i < 3; ++i) {
-			unsigned int yflag = 0xc << (5*i);
-			if ((fundamental.flag & yflag) != yflag) continue;
-			for (int j = 0; j < 3; ++j) {
-				unsigned aflag = 0x10 << (5*j);
-				if ((fundamental.flag & aflag) != aflag) continue;
-				hist_sum_time[(i*3+j)*2+1].Fill(
-					fundamental.y1[i] + fundamental.y2[i]
-					- fundamental.anode[j] - fundamental.anode[j]
-				);
-			}
-		}
-
-	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
-
 	// range get from fitting
 	double range[18][2];
 
-	// fit sum time
-	for (int i = 0; i < 18; ++i) {
-		// left border of fit range
-		double fit_range_left = fit_range[range_index][i][0];
-		// right border of fit range
-		double fit_range_right = fit_range[range_index][i][1];
-		// add run correction
-		if (i % 2 == 0) {
-			// x
-			if (run_ == 643) {
-				fit_range_left += run_correct[0][i/6];
-				fit_range_right += run_correct[0][i/6];
-			} else if (
-				run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
-				|| run_ == 658 || run_ == 659 || run_ == 671
-			) {
-				fit_range_left += run_correct[1][i/6];
-				fit_range_right += run_correct[1][i/6];
-			} else if (
-				run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
-				|| run_ == 665 || run_ == 668
-			) {
-				fit_range_left += run_correct[2][i/6];
-				fit_range_right += run_correct[2][i/6];
-			}
-		}
-		if (run_ == 663) {
-			// x1 -20
-			if (i/6 == 1 && i%2 == 0) {
-				fit_range_left += -20;
-				fit_range_right += -20;
-			}
-			// a0 -10
-			if (i%6 == 0 || i%6 == 1) {
-				fit_range_left += 20;
-				fit_range_right += 20;
-			}
-		}
-		// fit function
-		TF1 fit(
-			TString::Format("f%c%da%d", "xy"[i%2], i/6, (i%6)/2),
-			"gaus", fit_range_left, fit_range_right
-		);
-		hist_sum_time[i].Fit(&fit, "QR+");
-		double mean = fit.GetParameter(1);
-		double sigma = fit.GetParameter(2);
-		range[i][0] = mean - sigma * 3.0;
-		range[i][1] = mean + sigma * 3.0;
+	if (GetSumRange(fundamental, ipt, (double*)range)) {
+		std::cerr << "Error: GetSumRange failed.\n";
+		return -1;
 	}
 
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
 	// show start
 	printf("Filling merge events   0%%");
 	fflush(stdout);
@@ -520,6 +587,7 @@ int Ppac::Merge(double, int) {
 				hist_diff_time[i*2+1].Fill(merge.y[i]);
 			}
 		}
+		for (int i = 0; i < 3; ++i) merge.time[i] = fundamental.anode[i];
 		opt.Fill();
 	}
 	// show finish
@@ -527,7 +595,6 @@ int Ppac::Merge(double, int) {
 
 	opf.cd();
 	// save histograms
-	for (auto &hist : hist_sum_time) hist.Write();
 	for (auto &hist : hist_diff_time) hist.Write();
 	// save tree
 	opt.Write();
@@ -787,6 +854,7 @@ int Ppac::Track() {
 		// rebuild beam particle
 		particle.num = 3;
 		for (size_t i = 0; i < 3; ++i) {
+			particle.time[i] = merge.time[i];
 			particle.x[i] = PositionXFromXIA(run_, merge.x[i], i);
 			particle.y[i] = PositionYFromXIA(run_, merge.y[i], i);
 		}
@@ -801,6 +869,15 @@ int Ppac::Track() {
 			particle.px[3] = p.X();
 			particle.py[3] = p.Y();
 			particle.pz[3] = p.Z();
+			if (merge.time[2] > -9e4) {
+				particle.time[3] = merge.time[2];
+			} else if (merge.time[0] > -9e4) {
+				particle.time[3] = merge.time[0];
+			} else if (merge.time[1] > -9e4) {
+				particle.time[3] = merge.time[1];
+			} else {
+				particle.time[3] = -1e5;
+			}
 			++particle.num;
 		}
 		opt.Fill();

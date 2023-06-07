@@ -211,6 +211,7 @@ public:
 	double theta[4];
 	double phi[4];
 	double energy[4];
+	double time[4];
 	long long decode_entry[4];
 };
 

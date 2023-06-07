@@ -1274,62 +1274,17 @@ int T0::Rebuild() {
 				TotalEnergy(t0_event, type_event, i, csi_calculator);
 			// fill energy
 			particle_event.energy[particle_event.num] = energy;
+			particle_event.time[particle_event.num] = t0_event.time[i][0];
 
 			// set particle position, T0D1 may has the best resolution
 			particle_event.x[particle_event.num] = t0_event.x[i][0];
 			particle_event.y[particle_event.num] = t0_event.y[i][0];
 			particle_event.z[particle_event.num] = t0_event.z[i][0];
 
-			// if (t0_event.flag[i] == 0x3) {
-			// 	particle_event.x[particle_event.num] = t0_event.x[i][1];
-			// 	particle_event.y[particle_event.num] = t0_event.y[i][1];
-			// 	particle_event.z[particle_event.num] = t0_event.z[i][1];
-			// } else if (t0_event.flag[i] == 0x7) {
-			// 	particle_event.x[particle_event.num] = t0_event.x[i][2];
-			// 	particle_event.y[particle_event.num] = t0_event.y[i][2];
-			// 	particle_event.z[particle_event.num] = t0_event.z[i][2];
-			// } else {
-			// 	std::cerr << "Error: Should not be here in T0::Particle.\n";
-			// 	return -1;
-			// }
-
-
 			// leave momentum empty
 			particle_event.px[particle_event.num] = 0.0;
 			particle_event.py[particle_event.num] = 0.0;
 			particle_event.pz[particle_event.num] = 0.0;
-
-			// // calculate momentum value from energy
-			// double momentum = MomentumFromEnergy(energy, AccurateMass(type_event.mass[i]));
-			// // get momentum direction from Si strips
-			// ROOT::Math::XYZVector direction(0.0, 0.0, 0.0);
-			// if (t0_event.flag[i] == 0x3) {
-			// 	// direction.SetXYZ(
-			// 	// 	t0_event.x[i][1] - t0_event.x[i][0],
-			// 	// 	t0_event.y[i][1] - t0_event.y[i][0],
-			// 	// 	t0_event.z[i][1] - t0_event.z[i][0]
-			// 	// );
-			// 	direction.SetXYZ(
-			// 		t0_event.x[i][1], t0_event.y[i][1], t0_event.z[i][1]
-			// 	);
-			// } else if (t0_event.flag[i] == 0x7) {
-			// 	// direction.SetXYZ(
-			// 	// 	t0_event.x[i][2] - t0_event.x[i][0],
-			// 	// 	t0_event.y[i][2] - t0_event.y[i][0],
-			// 	// 	t0_event.z[i][2] - t0_event.z[i][0]
-			// 	// );
-			// 	direction.SetXYZ(
-			// 		t0_event.x[i][2], t0_event.y[i][2], t0_event.z[i][2]
-			// 	);
-			// } else {
-			// 	std::cerr << "Error: Should not be here in T0::Particle.\n";
-			// 	return -1;
-			// }
-			// direction = direction.Unit();
-			// // fill px, py, pz
-			// particle_event.px[particle_event.num] = direction.X() * momentum;
-			// particle_event.py[particle_event.num] = direction.Y() * momentum;
-			// particle_event.pz[particle_event.num] = direction.Z() * momentum;
 			++particle_event.num;
 		}
 		opt.Fill();

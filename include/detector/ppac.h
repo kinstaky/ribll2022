@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "include/detector/detector.h"
+#include "include/event/ppac_event.h"
 
 
 namespace ribll {
@@ -45,6 +46,10 @@ public:
 	/// @brief track PPAC events and calculate the reaction point
 	/// @returns 0 if success, -1 otherwise
 	virtual int Track();
+
+private:
+
+	int GetSumRange(PpacFundamentalEvent &fundamental, TTree *ipt, double *range);
 };
 
 }	// namespace ribll

@@ -100,6 +100,7 @@ public:
 	unsigned short yflag;
 	double x[3];
 	double y[3];
+	double time[3];
 };
 
 

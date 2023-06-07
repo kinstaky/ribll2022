@@ -137,6 +137,7 @@ int Taf::Track(double) {
 			// record this tafd layer
 			tele.flag[tele.num] |= 0x1;
 			tele.energy[tele.num][0] = tafd.energy[0];
+			tele.time[tele.num][0] = tafd.time[0];
 			tele.radius[tele.num][0] = tafd.radius[0];
 			tele.theta[tele.num][0] = tafd.theta[0];
 			tele.phi[tele.num][0] = tafd.phi[0];
@@ -167,6 +168,7 @@ int Taf::Track(double) {
 				// tafcsi goes through the test
 				tele.flag[tele.num] |= (0x2 << i);
 				tele.energy[tele.num][1] = tafcsi.energy[csi_index];
+				tele.time[tele.num][1] = tafcsi.time[csi_index];
 				decode_entry[tele.num] = tafcsi.decode_entry[csi_index];
 			}
 			if (!conflict) ++tele.num;
@@ -827,6 +829,9 @@ int Taf::Rebuild() {
 			particle_event.energy[0] = si_energy + csi_energy;
 			// fill to pid
 			pid.Fill(csi_energy, si_energy);
+
+			// fill time
+			particle_event.time[0] = ta_event.time[0][0];
 
 			// calcuate the position
 			ROOT::Math::Polar3DVector position(

@@ -25,16 +25,26 @@ public:
 
 	// fragments
 	unsigned short num;
-	unsigned short charge[4];
-	unsigned short mass[4];
-	double energy[4];
-	double px[4];
-	double py[4];
-	double pz[4];
-	double r[4];
-	double theta[4];
-	double phi[4];
-	// input
+	unsigned short daughter_charge[4];
+	unsigned short daughter_mass[4];
+	double daughter_energy[4];
+	double daughter_time[4];
+	double daughter_px[4];
+	double daughter_py[4];
+	double daughter_pz[4];
+	double daughter_r[4];
+	double daughter_theta[4];
+	double daughter_phi[4];
+	// beam
+	double beam_energy;
+	double beam_time;
+	double beam_px;
+	double beam_py;
+	double beam_pz;
+	double beam_r;
+	double beam_theta;
+	double beam_phi;
+	// parent
 	unsigned short parent_charge;
 	unsigned short parent_mass;
 	double parent_energy;
@@ -49,12 +59,16 @@ public:
 	unsigned short recoil_charge;
 	unsigned short recoil_mass;
 	double recoil_energy;
+	double recoil_time;
 	double recoil_px;
 	double recoil_py;
 	double recoil_pz;
 	double recoil_r;
 	double recoil_theta;
 	double recoil_phi;
+	// entry
+	long long entry;
+	int taf_index;
 };
 
 
