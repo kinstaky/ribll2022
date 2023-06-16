@@ -66,9 +66,10 @@ public:
 	double recoil_r;
 	double recoil_theta;
 	double recoil_phi;
-	// entry
+	// other information
 	long long entry;
 	int taf_index;
+	int status[4];
 };
 
 

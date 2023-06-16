@@ -784,6 +784,7 @@ bool T0d1::CheckTime(
 	double energy,
 	double time
 ) {
+	return true;
 	if (condition == 0) {
 		if (side == 0) {
 			if (strip < 16) {

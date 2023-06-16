@@ -98,7 +98,7 @@ int Detector::Calibrate() {
 }
 
 
-int Detector::Merge(double, int) {
+int Detector::Merge(double) {
 	std::cerr << "Error: Detector::Merge is not implemented yet.\n";
 	return -1;
 }

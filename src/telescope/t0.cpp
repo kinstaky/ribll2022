@@ -1262,7 +1262,7 @@ int T0::Rebuild() {
 		for (unsigned short i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
-			if (type_event.layer[i] > 1) continue;
+			if (type_event.layer[i] > 2) continue;
 
 			// fill charge number
 			particle_event.charge[particle_event.num] = type_event.charge[i];
@@ -1285,6 +1285,9 @@ int T0::Rebuild() {
 			particle_event.px[particle_event.num] = 0.0;
 			particle_event.py[particle_event.num] = 0.0;
 			particle_event.pz[particle_event.num] = 0.0;
+
+			// other information
+			particle_event.status[particle_event.num] = t0_event.status[i];
 			++particle_event.num;
 		}
 		opt.Fill();
@@ -1519,7 +1522,7 @@ void SearchStripCombinations(
 
 	// search for front strips
 	for (unsigned short i = 0; i < fhit; ++i) {
-		front_strips.push_back({fe[i], ft[i], double(fs[i]), 1u<<i, 0, 1});
+		front_strips.push_back({fe[i], ft[i], double(fs[i]), 1u<<i, 0, 0});
 		for (unsigned short j = i+1; j < fhit; ++j) {
 			if (abs(fs[i]-fs[j]) == 1) {
 				fadt.Fill(ft[i]-ft[j]);
@@ -1531,14 +1534,14 @@ void SearchStripCombinations(
 					double(fs[i])+fe[j]/(fe[i]+fe[j])*(fs[j]-fs[i]),
 					(1u << i) | (1u << j),
 					-1,
-					2
+					1
 				});
 			}
 		}
 	}
 	// search for back strips
 	for (unsigned short i = 0; i < bhit; ++i) {
-		back_strips.push_back({be[i], bt[i], double(bs[i]), 0x100u<<i, 0, 1});
+		back_strips.push_back({be[i], bt[i], double(bs[i]), 0x100u<<i, 0, 0});
 		for (unsigned short j = i+1; j < bhit; ++j) {
 			if (abs(bs[i]-bs[j]) == 1) {
 				badt.Fill(bt[i]-bt[j]);
@@ -1550,11 +1553,22 @@ void SearchStripCombinations(
 					double(bs[i])+be[j]/(be[i]+be[j])*(bs[j]-bs[i]),
 					(0x100u << i) | (0x100u << j),
 					-1,
-					2
+					1
 				});
 			}
 		}
 	}
+
+// std::cout << "\n-----------------strip combinations------------------------\n";
+// std::cout << std::hex;
+// for (const auto &comb : front_strips) {
+// 	std::cout << "status " << comb.status << " flag " << comb.flag << "\n"
+// 		<< "energy " << comb.energy << " time " << comb.time << "\n";
+// }
+// for (const auto &comb : back_strips) {
+// 	std::cout << "status " << comb.status << " flag " << comb.flag << "\n"
+// 		<< "energy " << comb.energy << " time " << comb.time << "\n";
+// }
 }
 
 
@@ -1566,25 +1580,31 @@ ROOT::Math::XYZVector CalculatePosition(size_t index, double fs, double bs) {
 		double y = fs + 0.5 - 32;
 		ROOT::Math::XYZVector result (x, y, 100.0);
 		return result;
-	} else if (index == 1){
+	} else if (index == 1) {
 		// T0D2
-		double x = 2.0 * (fs + 0.5) - 32.0 - 1.03;
-		double y = 2.0 * (bs + 0.5) - 32.0 - 0.86;
+		double x = 2.0 * (fs + 0.5) - 32.0 - 1.04;
+		double y = 2.0 * (bs + 0.5) - 32.0 - 0.90;
 		ROOT::Math::XYZVector result(x, y, 111.76);
 		return result;
+	} else if (index == 2) {
+		// T0D3
+		double x = 2.0 * (fs + 0.5) - 32.0 - 1.16;
+		double y = 2.0 * (bs + 0.5) - 32.0 - 1.0;
+		return ROOT::Math::XYZVector(x, y, 123.52);
 	}
 	return {0.0, 0.0, 0.0};
 }
 
 
 struct SideCombination {
-	double energy;
-	double time;
-	double x;
-	double y;
+	int num;
+	double energy[2];
+	double time[2];
+	double x[2];
+	double y[2];
 	int points;
-	unsigned int flag;
-	int status;
+	unsigned int flag[2];
+	int status[2];
 };
 
 
@@ -1597,6 +1617,7 @@ std::vector<SideCombination> SearchSideCombinations(
 ) {
 	// result
 	std::vector<SideCombination> result;
+	// search for separating events
 	for (size_t i = 0; i < front.size(); ++i) {
 		for (size_t j = 0; j < back.size(); ++j) {
 			if (fabs(front[i].energy - back[j].energy) > 2000) continue;
@@ -1610,36 +1631,184 @@ std::vector<SideCombination> SearchSideCombinations(
 				points += 2;
 			} else if (fabs(front[i].energy - back[j].energy) < 2000) {
 				points += 1;
-			} else {
-				points -= 5;
 			}
-			if (fabs(front[i].time) - fabs(back[j].time) < 20) {
+			if (fabs(front[i].time - back[j].time) < 20) {
 				points += 5;
-			} else if (fabs(front[i].time) - fabs(back[j].time) < 80) {
+			} else if (fabs(front[i].time - back[j].time) < 80) {
 				points += 3;
-			} else if (fabs(front[i].time) - fabs(back[j].time) < 150) {
+			} else if (fabs(front[i].time - back[j].time) < 150) {
 				points += 2;
-			} else if (fabs(front[i].time) - fabs(back[j].time) < 200) {
+			} else if (fabs(front[i].time - back[j].time) < 200) {
 				points += 1;
-			} else {
-				points -= 2;
 			}
 			auto position = CalculatePosition(
 				index, front[i].strip, back[j].strip
 			);
 			result.push_back({
-				front[i].energy,
-				front[i].time,
-				position.X(),
-				position.Y(),
+				1,
+				front[i].energy, 0.0,
+				front[i].time, 0.0,
+				position.X(), 0.0,
+				position.Y(), 0.0,
 				points + front[i].points + back[j].points,
-				front[i].flag | back[j].flag,
-				front[i].status + back[j].status*10
+				front[i].flag | back[j].flag, 0,
+				front[i].status + back[j].status*4, 0
 			});
 		}
 	}
+	size_t single_size = result.size();
+	// search for f2b1 binding events
+	for (size_t i = 0; i < front.size(); ++i) {
+		if (front[i].status != 0) continue;
+		for (size_t j = i; j < front.size(); ++j) {
+			if (front[j].status != 0) continue;
+			for (size_t k = 0; k < back.size(); ++k) {
+				if (back[k].status != 0) continue;
+				// check energy
+				double de =
+					fabs(front[i].energy + front[j].energy - back[k].energy);
+				if (de > 2000) continue;
+				// check time
+				double dt1 = fabs(front[i].time - front[j].time);
+				double dt2 = fabs(front[i].time - back[k].time);
+				if (dt1 > 200 || dt2 > 200) continue;
+				int points = 0;
+				// evaluate energy points
+				if (de < 500) points += 4;
+				else if (de < 1000) points += 2;
+				else if (de < 2000) points += 1;
+				// evaluate time points
+				if (dt1 < 20) points += 3;
+				else if (dt1 < 80) points += 2;
+				else if (dt1 < 150) points += 1;
+				// else if (dt1 < 200) points += 1;
+				if (dt2 < 20) points += 3;
+				else if (dt2 < 80) points += 2;
+				else if (dt2 < 150) points += 1;
+				// else if (dt2 < 200) points += 1;
+				auto position1 = CalculatePosition(
+					index, front[i].strip, back[k].strip
+				);
+				auto position2 = CalculatePosition(
+					index, front[j].strip, back[k].strip
+				);
+				result.push_back({
+					2,
+					front[i].energy,
+					front[j].energy,
+					front[i].time,
+					front[j].time,
+					position1.X(),
+					position2.X(),
+					position1.Y(),
+					position2.Y(),
+					points + front[i].points + back[j].points,
+					front[i].flag | back[k].flag,
+					front[j].flag | back[k].flag,
+					2*4,
+					2*4
+				});
+			}
+		}
+	}
+	// search for f1b2 binding events
+	for (size_t i = 0; i < front.size(); ++i) {
+		if (front[i].status != 0) continue;
+		for (size_t j = 0; j < back.size(); ++j) {
+			if (back[j].status != 0) continue;
+			for (size_t k = j+1; k < back.size(); ++k) {
+				if (back[k].status != 0) continue;
+				// check energy
+				double de =
+					fabs(front[i].energy - back[j].energy - back[k].energy);
+				if (de > 2000) continue;
+				// check time
+				double dt1 = fabs(back[j].time - back[k].time);
+				double dt2 = fabs(front[i].time - back[j].time);
+				if (dt1 > 200 || dt2 > 200) continue;
+				int points = 0;
+				// evaluate energy points
+				if (de < 500) points += 4;
+				else if (de < 1000) points += 2;
+				else if (de < 2000) points += 1;
+				// evaluate time points
+				if (dt1 < 20) points += 3;
+				else if (dt1 < 80) points += 2;
+				else if (dt1 < 150) points += 1;
+				// else if (dt1 < 200) points += 1;
+				if (dt2 < 20) points += 3;
+				else if (dt2 < 80) points += 2;
+				else if (dt2 < 150) points += 1;
+				// else if (dt2 < 200) points += 1;
+				auto position1 = CalculatePosition(
+					index, front[i].strip, back[j].strip
+				);
+				auto position2 = CalculatePosition(
+					index, front[i].strip, back[k].strip
+				);
+				result.push_back({
+					2,
+					back[j].energy,
+					back[k].energy,
+					back[j].time,
+					back[k].time,
+					position1.X(),
+					position2.X(),
+					position1.Y(),
+					position2.Y(),
+					points + front[i].points + back[j].points,
+					front[i].flag | back[j].flag,
+					front[i].flag | back[k].flag,
+					2,
+					2
+				});
+			}
+		}
+	}
+	// search for f2b2 binding events
+	for (size_t i = 0; i < single_size; ++i) {
+		for (size_t j = i+1; j < single_size; ++j) {
+			// ignore binding events
+			if (result[i].num != 1 || result[j].num != 1) continue;
+			// ignore adjacent strips events
+			if (result[i].status[0] != 0 || result[j].status[0] != 0) continue;
+			// check conflict
+			if ((result[i].flag[0] & result[j].flag[0]) != 0) continue;
+			// check time
+			if (fabs(result[i].time[0] - result[j].time[0]) > 200) continue;
+			result.push_back({
+				4,
+				result[i].energy[0],
+				result[j].energy[0],
+				result[i].time[0],
+				result[j].time[0],
+				result[i].x[0],
+				result[j].x[0],
+				result[i].y[0],
+				result[j].y[0],
+				(result[i].points + result[j].points) / 2,
+				result[i].flag[0],
+				result[j].flag[0],
+				0,
+				0
+			});
+		}
+	}
+
+// std::cout << "\nsingle size " << std::dec << single_size << "\n";
+// std::cout << "---------------side combinations-----------\n" << std::hex;
+// for (const auto & comb : result) {
+// 	std::cout << comb.num << " " << comb.flag[0] << " " << comb.flag[1] << "\n";
+// }
 	return result;
 }
+
+struct Combination {
+	int points;
+	bool operator<(const Combination &other) const {
+		return points < other.points;
+	}
+};
 
 struct TrackCombination {
 	double energy[2];
@@ -1656,77 +1825,108 @@ struct TrackCombination {
 };
 
 
-void SearchTrackCombinations(
+struct TrackBindingCombination {
+	double energy[2][2];
+	double time[2][2];
+	double x[2][2];
+	double y[2][2];
+	unsigned int flag[2];
+	int status[2];
+	int points;
+
+	bool operator<(const TrackBindingCombination& other) const {
+		return points < other.points;
+	}
+};
+
+
+struct D3Combination {
+	double energy;
+	double time;
+	double x;
+	double y;
+	unsigned int flag;
+	int status;
+	int points;
+	size_t d1d2_index;
+
+	bool operator<(const D3Combination &other) const {
+		return points < other.points;
+	}
+};
+
+
+int D1D2ParticleIdentify(
+	double d1_energy,
+	double d2_energy,
+	const std::vector<ParticleCut> &d1d2_cuts
+) {
+	// particle stop in T0D2
+	for (const auto &cut : d1d2_cuts) {
+		if (cut.cut->IsInside(d2_energy, d1_energy)) {
+			return cut.charge + cut.mass*10;
+		}
+	}
+	return 0;
+}
+
+
+int SearchTrackCombinations(
 	const std::vector<SideCombination>& d1_combinations,
 	const std::vector<SideCombination>& d2_combinations,
+	const std::vector<SideCombination>& d3_combinations,
+	const std::vector<ParticleCut> &d1d2_cuts,
 	unsigned int d1_flag,
 	unsigned int d2_flag,
-	TH1F &d1d2dt,
-	TH1F &d1d2dx,
-	TH1F &d1d2dy,
-	TH1F &hist_points,
+	unsigned int d3_flag,
+	TH1F &d1d2dt, TH1F &d1d2dx, TH1F &d1d2dy,
+	TH1F &d1d3dt, TH1F &d1d3dx, TH1F &d1d3dy,
+	TH1F &d2d3dt, TH1F &d2d3dx, TH1F &d2d3dy,
+	TH1F &d1d2_points, TH1F &bind_points, TH1F &d3_points,
 	T0Event &t0
 ) {
-	// t0.num = 0;
+	// search for seperating events
+	// queue of combinations
 	std::priority_queue<TrackCombination> queue;
 	for (const auto &d1 : d1_combinations) {
+		if (d1.num != 1) continue;
 		for (const auto &d2 : d2_combinations) {
-			if (fabs(d1.x-d2.x) > 4 || fabs(d1.y-d2.y) > 4) continue;
-			if (fabs(d1.time-d2.time) > 400) continue;
-			d1d2dt.Fill(d1.time - d2.time);
-			d1d2dx.Fill(d1.x - d2.x);
-			d1d2dy.Fill(d1.y - d2.y);
+			if (d2.num != 1) continue;
+			if (fabs(d1.x[0]-d2.x[0]) > 4 || fabs(d1.y[0]-d2.y[0]) > 4) continue;
+			if (fabs(d1.time[0]-d2.time[0]) > 400) continue;
+			d1d2dt.Fill(d1.time[0] - d2.time[0]);
+			d1d2dx.Fill(d1.x[0] - d2.x[0]);
+			d1d2dy.Fill(d1.y[0] - d2.y[0]);
+
 			int points = 0;
-			if (fabs(d1.x-d2.x) < 1.0) {
-				points += 3;
-			} else if (fabs(d1.x-d2.x) < 2.0) {
-				points += 2;
-			} else if (fabs(d1.x-d2.x) < 3.0) {
-				points += 1;
-			}
-			if (fabs(d1.y-d2.y) < 1.0) {
-				points += 3;
-			} else if (fabs(d1.y-d2.y) < 2.0) {
-				points += 2;
-			} else if (fabs(d1.y-d2.y) < 3.0) {
-				points += 1;
-			}
-			if (fabs(d1.time - d2.time) < 20.0) {
-				points += 5;
-			} else if (fabs(d1.time - d2.time) < 80.0) {
-				points += 3;
-			} else if (fabs(d1.time - d2.time) < 150.0) {
-				points += 2;
-			} else if (fabs(d1.time - d2.time) < 200.0) {
-				points += 1;
-			} else {
-				points -= 1;
-			}
+
+			if (fabs(d1.x[0]-d2.x[0]) < 1.0) points += 3;
+			else if (fabs(d1.x[0]-d2.x[0]) < 2.0) points += 2;
+			else if (fabs(d1.x[0]-d2.x[0]) < 3.0) points += 1;
+
+			if (fabs(d1.y[0]-d2.y[0]) < 1.0) points += 3;
+			else if (fabs(d1.y[0]-d2.y[0]) < 2.0) points += 2;
+			else if (fabs(d1.y[0]-d2.y[0]) < 3.0) points += 1;
+
+			if (fabs(d1.time[0] - d2.time[0]) < 20.0) points += 5;
+			else if (fabs(d1.time[0] - d2.time[0]) < 80.0) points += 3;
+			else if (fabs(d1.time[0] - d2.time[0]) < 150.0) points += 2;
+			else if (fabs(d1.time[0] - d2.time[0]) < 200.0) points += 1;
+			else points -= 1;
+
 			TrackCombination comb{
-				{d1.energy, d2.energy},
-				{d1.time, d2.time},
-				{d1.x, d2.x},
-				{d1.y, d2.y},
-				{d1.flag, d2.flag},
-				d1.status + d2.status*100,
+				{d1.energy[0], d2.energy[0]},
+				{d1.time[0], d2.time[0]},
+				{d1.x[0], d2.x[0]},
+				{d1.y[0], d2.y[0]},
+				{d1.flag[0], d2.flag[0]},
+				d1.status[0] + d2.status[0]*16,
 				points + d1.points + d2.points
 			};
-			hist_points.Fill(comb.points);
+			d1d2_points.Fill(comb.points);
 			queue.push(comb);
 		}
 	}
-	// while (!queue.empty()) {
-	// 	auto comb = queue.top();
-	// 	queue.pop();
-	// 	std::cout << std::hex << "\n"
-	// 		<< "d1_flag " << d1_flag << " comb.flag[0] " << comb.flag[0] << "\n"
-	// 		<< "d2_flag " << d2_flag << " comb.flag[1] " << comb.flag[1] << "\n"
-	// 		<< std::dec << "points " << comb.points << "\n"
-	// 		<< "energy " << comb.energy[0] << "  " << comb.energy[1] << "\n"
-	// 		<< "time " << comb.time[0] << " " << comb.time[1] << "\n"
-	// 		<< "x " << comb.x[0] << " " << comb.x[1] << "\n"
-	// 		<< "y " << comb.y[0] << " " << comb.y[1] << "\n";
-	// }
 	// initialize
 	t0.num = 0;
 	while (!queue.empty() && d1_flag != 0 && d2_flag != 0 && t0.num < 8) {
@@ -1735,6 +1935,8 @@ void SearchTrackCombinations(
 		if (comb.points < 20) continue;
 		if ((d1_flag & comb.flag[0]) != comb.flag[0]) continue;
 		if ((d2_flag & comb.flag[1]) != comb.flag[1]) continue;
+// std::cout << "\n" << t0.num << " d1 flag " << std::hex << comb.flag[0] << " / " << d1_flag << "\n"
+// 	<< comb.flag[1] << " / " << d2_flag << "\n";
 		d1_flag &= ~comb.flag[0];
 		d2_flag &= ~comb.flag[1];
 		t0.layer[t0.num] = 2;
@@ -1753,7 +1955,255 @@ void SearchTrackCombinations(
 		t0.points[t0.num] = comb.points;
 		++t0.num;
 	}
-	return;
+
+	// search for binding events
+	std::priority_queue<TrackBindingCombination> bind_queue;
+	for (const auto &d1 : d1_combinations) {
+		if (d1.num != 2 && d1.num != 4) continue;
+		for (const auto &d2 : d2_combinations) {
+			if (d2.num != 2 && d2.num != 4) continue;
+			if (d1.num == 4 && d2.num == 4) continue;
+			if (fabs(d1.time[0]-d2.time[0]) > 400) continue;
+			if (fabs(d1.time[1]-d2.time[1]) > 400) continue;
+			if (
+				!(
+					fabs(d1.x[0]-d2.x[0]) < 4
+					&& fabs(d1.y[0]-d2.y[0]) < 4
+					&& fabs(d1.x[1]-d2.x[1]) < 4
+					&& fabs(d1.y[1]-d2.y[1]) < 4
+				)
+				&&
+				!(
+					fabs(d1.x[0]-d2.x[1]) < 4
+					&& fabs(d1.y[0]-d2.y[1]) < 4
+					&& fabs(d1.x[1]-d2.x[0]) < 4
+					&& fabs(d1.y[1]-d2.y[0]) < 4
+				)
+			) continue;
+			d1d2dt.Fill(d1.time[0] - d2.time[0]);
+			d1d2dx.Fill(d1.x[0] - d2.x[0]);
+			d1d2dy.Fill(d1.y[0] - d2.y[0]);
+
+			int points = 0;
+
+			if (fabs(d1.time[0] - d2.time[0]) < 20.0) points += 5;
+			else if (fabs(d1.time[0] - d2.time[0]) < 80.0) points += 3;
+			else if (fabs(d1.time[0] - d2.time[0]) < 150.0) points += 2;
+			else if (fabs(d1.time[0] - d2.time[0]) < 200.0) points += 1;
+			else points -= 1;
+
+			int position_points1 = 0;
+			if (fabs(d1.x[0]-d2.x[0]) < 1.0) position_points1 += 3;
+			else if (fabs(d1.x[0]-d2.x[0]) < 2.0) position_points1 += 2;
+			else if (fabs(d1.x[0]-d2.x[0]) < 3.0) position_points1 += 1;
+
+			if (fabs(d1.y[0]-d2.y[0]) < 1.0) position_points1 += 3;
+			else if (fabs(d1.y[0]-d2.y[0]) < 2.0) position_points1 += 2;
+			else if (fabs(d1.y[0]-d2.y[0]) < 3.0) position_points1 += 1;
+
+			if (fabs(d1.x[1]-d2.x[1]) < 1.0) position_points1 += 3;
+			else if (fabs(d1.x[1]-d2.x[1]) < 2.0) position_points1 += 2;
+			else if (fabs(d1.x[1]-d2.x[1]) < 3.0) position_points1 += 1;
+
+			if (fabs(d1.y[1]-d2.y[1]) < 1.0) position_points1 += 3;
+			else if (fabs(d1.y[1]-d2.y[1]) < 2.0) position_points1 += 2;
+			else if (fabs(d1.y[1]-d2.y[1]) < 3.0) position_points1 += 1;
+
+
+			int position_points2 = 0;
+			if (fabs(d1.x[0]-d2.x[1]) < 1.0) position_points2 += 3;
+			else if (fabs(d1.x[0]-d2.x[1]) < 2.0) position_points2 += 2;
+			else if (fabs(d1.x[0]-d2.x[1]) < 3.0) position_points2 += 1;
+
+			if (fabs(d1.y[0]-d2.y[1]) < 1.0) position_points2 += 3;
+			else if (fabs(d1.y[0]-d2.y[1]) < 2.0) position_points2 += 2;
+			else if (fabs(d1.y[0]-d2.y[1]) < 3.0) position_points2 += 1;
+
+			if (fabs(d1.x[1]-d2.x[0]) < 1.0) position_points2 += 3;
+			else if (fabs(d1.x[1]-d2.x[0]) < 2.0) position_points2 += 2;
+			else if (fabs(d1.x[1]-d2.x[0]) < 3.0) position_points2 += 1;
+
+			if (fabs(d1.y[1]-d2.y[0]) < 1.0) position_points2 += 3;
+			else if (fabs(d1.y[1]-d2.y[0]) < 2.0) position_points2 += 2;
+			else if (fabs(d1.y[1]-d2.y[0]) < 3.0) position_points2 += 1;
+
+			// combination 1
+			TrackBindingCombination comb1{
+				{d1.energy[0], d2.energy[0], d1.energy[1], d2.energy[1]},
+				{d1.time[0], d2.time[0], d1.time[1], d2.time[1]},
+				{d1.x[0], d2.x[0], d1.x[1], d2.x[1]},
+				{d1.y[0], d2.y[0], d1.y[1], d2.y[1]},
+				{d1.flag[0]|d1.flag[1], d2.flag[0]|d2.flag[1]},
+				d1.status[0]+d2.status[0]*16, d1.status[1]+d2.status[1]*16,
+				points + position_points1 + d1.points + d2.points
+			};
+			if (!(
+				d1.num == 2
+				&& d2.num == 2
+				&& (
+					d1.status[0] == d2.status[0]
+					|| d1.status[1] == d2.status[1]
+				)
+			)) {
+				bind_points.Fill(comb1.points);
+				bind_queue.push(comb1);
+			}
+			// combination 2
+			TrackBindingCombination comb2{
+				{d1.energy[0], d2.energy[1], d1.energy[1], d2.energy[0]},
+				{d1.time[0], d2.time[1], d1.time[1], d2.time[0]},
+				{d1.x[0], d2.x[1], d1.x[1], d2.x[0]},
+				{d1.y[0], d2.y[1], d1.y[1], d2.y[0]},
+				{d1.flag[0]|d1.flag[1], d2.flag[0]|d2.flag[1]},
+				d1.status[0]+d2.status[1]*16, d1.status[1]+d2.status[0]*16,
+				points + position_points2 + d1.points + d2.points
+			};
+			if (!(
+				d1.num == 2
+				&& d2.num == 2
+				&& (
+					d1.status[0] == d2.status[1]
+					|| d1.status[1] == d2.status[0]
+				)
+			)) {
+				bind_points.Fill(comb1.points);
+				bind_queue.push(comb2);
+			}
+		}
+	}
+
+// while (!bind_queue.empty()) {
+// 	TrackBindingCombination comb = bind_queue.top();
+// 	bind_queue.pop();
+// 	std::cout << "========================\n"
+// 		<< "points " << std::dec << comb.points << "\n"
+// 		<< std::hex << "flag " << comb.flag[0] << " " << comb.flag[1] << "\n"
+// 		<< "---------------first-----------------\n"
+// 		<< "energy " << comb.energy[0][0] << " " << comb.energy[0][1] << "\n"
+// 		<< "time " << comb.time[0][0] << " " << comb.time[0][1] << "\n"
+// 		<< "x " << comb.x[0][0] << " " << comb.x[0][1] << "\n"
+// 		<< "y " << comb.y[0][0] << " " << comb.y[0][1] << "\n"
+// 		<< "status " << comb.status[0] << "\n"
+// 		<< "---------------second-----------------\n"
+// 		<< "energy " << comb.energy[1][0] << " " << comb.energy[1][1] << "\n"
+// 		<< "time " << comb.time[1][0] << " " << comb.time[1][1] << "\n"
+// 		<< "x " << comb.x[1][0] << " " << comb.x[1][1] << "\n"
+// 		<< "y " << comb.y[1][0] << " " << comb.y[1][1] << "\n"
+// 		<< "status " << comb.status[1] << "\n";
+// }
+	// binding events for statistics
+	int binding_events = 0;
+	// fill t0 events
+	while (!bind_queue.empty() && d1_flag != 0 && d2_flag != 0 && t0.num < 7) {
+		TrackBindingCombination comb = bind_queue.top();
+		bind_queue.pop();
+// 		// if (comb.points < 20) continue;
+		if ((d1_flag & comb.flag[0]) != comb.flag[0]) continue;
+		if ((d2_flag & comb.flag[1]) != comb.flag[1]) continue;
+// std::cout << "\n" << t0.num << " d1 flag " << std::hex << comb.flag[0] << " / " << d1_flag << "\n"
+// 	<< comb.flag[1] << " / " << d2_flag << "\n";
+		d1_flag &= ~comb.flag[0];
+		d2_flag &= ~comb.flag[1];
+		for (size_t i = 0; i < 2; ++i) {
+			t0.layer[t0.num+i] = 2;
+			t0.flag[t0.num+i] = 0x3;
+			t0.energy[t0.num+i][0] = comb.energy[i][0];
+			t0.energy[t0.num+i][1] = comb.energy[i][1];
+			t0.time[t0.num+i][0] = comb.time[i][0];
+			t0.time[t0.num+i][1] = comb.time[i][1];
+			t0.x[t0.num+i][0] = comb.x[i][0];
+			t0.x[t0.num+i][1] = comb.x[i][1];
+			t0.y[t0.num+i][0] = comb.y[i][0];
+			t0.y[t0.num+i][1] = comb.y[i][1];
+			t0.z[t0.num+i][0] = 100.0;
+			t0.z[t0.num+i][1] = 111.76;
+			t0.status[t0.num+i] = comb.status[i];
+			t0.points[t0.num+i] = comb.points;
+		}
+		t0.num += 2;
+		binding_events += 2;
+	}
+
+	// particle types identified in T0D1 and T0D2
+	std::vector<int> d1d2_types;
+	// identify particles
+	for (unsigned short i = 0; i < t0.num; ++i) {
+		d1d2_types.push_back(
+			D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_cuts)
+		);
+	}
+
+	// priority queue for T0D3 events
+	std::priority_queue<D3Combination> d3_queue;
+
+	// search for combinations and evaluate points
+	for (const auto &d3 : d3_combinations) {
+		if (d3.num == 4) continue;
+		for (unsigned short i = 0; i < t0.num; ++i) {
+			if (d1d2_types[i] > 0) continue;
+			for (int j = 0; j < d3.num; ++j) {
+				if (fabs(t0.x[i][1]-d3.x[j]) > 4) continue;
+				if (fabs(t0.y[i][1]-d3.y[j]) > 4) continue;
+				if (fabs(t0.time[i][1]-d3.time[j]) > 400) continue;
+				d1d3dt.Fill(t0.time[i][0] - d3.time[j]);
+				d1d3dx.Fill(t0.x[i][0] - d3.x[j]);
+				d1d3dy.Fill(t0.y[i][0] - d3.y[j]);
+				d2d3dt.Fill(t0.time[i][1] - d3.time[j]);
+				d2d3dx.Fill(t0.x[i][1] - d3.x[j]);
+				d2d3dy.Fill(t0.y[i][1] - d3.y[j]);
+
+				int points = 0;
+
+				if (fabs(t0.x[i][1]-d3.x[j]) < 1.0) points += 3;
+				else if (fabs(t0.x[i][1]-d3.x[j]) < 2.0) points += 2;
+				else if (fabs(t0.x[i][1]-d3.x[j]) < 3.0) points += 1;
+
+				if (fabs(t0.y[i][1]-d3.y[j]) < 1.0) points += 3;
+				else if (fabs(t0.y[i][1]-d3.y[j]) < 2.0) points += 2;
+				else if (fabs(t0.y[i][1]-d3.y[j]) < 3.0) points += 1;
+
+				if (fabs(t0.time[i][1] - d3.time[j]) < 20.0) points += 5;
+				else if (fabs(t0.time[i][1] - d3.time[j]) < 80.0) points += 3;
+				else if (fabs(t0.time[i][1] - d3.time[j]) < 150.0) points += 2;
+				else if (fabs(t0.time[i][1] - d3.time[j]) < 200.0) points += 1;
+				else points -= 1;
+
+				D3Combination comb{
+					d3.energy[j],
+					d3.time[j],
+					d3.x[j],
+					d3.y[j],
+					d3.flag[j],
+					d3.status[j],
+					points,
+					i
+				};
+				d3_points.Fill(comb.points);
+				d3_queue.push(comb);
+			}
+		}
+	}
+
+	// fill T0 events
+	while (!d3_queue.empty() && d3_flag != 0 && t0.num < 8) {
+		D3Combination comb = d3_queue.top();
+		d3_queue.pop();
+		// if (comb.points < 7) continue;
+		if ((d3_flag & comb.flag) != comb.flag) continue;
+		d3_flag &= ~comb.flag;
+		if (t0.layer[comb.d1d2_index] == 3) continue;
+		t0.layer[comb.d1d2_index] = 3;
+		t0.flag[comb.d1d2_index] = 0x7;
+		t0.energy[comb.d1d2_index][2] = comb.energy;
+		t0.time[comb.d1d2_index][2] = comb.time;
+		t0.x[comb.d1d2_index][2] = comb.x;
+		t0.y[comb.d1d2_index][2] = comb.y;
+		t0.z[comb.d1d2_index][2] = 123.52;
+		t0.status[comb.d1d2_index] += comb.status*256;
+		t0.points[comb.d1d2_index] += comb.points;
+	}
+
+	return binding_events;
 }
 
 
@@ -1785,13 +2235,26 @@ int T0::MergeAndTrack() {
 	);
 	// add friend
 	ipt->AddFriend("d2=tree", d2_file_name);
+	// T0D3 file name
+	TString d3_file_name = TString::Format(
+		"%s%st0d3-result-%s%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("d3=tree", d3_file_name);
 	// input d1 event
 	DssdFundamentalEvent d1_event;
 	// input d2 event
 	DssdFundamentalEvent d2_event;
+	// input d3 event
+	DssdFundamentalEvent d3_event;
 	// setup input branches
 	d1_event.SetupInput(ipt);
 	d2_event.SetupInput(ipt, "d2.");
+	d3_event.SetupInput(ipt, "d3.");
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -1811,6 +2274,10 @@ int T0::MergeAndTrack() {
 	TH1F d2_front_adj_dt("d2fadt", "#Deltat", 1000, -500, 500);
 	// 1D histogram of T0D2 back adjacent strip dt
 	TH1F d2_back_adj_dt("d2badt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D3 front adjacent strip dt
+	TH1F d3_front_adj_dt("d3fadt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D3 back adjacent strip dt
+	TH1F d3_back_adj_dt("d3badt", "#Deltat", 1000, -500, 500);
 	// 1D histogram of T0D1 side energy difference
 	TH1F d1_side_de("d1sde", "#DeltaE", 1000, -2000, 2000);
 	// 1D histogram of T0D1 side time difference
@@ -1819,14 +2286,34 @@ int T0::MergeAndTrack() {
 	TH1F d2_side_de("d2sde", "#DeltaE", 1000, -2000, 2000);
 	// 1D histogram of T0D2 side time difference
 	TH1F d2_side_dt("d2sdt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D3 side energy difference
+	TH1F d3_side_de("d3sde", "#DeltaE", 1000, -2000, 2000);
+	// 1D histogram of T0D3 side time difference
+	TH1F d3_side_dt("d3sdt", "#Deltat", 1000, -500, 500);
 	// 1D histogram of T0D1D2 dx
 	TH1F d1d2_dx("d1d2dx", "#Deltax", 100, -10, 10);
 	// 1D histogram of T0D1D2 dy
 	TH1F d1d2_dy("d1d2dy", "#Deltay", 100, -5, 5);
 	// 1D histogram of T0D1D2 dt
 	TH1F d1d2_dt("d1d2dt", "#Deltat", 1000, -500, 500);
-	// 1D histogram of tracking points
-	TH1F track_points("tp", "track points", 100, 0, 100);
+	// 1D histogram of D1D2 tracking points
+	TH1F d1d2_points("d12p", "D1D2 points", 100, 0, 100);
+	// 1D histogram of D1D2 binding points
+	TH1F bind_points("bp", "D1D2 binding points", 100, 0, 100);
+	// 1D histogram of T0D1D3 dx
+	TH1F d1d3_dx("d1d3dx", "#Deltax", 100, -10, 10);
+	// 1D histogram of T0D1D3 dy
+	TH1F d1d3_dy("d1d3dy", "#Deltay", 100, -5, 5);
+	// 1D histogram of T0D1D3 dt
+	TH1F d1d3_dt("d1d3dt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of T0D2D3 dx
+	TH1F d2d3_dx("d2d3dx", "#Deltax", 100, -10, 10);
+	// 1D histogram of T0D2D3 dy
+	TH1F d2d3_dy("d2d3dy", "#Deltay", 100, -5, 5);
+	// 1D histogram of T0D2D3 dt
+	TH1F d2d3_dt("d2d3dt", "#Deltat", 1000, -500, 500);
+	// 1D histogram of D3 tracking points
+	TH1F d3_points("d3p", "D3 points", 100, 0, 100);
 	// output tree
 	TTree opt("tree", "merge and track");
 	// output event
@@ -1834,9 +2321,27 @@ int T0::MergeAndTrack() {
 	// setup output branches
 	t0_event.SetupOutput(&opt);
 
+
+	// T0D1-D2 cuts
+	std::vector<ParticleCut> d1d2_cuts;
+	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
+	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
+	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
+	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
+	d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
+	d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
+	d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+	d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
+	d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
+	d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
+	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+
 	// statistics
 	long long particle_num[8];
 	for (size_t i = 0; i < 8; ++i) particle_num[i] = 0;
+	long long binding_events = 0;
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1878,18 +2383,33 @@ int T0::MergeAndTrack() {
 		std::vector<SideCombination> d2_comb = SearchSideCombinations(
 			d2_front, d2_back, 1, d2_side_de, d2_side_dt
 		);
+
+		std::vector<StripGroup> d3_front;
+		std::vector<StripGroup> d3_back;
+		// search for T0D2 strip combinations
+		SearchStripCombinations(
+			d3_event, d3_front_adj_dt, d3_back_adj_dt, d3_front, d3_back
+		);
+		// search for T0D2 side combinations
+		std::vector<SideCombination> d3_comb = SearchSideCombinations(
+			d3_front, d3_back, 2, d3_side_de, d3_side_dt
+		);
+
 		// tracking
-		SearchTrackCombinations(
-			d1_comb,
-			d2_comb,
+		binding_events += SearchTrackCombinations(
+			d1_comb, d2_comb, d3_comb,
+			d1d2_cuts,
 			((1 << d1_event.front_hit) | (1 << (d1_event.back_hit+8))) - 0x101,
 			((1 << d2_event.front_hit) | (1 << (d2_event.back_hit+8))) - 0x101,
-			d1d2_dt,
-			d1d2_dx,
-			d1d2_dy,
-			track_points,
+			((1 << d3_event.front_hit) | (1 << (d3_event.back_hit+8))) - 0x101,
+			d1d2_dt, d1d2_dx, d1d2_dy,
+			d1d3_dt, d1d3_dx, d1d3_dy,
+			d2d3_dt, d2d3_dx, d2d3_dy,
+			d1d2_points, bind_points, d3_points,
 			t0_event
 		);
+		// track T0D3
+
 		if (t0_event.num <= 8 && t0_event.num > 0) {
 			++particle_num[t0_event.num-1];
 		}
@@ -1907,20 +2427,33 @@ int T0::MergeAndTrack() {
 			<< particle_num[i] << " / " << total << "  "
 			<< double(particle_num[i]) / double(total) << "\n";
 	}
+	std::cout << "Add binding events " << binding_events << "\n";
 
 	// save histograms
 	d1_front_adj_dt.Write();
 	d1_back_adj_dt.Write();
 	d2_front_adj_dt.Write();
 	d2_back_adj_dt.Write();
+	d3_front_adj_dt.Write();
+	d3_back_adj_dt.Write();
 	d1_side_de.Write();
 	d1_side_dt.Write();
 	d2_side_de.Write();
 	d2_side_dt.Write();
+	d3_side_de.Write();
+	d3_side_dt.Write();
 	d1d2_dx.Write();
 	d1d2_dy.Write();
 	d1d2_dt.Write();
-	track_points.Write();
+	d1d3_dx.Write();
+	d1d3_dy.Write();
+	d1d3_dt.Write();
+	d2d3_dx.Write();
+	d2d3_dy.Write();
+	d2d3_dt.Write();
+	d1d2_points.Write();
+	bind_points.Write();
+	d3_points.Write();
 	// save tree
 	opt.Write();
 	// close files

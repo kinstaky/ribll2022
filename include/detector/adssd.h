@@ -59,7 +59,7 @@ public:
 	/// @param[in] energy_diff tolerant energy relateive difference
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double energy_diff, int) override;
+	virtual int Merge(double energy_diff) override;
 
 
 	//-------------------------------------------------------------------------

@@ -228,6 +228,8 @@ int Be8ToTwoAlphaChannel::Coincide() {
 			channel.daughter_r[i] = p[i].R();
 			channel.daughter_theta[i] = p[i].Theta();
 			channel.daughter_phi[i] = p[i].Phi();
+			// status
+			channel.status[i] = t0.status[alpha_index[i]];
 		}
 
 		// fill beam from PPAC
@@ -421,6 +423,8 @@ int C12ToThreeAlphaChannel::Coincide() {
 			channel.daughter_r[i] = p[i].R();
 			channel.daughter_theta[i] = p[i].Theta();
 			channel.daughter_phi[i] = p[i].Phi();
+			// other information
+			channel.status[i] = t0.status[alpha_index[i]];
 		}
 
 		// fill beam from PPAC
@@ -879,6 +883,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			channel.daughter_r[i] = p[i].R();
 			channel.daughter_theta[i] = p[i].Theta();
 			channel.daughter_phi[i] = p[i].Phi();
+			// other information
+			channel.status[i] = t0.status[index[i]];
 		}
 
 		// fill particles from TAF

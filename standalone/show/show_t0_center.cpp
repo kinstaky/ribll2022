@@ -164,6 +164,10 @@ int CalculateOffset(
 		TH1F("d1d3t", "T0 D1D3 cos#theta", 100, 0.99, 1),
 		TH1F("d2d3t", "T0 D2D3 cos#theta", 100, 0.99, 1)
 	};
+	TH2F hd2dxx("d2dxx", "T0D2 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
+	TH2F hd2dxy("d2dxy", "T0D2 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
+	TH2F hd2dyx("d2dyx", "T0D2 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
+	TH2F hd2dyy("d2dyy", "T0D2 #Deltay VS y", 800, -40, 40, 1000, -10, 10);
 	TH2F hd3dxx("d3dxx", "T0D3 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
 	TH2F hd3dxy("d3dxy", "T0D3 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
 	TH2F hd3dyx("d3dyx", "T0D3 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
@@ -209,33 +213,60 @@ int CalculateOffset(
 			if (type_event.mass[i] <= 0 || type_event.charge[i] <= 0) continue;
 			// check PPAC tracking
 			if (ppac_event.num != 4) continue;
+			// in target condition
+			if (pow(ppac_event.x[3]+3.3, 2.0)+pow(ppac_event.y[3]-1.0, 2.0) > 225.0) {
+				continue;
+			}
 
-			// process d2 event
 			// target point position
 			ROOT::Math::XYZVector target(
 				ppac_event.x[3], ppac_event.y[3], 0.0
 			);
-			// continuous d1 x
+
+			// get T0D1 position
+			// T0D1 x status flag
+			int t0d1_xflag = (t0_event.status[i]>>2) & 0x3;
+			// jump for special case
+			if (t0d1_xflag != 0 && t0d1_xflag != 1) continue;
+			// T0D1 x
 			double d1x = t0_event.x[i][0];
-			if (int(d1x*2) == d1x*2) {
-				d1x += generator.Rndm() * 0.5 - 0.25;
+			// continuous single strip event
+			if (t0d1_xflag == 0) {
+				d1x += generator.Rndm() - 0.5;
 			}
-			// continuous d1 y
+			// T0D1 y status flag
+			int t0d1_yflag = t0_event.status[i] & 0x3;
+			// jump for special case
+			if (t0d1_yflag != 0 && t0d1_yflag != 1) continue;
+			// T0D1 y
 			double d1y = t0_event.y[i][0];
-			if (int(d1y*2) == d1y*2) {
-				d1y += generator.Rndm() * 0.5 - 0.25;
+			// continous single strip event
+			if (t0d1_yflag == 0) {
+				d1y += generator.Rndm() - 0.5;
 			}
 			// d1 position in lab coordinate
 			ROOT::Math::XYZVector d1_pos(d1x, d1y, d1_center.Z());
-			// continuous d2 x
+
+			// get T0D2 position
+			// T0D2 x status flag
+			int t0d2_xflag = (t0_event.status[i]>>4) & 0x3;
+			// jump for special case
+			if (t0d2_xflag != 0 && t0d2_xflag != 1) continue;
+			// T0D2 x
 			double d2x = t0_event.x[i][1];
-			if (int(d2x*2) == d2x*2) {
-				d2x += generator.Rndm() - 0.5;
+			// continuous single strip event
+			if (t0d2_xflag == 0) {
+				d2x += generator.Rndm() * 2.0 - 1.0;
 			}
-			// continuous d2 y
+			// T0D2 y status flag
+			int t0d2_yflag = (t0_event.status[i]>>6) & 0x3;
+			// jump for special case
+			if (t0d2_yflag != 0 && t0d2_yflag != 1) continue;
+			// T0D2 y
 			double d2y = t0_event.y[i][1];
-			if (int(d2y*2) == d2y*2) {
-				d2y += generator.Rndm() - 0.5;
+			//  continouts single strip event
+			if (t0d2_yflag == 0) {
+				d2y += generator.Rndm() * 2.0 - 1.0;
 			}
 			// d2 position in lab coordinate
 			ROOT::Math::XYZVector d2_pos(d2x, d2y, d2_center.Z());
@@ -254,6 +285,11 @@ int CalculateOffset(
 			// fill offsets
 			hd[0].Fill((d2_cal_pos - d2_pos).X());
 			hd[1].Fill((d2_cal_pos - d2_pos).Y());
+			// fill offset correlation
+			hd2dxx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).X());
+			hd2dxy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).X());
+			hd2dyx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).Y());
+			hd2dyy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).Y());
 			// fill branches
 			if (i == 0) {
 				x[0] = d2_pos.X();
@@ -263,16 +299,26 @@ int CalculateOffset(
 			}
 
 			if (t0_event.flag[0] == 0x7) {
-				// process d3 event
-				// continuous d3 x
+				// get T0D3 position
+				// T0D3 x status flag
+				int t0d3_xflag = (t0_event.status[i]>>8) & 0x3;
+				// jump for special case
+				if (t0d3_xflag != 0 && t0d3_xflag != 1) continue;
+				// T0D3 x
 				double d3x = t0_event.x[i][2];
-				if (int(d3x*2) == d3x*2) {
-					d3x += generator.Rndm() - 0.5;
+				// continuous single strip event
+				if (t0d3_xflag == 0) {
+					d3x += generator.Rndm() * 2.0 - 1.0;
 				}
-				// continuous d3 y
+				// T0D3 y status flag
+				int t0d3_yflag = (t0_event.status[i]>>10) & 0x3;
+				// jump for special case
+				if (t0d3_yflag != 0 && t0d3_yflag != 1) continue;
+				// T0D3 y
 				double d3y = t0_event.y[i][2];
-				if (int(d3y*2) == d3y*2) {
-					d3y += generator.Rndm() - 0.5;
+				//  continouts single strip event
+				if (t0d3_yflag == 0) {
+					d3y += generator.Rndm() * 2.0 - 1.0;
 				}
 				// d3 particle position
 				ROOT::Math::XYZVector d3_pos(d3x, d3y, d3_center.Z());
@@ -317,14 +363,14 @@ int CalculateOffset(
 
 	// fit offset
 	for (int i = 0; i < 2; ++i) {
-		TF1 fx(TString::Format("fx%d", i), "gaus", -4, 2);
+		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);
 		fx.SetParameter(2, 1.0);
 		hd[i*2].Fit(&fx, "QR+");
 		statistics.x_offset[i] = fx.GetParameter(1);
 
-		TF1 fy(TString::Format("fy%d", i), "gaus", -4, 2);
+		TF1 fy(TString::Format("fy%d", i), "gaus", -2, 2);
 		fy.SetParameter(0, 20);
 		fy.SetParameter(1, 0.0);
 		fy.SetParameter(2, 1.0);
@@ -339,6 +385,10 @@ int CalculateOffset(
 	for (size_t i = 0; i < 3; ++i) {
 		hist_cos_theta[i].Write();
 	}
+	hd2dxx.Write();
+	hd2dxy.Write();
+	hd2dyx.Write();
+	hd2dyy.Write();
 	hd3dxx.Write();
 	hd3dxy.Write();
 	hd3dyx.Write();

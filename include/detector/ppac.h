@@ -40,7 +40,7 @@ public:
 	/// @param double ignore
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double, int) override;
+	virtual int Merge(double) override;
 
 
 	/// @brief track PPAC events and calculate the reaction point

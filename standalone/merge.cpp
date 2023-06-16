@@ -14,8 +14,7 @@ void PrintUsage(const char *name) {
 		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n"
-		"  -i iteration      Set iteration mode.\n";
+		"  -t tag            Set trigger tag.\n";
 }
 
 /// @brief parse arguments
@@ -23,7 +22,6 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
-/// @param[out] iteration iteration mode tag get from arguments
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -32,13 +30,11 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag,
-	int &iteration
+	std::string &trigger_tag
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
-	iteration = 0;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -56,13 +52,6 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
-		} else if (argv[result][1] == 'i') {
-			// option of iteration mode
-			// get tag in next argument
-			++result;
-			// miss arguemnt behind option
-			if (result == argc) return -argc;
-			iteration = atoi(argv[result]);
 		} else {
 			return -result;
 		}
@@ -80,10 +69,8 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
-	// iteration mode
-	int iteration = 0;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag, iteration);
+	int pos_start = ParseArguments(argc, argv, help, tag);
 
 	// need help
 	if (help) {
@@ -121,7 +108,7 @@ int main(int argc, char **argv) {
 		std::shared_ptr<Detector> detector = CreateDetector(name, run, tag);
 		if (!detector) continue;
 
-		if (detector->Merge(diff, iteration)) {
+		if (detector->Merge(diff)) {
 			std::cerr << "Error: Merge "
 				<< name << " failed.\n";
 			continue;

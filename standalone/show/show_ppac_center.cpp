@@ -194,8 +194,8 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		) continue;
 
 		// continuous d1x
-		double d1x = t0_event.x[0] + generator.Rndm()*0.5 - 0.25;
-		double d1y = t0_event.y[0] + generator.Rndm()*0.5 - 0.25;
+		double d1x = t0_event.x[0] + generator.Rndm() - 0.5;
+		double d1y = t0_event.y[0] + generator.Rndm() - 0.5;
 
 		FitAndFill(ppac_xz, xppac_event.x, d1z, d1x, hdx);
 		FitAndFill(ppac_yz, xppac_event.y, d1z, d1y, hdy);
@@ -207,7 +207,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 
 	// fit offset
 	for (int i = 0; i < 3; ++i) {
-		TF1 fx(TString::Format("fx%d", i), "gaus", -10, 10);
+		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);
 		fx.SetParameter(2, 1.0);
@@ -215,7 +215,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		hdx[i].Fit(&fx, "QR+");
 		statistics.x_offset[i] = fx.GetParameter(1);
 
-		TF1 fy(TString::Format("fy%d", i), "gaus", -10, 10);
+		TF1 fy(TString::Format("fy%d", i), "gaus", -2, 2);
 		fy.SetParameter(0, 20);
 		fy.SetParameter(1, 0.0);
 		fy.SetParameter(2, 1.0);

@@ -146,10 +146,9 @@ public:
 
 	/// @brief merge adjacent event in the same side and merge events of two sides
 	/// @param[in] energy_diff tolerant energy relateive difference
-	/// @param[in] iteration iteration mode in normalize process
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double energy_diff, int iteration);
+	virtual int Merge(double energy_diff);
 
 
 	//-------------------------------------------------------------------------

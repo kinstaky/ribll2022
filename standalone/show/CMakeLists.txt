@@ -99,3 +99,7 @@ target_link_libraries(show_time_energy_hit PRIVATE detectors event ROOT::Hist)
 # show t0 calibration result
 add_executable(show_calibration show_calibration.cpp)
 target_link_libraries(show_calibration PRIVATE t0)
+
+# show pid width
+add_executable(show_pid_width show_pid_width.cpp)
+target_link_libraries(show_pid_width PRIVATE t0)

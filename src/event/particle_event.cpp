@@ -17,6 +17,7 @@ void ParticleEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"px").c_str(), px);
 	tree->SetBranchAddress((prefix+"py").c_str(), py);
 	tree->SetBranchAddress((prefix+"pz").c_str(), pz);
+	tree->SetBranchAddress((prefix+"status").c_str(), status);
 }
 
 
@@ -32,6 +33,7 @@ void ParticleEvent::SetupOutput(TTree *tree) {
 	tree->Branch("px", px, "px[num]/D");
 	tree->Branch("py", py, "py[num]/D");
 	tree->Branch("pz", pz, "pz[num]/D");
+	tree->Branch("status", status, "status[num]/I");
 }
 
 }	// namespace ribll

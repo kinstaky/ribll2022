@@ -35,7 +35,7 @@ ROOT::Math::Polar3DVector Adssd::CalculatePosition(
 }
 
 
-int Adssd::Merge(double, int) {
+int Adssd::Merge(double) {
 	// input file name
 	TString fundamental_file_name;
 	fundamental_file_name.Form(

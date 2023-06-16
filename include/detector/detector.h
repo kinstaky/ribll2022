@@ -119,7 +119,7 @@ public:
 	/// @brief merge somethin
 	/// @param[in] xxx see the inherited classesd
 	/// @returns 0 if success, -1 otherwise
-	virtual int Merge(double, int);
+	virtual int Merge(double);
 
 protected:
 	// run number

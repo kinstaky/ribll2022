@@ -52,6 +52,7 @@ void ChannelEvent::SetupInput(
 	// entry
 	tree->SetBranchAddress((prefix+"entry").c_str(), &entry);
 	tree->SetBranchAddress((prefix+"taf_index").c_str(), &taf_index);
+	tree->SetBranchAddress((prefix+"status").c_str(), status);
 }
 
 
@@ -102,6 +103,7 @@ void ChannelEvent::SetupOutput(TTree *tree) {
 	// entry
 	tree->Branch("entry", &entry, "entry/L");
 	tree->Branch("taf_index", &taf_index, "taf_index/I");
+	tree->Branch("status", status, "status[num]/I");
 }
 
 }	// namespace ribll

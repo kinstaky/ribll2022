@@ -437,7 +437,7 @@ int Ppac::GetSumRange(
 }
 
 
-int Ppac::Merge(double, int) {
+int Ppac::Merge(double) {
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(

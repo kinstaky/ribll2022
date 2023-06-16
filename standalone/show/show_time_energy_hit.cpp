@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 			));
 		} else {
 			detector_chain.AddFile(TString::Format(
-				"%s%s%s-result-%s%04u-0.root/tree",
+				"%s%s%s-result-%s%04u.root/tree",
 				kGenerateDataPath,
 				kNormalizeDir,
 				detector_name.c_str(),
