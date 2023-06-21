@@ -473,6 +473,84 @@ void Alignment::GroupAlignment() {
 }
 
 
+int GetGdcOffset(unsigned int run) {
+	// input VME file name
+	TString vme_file_name;
+	vme_file_name.Form(
+		"%s%s%04d.root",
+		kCrate3Path, kCrate3FileName, run
+	);
+	// input VME file
+	TFile vme_file(vme_file_name, "read");
+	// input VME tree
+	TTree *vme_tree = (TTree*)vme_file.Get("tree");
+	if (!vme_tree) {
+		std::cerr << "Error: Get tree from "
+			<< vme_file_name << " failed.\n";
+		return -1;
+	}
+	// input data
+	int gmulti[2][128];
+	int madc[2][32];
+	// setup input branches
+	vme_tree->SetBranchAddress("gmulti", gmulti);
+	vme_tree->SetBranchAddress("madc", madc);
+	std::vector<bool> time;
+	std::vector<bool> energy;
+
+	// total number of entries
+	long long entries = vme_tree->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Reading values   0%%");
+	fflush(stdout);
+	// read events
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		vme_tree->GetEntry(entry);
+
+		// read values into arrays
+		time.push_back(gmulti[1][0] > 0 ? true : false);
+		energy.push_back(madc[0][16] > 200 ? true  : false);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// close input file
+	vme_file.Close();
+
+	std::vector<int> offset_match;
+	int size = energy.size();
+	for (int offset = 0; offset < 1500; ++offset) {
+		int match = 0;
+		for (int i = 0; i < size; ++i) {
+			if (i + offset < 0) continue;
+			if (i + offset >= size) continue;
+			if (energy[i] && time[i+offset]) ++match;
+		}
+		offset_match.push_back(match);
+	}
+
+	// find max match in GDC
+	// max offset
+	int max_offset = 0;
+	// max match number
+	int max_match = offset_match[0];
+	for (size_t i = 1; i < offset_match.size(); ++i) {
+		if (offset_match[i] > max_match) {
+			max_match = offset_match[i];
+			max_offset = i;
+		}
+	}
+	std::cout << "GDC 1: " << max_offset << "\n";
+	return max_offset;
+}
+
+
 int Alignment::AlignGdc() {
 	// this run input file name
 	TString first_input_file_name;
@@ -519,12 +597,17 @@ int Alignment::AlignGdc() {
 	long long entries = first_tree->GetEntries();
 
 	// time offset, get from show_gdc_offset
-	long long offset = run_;
-	if (run_ <= 498) offset += 116;
-	else if (run_ <= 500) offset += 117;
-	else if (run_ <= 507) offset += 118;
-	else if (run_ <= 512) offset += 119;
-	else offset += 168;
+	// long long offset = run_;
+	// if (run_ <= 498) offset += 116;
+	// else if (run_ <= 500) offset += 117;
+	// else if (run_ <= 507) offset += 118;
+	// else if (run_ <= 512) offset += 119;
+	// else offset += 168;
+	long long offset = GetGdcOffset(run_);
+	if (offset < 0) {
+		std::cerr << "Error: Searching gdc 1 offset failed.\n";
+		return -1;
+	}
 
 	// first loop to read from first input file (this run)
 	for (long long entry = offset; entry < entries; ++entry) {

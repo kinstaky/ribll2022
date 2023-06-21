@@ -50,28 +50,14 @@ public:
 	virtual int Coincide();
 };
 
-class T0TAFChannel : public Channel {
+
+class C15pdChannel : public Channel {
 public:
-	T0TAFChannel(
-		unsigned int run,
-		const std::vector<std::string> &particles,
-		const std::string &recoil = ""
-	);
+	C15pdChannel(unsigned int run);
 
-	virtual int Coincide() override;
-
+	virtual int Coincide();
 };
 
-class T0Channel : public Channel {
-public:
-	T0Channel(
-		unsigned int run,
-		const std::vector<std::string> &particles,
-		const std::string &recoil = ""
-	);
-
-	virtual int Coincide() override;
-};
 
 }	// namespace ribll
 

@@ -2,6 +2,8 @@
 
 #include <TH1F.h>
 #include <TF1.h>
+#include <TFitResult.h>
+#include <TGraph.h>
 #include <TString.h>
 #include <TH2F.h>
 #include <Math/Vector3D.h>
@@ -232,61 +234,17 @@ int Ppac::GetSumRange(
 	TTree *ipt,
 	double *range
 ) {
-	if (tag_.empty()) {
-		// output sum time histgrams
-		std::vector<TH1F> hist_sum_time;
-		// range index case by run number
-		size_t range_index = 0;
-		if (run_ > 640) range_index = 1;
-		for (int i = 0; i < 9; ++i) {
-			// left border of sum range
-			double sum_range_left = sum_range[range_index][i*2][0];
-			// right border of sum range
-			double sum_range_right = sum_range[range_index][i*2][1];
-			// add run correction
-			if (run_ == 643) {
-				sum_range_left += run_correct[0][i/3];
-				sum_range_right += run_correct[0][i/3];
-			} else if (
-				run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
-				|| run_ == 658 || run_ == 659 || run_ == 671
-			) {
-				sum_range_left += run_correct[1][i/3];
-				sum_range_right += run_correct[1][i/3];
-			} else if (
-				run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
-				|| run_ == 665 || run_ == 668
-			) {
-				sum_range_left += run_correct[2][i/3];
-				sum_range_right += run_correct[2][i/3];
-			} else if (run_ == 663) {
-				// x1 -20
-				if (i/3 == 1) {
-					sum_range_left += -20;
-					sum_range_right += -20;
-				}
-				// a0 -10
-				if (i%3 == 0) {
-					sum_range_left += 20;
-					sum_range_right += 20;
-				}
-			}
-			hist_sum_time.emplace_back(
-				TString::Format("hsx%da%d", i/3, i%3),
-				TString::Format("sum time of x%d reference a%d", i/3, i%3),
-				1000, sum_range_left, sum_range_right
-			);
-
-			sum_range_left = sum_range[range_index][i*2+1][0];
-			sum_range_right = sum_range[range_index][i*2+1][1];
-			if (run_ == 663 && i%3 == 0) {
-				sum_range_left += 20;
-				sum_range_right += 20;
-			}
-			hist_sum_time.emplace_back(
-				TString::Format("hsy%da%d", i/3, i%3),
-				TString::Format("sum time of y%d reference a%d", i/3, i%3),
-				1000, sum_range_left, sum_range_right
+	if (tag_.empty() || name_ == "vppac") {
+		// 1D histogram of sum of time to find the range in large range
+		std::vector<TH1F> large_sum_time;
+		for (int i = 0; i < 18; ++i) {
+			large_sum_time.emplace_back(
+				TString::Format("hls%c%da%d", "xy"[i%2], i/6, (i/2)%3),
+				TString::Format(
+					"sum time of %c%d reference a%d",
+					"xy"[i%2], i/6, (i/2)%3
+				),
+				5000, 50, 150
 			);
 		}
 
@@ -311,7 +269,7 @@ int Ppac::GetSumRange(
 				for (int j = 0; j < 3; ++j) {
 					unsigned aflag = 0x10 << (5*j);
 					if ((fundamental.flag & aflag) != aflag) continue;
-					hist_sum_time[(i*3+j)*2].Fill(
+					large_sum_time[(i*3+j)*2].Fill(
 						fundamental.x1[i] + fundamental.x2[i]
 						- fundamental.anode[j] - fundamental.anode[j]
 					);
@@ -324,7 +282,7 @@ int Ppac::GetSumRange(
 				for (int j = 0; j < 3; ++j) {
 					unsigned aflag = 0x10 << (5*j);
 					if ((fundamental.flag & aflag) != aflag) continue;
-					hist_sum_time[(i*3+j)*2+1].Fill(
+					large_sum_time[(i*3+j)*2+1].Fill(
 						fundamental.y1[i] + fundamental.y2[i]
 						- fundamental.anode[j] - fundamental.anode[j]
 					);
@@ -335,66 +293,79 @@ int Ppac::GetSumRange(
 		// show finish
 		printf("\b\b\b\b100%%\n");
 
-		// fit sum time
+		// search for maximal bin
+		// max bin
+		int max_bin[18];
+		for (int i = 0; i < 18; ++i) {
+			max_bin[i] = 1;
+			double max_content = large_sum_time[i].GetBinContent(1);
+			// search for maximum value
+			for (int bin = 2; bin <= large_sum_time[i].GetNbinsX(); ++bin) {
+				if (large_sum_time[i].GetBinContent(bin) > max_content) {
+					max_bin[i] = bin;
+					max_content = large_sum_time[i].GetBinContent(bin);
+				}
+			}
+			// std::cout << "max " << max_bin[i] << " " << max_content << std::endl;
+		}
+
+		// 1D histogram of sum of time to find the range
+		std::vector<TH1F> sum_time;
+		for (int i = 0; i < 18; ++i) {
+			sum_time.emplace_back(
+				TString::Format("hs%c%da%d", "xy"[i%2], i/6, (i/2)%3),
+				TString::Format(
+					"sum time of %c%d reference a%d",
+					"xy"[i%2], i/6, (i/2)%3
+				),
+				1000,
+				large_sum_time[i].GetBinCenter(max_bin[i] - 500) - 0.01,
+				large_sum_time[i].GetBinCenter(max_bin[i] + 499) + 0.01
+			);
+			for (int bin = 1; bin <= 1000; ++bin) {
+				sum_time[i].SetBinContent(
+					bin,
+					large_sum_time[i].GetBinContent(
+						max_bin[i] - 501 + bin
+					)
+				);
+			}
+		}
+
+		// fit and get range
 		for (int i = 0; i < 18; ++i) {
 			// left border of fit range
-			double fit_range_left = fit_range[range_index][i][0];
+			double fit_range_left =
+				large_sum_time[i].GetBinCenter(max_bin[i]) - 1.01;
 			// right border of fit range
-			double fit_range_right = fit_range[range_index][i][1];
-			// add run correction
-			if (i % 2 == 0) {
-				// x
-				if (run_ == 643) {
-					fit_range_left += run_correct[0][i/6];
-					fit_range_right += run_correct[0][i/6];
-				} else if (
-					run_ == 646 || run_ == 650 || run_ == 652 || run_ == 653
-					|| run_ == 658 || run_ == 659 || run_ == 671
-				) {
-					fit_range_left += run_correct[1][i/6];
-					fit_range_right += run_correct[1][i/6];
-				} else if (
-					run_ == 645 || run_ == 647 || run_ == 654 || run_ == 655
-					|| run_ == 665 || run_ == 668
-				) {
-					fit_range_left += run_correct[2][i/6];
-					fit_range_right += run_correct[2][i/6];
-				}
-			}
-			if (run_ == 663) {
-				// x1 -20
-				if (i/6 == 1 && i%2 == 0) {
-					fit_range_left += -20;
-					fit_range_right += -20;
-				}
-				// a0 -10
-				if (i%6 == 0 || i%6 == 1) {
-					fit_range_left += 20;
-					fit_range_right += 20;
-				}
-			}
+			double fit_range_right =
+				large_sum_time[i].GetBinCenter(max_bin[i]) + 1.99;
 			// fit function
 			TF1 fit(
 				TString::Format("f%c%da%d", "xy"[i%2], i/6, (i%6)/2),
 				"gaus", fit_range_left, fit_range_right
 			);
-			hist_sum_time[i].Fit(&fit, "QR+");
+			sum_time[i].Fit(&fit, "QR+");
 			double mean = fit.GetParameter(1);
 			double sigma = fit.GetParameter(2);
 			range[i*2] = mean - sigma * 3.0;
 			range[i*2+1] = mean + sigma * 3.0;
 		}
 		// save histograms
-		for (TH1F &hist : hist_sum_time) {
+		for (TH1F &hist : sum_time) {
+			hist.Write();
+		}
+		for (TH1F &hist : large_sum_time) {
 			hist.Write();
 		}
 
 		// write ranges to file
 		// range file name
 		TString range_file_name = TString::Format(
-			"%s%sxppac-range-%04u.txt",
+			"%s%s%s-range-%04u.txt",
 			kGenerateDataPath,
 			kTimeDir,
+			name_.c_str(),
 			run_
 		);
 		// output range text file
@@ -414,9 +385,10 @@ int Ppac::GetSumRange(
 		// read ranges from file
 		// range file name
 		TString range_file_name = TString::Format(
-			"%s%sxppac-range-%04u.txt",
+			"%s%s%s-range-%04u.txt",
 			kGenerateDataPath,
 			kTimeDir,
+			name_.c_str(),
 			run_
 		);
 		// input range file
@@ -614,11 +586,15 @@ int Calibrate() {
 double PositionXFromXIA(unsigned int run, double time, int index) {
 	double result = 0.0;
 	double offset[3];
-	if (run <= 640) {
+	if (run < 618) {
+		offset[0] = -2.1;
+		offset[1] = -2.7;
+		offset[2] = -3.9;
+	} else if (run <= 640) {
 		offset[0] = -0.1;
 		offset[1] = 1.3;
 		offset[2] = -9.7;
-	} else {
+	} else if (run < 750) {
 		offset[0] = 15.9;
 		offset[1] = 1.3;
 		offset[2] = 2.3;
@@ -635,13 +611,23 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
 		}
+	} else {
+		offset[0] = 17.1;
+		offset[1] = 1.3;
+		offset[2] = 2.3;
+		if (run == 753 || run == 755) {
+			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[1][i];
+		} else if (run == 756 || run == 758 || run == 759 || run == 760 || run == 761) {
+			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
+		}
 	}
 	double correct[3] = {1.87, -0.97, -2.52};
 	if (run > 640) {
 		correct[0] += -0.03;
 		correct[1] += 0.045;
 	}
-	result = (time - offset[index]) / 4.0 + correct[index];
+	// result = (time - offset[index]) / 4.0 + correct[index];
+	result = (time - offset[index]) / 4.0;
 	// return round(result);
 	return result;
 }
@@ -650,7 +636,11 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	double result = 0.0;
 	double offset[3];
-	if (run <= 640) {
+	if (run < 618) {
+		offset[0] = -8.7;
+		offset[1] = 1.9;
+		offset[2] = -2.9;
+	} else if (run <= 640) {
 		offset[0] = -10.7;
 		offset[1] = 13.7;
 		offset[2] = -2.9;
@@ -667,7 +657,8 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		correct[1] += 0.11;
 		correct[2] += 0.08;
 	}
-	result = (time - offset[index]) / -4.0 + correct[index];
+	// result = (time - offset[index]) / -4.0 + correct[index];
+	result = (time - offset[index]) / -4.0;
 	// return round(result);
 	return result;
 }

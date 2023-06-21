@@ -103,6 +103,9 @@ int main(int argc, char **argv) {
 	} else if (condition == 3) {
 		// 14C+2H->10Be+4He+2H 3body
 		channel = std::make_unique<C14ToBe10He4ThreeBodyChannel>(run);
+	} else if (condition == 4) {
+		// 15C+1H->14C+2H pd reaction
+		channel = std::make_unique<C15pdChannel>(run);
 	} else {
 		std::cerr << "Error: Invalid case " << condition << ".\n";
 		return -1;

@@ -21,6 +21,29 @@ constexpr double d1z = 100.0;
 constexpr double ppac_xz[3] = {-695.2, -454.2, -275.2};
 constexpr double ppac_yz[3] = {-689.2, -448.2, -269.2};
 
+double SimpleFit(const double *x, const double *y, double &k, double &b) {
+	int n = 3;
+	double sumx = 0.0;
+	double sumy = 0.0;
+	double sumxy = 0.0;
+	double sumx2 = 0.0;
+	for (int i = 0; i < n; ++i) {
+		sumx += x[i];
+		sumy += y[i];
+		sumxy += x[i] * y[i];
+		sumx2 += x[i] * x[i];
+	}
+	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
+	b = (sumy - k*sumx) / double(n);
+	double chi2 = 0.0;
+	for (int i = 0; i < n; ++i) {
+		double t = y[i] - k*x[i] - b;
+		chi2 += t * t;
+	}
+	return chi2;
+}
+
+
 void FitAndFill(
 	const double *x,
 	const double *y,
@@ -28,19 +51,23 @@ void FitAndFill(
 	const double y0,
 	TH1F *h
 ) {
-	double a[3];
-	for (size_t i = 0; i < 3; ++i) {
-		a[i] = x[i] - x0;
-	}
-	double b[3];
-	for (size_t i = 0; i < 3; ++i) {
-		b[i] = y0 - y[i];
-	}
-	double k = -(a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
-		/ (a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
-	for (size_t i = 0; i < 3; ++i) {
-		h[i].Fill(a[i]*k + b[i]);
-	}
+	// double a[3];
+	// for (size_t i = 0; i < 3; ++i) {
+	// 	a[i] = x[i] - x0;
+	// }
+	// double b[3];
+	// for (size_t i = 0; i < 3; ++i) {
+	// 	b[i] = y0 - y[i];
+	// }
+	// double k = -(a[0]*b[0] + a[1]*b[1] + a[2]*b[2])
+	// 	/ (a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+	// for (size_t i = 0; i < 3; ++i) {
+	// 	h[i].Fill(a[i]*k + b[i]);
+	// }
+
+	double k, b;
+	SimpleFit(x, y, k, b);
+	h[0].Fill(b+x0*k-y0);
 }
 
 
@@ -206,7 +233,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 	CenterStatistics statistics(run, "xppac", tag);
 
 	// fit offset
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 1; ++i) {
 		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);
