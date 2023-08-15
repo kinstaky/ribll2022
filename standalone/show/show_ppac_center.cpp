@@ -51,6 +51,7 @@ void FitAndFill(
 	const double y0,
 	TH1F *h
 ) {
+	// // fix T0D1 and fit 3 PPAC points
 	// double a[3];
 	// for (size_t i = 0; i < 3; ++i) {
 	// 	a[i] = x[i] - x0;
@@ -65,9 +66,17 @@ void FitAndFill(
 	// 	h[i].Fill(a[i]*k + b[i]);
 	// }
 
-	double k, b;
-	SimpleFit(x, y, k, b);
-	h[0].Fill(b+x0*k-y0);
+	// // fit 3 PPAC points and calculate T0D1 offset
+	// double k, b;
+	// SimpleFit(x, y, k, b);
+	// h[0].Fill(b+x0*k-y0);
+
+	// fix first PPAC and T0D1 points and calculate offset of other two PPACs
+	// hjx's method
+	double k = (y0 - y[0]) / (x0 - x[0]);
+	double b = y0 - k * x0;
+	h[0].Fill(y[1] - b - k * x[1]);
+	h[1].Fill(y[2] - b - k * x[2]);
 }
 
 
@@ -216,7 +225,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		}
 		tree->GetEntry(entry);
 		if (
-			t0_event.num != 1 || t0_event.mass[0] != 14
+			t0_event.num != 1 || t0_event.mass[0] != 15
 			|| xflag != 0x7 || yflag != 0x7
 		) continue;
 
@@ -233,8 +242,8 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 	CenterStatistics statistics(run, "xppac", tag);
 
 	// fit offset
-	for (int i = 0; i < 1; ++i) {
-		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
+	for (int i = 0; i < 2; ++i) {
+		TF1 fx(TString::Format("fx%d", i), "gaus", -5, 5);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);
 		fx.SetParameter(2, 1.0);
@@ -242,7 +251,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		hdx[i].Fit(&fx, "QR+");
 		statistics.x_offset[i] = fx.GetParameter(1);
 
-		TF1 fy(TString::Format("fy%d", i), "gaus", -2, 2);
+		TF1 fy(TString::Format("fy%d", i), "gaus", -5, 5);
 		fy.SetParameter(0, 20);
 		fy.SetParameter(1, 0.0);
 		fy.SetParameter(2, 1.0);

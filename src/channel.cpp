@@ -1054,9 +1054,12 @@ int C15pdChannel::Coincide() {
 	ChannelEvent channel;
 	// theta in beam coordinates
 	double bct[4];
+	// index of 14C in T0 event
+	int t0_index;
 	// setup output branches
 	channel.SetupOutput(&opt);
 	opt.Branch("beam_coord_theta", bct, "bct[num]/D");
+	opt.Branch("t0_index", &t0_index, "t0_index/I");
 
 	// total valid events
 	long long total = 0;
@@ -1118,9 +1121,10 @@ int C15pdChannel::Coincide() {
 		}
 		// check PPAC tracking
 		if (xppac.num != 4) continue;
-		if (pow(xppac.x[3]+3.3, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
-			continue;
-		}
+		// if (pow(xppac.x[3]+3.3, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
+		// 	continue;
+		// }
+		if (pow(xppac.x[3]+2.5, 2.0) + pow(xppac.y[3], 2.0) > 225.0) continue;
 
 		// fill channel particle number
 		channel.num = 2;
@@ -1205,10 +1209,13 @@ int C15pdChannel::Coincide() {
 		channel.entry = entry;
 		// taf index
 		channel.taf_index = taf_index;
+		// t0 index
+		t0_index = index;
 		// fill fragments theta in beam coordinates
 		for (int i = 0; i < 2; ++i) {
 			bct[i] = acos(p[i].Unit().Dot(bp.Unit()));
 		}
+
 
 		++total;
 		opt.Fill();

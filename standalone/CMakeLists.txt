@@ -89,8 +89,13 @@ target_link_libraries(rebuild PRIVATE telescopes)
 add_executable(coincide coincide.cpp)
 target_link_libraries(coincide PRIVATE channel)
 
+# info-pd
+add_executable(info_pd info_pd.cpp)
+target_link_libraries(info_pd PRIVATE event)
+
 add_subdirectory(calculate)
 add_subdirectory(check)
 add_subdirectory(filter)
 add_subdirectory(show)
+add_subdirectory(simulate)
 add_subdirectory(summary)

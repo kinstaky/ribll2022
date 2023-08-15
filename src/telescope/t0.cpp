@@ -585,6 +585,7 @@ int T0::ParticleIdentify() {
 	d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
 	d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
 	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	d1d2_cuts.push_back({6, 15, ReadCut("d1d2", "15C")});
 	// T0D2-D3 cuts
 	std::vector<ParticleCut> d2d3_cuts;
 	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
