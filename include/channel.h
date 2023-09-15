@@ -59,6 +59,9 @@ public:
 };
 
 
+int MergeTaf(unsigned int run);
+
+
 }	// namespace ribll
 
 #endif // __CHANNEL_H__

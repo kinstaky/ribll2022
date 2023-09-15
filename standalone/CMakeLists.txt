@@ -93,6 +93,14 @@ target_link_libraries(coincide PRIVATE channel)
 add_executable(info_pd info_pd.cpp)
 target_link_libraries(info_pd PRIVATE event)
 
+# info-3body
+add_executable(info_threebody info_threebody.cpp)
+target_link_libraries(info_threebody PRIVATE event)
+
+# spectrum
+add_executable(spectrum spectrum.cpp)
+target_link_libraries(spectrum PRIVATE event ROOT::Hist)
+
 add_subdirectory(calculate)
 add_subdirectory(check)
 add_subdirectory(filter)

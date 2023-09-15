@@ -20,12 +20,12 @@
 namespace ribll {
 
 const double initial_calibration_parameters[12] = {
-	0.16, 0.005,
-	0.24, 0.0065,
-	-0.8, 0.005,
-	1.5, 0.0023,
-	-0.8, 0.002,
-	0.15, 0.0024
+	-0.1, 0.007,
+	0.5, 0.007,
+	-0.1, 0.0055,
+	0.05, 0.0023,
+	0.0, 0.0025,
+	0.0, 0.0025
 };
 
 T0::T0(unsigned int run, const std::string &tag)
@@ -58,6 +58,7 @@ void TrackDssdEvent(
 		t0.layer[t0.num] = 1;
 		t0.flag[t0.num] = 0x1;
 		t0.energy[t0.num][0] = d1.energy[i];
+		t0.time[t0.num][0] = d1.time[i];
 		t0.x[t0.num][0] = d1.x[i];
 		t0.y[t0.num][0] = d1.y[i];
 		t0.z[t0.num][0] = d1.z[i];
@@ -90,6 +91,7 @@ void TrackDssdEvent(
 					t0.layer[j]++;
 					t0.flag[j] |= 0x2;
 					t0.energy[j][1] = d2.energy[i];
+					t0.time[j][1] = d2.time[i];
 					t0.x[j][1] = d2.x[i];
 					t0.y[j][1] = d2.y[i];
 					t0.z[j][1] = d2.z[i];
@@ -106,6 +108,8 @@ void TrackDssdEvent(
 			t0.flag[t0.num] = 0x2;
 			t0.energy[t0.num][0] = 0.0;
 			t0.energy[t0.num][1] = d2.energy[i];
+			t0.time[t0.num][0] = -1e5;
+			t0.time[t0.num][1] = d2.time[i];
 			t0.x[t0.num][1] = d2.x[i];
 			t0.y[t0.num][1] = d2.y[i];
 			t0.z[t0.num][1] = d2.z[i];
@@ -150,6 +154,7 @@ void TrackDssdEvent(
 					t0.layer[j]++;
 					t0.flag[j] |= 0x4;
 					t0.energy[j][2] = d3.energy[i];
+					t0.time[j][2] = d3.time[i];
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
@@ -164,6 +169,7 @@ void TrackDssdEvent(
 					t0.layer[j]++;
 					t0.flag[j] |= 0x4;
 					t0.energy[j][2] = d3.energy[i];
+					t0.time[j][2] = d3.time[i];
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
@@ -178,6 +184,7 @@ void TrackDssdEvent(
 					t0.layer[j]++;
 					t0.flag[j] |= 0x4;
 					t0.energy[j][2] = d3.energy[i];
+					t0.time[j][2] = d3.time[i];
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
@@ -196,6 +203,7 @@ void TrackDssdEvent(
 				t0.flag[j] = t0.flag[j+1];
 				for (unsigned short k = 0; k < 3; ++k) {
 					t0.energy[j][k] = t0.energy[j+1][k];
+					t0.time[j][k] = t0.time[j+1][k];
 					t0.x[j][k] = t0.x[j+1][k];
 					t0.y[j][k] = t0.y[j+1][k];
 					t0.z[j][k] = t0.z[j+1][k];
@@ -428,12 +436,25 @@ int DssdParticleIdentify(
 	const T0Event &t0,
 	size_t index,
 	const std::vector<ParticleCut> &d1d2_cuts,
+	const std::vector<ParticleCut> &d1d2_tails,
+	const std::vector<ParticleCut> &d1d2_center_cuts,
+	const std::vector<ParticleCut> &d1d2_center_tails,
 	const std::vector<ParticleCut> &d2d3_cuts,
+	const std::vector<ParticleCut> &d2d3_center_cuts,
 	ParticleTypeEvent &type
 ) {
+	bool center = false;
+	if (
+		t0.x[index][1] > -9 && t0.x[index][1] < -3
+		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
+	) {
+		center = true;
+	}
 	if (t0.flag[index] == 0x3) {
+		const std::vector<ParticleCut> &cuts =
+			center ? d1d2_center_cuts : d1d2_cuts;
 		// particle pass 2 DSSD
-		for (const auto &cut : d1d2_cuts) {
+		for (const auto &cut : cuts) {
 			if (cut.cut->IsInside(t0.energy[index][1], t0.energy[index][0])) {
 				// particle is in cuts, recored the charge and mass number
 				type.charge[index] = cut.charge;
@@ -443,12 +464,23 @@ int DssdParticleIdentify(
 			}
 		}
 	} else if (t0.flag[index] == 0x7) {
+		const std::vector<ParticleCut> &cuts =
+			center ? d2d3_center_cuts : d2d3_cuts;
+		const std::vector<ParticleCut> &tails =
+			center ? d1d2_center_tails : d1d2_tails;
 		// particle pass all 3 DSSD
-		for (const auto &cut : d2d3_cuts) {
-			if (cut.cut->IsInside(t0.energy[index][2], t0.energy[index][1])) {
+		for (size_t i = 0; i < cuts.size(); ++i) {
+			if (
+				cuts[i].cut->IsInside(
+					t0.energy[index][2], t0.energy[index][1]
+				)
+				&& tails[i].cut->IsInside(
+					t0.energy[index][1], t0.energy[index][0]
+				)
+			) {
 				// particle is in cuts, recored the charge and mass number
-				type.charge[index] = cut.charge;
-				type.mass[index] = cut.mass;
+				type.charge[index] = cuts[i].charge;
+				type.mass[index] = cuts[i].mass;
 				type.layer[index] = 2;
 				return 2;
 			}
@@ -462,13 +494,25 @@ int DssdParticleIdentify(
 int SsdParticleIdentify(
 	const T0Event &t0,
 	size_t index,
+	const std::vector<ParticleCut> &d2d3_tails,
+	const std::vector<ParticleCut> &d2d3_center_tails,
 	const std::vector<ParticleCut> &d3s1_cuts,
+	const std::vector<ParticleCut> &d3s1_tails,
 	const std::vector<ParticleCut> &s1s2_cuts,
+	const std::vector<ParticleCut> &s1s2_tails,
 	const std::vector<ParticleCut> &s2s3_cuts,
-	const std::vector<ParticleCut> &s2s3_pass_cuts,
+	const std::vector<ParticleCut> &s2s3_tails,
 	const std::unique_ptr<TCutG> &s1s2_cross_cut,
 	ParticleTypeEvent &type
 ) {
+	bool center = false;
+	if (
+		t0.x[index][1] > -9 && t0.x[index][1] < -3
+		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
+	) {
+		center = true;
+	}
+
 	// if (t0.flag[index] != 0x7) return -1;
 	// the true ssd flag, since there is cross signal in T0S2 from T0S1,
 	// check this first and correct the ssd flag
@@ -482,38 +526,61 @@ int SsdParticleIdentify(
 	}
 	// identify particle in different conditions
 	if (ssd_flag == 0x1) {
+		const std::vector<ParticleCut> &tails =
+			center ? d2d3_center_tails : d2d3_tails;
 		// particle stop in the first SSD
-		for (const auto &cut : d3s1_cuts) {
-			if (cut.cut->IsInside(t0.ssd_energy[0], t0.energy[index][2])) {
+		for (size_t i = 0; i < d3s1_cuts.size(); ++i) {
+			if (
+				d3s1_cuts[i].cut->IsInside(
+					t0.ssd_energy[0], t0.energy[index][2]
+				)
+				&& tails[i].cut->IsInside(
+					t0.energy[index][2], t0.energy[index][1]
+				)
+			) {
 				// particle is in cuts, record the charge and mass
-				type.charge[index] = cut.charge;
-				type.mass[index] = cut.mass;
+				type.charge[index] = d3s1_cuts[i].charge;
+				type.mass[index] = d3s1_cuts[i].mass;
 				type.layer[index] = 3;
 				return 3;
 			}
 		}
 	} else if (ssd_flag == 0x3) {
 		// particle stop in the second SSD
-		for (const auto &cut : s1s2_cuts) {
-			if (cut.cut->IsInside(t0.ssd_energy[1], t0.ssd_energy[0])) {
+		for (size_t i = 0; i < s1s2_cuts.size(); ++i) {
+			if (
+				s1s2_cuts[i].cut->IsInside(
+					t0.ssd_energy[1], t0.ssd_energy[0]
+				)
+				&& d3s1_tails[i].cut->IsInside(
+					t0.ssd_energy[0], t0.energy[index][2]
+				)
+			) {
 				// particle is in cuts, record the charge and mass
-				type.charge[index] = cut.charge;
-				type.mass[index] = cut.mass;
+				type.charge[index] = s1s2_cuts[i].charge;
+				type.mass[index] = s1s2_cuts[i].mass;
 				type.layer[index] = 4;
 				return 4;
 			}
 		}
 	} else if (ssd_flag == 0x7) {
 		// particle stop in the third SSD or CsI(Tl)
-		for (const auto &cut : s2s3_cuts) {
-			if (cut.cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
-				type.charge[index] = cut.charge;
-				type.mass[index] = cut.mass;
+		for (size_t i = 0; i < s2s3_cuts.size(); ++i) {
+			if (
+				s2s3_cuts[i].cut->IsInside(
+					t0.ssd_energy[2], t0.ssd_energy[1]
+				)
+				&& s1s2_tails[i].cut->IsInside(
+					t0.ssd_energy[1], t0.ssd_energy[0]
+				)
+			) {
+				type.charge[index] = s2s3_cuts[i].charge;
+				type.mass[index] = s2s3_cuts[i].mass;
 				type.layer[index] = 5;
 				return 5;
 			}
 		}
-		for (const auto &cut : s2s3_pass_cuts) {
+		for (const auto &cut : s2s3_tails) {
 			if (cut.cut->IsInside(t0.ssd_energy[2], t0.ssd_energy[1])) {
 				type.charge[index] = cut.charge;
 				type.mass[index] = cut.mass;
@@ -573,37 +640,67 @@ int T0::ParticleIdentify() {
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
-	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
-	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
+	// d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
+	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	// d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
+	// d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
 	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-	d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
-	d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
-	d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
-	d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
-	d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
-	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
-	d1d2_cuts.push_back({6, 15, ReadCut("d1d2", "15C")});
+	// d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
+	// d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
+	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+	// d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
+	// d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
+	// d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
+	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	// d1d2_cuts.push_back({6, 15, ReadCut("d1d2", "15C")});
+	// T0D1-D2 tail cuts
+	std::vector<ParticleCut> d1d2_tails;
+	d1d2_tails.push_back({2, 0, ReadCut("d1d2-tail", "He")});
+	// d1d2_tails.push_back({3, 0, ReadCut("d1d2-tail", "Li")});
+	d1d2_tails.push_back({4, 0, ReadCut("d1d2-tail", "Be")});
+	// T0D1-D2 center cuts
+	std::vector<ParticleCut> d1d2_center_cuts;
+	d1d2_center_cuts.push_back({2, 4, ReadCut("d1d2-center", "He")});
+	d1d2_center_cuts.push_back({4, 10, ReadCut("d1d2-center", "Be")});
+	// T0D1-D2 center tail cuts
+	std::vector<ParticleCut> d1d2_center_tails;
+	d1d2_center_tails.push_back({2, 0, ReadCut("d1d2-tail-center", "He")});
+	d1d2_center_tails.push_back({4, 0, ReadCut("d1d2-tail-center", "Be")});
+
 	// T0D2-D3 cuts
 	std::vector<ParticleCut> d2d3_cuts;
 	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
-	d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
+	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
 	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+	// T0D2-D3 tail cuts
+	std::vector<ParticleCut> d2d3_tails;
+	d2d3_tails.push_back({2, 0, ReadCut("d2d3-tail", "He")});
+	// T0D2-D3 center cuts
+	std::vector<ParticleCut> d2d3_center_cuts;
+	d2d3_center_cuts.push_back({2, 4, ReadCut("d2d3-center", "He")});
+	d2d3_center_cuts.push_back({4, 10, ReadCut("d2d3-center", "Be")});
+	// T0D2-D3 center tail cuts
+	std::vector<ParticleCut> d2d3_center_tails;
+	d2d3_center_tails.push_back({2, 0, ReadCut("d2d3-tail-center", "He")});
+
 	// T0D3-S1 cuts
 	std::vector<ParticleCut> d3s1_cuts;
 	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
-
+	// T0D3-S1 tail cuts
+	std::vector<ParticleCut> d3s1_tails;
+	d3s1_tails.push_back({2, 0, ReadCut("d3s1-tail", "4He")});
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_cuts;
 	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+	// T0S1-S2 cuts
+	std::vector<ParticleCut> s1s2_tails;
+	s1s2_tails.push_back({2, 0, ReadCut("s1s2-tail", "4He")});
 	// T0S2-S3 cuts
 	std::vector<ParticleCut> s2s3_cuts;
 	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
 	// T0S2-S3 pass cuts
-	std::vector<ParticleCut> s2s3_pass_cuts;
-	s2s3_pass_cuts.push_back({2, 4, ReadCut("s2s3-t", "4He")});
+	std::vector<ParticleCut> s2s3_tails;
+	s2s3_tails.push_back({2, 4, ReadCut("s2s3-tail", "4He")});
 	// special cut of S1-S2 interaction
 	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
 
@@ -642,7 +739,10 @@ int T0::ParticleIdentify() {
 		if (t0_event.num == 1) {
 			++total;
 			int identify = DssdParticleIdentify(
-				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 0,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			if (
 				identify <= 0
@@ -651,8 +751,10 @@ int T0::ParticleIdentify() {
 			) {
 				identify = SsdParticleIdentify(
 					t0_event, 0,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 			}
@@ -660,16 +762,24 @@ int T0::ParticleIdentify() {
 		} else if (t0_event.num == 2) {
 			++total;
 			int identify0 = DssdParticleIdentify(
-				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 0,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			int identify1 = DssdParticleIdentify(
-				t0_event, 1, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 1,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			if (identify0 <= 0 && identify1 > 0 && t0_event.flag[0] == 0x7) {
 				int identify = SsdParticleIdentify(
 					t0_event, 0,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id22;
@@ -680,8 +790,10 @@ int T0::ParticleIdentify() {
 			) {
 				int identify = SsdParticleIdentify(
 					t0_event, 1,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id22;
@@ -692,13 +804,22 @@ int T0::ParticleIdentify() {
 		} else if (t0_event.num == 3) {
 			++total;
 			int identify0 = DssdParticleIdentify(
-				t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 0,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			int identify1 = DssdParticleIdentify(
-				t0_event, 1, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 1,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			int identify2 = DssdParticleIdentify(
-				t0_event, 2, d1d2_cuts, d2d3_cuts, type_event
+				t0_event, 2,
+				d1d2_cuts, d1d2_tails, d1d2_center_cuts, d1d2_center_tails,
+				d2d3_cuts, d2d3_center_cuts,
+				type_event
 			);
 			if (identify0 > 0 && identify1 > 0 && identify2 > 0) {
 				++id33;
@@ -708,8 +829,10 @@ int T0::ParticleIdentify() {
 			) {
 				int identify = SsdParticleIdentify(
 					t0_event, 0,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id33;
@@ -720,8 +843,10 @@ int T0::ParticleIdentify() {
 			) {
 				int identify = SsdParticleIdentify(
 					t0_event, 1,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id33;
@@ -732,8 +857,10 @@ int T0::ParticleIdentify() {
 			) {
 				int identify = SsdParticleIdentify(
 					t0_event, 2,
-					d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts,
-					s1s2_cross_cut,
+					d2d3_tails, d2d3_center_tails, d3s1_cuts,
+					d3s1_tails, s1s2_cuts,
+					s1s2_tails, s2s3_cuts,
+					s2s3_tails, s1s2_cross_cut,
 					type_event
 				);
 				if (identify > 0) ++id33;
@@ -796,19 +923,19 @@ const std::vector<ParticlePidInfo> pid_info {
 	{0, 2, 2, 4, 4000.0, 8000.0, 0.0},
 	{0, 3, 3, 7, 8000.0, 13'000.0, 0.0},
 	{0, 4, 4, 10, 13'000.0, 24'000.0, 0.0},
-	{0, 5, 6, 14, 36'000.0, 52'000.0, 0.0},
+	// {0, 5, 6, 14, 36'000.0, 52'000.0, 0.0},
 	// d2d3
 	{1, 2, 2, 4, 5000.0, 9000.0, 55'000.0},
 	{1, 3, 3, 7, 10'000.0, 16'000.0, 55'000.0},
 	{1, 4, 4, 10, 20'000.0, 26'000.0, 55'000.0},
 	// d3s1
-	{2, 1, 1, 2, 1900.0, 2400.0, 85'000.0},
+	// {2, 1, 1, 2, 1900.0, 2400.0, 85'000.0},
 	{2, 2, 2, 4, 5200.0, 9500.0, 85'000.0},
 	// s1s2
-	{3, 0, 1, 1, 3500.0, 5000.0, 95'000.0},
+	// {3, 0, 1, 1, 3500.0, 5000.0, 95'000.0},
 	{3, 2, 2, 4, 13'500.0, 25'000.0, 95'000.0},
 	// s2s3
-	{4, 0, 1, 1, 3500.0, 5500.0, 120'000.0},
+	// {4, 0, 1, 1, 3500.0, 5500.0, 120'000.0},
 	{4, 2, 2, 4, 13'500.0, 22'500.0, 120'000.0}
 };
 
@@ -857,11 +984,11 @@ private:
 
 
 int T0::Calibrate(unsigned int end_run) {
-	// T0 event chain
-	TChain ipt("t0", "chain of T0 events");
+	// input T0 telescope chain
+	TChain t0_chain("t0", "chain of T0 events");
 	for (unsigned int i = run_; i <= end_run; ++i) {
 		if (i == 628) continue;
-		ipt.AddFile(TString::Format(
+		t0_chain.AddFile(TString::Format(
 			"%s%st0-telescope-%s%04u.root/tree",
 			kGenerateDataPath,
 			kTelescopeDir,
@@ -869,58 +996,47 @@ int T0::Calibrate(unsigned int end_run) {
 			i
 		));
 	}
-	// PPAC event chain
-	TChain ppac_chain("ppac", "chain of PPAC events");
+	// input T0 particle type chain
+	TChain type_chain("type", "chain of particle type events");
 	for (unsigned int i = run_; i <= end_run; ++i) {
 		if (i == 628) continue;
-		ppac_chain.AddFile(TString::Format(
-			"%s%sxppac-particle-%s%04u.root/tree",
+		type_chain.AddFile(TString::Format(
+			"%s%st0-particle-type-%s%04u.root/tree",
 			kGenerateDataPath,
-			kParticleDir,
+			kParticleIdentifyDir,
 			tag_.empty() ? "" : (tag_+"-").c_str(),
 			i
 		));
 	}
 	// add friend
-	ipt.AddFriend(&ppac_chain);
-	// input telescope event
+	t0_chain.AddFriend(&type_chain, "type");
+	// input T0 telescope event
 	T0Event t0_event;
-	// input ppac event
-	ParticleEvent ppac_event;
+	// input T0 particle type event
+	ParticleTypeEvent type_event;
 	// setup input branches
-	t0_event.SetupInput(&ipt);
-	ppac_event.SetupInput(&ipt, "ppac.");
+	t0_event.SetupInput(&t0_chain);
+	type_event.SetupInput(&t0_chain, "type.");
 
 	// output calibration root file name
 	TString calibration_file_name;
-	if (run_ == end_run) {
-		calibration_file_name.Form(
-			"%s%st0-calibration-%s%04u.root",
-			kGenerateDataPath,
-			kCalibrationDir,
-			tag_.empty() ? "" : (tag_+"-").c_str(),
-			run_
-		);
-	} else {
-		calibration_file_name.Form(
-			"%s%st0-calibration-%s%04u-%04u.root",
-			kGenerateDataPath,
-			kCalibrationDir,
-			tag_.empty() ? "" : (tag_+"-").c_str(),
-			run_,
-			end_run
-		);
-	}
+	calibration_file_name.Form(
+		"%s%st0-calibration-%s%04u-%04u.root",
+		// "%s%st0-calibration-%s%04u.root",
+		kGenerateDataPath,
+		kCalibrationDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_,
+		end_run
+	);
 	// output calibration file
 	TFile calibration_file(calibration_file_name, "recreate");
-	// output E-VS-dE graph
-	TGraph e_vs_de;
+	// output E-VS-dE graph, with offset for different layers in dE
+	TGraph e_vs_de_offset;
 
-	// T0D1D2 4He cut
-	std::unique_ptr<TCutG> cut = ReadCut("d1d2", "4He");
 
- 	// total number of entries
-	long long entries = ipt.GetEntries();
+	// total number of entries
+	long long entries = t0_chain.GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -934,247 +1050,123 @@ int T0::Calibrate(unsigned int end_run) {
 			fflush(stdout);
 		}
 		// get event
-		ipt.GetEntry(entry);
+		t0_chain.GetEntry(entry);
 		for (unsigned short i = 0; i < t0_event.num; ++i) {
-			if (
-				cut->IsInside(t0_event.energy[i][1], t0_event.energy[i][0])
-				&& t0_event.status[i] == 1111
-				&& fabs(t0_event.x[i][0] - t0_event.x[i][1]) < 2
-				&& fabs(t0_event.y[i][0] - t0_event.y[i][1]) < 2
-				&& ppac_event.num == 4
-				&& fabs(ppac_event.x[3] - t0_event.x[i][0]) < 2
-				&& fabs(ppac_event.y[3] - t0_event.y[i][0]) < 2
-				// && t0_event.points[i] >= 28
-			) {
-				e_vs_de.AddPoint(t0_event.energy[i][0], t0_event.energy[i][1]);
+			if (type_event.layer[i] == 1) {
+				double de = t0_event.energy[i][0];
+				double e = t0_event.energy[i][1];
+				if (
+					type_event.charge[i] == 2
+					&& type_event.mass[i] == 4
+				) {
+					if (de > 4000.0 && de < 8000.0) {
+						e_vs_de_offset.AddPoint(de, e);
+					}
+				} else if (
+					type_event.charge[i] == 3
+					&& type_event.mass[i] == 7
+				) {
+					if (de > 8000.0 && de < 13'000.0) {
+						e_vs_de_offset.AddPoint(de, e);
+					}
+				} else if (
+					type_event.charge[i] == 4
+					&& type_event.mass[i] == 10
+				) {
+					if (de > 13'000.0 && de < 24'000.0) {
+						e_vs_de_offset.AddPoint(de, e);
+					}
+				}
+			} else if (type_event.layer[i] == 2) {
+				double de = t0_event.energy[i][1];
+				double e = t0_event.energy[i][2];
+				if (
+					type_event.charge[i] == 2
+					&& type_event.mass[i] == 4
+				) {
+					if (de > 5000.0 && de < 9000.0) {
+						e_vs_de_offset.AddPoint(de+55'000.0, e);
+					}
+				} else if (
+					type_event.charge[i] == 3
+					&& type_event.mass[i] == 7
+				) {
+					if (de > 10'000.0 && de < 16'000.0) {
+						e_vs_de_offset.AddPoint(de+55'000.0, e);
+					}
+				} else if (
+					type_event.charge[i] == 4
+					&& type_event.mass[i] == 10
+				) {
+					if (de > 20'000.0 && de < 26'000.0) {
+						e_vs_de_offset.AddPoint(de+55'000.0, e);
+					}
+				}
+			} else if (type_event.layer[i] == 3) {
+				double de = t0_event.energy[i][2];
+				double e = t0_event.ssd_energy[0];
+				if (
+					type_event.charge[i] == 2
+					&& type_event.mass[i] == 4
+				) {
+					if (de > 5200.0 && de < 9500.0) {
+						e_vs_de_offset.AddPoint(de+85'000.0, e);
+					}
+				}
+			} else if (type_event.layer[i] == 4) {
+				double de = t0_event.ssd_energy[0];
+				double e = t0_event.ssd_energy[1];
+				if (
+					type_event.charge[i] == 2
+					&& type_event.mass[i] == 4
+				) {
+					if (de > 13'500.0 && de < 25'000.0) {
+						e_vs_de_offset.AddPoint(de+95'000.0, e);
+					}
+				}
+			} else if (type_event.layer[i] == 5) {
+				double de = t0_event.ssd_energy[1];
+				double e = t0_event.ssd_energy[2];
+				if (de > 13'500.0 && de < 22'500.0) {
+					e_vs_de_offset.AddPoint(de+120'000.0, e);
+				}
 			}
 		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	CurveFit curve_fit;
+	std::vector<std::string> projectiles{
+		"1H", "2H", "4He", "7Li", "10Be", "14C"
+	};
+	PidFitFunc pid_fit("t0", projectiles);
 	// fit function
-	TF1 fcali("fcali", curve_fit, 4000.0, 8000.0, 4);
+	TF1 fcali("fcali", pid_fit, 0.0, 150'000.0, 12);
 	fcali.SetNpx(10000);
-	for (size_t i = 0; i < 4; ++i) {
+	for (size_t i = 0; i < 12; ++i) {
 		fcali.SetParameter(i, initial_calibration_parameters[i]);
 	}
 	// fit
-	e_vs_de.Fit(&fcali, "R+");
+	e_vs_de_offset.Fit(&fcali, "R+");
 
 	// get parameters from fitting
-	for (size_t i = 0; i < 4; ++i) {
+	for (size_t i = 0; i < 12; ++i) {
 		cali_params_[i] = fcali.GetParameter(i);
 	}
 	// save parameters to txt file
-	if (WriteCalibrateParameters(end_run)) {
+	if (WriteCalibrateParameters()) {
 		calibration_file.Close();
 		return -1;
 	}
 
 	// save graph
 	calibration_file.cd();
-	e_vs_de.Write("gcali");
+	e_vs_de_offset.Write("gcali");
 	// close files
 	calibration_file.Close();
 
 	return 0;
 }
-
-
-// int T0::Calibrate(unsigned int end_run) {
-// 	TChain ipt("chain", "chain of T0 events");
-// 	for (unsigned int i = run_; i <= end_run; ++i) {
-// 		if (i == 628) continue;
-// 		ipt.AddFile(TString::Format(
-// 			"%s%st0-telescope-%s%04u.root/tree",
-// 			kGenerateDataPath,
-// 			kTelescopeDir,
-// 			tag_.empty() ? "" : (tag_+"-").c_str(),
-// 			i
-// 		));
-// 	}
-// 	// TString tele_file_name;
-// 	// tele_file_name.Form(
-// 	// 	"%s%st0-telescope-%s%04u.root",
-// 	// 	kGenerateDataPath,
-// 	// 	kTelescopeDir,
-// 	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-// 	// 	run_
-// 	// );
-// 	// // input file
-// 	// TFile tele_file(tele_file_name, "read");
-// 	// // input tree
-// 	// TTree *ipt = (TTree*)tele_file.Get("tree");
-// 	// if (!ipt) {
-// 	// 	std::cerr << "Error: Get tree from "
-// 	// 		<< tele_file_name << " failed.\n";
-// 	// 	return -1;
-// 	// }
-// 	// input telescope event
-// 	T0Event t0_event;
-// 	// setup input branches
-// 	t0_event.SetupInput(&ipt);
-
-// 	// output calibration root file name
-// 	TString calibration_file_name;
-// 	calibration_file_name.Form(
-// 		// "%s%st0-calibration-%s%04u-%04u.root",
-// 		"%s%st0-calibration-%s%04u.root",
-// 		kGenerateDataPath,
-// 		kCalibrationDir,
-// 		tag_.empty() ? "" : (tag_+"-").c_str(),
-// 		run_
-// 	);
-// 	// output calibration file
-// 	TFile calibration_file(calibration_file_name, "recreate");
-// 	// output E-VS-dE graph, with offset for different layers in dE
-// 	TGraph e_vs_de_offset;
-
-// 	// T0D1-D2 cuts
-// 	std::vector<ParticleCut> d1d2_cuts;
-// 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-// 	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-// 	// d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-// 	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-// 	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
-// 	// T0D2-D3 cuts
-// 	std::vector<ParticleCut> d2d3_cuts;
-// 	// d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
-// 	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
-// 	// d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
-// 	// T0D3-S1 cuts
-// 	std::vector<ParticleCut> d3s1_cuts;
-// 	// d3s1_cuts.push_back({1, 2, ReadCut("d3s1", "2H")});
-// 	// d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
-
-// 	// T0S1-S2 cuts
-// 	std::vector<ParticleCut> s1s2_cuts;
-// 	// s1s2_cuts.push_back({1, 1, ReadCut("s1s2", "1H")});
-// 	// s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
-// 	// T0S2-S3 cuts
-// 	std::vector<ParticleCut> s2s3_cuts;
-// 	// s2s3_cuts.push_back({1, 1, ReadCut("s2s3", "1H")});
-// 	// s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
-// 	// T0S2-S3 pass cuts
-// 	std::vector<ParticleCut> s2s3_pass_cuts;
-// 	// special cut of S1-S2 interaction
-// 	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
-
-// 	// type event for filter
-// 	ParticleTypeEvent type_event;
-// 	type_event.num = 1;
-
-// 	// total number of entries
-// 	long long entries = ipt.GetEntries();
-// 	// 1/100 of entries
-// 	long long entry100 = entries / 100 + 1;
-// 	// show start
-// 	printf("Filling events to graph   0%%");
-// 	fflush(stdout);
-// 	// loop to fill events to graph
-// 	for (long long entry = 0; entry < entries; ++entry) {
-// 		// show process
-// 		if (entry % entry100 == 0) {
-// 			printf("\b\b\b\b%3lld%%", entry / entry100);
-// 			fflush(stdout);
-// 		}
-// 		// get event
-// 		ipt.GetEntry(entry);
-// 		// initialize type event
-// 		type_event.charge[0] = type_event.mass[0] = 0;
-// 		// only use num==1 events to calibrate
-// 		if (t0_event.num != 1) continue;
-// 		if (t0_event.x[0][0]*t0_event.x[0][0]+t0_event.y[0][0]*t0_event.y[0][0] > 100) continue;
-// 		int layer = DssdParticleIdentify(
-// 			t0_event, 0, d1d2_cuts, d2d3_cuts, type_event
-// 		);
-// 		double delta_energy = -1e5;
-// 		double energy = -1e5;
-// 		// check layer and get dE and E
-// 		if (layer == 1 || layer == 2) {
-// 			delta_energy = t0_event.energy[0][layer-1];
-// 			energy = t0_event.energy[0][layer];
-// 			for (const auto &info : pid_info) {
-// 				if (
-// 					info.layer == layer - 1
-// 					&& info.charge == type_event.charge[0]
-// 					&& info.mass == type_event.mass[0]
-// 					&& delta_energy > info.left
-// 					&& delta_energy < info.right
-// 				) {
-// 					e_vs_de_offset.AddPoint(
-// 						delta_energy + info.offset, energy
-// 					);
-// 					break;
-// 				}
-// 			}
-// 		}
-// 		layer = SsdParticleIdentify(
-// 			t0_event, 0,
-// 			d3s1_cuts, s1s2_cuts, s2s3_cuts, s2s3_pass_cuts, s1s2_cross_cut,
-// 			type_event
-// 		);
-// 		if (layer == 3) {
-// 			delta_energy = t0_event.energy[0][2];
-// 			energy = t0_event.ssd_energy[0];
-// 		} else if (layer == 4 || layer == 5) {
-// 			delta_energy = t0_event.ssd_energy[layer-4];
-// 			energy = t0_event.ssd_energy[layer-3];
-// 		}
-// 		if (layer < 3 || layer > 5) continue;
-// 		for (const auto &info : pid_info) {
-// 			if (
-// 				info.layer == layer - 1
-// 				&& info.charge == type_event.charge[0]
-// 				&& info.mass == type_event.mass[0]
-// 				&& delta_energy > info.left
-// 				&& delta_energy < info.right
-// 			) {
-// 				e_vs_de_offset.AddPoint(
-// 					delta_energy + info.offset, energy
-// 				);
-// 				break;
-// 			}
-// 		}
-// 	}
-// 	// show finish
-// 	printf("\b\b\b\b100%%\n");
-
-// 	std::vector<std::string> projectiles{
-// 		"1H", "2H", "4He", "7Li", "10Be", "14C"
-// 	};
-// 	PidFitFunc pid_fit("t0", projectiles);
-// 	// fit function
-// 	TF1 fcali("fcali", pid_fit, 0.0, 150'000.0, 12);
-// 	fcali.SetNpx(10000);
-// 	for (size_t i = 0; i < 12; ++i) {
-// 		fcali.SetParameter(i, initial_calibration_parameters[i]);
-// 	}
-// 	// fit
-// 	e_vs_de_offset.Fit(&fcali, "R+");
-
-// 	// get parameters from fitting
-// 	for (size_t i = 0; i < 12; ++i) {
-// 		cali_params_[i] = fcali.GetParameter(i);
-// 	}
-// 	// save parameters to txt file
-// 	if (WriteCalibrateParameters()) {
-// 		calibration_file.Close();
-// 		// telescope_file.Close();
-// 		return -1;
-// 	}
-
-// 	// save graph
-// 	calibration_file.cd();
-// 	e_vs_de_offset.Write("gcali");
-// 	// close files
-// 	calibration_file.Close();
-// 	// telescope_file.Close();
-
-// 	return 0;
-// }
 
 
 int T0::Rebuild() {
@@ -1241,6 +1233,9 @@ int T0::Rebuild() {
 
 	// CsI energy calculator
 	elc::CsiEnergyCalculator csi_calculator("4He");
+	// delta energy calculator
+	elc::DeltaEnergyCalculator delta_4He_calculator("t0", "4He");
+	elc::DeltaEnergyCalculator delta_10Be_calculator("t0", "10Be");
 
 	// totla number of entries
 	long long entries = ipt->GetEntries();
@@ -1263,7 +1258,7 @@ int T0::Rebuild() {
 		for (unsigned short i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
-			if (type_event.layer[i] > 2) continue;
+			if (type_event.layer[i] < 1 || type_event.layer[i] > 6) continue;
 
 			// fill charge number
 			particle_event.charge[particle_event.num] = type_event.charge[i];
@@ -1271,8 +1266,24 @@ int T0::Rebuild() {
 			particle_event.mass[particle_event.num] = type_event.mass[i];
 
 			// calculate energy from all Si detectors
+			// double energy = -1.0;
+			// if (type_event.charge[i] == 2 && type_event.mass[i] == 4) {
+			// 	double d1_energy = CaliEnergy(0, t0_event.energy[i][0]);
+			// 	// get d2 energy from d1 energy and delta energy calculator
+			// 	double d2_energy = delta_4He_calculator.Energy(0, d1_energy);
+			// 	// get total energy
+			// 	energy = d1_energy + d2_energy;
+			// } else if (type_event.charge[i] == 4 && type_event.mass[i] == 10) {
+			// 	double d1_energy = CaliEnergy(0, t0_event.energy[i][0]);
+			// 	// get d2 energy from d1 energy and delta energy calculator
+			// 	double d2_energy = delta_10Be_calculator.Energy(0, d1_energy);
+			// 	// get total energy
+			// 	energy = d1_energy + d2_energy;
+			// } else {
+			// 	energy = TotalEnergy(t0_event, type_event, i, csi_calculator);
+			// }
 			double energy =
-				TotalEnergy(t0_event, type_event, i, csi_calculator);
+				TotalEnergy(t0_event, type_event, i, csi_calculator, delta_10Be_calculator);
 			// fill energy
 			particle_event.energy[particle_event.num] = energy;
 			particle_event.time[particle_event.num] = t0_event.time[i][0];
@@ -1289,6 +1300,7 @@ int T0::Rebuild() {
 
 			// other information
 			particle_event.status[particle_event.num] = t0_event.status[i];
+			particle_event.index[particle_event.num] = i;
 			++particle_event.num;
 		}
 		opt.Fill();
@@ -1311,18 +1323,22 @@ double T0::TotalEnergy(
 	const T0Event &t0,
 	const ParticleTypeEvent &type,
 	const size_t index,
-	const elc::CsiEnergyCalculator &csi_calculator
+	const elc::CsiEnergyCalculator &csi_calculator,
+	const elc::DeltaEnergyCalculator &delta_calculator
 ) const {
 	// total energy
-	double energy = 0.0;
+	double energy = CaliEnergy(0, t0.energy[index][0]);
 	// DSSD layers particle hit
-	size_t dssd_layer = type.layer[index] == 1 ? 1 : 2;
-	for (size_t i = 0; i <= dssd_layer; ++i) {
-		// add calibrated DSSD energy
-		energy += CaliEnergy(i, t0.energy[index][i]);
+	if (type.layer[index] >= 1) {
+		if (type.charge[index] == 4 && type.mass[index] >= 9) {
+			energy += delta_calculator.Energy(0, energy);
+		} else {
+			energy += CaliEnergy(1, t0.energy[index][1]);
+		}
 	}
+	if (type.layer[index] >= 2) energy += CaliEnergy(2, t0.energy[index][2]);
 	// return energy if particle stop at T0D2
-	if (dssd_layer == 1) return energy;
+	if (type.layer[index] == 1) return energy;
 
 	size_t ssd_layer = type.layer[index] < 5 ? type.layer[index] : 5;
 	ssd_layer -= 2;
@@ -1495,6 +1511,10 @@ int T0::CalibrateResult() {
 	return 0;
 }
 
+constexpr double comb_energy_threshold = 1000;
+constexpr double single_comb_time_threshold = 200;
+constexpr double comb_time_threshold = 400;
+
 struct StripGroup {
 	double energy;
 	double time;
@@ -1528,7 +1548,10 @@ void SearchStripCombinations(
 			if (abs(fs[i]-fs[j]) == 1) {
 				fadt.Fill(ft[i]-ft[j]);
 			}
-			if (abs(fs[i]-fs[j]) == 1 && fabs(ft[i]-ft[j]) < 200) {
+			if (
+				abs(fs[i]-fs[j]) == 1
+				&& fabs(ft[i]-ft[j]) < single_comb_time_threshold
+			) {
 				front_strips.push_back({
 					fe[i]+fe[j],
 					ft[i],
@@ -1547,7 +1570,10 @@ void SearchStripCombinations(
 			if (abs(bs[i]-bs[j]) == 1) {
 				badt.Fill(bt[i]-bt[j]);
 			}
-			if (abs(bs[i]-bs[j]) == 1 && fabs(bt[i]-bt[j]) < 200) {
+			if (
+				abs(bs[i]-bs[j]) == 1
+				&& fabs(bt[i]-bt[j]) < single_comb_time_threshold
+			) {
 				back_strips.push_back({
 					be[i]+be[j],
 					bt[i],
@@ -1621,8 +1647,8 @@ std::vector<SideCombination> SearchSideCombinations(
 	// search for separating events
 	for (size_t i = 0; i < front.size(); ++i) {
 		for (size_t j = 0; j < back.size(); ++j) {
-			if (fabs(front[i].energy - back[j].energy) > 2000) continue;
-			if (fabs(front[i].time - back[j].time) > 200) continue;
+			if (fabs(front[i].energy - back[j].energy) > comb_energy_threshold) continue;
+			if (fabs(front[i].time - back[j].time) > single_comb_time_threshold) continue;
 			sde.Fill(front[i].energy - back[j].energy);
 			sdt.Fill(front[i].time - back[j].time);
 			int points = 0;
@@ -1661,18 +1687,21 @@ std::vector<SideCombination> SearchSideCombinations(
 	// search for f2b1 binding events
 	for (size_t i = 0; i < front.size(); ++i) {
 		if (front[i].status != 0) continue;
-		for (size_t j = i; j < front.size(); ++j) {
+		for (size_t j = i+1; j < front.size(); ++j) {
 			if (front[j].status != 0) continue;
 			for (size_t k = 0; k < back.size(); ++k) {
 				if (back[k].status != 0) continue;
 				// check energy
 				double de =
 					fabs(front[i].energy + front[j].energy - back[k].energy);
-				if (de > 2000) continue;
+				if (de > comb_energy_threshold) continue;
 				// check time
 				double dt1 = fabs(front[i].time - front[j].time);
 				double dt2 = fabs(front[i].time - back[k].time);
-				if (dt1 > 200 || dt2 > 200) continue;
+				if (
+					dt1 > single_comb_time_threshold
+					|| dt2 > single_comb_time_threshold
+				) continue;
 				int points = 0;
 				// evaluate energy points
 				if (de < 500) points += 4;
@@ -1722,11 +1751,14 @@ std::vector<SideCombination> SearchSideCombinations(
 				// check energy
 				double de =
 					fabs(front[i].energy - back[j].energy - back[k].energy);
-				if (de > 2000) continue;
+				if (de > comb_energy_threshold) continue;
 				// check time
 				double dt1 = fabs(back[j].time - back[k].time);
 				double dt2 = fabs(front[i].time - back[j].time);
-				if (dt1 > 200 || dt2 > 200) continue;
+				if (
+					dt1 > single_comb_time_threshold
+					|| dt2 > single_comb_time_threshold
+				) continue;
 				int points = 0;
 				// evaluate energy points
 				if (de < 500) points += 4;
@@ -1831,7 +1863,7 @@ struct TrackBindingCombination {
 	double time[2][2];
 	double x[2][2];
 	double y[2][2];
-	unsigned int flag[2];
+	unsigned int flag[2][2];
 	int status[2];
 	int points;
 
@@ -1876,7 +1908,9 @@ int SearchTrackCombinations(
 	const std::vector<SideCombination>& d1_combinations,
 	const std::vector<SideCombination>& d2_combinations,
 	const std::vector<SideCombination>& d3_combinations,
-	const std::vector<ParticleCut> &d1d2_cuts,
+	// const std::vector<ParticleCut> &d1d2_cuts,
+	const std::vector<ParticleCut> &d1d2_tails,
+	// const std::vector<ParticleCut> &d2d3_cuts,
 	unsigned int d1_flag,
 	unsigned int d2_flag,
 	unsigned int d3_flag,
@@ -1894,7 +1928,7 @@ int SearchTrackCombinations(
 		for (const auto &d2 : d2_combinations) {
 			if (d2.num != 1) continue;
 			if (fabs(d1.x[0]-d2.x[0]) > 4 || fabs(d1.y[0]-d2.y[0]) > 4) continue;
-			if (fabs(d1.time[0]-d2.time[0]) > 400) continue;
+			if (fabs(d1.time[0]-d2.time[0]) > comb_time_threshold) continue;
 			d1d2dt.Fill(d1.time[0] - d2.time[0]);
 			d1d2dx.Fill(d1.x[0] - d2.x[0]);
 			d1d2dy.Fill(d1.y[0] - d2.y[0]);
@@ -1954,6 +1988,8 @@ int SearchTrackCombinations(
 		t0.z[t0.num][1] = 111.76;
 		t0.status[t0.num] = comb.status;
 		t0.points[t0.num] = comb.points;
+		t0.d1_flag[t0.num] = comb.flag[0];
+		t0.d2_flag[t0.num] = comb.flag[1];
 		++t0.num;
 	}
 
@@ -1964,8 +2000,8 @@ int SearchTrackCombinations(
 		for (const auto &d2 : d2_combinations) {
 			if (d2.num != 2 && d2.num != 4) continue;
 			if (d1.num == 4 && d2.num == 4) continue;
-			if (fabs(d1.time[0]-d2.time[0]) > 400) continue;
-			if (fabs(d1.time[1]-d2.time[1]) > 400) continue;
+			if (fabs(d1.time[0]-d2.time[0]) > comb_time_threshold) continue;
+			if (fabs(d1.time[1]-d2.time[1]) > comb_time_threshold) continue;
 			if (
 				!(
 					fabs(d1.x[0]-d2.x[0]) < 4
@@ -2034,7 +2070,7 @@ int SearchTrackCombinations(
 				{d1.time[0], d2.time[0], d1.time[1], d2.time[1]},
 				{d1.x[0], d2.x[0], d1.x[1], d2.x[1]},
 				{d1.y[0], d2.y[0], d1.y[1], d2.y[1]},
-				{d1.flag[0]|d1.flag[1], d2.flag[0]|d2.flag[1]},
+				{d1.flag[0], d1.flag[1], d2.flag[0], d2.flag[1]},
 				d1.status[0]+d2.status[0]*16, d1.status[1]+d2.status[1]*16,
 				points + position_points1 + d1.points + d2.points
 			};
@@ -2055,7 +2091,7 @@ int SearchTrackCombinations(
 				{d1.time[0], d2.time[1], d1.time[1], d2.time[0]},
 				{d1.x[0], d2.x[1], d1.x[1], d2.x[0]},
 				{d1.y[0], d2.y[1], d1.y[1], d2.y[0]},
-				{d1.flag[0]|d1.flag[1], d2.flag[0]|d2.flag[1]},
+				{d1.flag[0], d1.flag[1], d2.flag[1], d2.flag[0]},
 				d1.status[0]+d2.status[1]*16, d1.status[1]+d2.status[0]*16,
 				points + position_points2 + d1.points + d2.points
 			};
@@ -2099,12 +2135,14 @@ int SearchTrackCombinations(
 		TrackBindingCombination comb = bind_queue.top();
 		bind_queue.pop();
 // 		// if (comb.points < 20) continue;
-		if ((d1_flag & comb.flag[0]) != comb.flag[0]) continue;
-		if ((d2_flag & comb.flag[1]) != comb.flag[1]) continue;
+		unsigned int comb_d1_flag = comb.flag[0][0] | comb.flag[0][1];
+		unsigned int comb_d2_flag = comb.flag[1][0] | comb.flag[1][1];
+		if ((d1_flag & comb_d1_flag) != comb_d1_flag) continue;
+		if ((d2_flag & comb_d2_flag) != comb_d2_flag) continue;
 // std::cout << "\n" << t0.num << " d1 flag " << std::hex << comb.flag[0] << " / " << d1_flag << "\n"
 // 	<< comb.flag[1] << " / " << d2_flag << "\n";
-		d1_flag &= ~comb.flag[0];
-		d2_flag &= ~comb.flag[1];
+		d1_flag &= ~comb_d1_flag;
+		d2_flag &= ~comb_d2_flag;
 		for (size_t i = 0; i < 2; ++i) {
 			t0.layer[t0.num+i] = 2;
 			t0.flag[t0.num+i] = 0x3;
@@ -2120,17 +2158,27 @@ int SearchTrackCombinations(
 			t0.z[t0.num+i][1] = 111.76;
 			t0.status[t0.num+i] = comb.status[i];
 			t0.points[t0.num+i] = comb.points;
+			t0.d1_flag[t0.num+i] = comb.flag[0][i];
+			t0.d2_flag[t0.num+i] = comb.flag[1][i];
 		}
 		t0.num += 2;
 		binding_events += 2;
 	}
 
-	// particle types identified in T0D1 and T0D2
-	std::vector<int> d1d2_types;
-	// identify particles
+	// // particle types identified in T0D1 and T0D2
+	// std::vector<int> d1d2_types;
+	// // identify particles
+	// for (unsigned short i = 0; i < t0.num; ++i) {
+	// 	d1d2_types.push_back(
+	// 		D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_cuts)
+	// 	);
+	// }
+	// particle types identified in T0D1 and T0D2 tail
+	std::vector<int> d1d2_tail_types;
+	// identify particle tails
 	for (unsigned short i = 0; i < t0.num; ++i) {
-		d1d2_types.push_back(
-			D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_cuts)
+		d1d2_tail_types.push_back(
+			D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_tails)
 		);
 	}
 
@@ -2141,11 +2189,12 @@ int SearchTrackCombinations(
 	for (const auto &d3 : d3_combinations) {
 		if (d3.num == 4) continue;
 		for (unsigned short i = 0; i < t0.num; ++i) {
-			if (d1d2_types[i] > 0) continue;
+			// if (d1d2_types[i] > 0) continue;
+			if (d1d2_tail_types[i] == 0) continue;
 			for (int j = 0; j < d3.num; ++j) {
 				if (fabs(t0.x[i][1]-d3.x[j]) > 4) continue;
 				if (fabs(t0.y[i][1]-d3.y[j]) > 4) continue;
-				if (fabs(t0.time[i][1]-d3.time[j]) > 400) continue;
+				if (fabs(t0.time[i][1]-d3.time[j]) > comb_time_threshold) continue;
 				d1d3dt.Fill(t0.time[i][0] - d3.time[j]);
 				d1d3dx.Fill(t0.x[i][0] - d3.x[j]);
 				d1d3dy.Fill(t0.y[i][0] - d3.y[j]);
@@ -2202,6 +2251,7 @@ int SearchTrackCombinations(
 		t0.z[comb.d1d2_index][2] = 123.52;
 		t0.status[comb.d1d2_index] += comb.status*256;
 		t0.points[comb.d1d2_index] += comb.points;
+		t0.d3_flag[comb.d1d2_index] = comb.flag;
 	}
 
 	return binding_events;
@@ -2326,18 +2376,23 @@ int T0::MergeAndTrack() {
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
+	// d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
 	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
-	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
+	// d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
+	// d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
 	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-	d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
-	d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
-	d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
-	d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
-	d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
+	// d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
+	// d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
+	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
+	// d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
+	// d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
+	// d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
 	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+
+	std::vector<ParticleCut> d1d2_tails;
+	d1d2_tails.push_back({2, 0, ReadCut("d1d2-tail", "He")});
+	d1d2_tails.push_back({3, 0, ReadCut("d1d2-tail", "Li")});
+	d1d2_tails.push_back({4, 0, ReadCut("d1d2-tail", "Be")});
 
 	// statistics
 	long long particle_num[8];
@@ -2399,7 +2454,8 @@ int T0::MergeAndTrack() {
 		// tracking
 		binding_events += SearchTrackCombinations(
 			d1_comb, d2_comb, d3_comb,
-			d1d2_cuts,
+			// d1d2_cuts,
+			d1d2_tails,
 			((1 << d1_event.front_hit) | (1 << (d1_event.back_hit+8))) - 0x101,
 			((1 << d2_event.front_hit) | (1 << (d2_event.back_hit+8))) - 0x101,
 			((1 << d3_event.front_hit) | (1 << (d3_event.back_hit+8))) - 0x101,

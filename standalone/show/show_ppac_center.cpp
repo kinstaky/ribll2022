@@ -225,7 +225,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		}
 		tree->GetEntry(entry);
 		if (
-			t0_event.num != 1 || t0_event.mass[0] != 15
+			t0_event.num != 1 || t0_event.mass[0] != 14
 			|| xflag != 0x7 || yflag != 0x7
 		) continue;
 

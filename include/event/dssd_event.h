@@ -89,6 +89,8 @@ public:
 	double back_energy[8];
 	long long front_decode_entry[8];
 	long long back_decode_entry[8];
+	unsigned short front_fundamental_index[8];
+	unsigned short back_fundamental_index[8];
 
 private:
 
@@ -184,6 +186,7 @@ public:
 	double y[4];
 	double z[4];
 	double energy[4];
+	double time[4];
 	int time_flag[4];
 };
 

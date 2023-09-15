@@ -52,6 +52,13 @@ std::shared_ptr<Dssd> CreateDssd(
 int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run);
 
 
+/// @brief match events without trigger
+/// @param[in] run run number
+/// @returns 0 if success, -1 otherwise
+///
+int MatchWithoutTrigger(const std::string &detector, unsigned int run);
+
+
 }
 
 #endif 		// __DETECTORS_H__

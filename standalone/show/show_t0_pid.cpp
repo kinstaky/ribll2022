@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
 	// 		kCalibrationDir,
 	// 		name_.c_str(),
 	// 		tag_.empty() ? "" : ("-"+tag_).c_str(),
-	// 		run_	
+	// 		run_
 	// 	).Data());
 	// 	// check file
 	// 	if (!fin.good()) {
@@ -238,53 +238,71 @@ int main(int argc, char **argv) {
 		}
 		// get event
 		chain.GetEntry(entry);
-		if (t0_event.num != 1) continue;
-		if (t0_event.flag[0] == 0x3) {
-			d1d2_pid.Fill(
-				t0_event.energy[0][1], t0_event.energy[0][0]
-			);
-			d1d2_pid_stop.Fill(
-				t0_event.energy[0][1], t0_event.energy[0][0]
-			);
-		} else if (t0_event.flag[0] == 0x7) {
-			d1d2_pid.Fill(t0_event.energy[0][1], t0_event.energy[0][0]);
-			d2d3_pid.Fill(t0_event.energy[0][2], t0_event.energy[0][1]);
-			d1d3_pid.Fill(t0_event.energy[0][2], t0_event.energy[0][0]);
-			if (t0_event.ssd_flag == 0x0) {
-				d2d3_pid_stop.Fill(
-					t0_event.energy[0][2], t0_event.energy[0][1]
+
+		for (unsigned short i = 0; i < t0_event.num; ++i) {
+			// select position
+			if (t0_event.x[i][1] < -9 || t0_event.x[i][1] > -3) continue;
+			if (t0_event.y[i][1] < -2 || t0_event.y[i][1] > 7) continue;
+			// if (t0_event.x[0][1] > -15 && t0_event.x[0][1] < -3 && t0_event.y[0][1] > -4 && t0_event.y[0][1] < 11) continue;
+			if (t0_event.flag[i] == 0x3) {
+				d1d2_pid.Fill(
+					t0_event.energy[i][1], t0_event.energy[i][0]
 				);
-				d1d3_pid_stop.Fill(
-					t0_event.energy[0][2], t0_event.energy[0][0]
+				d1d2_pid_stop.Fill(
+					t0_event.energy[i][1], t0_event.energy[i][0]
 				);
-			} else if (t0_event.ssd_flag == 0x1) {
-				d3s1_pid.Fill(
-					t0_event.ssd_energy[0], t0_event.energy[0][2]
+			} else if (t0_event.flag[i] == 0x7) {
+				d1d2_pid.Fill(t0_event.energy[i][1], t0_event.energy[i][0]);
+				d2d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][1]);
+				// d1d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][0]);
+				if (t0_event.ssd_flag == 0x0) {
+					d2d3_pid_stop.Fill(
+						t0_event.energy[i][2], t0_event.energy[i][1]
+					);
+					// d1d3_pid_stop.Fill(
+					// 	t0_event.energy[i][2], t0_event.energy[i][0]
+					// );
+				} else if (t0_event.ssd_flag == 0x1) {
+					d3s1_pid.Fill(
+						t0_event.ssd_energy[0], t0_event.energy[i][2]
+					);
+					d3s1_pid_stop.Fill(
+						t0_event.ssd_energy[0], t0_event.energy[i][2]
+					);
+				} else if (t0_event.ssd_flag == 0x3) {
+					d3s1_pid.Fill(
+						t0_event.ssd_energy[0], t0_event.energy[i][2]
+					);
+				} else if (t0_event.ssd_flag == 0x7) {
+					d3s1_pid.Fill(
+						t0_event.ssd_energy[0], t0_event.energy[0][2]
+					);
+				}
+			} else if (t0_event.flag[i] == 0x5) {
+				d1d3_pid.Fill(
+					t0_event.energy[i][2], t0_event.energy[i][0]
 				);
-				d3s1_pid_stop.Fill(
-					t0_event.ssd_energy[0], t0_event.energy[0][2]
-				);
-			} else if (t0_event.ssd_flag == 0x3) {
-				d3s1_pid.Fill(
-					t0_event.ssd_energy[0], t0_event.energy[0][2]
-				);
-				s1s2_pid.Fill(
-					t0_event.ssd_energy[1], t0_event.ssd_energy[0]
-				);
-				s1s2_pid_stop.Fill(
-					t0_event.ssd_energy[1], t0_event.ssd_energy[0]
-				);
-			} else if (t0_event.ssd_flag == 0x7) {
-				d3s1_pid.Fill(
-					t0_event.ssd_energy[0], t0_event.energy[0][2]
-				);
-				s1s2_pid.Fill(
-					t0_event.ssd_energy[1], t0_event.ssd_energy[0]
-				);
-				s2s3_pid.Fill(
-					t0_event.ssd_energy[2], t0_event.ssd_energy[1]
-				);
+				if (t0_event.ssd_flag == 0x0) {
+					d1d3_pid_stop.Fill(
+						t0_event.energy[0][2], t0_event.energy[0][0]
+					);
+				}
 			}
+		}
+		if (t0_event.ssd_flag == 0x3) {
+			s1s2_pid.Fill(
+				t0_event.ssd_energy[1], t0_event.ssd_energy[0]
+			);
+			s1s2_pid_stop.Fill(
+				t0_event.ssd_energy[1], t0_event.ssd_energy[0]
+			);
+		} else if (t0_event.ssd_flag == 0x7) {
+			s1s2_pid.Fill(
+				t0_event.ssd_energy[1], t0_event.ssd_energy[0]
+			);
+			s2s3_pid.Fill(
+				t0_event.ssd_energy[2], t0_event.ssd_energy[1]
+			);
 		}
 		// if ((t0_event.flag[0] & 0x5) == 0x5) {
 		// 	d1d3_pid.Fill(

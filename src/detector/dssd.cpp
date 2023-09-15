@@ -203,7 +203,8 @@ int Dssd::ReadNormalizeParameters(int iteration) {
 	// setup file name
 	TString file_name;
 	file_name.Form(
-		"%s%s%s%s.txt",
+		// "%s%s%s%s.txt",
+		"%s%s%s-wk-b0%s.txt",
 		kGenerateDataPath, kNormalizeDir, name_.c_str(),
 		iteration == -1 ? "" : ("-"+std::to_string(iteration)).c_str()
 	);
@@ -220,13 +221,17 @@ int Dssd::ReadNormalizeParameters(int iteration) {
 	fin >> strip_num;
 	// read normalized paramters for front strips
 	for (size_t i = 0; i < strip_num; ++i) {
-		fin >> norm_params_[0][i][0] >> norm_params_[0][i][1];
+		for (size_t j = 0; j < 4; ++j) {
+			fin >> norm_params_[0][i][j];
+		}
 	}
 	//  read back strip number
 	fin >> strip_num;
 	// read normalized parameters for back strips
 	for (size_t i = 0; i < strip_num; ++i) {
-		fin >> norm_params_[1][i][0] >> norm_params_[1][i][1];
+		for (size_t j = 0; j < 4; ++j) {
+			fin >> norm_params_[1][i][j];
+		}
 	}
 	// close file
 	fin.close();
@@ -255,14 +260,18 @@ int Dssd::WriteNormalizeParameters(int iteration) {
 	// write normalized paramters for front strips
 	for (size_t i = 0; i < FrontStrip(); ++i) {
 		fout << norm_params_[0][i][0]<< " "
-			<< norm_params_[0][i][1] << "\n";
+			<< norm_params_[0][i][1]<< " "
+			<< norm_params_[0][i][2]<< " "
+			<< norm_params_[0][i][3] << "\n";
 	}
 	// write back strip number
 	fout << BackStrip() << "\n";
 	// write normalized parameters for back strips
 	for (size_t i = 0; i < BackStrip(); ++i) {
 		fout << norm_params_[1][i][0] << " "
-			<< norm_params_[1][i][1] << "\n";
+			<< norm_params_[1][i][1] << " "
+			<< norm_params_[1][i][2] << " "
+			<< norm_params_[1][i][3] << "\n";
 	}
 	// close file
 	fout.close();
@@ -355,21 +364,28 @@ int Dssd::StripsNormalize(
 			// fitting function
 			TF1 energy_fit("efit", "pol1", 0, 60000);
 			// set initial value
+			// energy_fit.FixParameter(0, 0.0);
 			energy_fit.SetParameter(0, 0.0);
 			energy_fit.SetParameter(1, 1.0);
+			// energy_fit.SetParameter(2, 0.0);
 			// fit
 			ge[i].Fit(&energy_fit, "QR+ ROB=0.9");
 			// store the normalized parameters
-			norm_params_[side][i][0] = energy_fit.GetParameter(0);
-			norm_params_[side][i][1] = energy_fit.GetParameter(1);
+			// norm_params_[side][i][0] = energy_fit.GetParameter(0);
+			norm_params_[side][i][1] = energy_fit.GetParameter(0);
+			norm_params_[side][i][2] = energy_fit.GetParameter(1);
+			// norm_params_[side][i][3] = energy_fit.GetParameter(2);
 		}
 		// store the graph
 		ge[i].Write(TString::Format("g%c%ld", "fb"[side], i));
 		// set as normalized
 		has_normalized_[side][i] = true;
 		// print normalized paramters on screen
-		std::cout << i << " " << norm_params_[side][i][0]
-			<< ", " << norm_params_[side][i][1] << "\n";
+		std::cout << i
+			<< " " << norm_params_[side][i][0]
+			<< ", " << norm_params_[side][i][1]
+			<< ", " << norm_params_[side][i][2]
+			<< ", " << norm_params_[side][i][3] << "\n";
 	}
 
 	// residual
@@ -439,11 +455,15 @@ int Dssd::Normalize(
 	// initialize normalized parameters
 	for (size_t i = 0; i < FrontStrip(); ++i) {
 		norm_params_[0][i][0] = 0.0;
-		norm_params_[0][i][1] = 1.0;
+		norm_params_[0][i][1] = 0.0;
+		norm_params_[0][i][2] = 1.0;
+		norm_params_[0][i][3] = 0.0;
 	}
 	for (size_t i = 0; i < BackStrip(); ++i) {
 		norm_params_[1][i][0] = 0.0;
-		norm_params_[1][i][1] = 1.0;
+		norm_params_[1][i][1] = 0.0;
+		norm_params_[1][i][2] = 1.0;
+		norm_params_[1][i][3] = 0.0;
 	}
 
 	// setup normalize root file
@@ -612,7 +632,7 @@ int Dssd::NormalizeResult(int iteration) {
 	event.SetupOutput(&opt);
 
 	// read normalize parameters from file
-	if (ReadNormalizeParameters(iteration)) {
+	if (ReadNormalizeParameters()) {
 		std::cerr << "Error: Read normalize parameters from file failed.\n";
 		return -1;
 	}
@@ -645,11 +665,13 @@ int Dssd::NormalizeResult(int iteration) {
 			event.front_energy[i] =
 				NormEnergy(0, event.front_strip[i], event.front_energy[i]);
 			event.front_time[i] -= norm_time_params_[0][event.front_strip[i]];
+			event.front_fundamental_index[i] = i;
 		}
 		for (unsigned short i = 0; i < event.back_hit; ++i) {
 			event.back_energy[i] =
 				NormEnergy(1, event.back_strip[i], event.back_energy[i]);
 			event.back_time[i] -= norm_time_params_[1][event.back_strip[i]];
+			event.back_fundamental_index[i] = i;
 		}
 		event.Sort();
 
@@ -920,6 +942,7 @@ void Merge11Event(
 		merge.hit = 1;
 		merge.case_tag = 0;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
@@ -957,6 +980,7 @@ void Merge12Event(
 		merge.hit = 1;
 		merge.case_tag = 100;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + bs[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
@@ -967,6 +991,7 @@ void Merge12Event(
 		merge.hit = 1;
 		merge.case_tag = 101;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
@@ -1004,6 +1029,7 @@ void Merge21Event(
 		merge.hit = 1;
 		merge.case_tag = 200;
 		merge.energy[0] = be[0];
+		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
@@ -1016,6 +1042,7 @@ void Merge21Event(
 		merge.hit = 1;
 		merge.case_tag = 201;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
@@ -1064,10 +1091,12 @@ void Merge22Event(
 		merge.hit = 2;
 		merge.case_tag = 300;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
 		merge.energy[1] = fe[1];
+		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
@@ -1080,6 +1109,7 @@ void Merge22Event(
 		merge.hit = 2;
 		merge.case_tag = 300;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1];
 		merge.z[0] = 0.0;
@@ -1099,6 +1129,7 @@ void Merge22Event(
 		merge.hit = 1;
 		merge.case_tag = 301;
 		merge.energy[0] = fe[0] + fe[1];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
@@ -1159,10 +1190,12 @@ void Merge23Event(
 		merge.hit = 2;
 		merge.case_tag = 400;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
 		merge.energy[1] = fe[1];
+		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[2];
 		merge.z[1] = 0.0;
@@ -1177,10 +1210,12 @@ void Merge23Event(
 		merge.hit = 2;
 		merge.case_tag = 400;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + bs[2]/(be[0]+be[2])*(bs[2]-bs[0]);
 		merge.z[0] = 0.0;
 		merge.energy[1] = fe[1];
+		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
@@ -1196,10 +1231,12 @@ void Merge23Event(
 		merge.hit = 2;
 		merge.case_tag = 400;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
 		merge.energy[1] = fe[1];
+		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
 		merge.z[1] = 0.0;
@@ -1215,10 +1252,12 @@ void Merge23Event(
 		merge.hit = 2;
 		merge.case_tag = 400;
 		merge.energy[0] = fe[0];
+		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
 		merge.z[0] = 0.0;
 		merge.energy[1] = fe[1];
+		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[0];
 		merge.z[1] = 0.0;
@@ -1279,10 +1318,12 @@ void Merge32Event(
 		merge.hit = 2;
 		merge.case_tag = 500;
 		merge.energy[0] = be[0];
+		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fs[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
 		merge.energy[1] = be[1];
+		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[2];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
@@ -1297,10 +1338,12 @@ void Merge32Event(
 		merge.hit = 2;
 		merge.case_tag = 500;
 		merge.energy[0] = be[0];
+		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fs[2]/(fe[0]+fe[2])*(fs[2]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
 		merge.energy[1] = be[1];
+		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
@@ -1316,10 +1359,12 @@ void Merge32Event(
 		merge.hit = 2;
 		merge.case_tag = 500;
 		merge.energy[0] = be[0];
+		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
 		merge.energy[1] = be[1];
+		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
 		merge.y[1] = bs[1];
 		merge.z[1] = 0.0;
@@ -1335,10 +1380,12 @@ void Merge32Event(
 		merge.hit = 2;
 		merge.case_tag = 500;
 		merge.energy[0] = be[1];
+		merge.time[0] = fundamental.back_time[1];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1];
 		merge.z[0] = 0.0;
 		merge.energy[1] = be[0];
+		merge.time[1] = fundamental.back_time[0];
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
 		merge.y[1] = bs[0];
 		merge.z[1] = 0.0;
@@ -1379,6 +1426,7 @@ void Merge33Event(
 		merge.case_tag = 600;
 		for (int i = 0; i < 3; ++i) {
 			merge.energy[i] = fe[i];
+			merge.time[i] = fundamental.front_time[i];
 			merge.x[i] = fs[i];
 			merge.y[i] = bs[i];
 			merge.z[i] = 0.0;
@@ -1399,6 +1447,10 @@ void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
 	tmp = merge.energy[i];
 	merge.energy[i] = merge.energy[j];
 	merge.energy[j] = tmp;
+	// swap time
+	tmp = merge.time[i];
+	merge.time[i] = merge.time[j];
+	merge.time[j] = tmp;
 	// swap x
 	tmp = merge.x[i];
 	merge.x[i] = merge.x[j];

@@ -135,6 +135,14 @@ int main(int argc, char **argv) {
 			continue;
 		}
 
+		if (detector_name == "t0d2" && run == 821) {
+			if (MatchWithoutTrigger("t0d2", run)) {
+				std::cerr << "Error: Match " << detector_name
+					<< " without trigger failed.\n";
+			}
+			continue;
+		}
+
 		std::shared_ptr<Detector> detector =
 			CreateDetector(detector_name, run, trigger_tag);
 		if (!detector) continue;

@@ -598,16 +598,21 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		offset[0] = 15.9;
 		offset[1] = 1.3;
 		offset[2] = 2.3;
-		if (run == 643) {
+		if (run == 643 || run == 691 || run == 696) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[0][i];
 		} else if (
 			run == 646 || run == 650 || run == 652 || run == 653
-			|| run == 658 || run == 659 || run == 671
+			|| run == 658 || run == 659 || run == 671 || run == 676
+			|| run == 681 || run == 699 || run == 703 || run == 708 || run == 709
+			|| run == 713 || run == 716
 		) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[1][i];
 		} else if (
 			run == 645 || run == 647 || run == 654 || run == 655
-			|| run == 665 || run == 668
+			|| run == 665 || run == 668 || run == 679 || run == 680
+			|| run == 683 || run == 685 || run == 687 || run == 701
+			|| run == 702 || run == 704 || run == 705 || run == 712
+			|| run == 715
 		) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
 		}
@@ -621,8 +626,12 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
 		}
 	}
-	// double correct[3] = {1.87, -0.97, -2.52};
+	// // double correct[3] = {1.87, -0.97, -2.52};
 	double correct[3] = {0.0, -2.23, -3.40};
+	if (run >= 675 && run <= 716) {
+		correct[1] = -2.18;
+		correct[2] = -3.44;
+	}
 	// if (run > 640) {
 	// 	correct[0] += -0.03;
 	// 	correct[1] += 0.045;
@@ -650,8 +659,12 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		offset[1] = 1.7;
 		offset[2] = 3.1;
 	}
-	// double correct[3] = {-0.85, 0.25, 1.42};
+	// // double correct[3] = {-0.85, 0.25, 1.42};
 	double correct[3] = {0.0, 0.84, 1.78};
+	if (run >= 675 && run <= 716) {
+		correct[1] = 0.95;
+		correct[2] = 1.84;
+	}
 	// if (run > 640 && run <= 652) {
 	// 	correct[2] -= 0.04;
 	// } else {

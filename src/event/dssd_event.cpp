@@ -44,6 +44,12 @@ void DssdFundamentalEvent::SetupInput(
 	// tree->SetBranchAddress(
 	// 	(prefix+"back_decode_entry").c_str(), back_decode_entry
 	// );
+	tree->SetBranchAddress(
+		(prefix+"front_fundamental_index").c_str(), front_fundamental_index
+	);
+	tree->SetBranchAddress(
+		(prefix+"back_fundamental_index").c_str(), back_fundamental_index
+	);
 }
 
 
@@ -59,6 +65,12 @@ void DssdFundamentalEvent::SetupOutput(TTree *tree) {
 	tree->Branch("back_energy", back_energy, "be[bhit]/D");
 	tree->Branch("front_decode_entry", front_decode_entry, "fde[fhit]/L");
 	tree->Branch("back_decode_entry", back_decode_entry, "bde[bhit]/L");
+	tree->Branch(
+		"front_fundamental_index", front_fundamental_index, "ffi[fhit]/s"
+	);
+	tree->Branch(
+		"back_fundamental_index", back_fundamental_index, "bfi[fhit]/s"
+	);
 }
 
 
@@ -129,6 +141,10 @@ void DssdFundamentalEvent::Swap(
 		long long tde = front_decode_entry[i];
 		front_decode_entry[i] = front_decode_entry[j];
 		front_decode_entry[j] = tde;
+		// swap fundamental index
+		unsigned short tfi = front_fundamental_index[i];
+		front_fundamental_index[i] = front_fundamental_index[j];
+		front_fundamental_index[j] = tfi;
 	} else {
 		// back side
 		// swap cfd flag
@@ -154,6 +170,10 @@ void DssdFundamentalEvent::Swap(
 		long long tde = back_decode_entry[i];
 		back_decode_entry[i] = back_decode_entry[j];
 		back_decode_entry[j] = tde;
+		// swap fundamental index
+		unsigned short tfi = back_fundamental_index[i];
+		back_fundamental_index[i] = back_fundamental_index[j];
+		back_fundamental_index[j] = tfi;
 	}
 }
 
@@ -236,6 +256,7 @@ void DssdMergeEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"y").c_str(), y);
 	tree->SetBranchAddress((prefix+"z").c_str(), z);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
+	tree->SetBranchAddress((prefix+"time").c_str(), time);
 	tree->SetBranchAddress((prefix+"time_flag").c_str(), time_flag);
 }
 
@@ -247,6 +268,7 @@ void DssdMergeEvent::SetupOutput(TTree *tree) {
 	tree->Branch("y", y, "y[hit]/D");
 	tree->Branch("z", z, "z[hit]/D");
 	tree->Branch("energy", energy, "e[hit]/D");
+	tree->Branch("time", time, "t[hit]/D");
 	tree->Branch("time_flag", time_flag, "tf[hit]/I");
 }
 

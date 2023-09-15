@@ -21,7 +21,7 @@ const std::pair<double, double> tabd_phi_ranges[6] = {
 };
 
 Tabd::Tabd(unsigned int run, unsigned int index, const std::string &tag)
-: Adssd(run, "tab"+std::to_string(index), tag) {
+: Adssd(run, "tabd"+std::to_string(index), tag) {
 }
 
 

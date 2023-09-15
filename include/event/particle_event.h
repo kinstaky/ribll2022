@@ -36,6 +36,7 @@ public:
 	double py[4];
 	double pz[4];
 	int status[4];
+	int index[4];
 };
 
 }	// namespace ribll

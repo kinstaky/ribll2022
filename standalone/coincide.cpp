@@ -9,10 +9,12 @@ void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run case\n"
 		"  run               Set run number\n"
 		"  case              Set the case:\n"
+		"                     -1 -- TAF particles\n"
 		"                      0 -- 8Be->4He+4He\n"
 		"                      1 -- 12C->4He+4He+4He\n"
 		"                      2 -- 14C->10Be+4He 2body\n"
 		"                      3 -- 14C+2H->10Be+4He+2H 3body\n"
+		"                      4 -- 15C+1H->14C+2H\n"
 		"Options:\n"
 		"  -h                Print this help information.\n";
 }
@@ -90,6 +92,16 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
+	if (condition == -1) {
+		// merge TAF particles
+		if (MergeTaf(run)) {
+			std::cerr << "Error: Merge TAF particles failed.\n";
+			return -1;
+		} else {
+			return 0;
+		}
+	}
+	// coincide channels
 	std::unique_ptr<Channel> channel;
 	if (condition == 0) {
 		// 8Be->4He+4He

@@ -82,7 +82,8 @@ private:
 		const T0Event &t0,
 		const ParticleTypeEvent &type,
 		const size_t index,
-		const elc::CsiEnergyCalculator &csi_calculator
+		const elc::CsiEnergyCalculator &csi_calculator,
+		const elc::DeltaEnergyCalculator &delta_calculator
 	) const;
 
 

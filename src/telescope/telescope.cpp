@@ -61,7 +61,7 @@ std::unique_ptr<TCutG> Telescope::ReadCut(
 	// cut file name
 	TString cut_file_name;
 	cut_file_name.Form(
-		"%s%scut/%s-%s-%s.txt",
+		"%s%scut/%s-%s-wk-b0-%s.txt",
 		kGenerateDataPath,
 		kParticleIdentifyDir,
 		name_.c_str(),

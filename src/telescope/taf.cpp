@@ -303,6 +303,14 @@ int Taf::ParticleIdentify() {
 					break;
 				}
 			}
+		} else if (tele.flag[0] == 0x1) {
+			// flag == 1
+			double &e = tele.energy[0][0];
+			if (e < 6.0) {
+				type_event.charge[0] = 1;
+				type_event.mass[0] = 2;
+				type_event.layer[0] = 0;
+			}
 		}
 		opt.Fill();
 	}
@@ -829,6 +837,38 @@ int Taf::Rebuild() {
 			particle_event.energy[0] = si_energy + csi_energy;
 			// fill to pid
 			pid.Fill(csi_energy, si_energy);
+
+			// fill time
+			particle_event.time[0] = ta_event.time[0][0];
+
+			// calcuate the position
+			ROOT::Math::Polar3DVector position(
+				ta_event.radius[0][0], ta_event.theta[0][0], ta_event.phi[0][0]
+			);
+			particle_event.x[0] = position.X();
+			particle_event.y[0] = position.Y();
+			particle_event.z[0] = position.Z();
+
+			// leave empty momentum since the reaction point is unknown
+			particle_event.px[0] = 0.0;
+			particle_event.py[0] = 0.0;
+			particle_event.pz[0] = 0.0;
+		} else if (
+			type_event.num == 1
+			&& type_event.layer[0] == 0
+			&& type_event.charge[0] == 1
+			&& type_event.mass[0] == 2
+		) {
+			particle_event.num = 1;
+			// fill particle charge number
+			particle_event.charge[0] = type_event.charge[0];
+			// fill particle mass number
+			particle_event.mass[0] = 0;
+
+			// TAFD energy
+			double si_energy = ta_event.energy[0][0];
+			// calculate the total energy
+			particle_event.energy[0] = si_energy;
 
 			// fill time
 			particle_event.time[0] = ta_event.time[0][0];

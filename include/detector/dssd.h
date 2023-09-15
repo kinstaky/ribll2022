@@ -255,8 +255,10 @@ protected:
 	/// @returns normaized energy
 	///
 	inline double NormEnergy(int side, int strip, double energy) {
-		return norm_params_[side][strip][0]
-			+ norm_params_[side][strip][1] * energy;
+		return norm_params_[side][strip][0] / (energy + 1e-5)
+			+ norm_params_[side][strip][1]
+			+ norm_params_[side][strip][2] * energy
+			+ norm_params_[side][strip][3] * energy * energy;
 	}
 
 
@@ -304,7 +306,7 @@ protected:
 
 	// normalize parameters, first index is side,
 	// second index is strip, third index is p0 and p1
-	double norm_params_[2][64][2];
+	double norm_params_[2][64][4];
 	// time normalize parameters, first index is side,
 	// second index is strip
 	double norm_time_params_[2][64];

@@ -285,4 +285,175 @@ int MergeAdssdTrigger(const std::string &trigger_tag, unsigned int run) {
 	return 0;
 }
 
+
+int MatchWithoutTrigger(const std::string &detector, unsigned int run) {
+	const double look_window = 10'000;
+	const double window = 100;
+
+	// input map file name
+	TString map_file_name;
+	map_file_name.Form(
+		"%s%s%s-map-%04u.root",
+		kGenerateDataPath,
+		kMappingDir,
+		detector.c_str(),
+		run
+	);
+	// input file
+	TFile ipf(map_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< map_file_name << " failed.\n";
+		return -1;
+	}
+	// map event
+	DssdMapEvent map_event;
+	// setup input branches
+	map_event.SetupInput(ipt);
+
+	std::multimap<double, DssdMapEvent> events;
+
+	// read events
+	long long entries = ipt->GetEntries();
+	long long entry100 = entries / 100;
+	// show start
+	printf("Reading map events   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get entry
+		ipt->GetEntry(entry);
+		// record time
+		events.insert(std::make_pair(map_event.time, map_event));
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// close file
+	ipf.Close();
+
+	// name of output file
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-fundamental-%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		detector.c_str(),
+		// tag_.empty() ? "" : (tag_+"-").c_str(),
+		run
+	);
+	// pointer to output file
+	TFile opf(output_file_name, "recreate");
+	// histogram of look window
+	TH1F hist_look_window(
+		"ht", "look window", 1000, 0, look_window
+	);
+	// pointer to output tree
+	TTree opt("tree", "fundamental events matched without trigger");
+	// ouput event
+	DssdFundamentalEvent fundamental_event;
+	// setup output branches
+	fundamental_event.SetupOutput(&opt);
+	// for convenient
+	unsigned short &fhit = fundamental_event.front_hit;
+	unsigned short &bhit = fundamental_event.back_hit;
+
+	// show start
+	printf("Filling fundamental events   0%%");
+	fflush(stdout);
+	long long entry = 0;
+	for (auto ievent = events.begin(); ievent != events.end(); ++ievent) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		entry++;
+		// jump used events
+		if (ievent->second.side == 2) continue;
+		// initialize
+		fhit = 0;
+		bhit = 0;
+		if (ievent->second.side == 0) {
+			fundamental_event.front_strip[fhit] = ievent->second.strip;
+			fundamental_event.front_time[fhit] = ievent->second.time;
+			fundamental_event.front_energy[fhit] = ievent->second.energy;
+			fundamental_event.cfd_flag |=
+				ievent->second.cfd_flag ? (1 << fhit) : 0;
+			fundamental_event.front_decode_entry[fhit] =
+				ievent->second.decode_entry;
+			++fhit;
+		} else {
+			fundamental_event.back_strip[bhit] = ievent->second.strip;
+			fundamental_event.back_time[bhit] = ievent->second.time;
+			fundamental_event.back_energy[bhit] = ievent->second.energy;
+			fundamental_event.cfd_flag |=
+				ievent->second.cfd_flag ? (1 << (bhit+8)) : 0;
+			fundamental_event.back_decode_entry[bhit] =
+				ievent->second.decode_entry;
+			++bhit;
+		}
+		// search correlated events
+		for (
+			auto jevent = std::next(ievent);
+			jevent != events.end();
+			++jevent
+		) {
+			// fill to look window
+			hist_look_window.Fill(jevent->first - ievent->first);
+			// out of look range
+			if (jevent->first >= ievent->first + look_window) break;
+			// out of correlated range
+			if (jevent->first >= ievent->first + window) continue;
+			// jump used events
+			if (jevent->second.side == 2) continue;
+			if (jevent->second.side == 0) {
+				// fill front event
+				jevent->second.side = 2;
+				if (fhit == 8) continue;
+				fundamental_event.front_strip[fhit] = jevent->second.strip;
+				fundamental_event.front_time[fhit] = jevent->second.time;
+				fundamental_event.front_energy[fhit] = jevent->second.energy;
+				fundamental_event.cfd_flag |=
+					jevent->second.cfd_flag ? (1 << fhit) : 0;
+				fundamental_event.front_decode_entry[fhit] =
+					jevent->second.decode_entry;
+				++fhit;
+			} else {
+				// fill back event
+				jevent->second.side = 2;
+				if (bhit == 8) continue;
+				fundamental_event.back_strip[bhit] = jevent->second.strip;
+				fundamental_event.back_time[bhit] = jevent->second.time;
+				fundamental_event.back_energy[bhit] = jevent->second.energy;
+				fundamental_event.cfd_flag |=
+					jevent->second.cfd_flag ? (1 << (bhit+8)) : 0;
+				fundamental_event.back_decode_entry[bhit] =
+					jevent->second.decode_entry;
+				++bhit;
+			}
+		}
+		// sort events by energy
+		fundamental_event.Sort();
+		// fill tree
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save histograms
+	hist_look_window.Write();
+	// close file
+	opf.Close();
+
+	return 0;
 }
+
+
+
+}	// namespace ribll

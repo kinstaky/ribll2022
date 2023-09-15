@@ -638,7 +638,7 @@ int C14ToBe10He4TwoBodyChannel::Coincide() {
 		}
 
 		// fill beam from PPAC
-		channel.beam_energy = 375.0;
+		channel.beam_energy = 392.0;
 		channel.beam_time = xppac.time[3];
 		// beam p
 		ROOT::Math::XYZVector bp(xppac.px[3], xppac.py[3], xppac.pz[3]);
@@ -756,13 +756,16 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	ParticleEvent taf[6];
 	// input XIA PPAC particle events
 	ParticleEvent xppac;
+	unsigned short xppac_xflag;
+	unsigned short xppac_yflag;
 	// setup input branches
 	t0.SetupInput(ipt);
 	for (int i = 0; i < 6; ++i) {
 		taf[i].SetupInput(ipt, "taf"+std::to_string(i)+".");
 	}
 	xppac.SetupInput(ipt, "xppac.");
-
+	ipt->SetBranchAddress("xppac.xflag", &xppac_xflag);
+	ipt->SetBranchAddress("xppac.yflag", &xppac_yflag);
 
 	// output file name
 	TString output_file_name;
@@ -778,8 +781,12 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	TTree opt("tree", "channel");
 	// output channel event
 	ChannelEvent channel;
+	int t0_index[8];
+	double q_value;
 	// setup output branches
 	channel.SetupOutput(&opt);
+	opt.Branch("t0_index", t0_index, "t0_index[num]/I");
+	opt.Branch("q", &q_value, "q/D");
 
 	// total valid events
 	long long total = 0;
@@ -813,6 +820,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 				if ((t0_status & 0x1) == 0) {
 					index[0] = i;
 					t0_status |= 0x1;
+					t0.mass[i] = 10;
 				} else {
 					t0_valid = false;
 				}
@@ -835,7 +843,11 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			if (
 				taf[i].num == 1
 				&& taf[i].charge[0] == 1
-				&& taf[i].mass[0] == 2
+				&& (
+					taf[i].mass[0] == 2
+					// particle stops in ADSSD
+					// taf[i].mass[0] == 0
+				)
 				&& taf[i].energy[0] > -9e4
 			) {
 				++valid;
@@ -851,7 +863,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		}
 		// check PPAC tracking
 		if (xppac.num != 4) continue;
-		if (pow(xppac.x[3]+3.3, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
+		// if (xppac_xflag != 0x7 || xppac_yflag != 0x7) continue;
+		if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
 			continue;
 		}
 
@@ -889,8 +902,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 
 		// fill particles from TAF
 		channel.recoil = 1;
-		channel.recoil_charge = taf[taf_index].charge[0];
-		channel.recoil_mass = taf[taf_index].mass[0];
+		channel.recoil_charge = 1;
+		channel.recoil_mass = 2;
 		channel.recoil_energy = taf[taf_index].energy[0];
 		channel.recoil_time = taf[taf_index].time[0];
 		// calculate momentum
@@ -945,6 +958,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		// double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
 		// channel.parent_energy -= pm;
 
+		q_value = channel.daughter_energy[0] + channel.daughter_energy[1]
+			+ channel.recoil_energy - channel.parent_energy;
+
 		channel.parent_px = pp.X();
 		channel.parent_py = pp.Y();
 		channel.parent_pz = pp.Z();
@@ -956,6 +972,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.entry = entry;
 		// taf index
 		channel.taf_index = taf_index;
+		// t0 index
+		t0_index[0] = t0.index[index[0]];
+		t0_index[1] = t0.index[index[1]];
 
 		++total;
 		opt.Fill();
@@ -1124,7 +1143,7 @@ int C15pdChannel::Coincide() {
 		// if (pow(xppac.x[3]+3.3, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
 		// 	continue;
 		// }
-		if (pow(xppac.x[3]+2.5, 2.0) + pow(xppac.y[3], 2.0) > 225.0) continue;
+		if (pow(xppac.x[3]+3.0, 2.0) + pow(xppac.y[3]-1.0, 2.0) > 225.0) continue;
 
 		// fill channel particle number
 		channel.num = 2;
@@ -1231,6 +1250,130 @@ int C15pdChannel::Coincide() {
 	opt.Write();
 	// close file
 	t0_file.Close();
+	opf.Close();
+	return 0;
+}
+
+
+int MergeTaf(unsigned int run) {
+	// TAF0 telescope file name
+	TString taf0_file_name;
+	taf0_file_name.Form(
+		"%s%staf0-particle-ta-%04u.root",
+		kGenerateDataPath,
+		kParticleDir,
+		run
+	);
+	// TAF0 telescope file
+	TFile taf0_file(taf0_file_name, "read");
+	// TAF0 telescope tree
+	TTree *ipt = (TTree*)taf0_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< taf0_file_name << " failed.\n";
+		return -1;
+	}
+	// add TAF friends
+	for (int i = 1 ; i < 6; ++i) {
+		ipt->AddFriend(
+			TString::Format("taf%d=tree", i),
+			TString::Format(
+				"%s%staf%d-particle-ta-%04u.root",
+				kGenerateDataPath,
+				kParticleDir,
+				i,
+				run
+			)
+		);
+	}
+	// input TAF particle events
+	ParticleEvent taf[6];
+	// setup input branches
+	taf[0].SetupInput(ipt);
+	for (int i = 1; i < 6; ++i) {
+		taf[i].SetupInput(ipt, "taf"+std::to_string(i)+".");
+	}
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%staf-particle-ta-%04u.root",
+		kGenerateDataPath,
+		kParticleDir,
+		run
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// output tree
+	TTree opt("tree", "merged TAF particles");
+	// output channel event
+	ParticleEvent particle;
+	// setup output branches
+	particle.SetupOutput(&opt);
+
+	// total valid events
+	long long total = 0;
+	long long conflict_taf = 0;
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Merging TAF particles   0%%");
+	fflush(stdout);
+	// loop events
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+
+		// initialize
+		particle.num = 0;
+		for (int i = 0; i < 6; ++i) {
+			if (
+				taf[i].num == 1
+				&& taf[i].charge[0] == 1
+				&& taf[i].mass[0] == 2
+				&& taf[i].energy[0] > -9e4
+			) {
+				if (particle.num >= 4) continue;
+				particle.charge[particle.num] = 1;
+				particle.mass[particle.num] = 2;
+				particle.energy[particle.num] = taf[i].energy[0];
+				particle.time[particle.num] = taf[i].time[0];
+				particle.x[particle.num] = taf[i].x[0];
+				particle.y[particle.num] = taf[i].y[0];
+				particle.z[particle.num] = taf[i].z[0];
+				particle.px[particle.num] = taf[i].px[0];
+				particle.py[particle.num] = taf[i].py[0];
+				particle.pz[particle.num] = taf[i].pz[0];
+				particle.status[particle.num] = taf[i].status[0];
+				particle.index[particle.num] = i;
+				++particle.num;
+			}
+		}
+		if (particle.num == 1) {
+			++total;
+		} else if (particle.num > 1) {
+			++conflict_taf;
+		}
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	std::cout << "Total valid event is " << total << "\n"
+		<< "Conflict TAF event " << conflict_taf << "\n";
+
+	// save tree
+	opt.Write();
+	// close file
+	taf0_file.Close();
 	opf.Close();
 	return 0;
 }

@@ -238,7 +238,7 @@ int T0d1::NormalizeFilter(int iteration) {
 int T0d1::NormalizeSides(TChain *chain, int iteration) {
 	constexpr size_t side[] = {0, 1, 0, 1, 0, 1};
 	constexpr std::pair<size_t, size_t> ref_strip[] = {
-		{26, 27},
+		{27, 28},
 		{35, 36},
 		{23, 30},
 		{32, 39},
