@@ -103,3 +103,7 @@ target_link_libraries(show_calibration PRIVATE t0)
 # show pid width
 add_executable(show_pid_width show_pid_width.cpp)
 target_link_libraries(show_pid_width PRIVATE t0)
+
+# show T0D3 hit in tail without tracking
+add_executable(show_d3_hit show_d3_hit.cpp)
+target_link_libraries(show_d3_hit PRIVATE event ROOT::Core ROOT::Graf)

@@ -25,7 +25,7 @@ int main() {
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// output tree
-	TTree opt("tree", "information of 15C pd reaction");
+	TTree opt("tree", "information of three body");
 	// output data
 	// indexes and layers
 	int csi_index;
@@ -146,7 +146,7 @@ int main() {
 		// input file
 		TFile channel_file(channel_file_name, "read");
 		// input tree
-		TTree *ipt = (TTree*)channel_file.Get("tree");
+		TTree *ipt = (TTree*)channel_file.Get("ftree");
 		if (!ipt) {
 			std::cerr << "Error: Get tree from "
 				<< channel_file_name << " failed.\n";

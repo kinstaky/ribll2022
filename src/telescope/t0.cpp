@@ -448,6 +448,8 @@ int DssdParticleIdentify(
 		t0.x[index][1] > -9 && t0.x[index][1] < -3
 		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
 	) {
+		type.layer[index] = -1;
+		return -1;
 		center = true;
 	}
 	if (t0.flag[index] == 0x3) {
@@ -510,6 +512,8 @@ int SsdParticleIdentify(
 		t0.x[index][1] > -9 && t0.x[index][1] < -3
 		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
 	) {
+		type.layer[index] = -1;
+		return -1;
 		center = true;
 	}
 
@@ -594,7 +598,8 @@ int SsdParticleIdentify(
 }
 
 
-int T0::ParticleIdentify() {
+int T0::
+ParticleIdentify() {
 	// input t0 telescope file name
 	TString t0_file_name;
 	t0_file_name.Form(

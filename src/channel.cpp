@@ -779,6 +779,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	TFile opf(output_file_name, "recreate");
 	// output tree
 	TTree opt("tree", "channel");
+	// output fake tree
+	TTree fake_tree("ftree", "channel with fake data");
 	// output channel event
 	ChannelEvent channel;
 	int t0_index[8];
@@ -787,6 +789,10 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	channel.SetupOutput(&opt);
 	opt.Branch("t0_index", t0_index, "t0_index[num]/I");
 	opt.Branch("q", &q_value, "q/D");
+	// setup output branches for fake tree
+	channel.SetupOutput(&fake_tree);
+	fake_tree.Branch("t0_index", t0_index, "t0_index[num]/I");
+	fake_tree.Branch("q", &q_value, "q/D");
 
 	// total valid events
 	long long total = 0;
@@ -900,6 +906,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			channel.status[i] = t0.status[index[i]];
 		}
 
+		// rebuild real Q value
 		// fill particles from TAF
 		channel.recoil = 1;
 		channel.recoil_charge = 1;
@@ -907,7 +914,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.recoil_energy = taf[taf_index].energy[0];
 		channel.recoil_time = taf[taf_index].time[0];
 		// calculate momentum
-		double momentum = MomentumFromEnergy(
+		double recoil_momentum = MomentumFromEnergy(
 			channel.recoil_energy,
 			channel.recoil_charge,
 			channel.recoil_mass
@@ -918,7 +925,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			taf[taf_index].y[0] - xppac.y[3],
 			taf[taf_index].z[0] - xppac.z[3]
 		);
-		rp = rp.Unit() * momentum;
+		rp = rp.Unit() * recoil_momentum;
 		channel.recoil_px = rp.X();
 		channel.recoil_py = rp.Y();
 		channel.recoil_pz = rp.Z();
@@ -927,7 +934,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.recoil_phi = rp.Phi();
 
 		// fill beam from PPAC
-		channel.beam_energy = 375.0;
+		channel.beam_energy = 385.0;
 		channel.beam_time = xppac.time[3];
 		ROOT::Math::XYZVector bp(xppac.px[3], xppac.py[3], xppac.pz[3]);
 		double bp_value = MomentumFromEnergy(channel.beam_energy, 6, 14);
@@ -951,13 +958,6 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.parent_energy = EnergyFromMomentum(
 			pp.R(), channel.parent_charge, channel.parent_mass
 		);
-		// for (unsigned short i = 0; i < channel.num; ++i) {
-		// 	channel.parent_energy += channel.daughter_energy[i]
-		// 		+ IonMass(channel.daughter_charge[i], channel.daughter_mass[i]) * 931.494;
-		// }
-		// double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
-		// channel.parent_energy -= pm;
-
 		q_value = channel.daughter_energy[0] + channel.daughter_energy[1]
 			+ channel.recoil_energy - channel.parent_energy;
 
@@ -978,6 +978,61 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 
 		++total;
 		opt.Fill();
+
+		// rebuild fake Q value
+		int rc = 12;
+		int pc = 12;
+		double taf_ring_width = (170.5 - 68.0) / 16.0;
+		double taf_phi_width = 55.2 / 8.0;
+		double tafr = sqrt(
+			pow(taf[taf_index].x[0], 2.0) + pow(taf[taf_index].y[0], 2.0)
+		);
+		double taf_phi = atan(taf[taf_index].y[0] / taf[taf_index].x[0]);
+		if (taf[taf_index].x[0] < 0) {
+			taf_phi = taf[taf_index].y[0] > 0 ?
+				taf_phi + 3.1415926 : taf_phi - 3.1415926;
+		}
+		for (int i = 0; i <= rc; ++i) {
+			double fake_tafr = tafr + (i - rc/2) / double(rc) * taf_ring_width;
+			for (int j = 0; j <= pc; ++j) {
+				double fake_taf_phi = taf_phi
+					+ (j - pc/2) / double(pc) * taf_phi_width / 180.0 * 3.1415926;
+				double fake_tafx = fake_tafr * cos(fake_taf_phi);
+				double fake_tafy = fake_tafr * sin(fake_taf_phi);
+				// recoil p
+				ROOT::Math::XYZVector fake_rp(
+					fake_tafx - xppac.x[3],
+					fake_tafy - xppac.y[3],
+					taf[taf_index].z[0] - xppac.z[3]
+				);
+				fake_rp = fake_rp.Unit() * recoil_momentum;
+				channel.recoil_px = fake_rp.X();
+				channel.recoil_py = fake_rp.Y();
+				channel.recoil_pz = fake_rp.Z();
+				channel.recoil_r = fake_rp.R();
+				channel.recoil_theta = fake_rp.Theta();
+				channel.recoil_phi = fake_rp.Phi();
+
+				// parent p
+				ROOT::Math::XYZVector fake_pp = p[0] + p[1] + fake_rp;
+				channel.parent_energy = EnergyFromMomentum(
+					fake_pp.R(), channel.parent_charge, channel.parent_mass
+				);
+				q_value = channel.daughter_energy[0]
+					+ channel.daughter_energy[1]
+					+ channel.recoil_energy
+					- channel.parent_energy;
+
+				channel.parent_px = fake_pp.X();
+				channel.parent_py = fake_pp.Y();
+				channel.parent_pz = fake_pp.Z();
+				channel.parent_r = fake_pp.R();
+				channel.parent_theta = fake_pp.Theta();
+				channel.parent_phi = fake_pp.Phi();
+
+				fake_tree.Fill();
+			}
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -986,8 +1041,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		<< "Conflict TAF event " << conflict_taf << "\n"
 		<< "Conflcit T0 event " << conflict_t0 << "\n";
 
-	// save tree
+	// save trees
 	opt.Write();
+	fake_tree.Write();
 	// close file
 	t0_file.Close();
 	opf.Close();
