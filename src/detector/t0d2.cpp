@@ -260,7 +260,6 @@ int T0d2::NormalizeSides(TChain *chain, int iteration) {
 		}
 	}
 	return 0;
-	return 0;
 }
 
 

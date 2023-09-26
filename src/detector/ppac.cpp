@@ -627,17 +627,17 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		}
 	}
 	// // double correct[3] = {1.87, -0.97, -2.52};
-	double correct[3] = {0.0, -2.23, -3.40};
-	if (run >= 675 && run <= 716) {
-		correct[1] = -2.18;
-		correct[2] = -3.44;
-	}
+	// double correct[3] = {0.0, -2.23, -3.40};
+	// if (run >= 675 && run <= 716) {
+	// 	correct[1] = -2.18;
+	// 	correct[2] = -3.44;
+	// }
 	// if (run > 640) {
 	// 	correct[0] += -0.03;
 	// 	correct[1] += 0.045;
 	// }
-	result = (time - offset[index]) / 4.0 + correct[index];
-	// result = (time - offset[index]) / 4.0;
+	// result = (time - offset[index]) / 4.0 + correct[index];
+	result = (time - offset[index]) / 4.0;
 	// return round(result);
 	return result;
 }
@@ -660,11 +660,11 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		offset[2] = 3.1;
 	}
 	// // double correct[3] = {-0.85, 0.25, 1.42};
-	double correct[3] = {0.0, 0.84, 1.78};
-	if (run >= 675 && run <= 716) {
-		correct[1] = 0.95;
-		correct[2] = 1.84;
-	}
+	// double correct[3] = {0.0, 0.84, 1.78};
+	// if (run >= 675 && run <= 716) {
+	// 	correct[1] = 0.95;
+	// 	correct[2] = 1.84;
+	// }
 	// if (run > 640 && run <= 652) {
 	// 	correct[2] -= 0.04;
 	// } else {
@@ -672,8 +672,8 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	// 	correct[1] += 0.11;
 	// 	correct[2] += 0.08;
 	// }
-	result = (time - offset[index]) / -4.0 + correct[index];
-	// result = (time - offset[index]) / -4.0;
+	// result = (time - offset[index]) / -4.0 + correct[index];
+	result = (time - offset[index]) / -4.0;
 	// return round(result);
 	return result;
 }

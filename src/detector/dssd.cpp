@@ -331,6 +331,7 @@ int Dssd::StripsNormalize(
 		unsigned short &bs = event.back_strip[0];
 		double &fe = event.front_energy[0];
 		double &be = event.back_energy[0];
+		if (fe > 20000 || be > 20000) continue;
 
 		if (side == 0) {
 			// jump if not reference strips
@@ -369,7 +370,7 @@ int Dssd::StripsNormalize(
 			energy_fit.SetParameter(1, 1.0);
 			// energy_fit.SetParameter(2, 0.0);
 			// fit
-			ge[i].Fit(&energy_fit, "QR+ ROB=0.9");
+			ge[i].Fit(&energy_fit, "QR+ ROB=0.8");
 			// store the normalized parameters
 			// norm_params_[side][i][0] = energy_fit.GetParameter(0);
 			norm_params_[side][i][1] = energy_fit.GetParameter(0);
