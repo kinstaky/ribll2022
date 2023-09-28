@@ -60,11 +60,13 @@ int ShowD2Pixel(int run) {
 	TH2F hist_beam_mean("hbe", "beam peak position", 32, 0, 32, 32, 0, 32);
 	// 2D graph of energy peak sigma
 	TH2F hist_beam_sigma("hbs", "beam peak sigma", 32, 0, 32, 32, 0, 32);
-	// // 2D graph of energy peak position and back strip in mirror
+	// 2D graph of beam energy resolution
+	TH2F hist_beam_resolution("hbr", "beam energy resolution", 32, 0, 32, 32, 0, 32);
+	// 2D graph of energy peak position and back strip in mirror
 	TH2F hist_beam_mean_mirror(
 		"hbem", "beam peak position", 32, 0, 32, 32, 0, 32
 	);
-	// // 2D graph of energy peak sigma and back strip in mirror
+	// 2D graph of energy peak sigma and back strip in mirror
 	TH2F hist_beam_sigma_mirror(
 		"hbsm", "beam peak sigma", 32, 0, 32, 32, 0, 32
 	);
@@ -108,9 +110,6 @@ int ShowD2Pixel(int run) {
 					max_position = hist_energy[fs][bs]->GetBinCenter(i);
 				}
 			}
-			if (fs == 17 && bs == 16) {
-				std::cout << max_position << " " << max_value << "\n";
-			}
 
 			TF1 *energy_fit = new TF1("f1", "gaus", max_position-10000, max_position+10000);
 			energy_fit->SetParameter(0, max_value);
@@ -123,6 +122,7 @@ int ShowD2Pixel(int run) {
 			sigma = mean < 0 ? 0.0 : sigma;
 			hist_beam_mean.SetBinContent(fs+1, bs+1, mean);
 			hist_beam_sigma.SetBinContent(fs+1, bs+1, sigma);
+			hist_beam_resolution.SetBinContent(fs+1, bs+1, sigma / mean);
 			hist_beam_mean_mirror.SetBinContent(fs+1, -(bs+1), mean);
 			hist_beam_sigma_mirror.SetBinContent(fs+1, -(bs+1), sigma);
 		}
@@ -138,6 +138,9 @@ int ShowD2Pixel(int run) {
 	// save histograms
 	hist_beam_mean.Write();
 	hist_beam_sigma.Write();
+	hist_beam_resolution.GetXaxis()->SetRangeUser(fsmin-1, fsmax+1);
+	hist_beam_resolution.GetYaxis()->SetRangeUser(bsmin-1, bsmax+1);
+	hist_beam_resolution.Write();
 	hist_beam_mean_mirror.Write();
 	hist_beam_sigma_mirror.Write();
 	// close files
@@ -165,11 +168,6 @@ int SummaryD2Pixel(int start_run, int end_run) {
 	for (int run = start_run; run <= end_run; ++run) {
 		if (run == 628) continue;
 		output_file.cd();
-		// beam resolution histogram
-		TH2F hist_beam_resolution(
-			TString::Format("hbr%d", run), "beam resolution",
-			32, 0, 32, 32, 0, 32
-		);
 		// beam resolution over 8%
 		TH2F hist_res_over8(
 			TString::Format("h8r%d", run), "beam resolution over 8%%",
@@ -190,11 +188,9 @@ int SummaryD2Pixel(int start_run, int end_run) {
 		);
 		// input file
 		TFile input_file(input_file_name, "read");
-		// beam energy histogram
-		TH2F *hist_beam_energy = (TH2F*)input_file.Get("hbe");
-		// beam energy sigma
-		TH2F *hist_beam_sigma = (TH2F*)input_file.Get("hbs");
-		if (!hist_beam_energy || !hist_beam_sigma) {
+		// beam energy resolution histogram
+		TH2F *hist_beam_resolution = (TH2F*)input_file.Get("hbr");
+		if (!hist_beam_resolution) {
 			std::cerr << "Error: Get histogram from "
 				<< input_file_name << "\n";
 			continue;
@@ -203,12 +199,7 @@ int SummaryD2Pixel(int start_run, int end_run) {
 		for (int fs = fsmin; fs < fsmax; ++fs) {
 			for (int bs = bsmin; bs < bsmax; ++bs) {
 				if (bs == 17) continue;
-				double mean = hist_beam_energy->GetBinContent(fs+1, bs+1);
-				double sigma = hist_beam_sigma->GetBinContent(fs+1, bs+1);
-				double resolution = sigma / mean;
-				hist_beam_resolution.SetBinContent(
-					fs+1, bs+1, resolution
-				);
+				double resolution = hist_beam_resolution->GetBinContent(fs+1, bs+1);
 				hist_res_over8.SetBinContent(
 					fs+1, bs+1, resolution > 0.08 ? 1.0 : 0.0
 				);
@@ -218,8 +209,6 @@ int SummaryD2Pixel(int start_run, int end_run) {
 			}
 		}
 
-		hist_beam_resolution.GetXaxis()->SetRangeUser(fsmin-1, fsmax+1);
-		hist_beam_resolution.GetYaxis()->SetRangeUser(bsmin-1, bsmax+1);
 		hist_res_over8.GetXaxis()->SetRangeUser(fsmin-1, fsmax+1);
 		hist_res_over8.GetYaxis()->SetRangeUser(bsmin-1, bsmax+1);
 		hist_res_over5.GetXaxis()->SetRangeUser(fsmin-1, fsmax+1);
@@ -233,7 +222,7 @@ int SummaryD2Pixel(int start_run, int end_run) {
 		text.SetFillStyle(0);
 
 		resolution_canvas.cd();
-		hist_beam_resolution.Draw("colz");
+		hist_beam_resolution->Draw("colz");
 		text.Draw();
 		resolution_canvas.Print(TString::Format(
 			"%s%st0d2-pixel-shift-%d-%d.gif%s",
@@ -272,7 +261,7 @@ int SummaryD2Pixel(int start_run, int end_run) {
 		));
 
 		output_file.cd();
-		hist_beam_resolution.Write();
+		hist_beam_resolution->Write();
 	}
 	// close file
 	output_file.Close();
