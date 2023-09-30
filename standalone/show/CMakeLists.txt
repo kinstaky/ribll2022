@@ -16,15 +16,15 @@ target_link_libraries(
 
 # show xt period
 add_executable(
-	show_xt_period
-	show_xt_period.cpp ${PROJECT_INCLUDE_DIR}/defs.h
+	show_event_interval
+	show_event_interval.cpp ${PROJECT_INCLUDE_DIR}/defs.h
 )
 target_include_directories(
-	show_xt_period
+	show_event_interval
 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
 )
 target_link_libraries(
-	show_xt_period
+	show_event_interval
 	PUBLIC statistics ROOT::Core ROOT::Tree ROOT::RIO ROOT::Hist
 )
 

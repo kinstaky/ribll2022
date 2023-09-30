@@ -56,7 +56,6 @@ int Crate0Mapper::Map(bool threshold) {
 		}
 
 		ipt->GetEntry(entry);
-		if (raw_energy_ == 0) continue;
 
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
@@ -93,6 +92,7 @@ int Crate0Mapper::Map(bool threshold) {
 					break;
 				case 8:
 					// xia trigger
+					if (raw_energy_ == 0) continue;
 					FillTree(xia_trigger_index);
 					break;
 				case 9:
