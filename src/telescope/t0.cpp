@@ -62,6 +62,7 @@ void TrackDssdEvent(
 		t0.x[t0.num][0] = d1.x[i];
 		t0.y[t0.num][0] = d1.y[i];
 		t0.z[t0.num][0] = d1.z[i];
+		t0.d1_flag[t0.num] = d1.flag[i];
 		++t0.num;
 	}
 	// fill d2 event in two cases:
@@ -95,6 +96,7 @@ void TrackDssdEvent(
 					t0.x[j][1] = d2.x[i];
 					t0.y[j][1] = d2.y[i];
 					t0.z[j][1] = d2.z[i];
+					t0.d2_flag[j] = d2.flag[i];
 					fill = true;
 					// this d2 event has matched, goto next one
 					break;
@@ -113,6 +115,7 @@ void TrackDssdEvent(
 			t0.x[t0.num][1] = d2.x[i];
 			t0.y[t0.num][1] = d2.y[i];
 			t0.z[t0.num][1] = d2.z[i];
+			t0.d2_flag[t0.num] = d2.flag[i];
 			++t0.num;
 		}
 	}
@@ -158,6 +161,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
+					t0.d3_flag[j] = d3.flag[i];
 					break;
 				}
 			} else if (t0.flag[j] == 0x1) {
@@ -173,6 +177,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
+					t0.d3_flag[j] = d3.flag[i];
 					break;
 				}
 			} else if (t0.flag[j] == 0x2) {
@@ -188,6 +193,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
+					t0.d3_flag[j] = d3.flag[i];
 					break;
 				}
 			}
@@ -208,6 +214,9 @@ void TrackDssdEvent(
 					t0.y[j][k] = t0.y[j+1][k];
 					t0.z[j][k] = t0.z[j+1][k];
 				}
+				t0.d1_flag[j] = t0.d1_flag[j+1];
+				t0.d2_flag[j] = t0.d2_flag[j+1];
+				t0.d3_flag[j] = t0.d3_flag[j+1];
 			}
 			t0.num--;
 		}
@@ -444,14 +453,12 @@ int DssdParticleIdentify(
 	ParticleTypeEvent &type
 ) {
 	bool center = false;
-	if (
-		t0.x[index][1] > -9 && t0.x[index][1] < -3
-		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
-	) {
-		type.layer[index] = -1;
-		return -1;
-		center = true;
-	}
+	// if (
+	// 	t0.x[index][1] > -9 && t0.x[index][1] < -3
+	// 	&& t0.y[index][1] > -2 && t0.y[index][1] < 7
+	// ) {
+	// 	center = true;
+	// }
 	if (t0.flag[index] == 0x3) {
 		const std::vector<ParticleCut> &cuts =
 			center ? d1d2_center_cuts : d1d2_cuts;
@@ -508,14 +515,12 @@ int SsdParticleIdentify(
 	ParticleTypeEvent &type
 ) {
 	bool center = false;
-	if (
-		t0.x[index][1] > -9 && t0.x[index][1] < -3
-		&& t0.y[index][1] > -2 && t0.y[index][1] < 7
-	) {
-		type.layer[index] = -1;
-		return -1;
-		center = true;
-	}
+	// if (
+	// 	t0.x[index][1] > -9 && t0.x[index][1] < -3
+	// 	&& t0.y[index][1] > -2 && t0.y[index][1] < 7
+	// ) {
+	// 	center = true;
+	// }
 
 	// if (t0.flag[index] != 0x7) return -1;
 	// the true ssd flag, since there is cross signal in T0S2 from T0S1,
@@ -598,8 +603,7 @@ int SsdParticleIdentify(
 }
 
 
-int T0::
-ParticleIdentify() {
+int T0::ParticleIdentify() {
 	// input t0 telescope file name
 	TString t0_file_name;
 	t0_file_name.Form(
@@ -645,10 +649,10 @@ ParticleIdentify() {
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
 	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	// d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
-	// d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
+	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
 	// d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
-	// d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
+	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
 	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
 	// d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
 	// d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
@@ -805,6 +809,10 @@ ParticleIdentify() {
 				else ++id21;
 			} else if (identify0 > 0 && identify1 > 0) {
 				++id22;
+			} else if (identify0 <= 0 && identify1 > 0) {
+				++id21;
+			} else if (identify0 > 0 && identify1 <= 0) {
+				++id21;
 			}
 		} else if (t0_event.num == 3) {
 			++total;

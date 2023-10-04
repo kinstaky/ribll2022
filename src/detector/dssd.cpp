@@ -10,6 +10,7 @@
 #include <TMarker.h>
 
 #include "include/event/dssd_event.h"
+#include "include/event/filter_event.h"
 #include "include/statistics/normalize_statistics.h"
 
 
@@ -203,8 +204,8 @@ int Dssd::ReadNormalizeParameters(int iteration) {
 	// setup file name
 	TString file_name;
 	file_name.Form(
-		// "%s%s%s%s.txt",
-		"%s%s%s-wk-b0%s.txt",
+		"%s%s%s%s.txt",
+		// "%s%s%s-wk-b0%s.txt",
 		kGenerateDataPath, kNormalizeDir, name_.c_str(),
 		iteration == -1 ? "" : ("-"+std::to_string(iteration)).c_str()
 	);
@@ -233,6 +234,10 @@ int Dssd::ReadNormalizeParameters(int iteration) {
 			fin >> norm_params_[1][i][j];
 		}
 	}
+	std::string title, version;
+	fin >> title >> version;
+	std::cout << "Read normalize parameters "
+		<< title << " " << version << "\n";
 	// close file
 	fin.close();
 
@@ -242,45 +247,46 @@ int Dssd::ReadNormalizeParameters(int iteration) {
 
 int Dssd::WriteNormalizeParameters(int iteration) {
 	// setup file name
-	TString file_name;
-	file_name.Form(
-		"%s%s%s%s.txt",
-		kGenerateDataPath, kNormalizeDir, name_.c_str(),
-		iteration == -1 ? "" : ("-"+std::to_string(iteration)).c_str()
+	TString file_names[2];
+	file_names[0].Form(
+		"%s%s%s.txt",
+		kGenerateDataPath, kNormalizeDir, name_.c_str()
 	);
-	// open output file
-	std::ofstream fout(file_name.Data());
-	if (!fout.good()) {
-		std::cerr << "Error: open normalize parameters file "
-			<< file_name << " failed.\n";
-		return -1;
+	file_names[1].Form(
+		"%s%s%s-%d.txt",
+		kGenerateDataPath, kNormalizeDir, name_.c_str(), iteration
+	);
+	for (int i = 0; i < (iteration >= 0 ? 2 : 1); ++i) {
+		// open output file
+		std::ofstream fout(file_names[i].Data());
+		if (!fout.good()) {
+			std::cerr << "Error: open normalize parameters file "
+				<< file_names[i] << " failed.\n";
+			return -1;
+		}
+		// write front strip number
+		fout << FrontStrip() << "\n";
+		// write normalized paramters for front strips
+		for (size_t i = 0; i < FrontStrip(); ++i) {
+			fout << norm_params_[0][i][0]<< " "
+				<< norm_params_[0][i][1]<< " "
+				<< norm_params_[0][i][2]<< " "
+				<< norm_params_[0][i][3] << "\n";
+		}
+		// write back strip number
+		fout << BackStrip() << "\n";
+		// write normalized parameters for back strips
+		for (size_t i = 0; i < BackStrip(); ++i) {
+			fout << norm_params_[1][i][0] << " "
+				<< norm_params_[1][i][1] << " "
+				<< norm_params_[1][i][2] << " "
+				<< norm_params_[1][i][3] << "\n";
+		}
+		// add some information about the paramters
+		fout << "version " << iteration << "\n";
+		// close file
+		fout.close();
 	}
-	// write front strip number
-	fout << FrontStrip() << "\n";
-	// write normalized paramters for front strips
-	for (size_t i = 0; i < FrontStrip(); ++i) {
-		fout << norm_params_[0][i][0]<< " "
-			<< norm_params_[0][i][1]<< " "
-			<< norm_params_[0][i][2]<< " "
-			<< norm_params_[0][i][3] << "\n";
-	}
-	// write back strip number
-	fout << BackStrip() << "\n";
-	// write normalized parameters for back strips
-	for (size_t i = 0; i < BackStrip(); ++i) {
-		fout << norm_params_[1][i][0] << " "
-			<< norm_params_[1][i][1] << " "
-			<< norm_params_[1][i][2] << " "
-			<< norm_params_[1][i][3] << "\n";
-	}
-	// close file
-	fout.close();
-
-	// write to default parameters file
-	if (iteration != -1) {
-		return WriteNormalizeParameters(-1);
-	}
-
 	return 0;
 }
 
@@ -508,56 +514,68 @@ int Dssd::Normalize(
 
 
 int Dssd::NormalizeResult(int iteration) {
-	// input file name
-	TString input_file_name;
-	input_file_name.Form(
-		"%s%s%s-fundamental-%s%04u.root",
-		kGenerateDataPath,
-		kFundamentalDir,
-		name_.c_str(),
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
-	);
 	// input file
-	TFile ipf(input_file_name, "read");
+	TFile *ipf = nullptr;
 	// input tree
-	TTree *ipt = (TTree*)ipf.Get("tree");
-	if (!ipt) {
-		std::cerr << "Error: Get tree from "
-			<< input_file_name << " failed.\n";
-		return -1;
-	}
-	// input filter file name
-	TString filter_file_name;
-	filter_file_name.Form(
-		"%s%s%s-filter-%s%04u.root",
-		kGenerateDataPath,
-		kNormalizeDir,
-		name_.c_str(),
-		tag_.empty() ? "" : (tag_ + "-").c_str(),
-		run_
-	);
-	if (iteration > 0) {
-		// add friend
-		ipt->AddFriend("filter=tree", filter_file_name);
-	}
+	TTree *ipt = nullptr;
 	// input event
 	DssdFundamentalEvent event;
-	// input filter flag
-	unsigned short flag;
-	// setup input branches
-	event.SetupInput(ipt);
-	if (iteration > 0) {
-		ipt->SetBranchAddress("filter.flag", &flag);
+	FilterEvent filter_event;
+
+	// setup input file, tree, and branches in different conditions
+	if (iteration == 0) {
+		// input file name
+		TString fundamental_file_name = TString::Format(
+			"%s%s%s-fundamental-%s%04u.root",
+			kGenerateDataPath,
+			kFundamentalDir,
+			name_.c_str(),
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			run_
+		);
+		// input file
+		ipf = new TFile(fundamental_file_name, "read");
+		// input tree
+		ipt = (TTree*)ipf->Get("tree");
+		if (!ipt) {
+			std::cerr << "Error: Get tree from "
+				<< fundamental_file_name << " failed.\n";
+			return -1;
+		}
+		// setup input branches
+		event.SetupInput(ipt);
+	} else {
+		// input filter file name
+		TString filter_file_name = TString::Format(
+			"%s%s%s-normalize-filter-%d-%s%04u.root",
+			kGenerateDataPath,
+			kFilterDir,
+			name_.c_str(),
+			iteration,
+			tag_.empty() ? "" : (tag_ + "-").c_str(),
+			run_
+		);
+		// input file
+		ipf = new TFile(filter_file_name, "read");
+		// input tree
+		ipt = (TTree*)ipf->Get("tree");
+		if (!ipt) {
+			std::cerr << "Error: Get tree from "
+				<< filter_file_name << " failed.\n";
+			return -1;
+		}
+		// setup input branches
+		filter_event.SetupInput(ipt);
 	}
 
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%s%s-result-%s%04u.root",
+		"%s%s%s-result-%s%s%04u.root",
 		kGenerateDataPath,
 		kNormalizeDir,
 		name_.c_str(),
+		iteration == 0 ? "" : (std::to_string(iteration)+"-").c_str(),
 		tag_.empty() ? "" : (tag_+"-").c_str(),
 		run_
 	);
@@ -596,37 +614,37 @@ int Dssd::NormalizeResult(int iteration) {
 		"hrdefe", "(fe-be)/(fe+be):fe",
 		1000, 0, 60000, 1000, 0,  1
 	);
-	// 2D hisogram fe VS be with filter
-	TH2F fe_be_f("hfbef", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
-	// 2D histogram fe-be VS fs with filter
-	TH2F de_fs_f(
-		"hefsf", "fe-be:fs",
-		FrontStrip(), 0, FrontStrip(), 1000, 0, diff_e_range
-	);
-	// 2D histogram fe-be VS bs with filter
-	TH2F de_bs_f(
-		"hebsf", "fe-be:bs",
-		BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
-	);
-	// 2D histogram fe-be VS fe with filter
-	TH2F de_fe_f(
-		"hefef", "fe-be:fe",
-		1000, 0, 60000, 1000, 0, diff_e_range
-	);
-	// 2D histogram fe-be VS be with filter
-	TH2F de_be_f(
-		"hebef", "fe-be:be",
-		1000, 0, 60000, 1000, -diff_e_range, diff_e_range
-	);
-	// 1D histogram fe-be with filter
-	TH1F de_f("hdef", "fe-be", 1000, -diff_e_range, diff_e_range);
-	// 1D histogram abs(fe-be)/(fe+be) with filter
-	TH1F rde_f("hrdef", "(fe-be)/(fe+be)", 1000, -1, 1);
-	// 2D histogram (fe-be)/(fe+be) VS fe with filter
-	TH2F rde_fe_f(
-		"hrdefef", "(fe-be)/(fe+be):fe",
-		1000, 0, 60000, 1000, 0,  1
-	);
+	// // 2D hisogram fe VS be with filter
+	// TH2F fe_be_f("hfbef", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
+	// // 2D histogram fe-be VS fs with filter
+	// TH2F de_fs_f(
+	// 	"hefsf", "fe-be:fs",
+	// 	FrontStrip(), 0, FrontStrip(), 1000, 0, diff_e_range
+	// );
+	// // 2D histogram fe-be VS bs with filter
+	// TH2F de_bs_f(
+	// 	"hebsf", "fe-be:bs",
+	// 	BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
+	// );
+	// // 2D histogram fe-be VS fe with filter
+	// TH2F de_fe_f(
+	// 	"hefef", "fe-be:fe",
+	// 	1000, 0, 60000, 1000, 0, diff_e_range
+	// );
+	// // 2D histogram fe-be VS be with filter
+	// TH2F de_be_f(
+	// 	"hebef", "fe-be:be",
+	// 	1000, 0, 60000, 1000, -diff_e_range, diff_e_range
+	// );
+	// // 1D histogram fe-be with filter
+	// TH1F de_f("hdef", "fe-be", 1000, -diff_e_range, diff_e_range);
+	// // 1D histogram abs(fe-be)/(fe+be) with filter
+	// TH1F rde_f("hrdef", "(fe-be)/(fe+be)", 1000, -1, 1);
+	// // 2D histogram (fe-be)/(fe+be) VS fe with filter
+	// TH2F rde_fe_f(
+	// 	"hrdefef", "(fe-be)/(fe+be):fe",
+	// 	1000, 0, 60000, 1000, 0,  1
+	// );
 	// output tree
 	TTree opt("tree", "normalized energy tree");
 	// setup branches
@@ -662,40 +680,59 @@ int Dssd::NormalizeResult(int iteration) {
 		}
 		// get event
 		ipt->GetEntry(entry);
-		for (unsigned short i = 0; i < event.front_hit; ++i) {
-			event.front_energy[i] =
-				NormEnergy(0, event.front_strip[i], event.front_energy[i]);
-			event.front_time[i] -= norm_time_params_[0][event.front_strip[i]];
-			event.front_fundamental_index[i] = i;
-		}
-		for (unsigned short i = 0; i < event.back_hit; ++i) {
-			event.back_energy[i] =
-				NormEnergy(1, event.back_strip[i], event.back_energy[i]);
-			event.back_time[i] -= norm_time_params_[1][event.back_strip[i]];
-			event.back_fundamental_index[i] = i;
-		}
-		event.Sort();
+		if (iteration == 0) {
+			for (unsigned short i = 0; i < event.front_hit; ++i) {
+				event.front_energy[i] =
+					NormEnergy(0, event.front_strip[i], event.front_energy[i]);
+				event.front_time[i] -= norm_time_params_[0][event.front_strip[i]];
+				event.front_fundamental_index[i] = i;
+			}
+			for (unsigned short i = 0; i < event.back_hit; ++i) {
+				event.back_energy[i] =
+					NormEnergy(1, event.back_strip[i], event.back_energy[i]);
+				event.back_time[i] -= norm_time_params_[1][event.back_strip[i]];
+				event.back_fundamental_index[i] = i;
+			}
+			event.Sort();
 
-		if (event.front_hit == 1 && event.back_hit == 1) {
-			double fe = event.front_energy[0];
-			double be = event.back_energy[0];
-			fe_be.Fill(be, fe);
-			de_fs.Fill(event.front_strip[0], fabs(fe-be));
-			de_bs.Fill(event.back_strip[0], fe-be);
-			de_fe.Fill(fe, fabs(fe-be));
-			de_be.Fill(be, fe-be);
-			de.Fill(fe-be);
-			rde.Fill((fe-be)/(fe+be));
-			rde_fe.Fill(fe, fabs((fe-be)/(fe+be)));
-			if (flag == 1) {
-				fe_be_f.Fill(be, fe);
-				de_fs_f.Fill(event.front_strip[0], fabs(fe-be));
-				de_bs_f.Fill(event.back_strip[0], fe-be);
-				de_fe_f.Fill(fe, fabs(fe-be));
-				de_be_f.Fill(be, fe-be);
-				de_f.Fill(fe-be);
-				rde_f.Fill((fe-be)/(fe+be));
-				rde_fe_f.Fill(fe, fabs((fe-be)/(fe+be)));
+			if (event.front_hit == 1 && event.back_hit == 1) {
+				double fe = event.front_energy[0];
+				double be = event.back_energy[0];
+				fe_be.Fill(be, fe);
+				de_fs.Fill(event.front_strip[0], fabs(fe-be));
+				de_bs.Fill(event.back_strip[0], fe-be);
+				de_fe.Fill(fe, fabs(fe-be));
+				de_be.Fill(be, fe-be);
+				de.Fill(fe-be);
+				rde.Fill((fe-be)/(fe+be));
+				rde_fe.Fill(fe, fabs((fe-be)/(fe+be)));
+			}
+		} else {
+			event.front_hit = filter_event.num;
+			event.back_hit = filter_event.num;
+			for (unsigned short i = 0; i < filter_event.num; ++i) {
+				event.front_strip[i] = filter_event.front_strip[i];
+				event.back_strip[i] = filter_event.back_strip[i];
+				event.front_energy[i] = NormEnergy(
+					0,
+					filter_event.front_strip[i],
+					filter_event.front_energy[i]
+				);
+				event.back_energy[i] = NormEnergy(
+					1,
+					filter_event.back_strip[i],
+					filter_event.back_energy[i]
+				);
+				double fe = event.front_energy[i];
+				double be = event.back_energy[i];
+				fe_be.Fill(be, fe);
+				de_fs.Fill(event.front_strip[i], fabs(fe-be));
+				de_bs.Fill(event.back_strip[i], fe-be);
+				de_fe.Fill(fe, fabs(fe-be));
+				de_be.Fill(be, fe-be);
+				de.Fill(fe-be);
+				rde.Fill((fe-be)/(fe+be));
+				rde_fe.Fill(fe, fabs((fe-be)/(fe+be)));
 			}
 		}
 		opt.Fill();
@@ -712,27 +749,21 @@ int Dssd::NormalizeResult(int iteration) {
 	de.Write();
 	rde.Write();
 	rde_fe.Write();
-	fe_be_f.Write();
-	de_fs_f.Write();
-	de_bs_f.Write();
-	de_fe_f.Write();
-	de_be_f.Write();
-	de_f.Write();
-	rde_f.Write();
-	rde_fe_f.Write();
+	// fe_be_f.Write();
+	// de_fs_f.Write();
+	// de_bs_f.Write();
+	// de_fe_f.Write();
+	// de_be_f.Write();
+	// de_f.Write();
+	// rde_f.Write();
+	// rde_fe_f.Write();
 	// write output tree
 	opt.Write();
 	// close files
 	opf.Close();
-	ipf.Close();
+	ipf->Close();
 
 	return 0;
-}
-
-
-int Dssd::NormalizeFilter(int) {
-	std::cerr << "Error: NormalizeFilter is not implemented yet.\n";
-	return -1;
 }
 
 
@@ -942,6 +973,7 @@ void Merge11Event(
 	if (fabs(diff) < diff_tolerance) {
 		merge.hit = 1;
 		merge.case_tag = 0;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
@@ -980,6 +1012,7 @@ void Merge12Event(
 		// adjacent back strips event
 		merge.hit = 1;
 		merge.case_tag = 100;
+		merge.flag[0] = 0x301;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
@@ -991,6 +1024,7 @@ void Merge12Event(
 	) {
 		merge.hit = 1;
 		merge.case_tag = 101;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
@@ -1029,6 +1063,7 @@ void Merge21Event(
 		// adjacent event at the front side
 		merge.hit = 1;
 		merge.case_tag = 200;
+		merge.flag[0] = 0x103;
 		merge.energy[0] = be[0];
 		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
@@ -1042,6 +1077,7 @@ void Merge21Event(
 		// or the second back strip was thrown
 		merge.hit = 1;
 		merge.case_tag = 201;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
@@ -1091,11 +1127,13 @@ void Merge22Event(
 		// tow particles event
 		merge.hit = 2;
 		merge.case_tag = 300;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x202;
 		merge.energy[1] = fe[1];
 		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
@@ -1109,11 +1147,13 @@ void Merge22Event(
 		// two particles event
 		merge.hit = 2;
 		merge.case_tag = 300;
+		merge.flag[0] = 0x201;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x102;
 		merge.energy[1] = fe[1];
 		merge.x[1] = fs[1];
 		merge.y[1] = bs[0];
@@ -1121,7 +1161,7 @@ void Merge22Event(
 		++statistics[0].merged;
 	} else if (
 		fabs(diff_b) < 1.414 * diff_tolerance
-		&& fundamental.cfd_flag == 0
+		// && fundamental.cfd_flag == 0
 		&& abs(fs[0]-fs[1]) == 1
 		&& abs(bs[0]-bs[1]) == 1
 	) {
@@ -1129,6 +1169,7 @@ void Merge22Event(
 		// one particle event, two adjacent strips
 		merge.hit = 1;
 		merge.case_tag = 301;
+		merge.flag[0] = 0x303;
 		merge.energy[0] = fe[0] + fe[1];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
@@ -1190,11 +1231,13 @@ void Merge23Event(
 		// particle 2: f1b2
 		merge.hit = 2;
 		merge.case_tag = 400;
+		merge.flag[0] = 0x301;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x402;
 		merge.energy[1] = fe[1];
 		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
@@ -1210,11 +1253,13 @@ void Merge23Event(
 		// particle 2: f1b1
 		merge.hit = 2;
 		merge.case_tag = 400;
+		merge.flag[0] = 0x501;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0] + bs[2]/(be[0]+be[2])*(bs[2]-bs[0]);
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x202;
 		merge.energy[1] = fe[1];
 		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
@@ -1231,11 +1276,13 @@ void Merge23Event(
 		// particle 2: f1b1b2
 		merge.hit = 2;
 		merge.case_tag = 400;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x602;
 		merge.energy[1] = fe[1];
 		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
@@ -1252,11 +1299,13 @@ void Merge23Event(
 		// particle 2: f1b0
 		merge.hit = 2;
 		merge.case_tag = 400;
+		merge.flag[0] = 0x601;
 		merge.energy[0] = fe[0];
 		merge.time[0] = fundamental.front_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x102;
 		merge.energy[1] = fe[1];
 		merge.time[1] = fundamental.front_time[1];
 		merge.x[1] = fs[1];
@@ -1318,11 +1367,13 @@ void Merge32Event(
 		// particle 2: f2b1
 		merge.hit = 2;
 		merge.case_tag = 500;
+		merge.flag[0] = 0x103;
 		merge.energy[0] = be[0];
 		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fs[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x204;
 		merge.energy[1] = be[1];
 		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[2];
@@ -1338,11 +1389,13 @@ void Merge32Event(
 		// particle 2: f1b1
 		merge.hit = 2;
 		merge.case_tag = 500;
+		merge.flag[0] = 0x105;
 		merge.energy[0] = be[0];
 		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0] + fs[2]/(fe[0]+fe[2])*(fs[2]-fs[0]);
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x202;
 		merge.energy[1] = be[1];
 		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[1];
@@ -1359,11 +1412,13 @@ void Merge32Event(
 		// particle 2: f1f2b1
 		merge.hit = 2;
 		merge.case_tag = 500;
+		merge.flag[0] = 0x101;
 		merge.energy[0] = be[0];
 		merge.time[0] = fundamental.back_time[0];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[0];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x206;
 		merge.energy[1] = be[1];
 		merge.time[1] = fundamental.back_time[1];
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
@@ -1380,11 +1435,13 @@ void Merge32Event(
 		// particle 2: f1f2b0
 		merge.hit = 2;
 		merge.case_tag = 500;
+		merge.flag[0] = 0x201;
 		merge.energy[0] = be[1];
 		merge.time[0] = fundamental.back_time[1];
 		merge.x[0] = fs[0];
 		merge.y[0] = bs[1];
 		merge.z[0] = 0.0;
+		merge.flag[1] = 0x106;
 		merge.energy[1] = be[0];
 		merge.time[1] = fundamental.back_time[0];
 		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
@@ -1426,6 +1483,7 @@ void Merge33Event(
 		merge.hit = 3;
 		merge.case_tag = 600;
 		for (int i = 0; i < 3; ++i) {
+			merge.flag[i] = 0x101 << i;
 			merge.energy[i] = fe[i];
 			merge.time[i] = fundamental.front_time[i];
 			merge.x[i] = fs[i];
@@ -1443,9 +1501,12 @@ void Merge33Event(
 /// @param[in] j second index to swap
 ///
 void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
-	double tmp;
+	// swap flag
+	unsigned int tf = merge.flag[i];
+	merge.flag[i] = merge.flag[j];
+	merge.flag[j] = tf;
 	// swap energy
-	tmp = merge.energy[i];
+	double tmp = merge.energy[i];
 	merge.energy[i] = merge.energy[j];
 	merge.energy[j] = tmp;
 	// swap time
@@ -1464,6 +1525,10 @@ void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
 	tmp = merge.z[i];
 	merge.z[i] = merge.z[j];
 	merge.z[j] = tmp;
+	// swap time flag
+	int ttf = merge.time_flag[i];
+	merge.time_flag[i] = merge.time_flag[j];
+	merge.time_flag[j] = ttf;
 }
 
 

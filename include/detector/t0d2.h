@@ -24,11 +24,12 @@ public:
 	//								normalize
 	//-------------------------------------------------------------------------
 
-	/// @brief filter normalize events
-	/// @param[in] iteration iteration mode
+	/// @brief normalize dssd
+	/// @param[in] end_run end of run to chain, inclusive
+	/// @param[in] iteration iteration mode, default is 0 for normal mode
 	/// @returns 0 if success, -1 otherwise
 	///
-	int NormalizeFilter(int iteration);
+	virtual int Normalize(unsigned int end_run, int iteration = 0);
 
 
 	//-------------------------------------------------------------------------

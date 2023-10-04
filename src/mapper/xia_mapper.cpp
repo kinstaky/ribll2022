@@ -136,14 +136,15 @@ size_t XiaMapper::CreateResidualTree(const char *name) {
 		"tree",
 		TString::Format("residual tree of %s", name)
 	);
-	opt->Branch("sr", &rate_);
-	opt->Branch("sid", &sid_);
-	opt->Branch("ch", &ch_);
-	opt->Branch("ts", &ts_);
-	opt->Branch("cfd", &cfd_);
-	opt->Branch("cfds", &cfds_);
-	opt->Branch("cfdft", &cfdft_);
-	opt->Branch("evte", &raw_energy_);
+	opt->Branch("sr", &rate_, "sr/S");
+	opt->Branch("sid", &sid_, "sid/S");
+	opt->Branch("ch", &ch_, "ch/S");
+	opt->Branch("ts", &ts_, "ts/L");
+	opt->Branch("cfd", &cfd_, "cfd/S");
+	opt->Branch("cfds", &cfds_, "cfds/S");
+	opt->Branch("cfdft", &cfdft_, "cfdft/O");
+	opt->Branch("evte", &raw_energy_, "evte/s");
+	opt->Branch("entry", &decode_entry_, "entry/L");
 
 	opts_.push_back(opt);
 	return opts_.size() - 1;

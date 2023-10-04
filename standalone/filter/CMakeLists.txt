@@ -1,6 +1,6 @@
 # filter normalize
 add_executable(filter_normalize filter_normalize.cpp)
-target_link_libraries(filter_normalize PRIVATE detectors)
+target_link_libraries(filter_normalize PRIVATE event ROOT::Graf)
 
 # t0d1d2 4He filter
 add_executable(filter_he filter_he.cpp)

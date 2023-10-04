@@ -40,6 +40,7 @@ int Crate1Mapper::Map(bool threshold) {
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
+		decode_entry_ = entry;
 
 		if (sid_ < 6) {
 			// t1d1
@@ -109,6 +110,8 @@ int Crate1Mapper::Map(bool threshold) {
 			<< " failed.\n";
 		return -1;
 	}
+	long long original_entry;
+	res_ipt->SetBranchAddress("entry", &original_entry);
 
 	// show process
 	printf("Mapping crate 0 residual   0%%");
@@ -129,6 +132,7 @@ int Crate1Mapper::Map(bool threshold) {
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
+		decode_entry_ = original_entry;
 
 		switch (ch_) {
 			case 10:

@@ -15,6 +15,14 @@
 
 namespace ribll {
 
+struct NormalizeInfo {
+	int side;
+	unsigned short ref_start;
+	unsigned short ref_end;
+	unsigned short norm_start;
+	unsigned short norm_end;
+};
+
 class Dssd : public Detector {
 public:
 
@@ -126,13 +134,6 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	int NormalizeResult(int iteration = 0);
-
-
-	/// @brief generate filter flag for iteration mode
-	/// @param[in] iteration iteration number
-	/// @returns 0 if success, -1 otherwise
-	///
-	virtual int NormalizeFilter(int iteration);
 
 	//-------------------------------------------------------------------------
 	//								merge

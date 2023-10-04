@@ -182,6 +182,7 @@ public:
 
 	unsigned short hit;
 	unsigned int case_tag;
+	unsigned int flag[4];
 	double x[4];
 	double y[4];
 	double z[4];

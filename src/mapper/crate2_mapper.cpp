@@ -42,6 +42,7 @@ int Crate2Mapper::Map(bool threshold) {
 		energy_ = raw_energy_;
 		timestamp_ = CalculateTimestamp(rate_, ts_);
 		time_ = CalculateTime(rate_, timestamp_, cfd_, cfds_, cfdft_);
+		decode_entry_ = entry;
 
 		side_ = sid_ < 6 ? 0 : 1;
 		switch ((sid_ - 2) % 4) {
