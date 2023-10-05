@@ -18,6 +18,7 @@ set(
 	${EVENT_INCLUDE_DIR}/particle_event.h
 	${EVENT_INCLUDE_DIR}/channel_event.h
 	${EVENT_INCLUDE_DIR}/generate_event.h
+	${EVENT_INCLUDE_DIR}/detect_event.h
 	${EVENT_INCLUDE_DIR}/filter_event.h
 )
 
@@ -35,6 +36,7 @@ set(
 	particle_event.cpp
 	channel_event.cpp
 	generate_event.cpp
+	detect_event.cpp
 	filter_event.cpp
 )
 

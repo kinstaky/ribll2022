@@ -9,6 +9,7 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/generate_event.h"
+#include "include/event/detect_event.h"
 #include "include/calculator/range_energy_calculator.h"
 
 using namespace ribll;
@@ -72,53 +73,28 @@ int main() {
 		kGenerateDataPath,
 		kSimulateDir
 	);
-	TH1F hist_fake_q("hfq", "q value", 1000, -20, -10);
+	// fake q value histogram
+	TH1F hist_fake_q("hfq", "fake q value", 1000, -20, -10);
+	// T0D1,D2 x offset
+	TH1F hist_d1d2_x_offset("hd1d2xo", "D1D2 x offset", 20, -10, 10);
+	// T0D1,D2 x offset
+	TH1F hist_d1d2_y_offset("hd1d2yo", "D1D2 y offset", 20, -10, 10);
+	// T0D1,D3 x offset
+	TH1F hist_d1d3_x_offset("hd1d3xo", "D1D3 x offset", 20, -10, 10);
+	// T0D1,D3 y offset
+	TH1F hist_d1d3_y_offset("hd1d3yo", "D1D3 y offset", 20, -10, 10);
+	// T0D2,D3 x offset
+	TH1F hist_d2d3_x_offset("hd2d3xo", "D2D3 x offset", 20, -10, 10);
+	// T0D2,D3 y offset
+	TH1F hist_d2d3_y_offset("hd2d3yo", "D2D3 y offset", 20, -10, 10);
 	// output file
 	TFile detect_file(detect_file_name, "recreate");
 	// output tree
 	TTree detect_tree("tree", "detected data");
 	// output detect data
-	int taf_layer;
-	double taf_lost_energy[2];
-	double taf_energy[2];
-	int t0_layer[2];
-	double t0_lost_energy[2][7];
-	double t0_energy[2][7];
-	double tafx;
-	double tafy;
-	double tafz;
-	double tafr;
-	double t0x[2];
-	double t0y[2];
-	double t0z[2];
-	double t0r[2];
-	double ppacx[3];
-	double ppacy[3];
-	double tx;
-	double ty;
-	int valid;
-	double q_value;
-	// setup input branches
-	detect_tree.Branch("taf_layer", &taf_layer, "taflayer/I");
-	detect_tree.Branch("taf_lost_energy", taf_lost_energy, "tafle[2]/D");
-	detect_tree.Branch("taf_energy", taf_energy, "tafe[2]/D");
-	detect_tree.Branch("t0_layer", t0_layer, "t0layer[2]/I");
-	detect_tree.Branch("t0_lost_energy", t0_lost_energy, "t0le[2][7]/D");
-	detect_tree.Branch("t0_energy", t0_energy, "t0e[2][7]/D");
-	detect_tree.Branch("tafx", &tafx, "tafx/D");
-	detect_tree.Branch("tafy", &tafy, "tafy/D");
-	detect_tree.Branch("tafz", &tafz, "tafz/D");
-	detect_tree.Branch("tafr", &tafr, "tafr/D");
-	detect_tree.Branch("t0x", t0x, "t0x[2]/D");
-	detect_tree.Branch("t0y", t0y, "t0y[2]/D");
-	detect_tree.Branch("t0z", t0z, "t0z[2]/D");
-	detect_tree.Branch("t0r", t0r, "t0r[2]/D");
-	detect_tree.Branch("ppacx", ppacx, "ppacx[3]/D");
-	detect_tree.Branch("ppacy", ppacy, "ppacy[3]/D");
-	detect_tree.Branch("tx", &tx, "tx/D");
-	detect_tree.Branch("ty", &ty, "ty/D");
-	detect_tree.Branch("valid", &valid, "valid/I");
-	detect_tree.Branch("q", &q_value, "q/D");
+	DetectEvent detect;
+	// setup output branches
+	detect.SetupOutput(&detect_tree);
 
 	// initialize calculators
 	elc::RangeEnergyCalculator be10_calculator("10Be", "Si");
@@ -151,26 +127,29 @@ int main() {
 		// calculate taf energy
 		double recoil_range = h2_calculator.Range(event.recoil_kinematic);
 		if (recoil_range < 150.0 / cos(event.recoil_theta)) {
-			taf_layer = 0;
-			taf_lost_energy[0] = event.recoil_kinematic;
-			taf_lost_energy[1] = 0.0;
+			detect.taf_layer = 0;
+			detect.taf_lost_energy[0] = event.recoil_kinematic;
+			detect.taf_lost_energy[1] = 0.0;
 		} else {
-			taf_layer = 1;
-			taf_lost_energy[1] = h2_calculator.Energy(
+			detect.taf_layer = 1;
+			detect.taf_lost_energy[1] = h2_calculator.Energy(
 				recoil_range - 150.0 / cos(event.recoil_theta)
 			);
-			taf_lost_energy[0] = event.recoil_kinematic - taf_lost_energy[1];
+			detect.taf_lost_energy[0] =
+				event.recoil_kinematic - detect.taf_lost_energy[1];
 		}
 		// detected energy
-		taf_energy[0] = taf_lost_energy[0] + generator.Gaus(0.0, 0.1);
-		taf_energy[1] = taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
+		detect.taf_energy[0] =
+			detect.taf_lost_energy[0] + generator.Gaus(0.0, 0.1);
+		detect.taf_energy[1] =
+			detect.taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
 
 		// calculate t0 energy
 		double range[2];
 		double residual_energy[2];
 		for (size_t i = 0; i < 2; ++i) {
 			for (size_t j = 0; j < 7; ++j) {
-				t0_lost_energy[i][j] = 0.0;
+				detect.t0_lost_energy[i][j] = 0.0;
 			}
 			range[i] = frag_calculators[i]->Range(event.fragment_kinematic[i]);
 			residual_energy[i] = event.fragment_kinematic[i];
@@ -178,18 +157,18 @@ int main() {
 			for (size_t j = 0; j < 6; ++j) {
 				double thick = t0_thickness[j] / cos(event.fragment_theta[i]);
 				if (range[i] < thick) {
-					t0_layer[i] = j;
-					t0_lost_energy[i][j] = residual_energy[i];
+					detect.t0_layer[i] = j;
+					detect.t0_lost_energy[i][j] = residual_energy[i];
 					break;
 				} else {
-					t0_lost_energy[i][j] =
+					detect.t0_lost_energy[i][j] =
 						residual_energy[i]
 						- frag_calculators[i]->Energy(range[i] - thick);
 					range[i] -= thick;
-					residual_energy[i] -= t0_lost_energy[i][j];
+					residual_energy[i] -= detect.t0_lost_energy[i][j];
 					if (j == 5) {
-						t0_layer[i] = 6;
-						t0_lost_energy[i][6] = residual_energy[i];
+						detect.t0_layer[i] = 6;
+						detect.t0_lost_energy[i][6] = residual_energy[i];
 					}
 				}
 			}
@@ -197,13 +176,20 @@ int main() {
 
 		// simulate detected energy
 		for (int i = 0; i < 2; ++i) {
-			t0_energy[i][0] = t0_lost_energy[i][0] + generator.Gaus(0.0, 0.2);
-			t0_energy[i][1] = t0_lost_energy[i][1] + generator.Gaus(0.0, 0.8);
-			t0_energy[i][2] = t0_lost_energy[i][2] + generator.Gaus(0.0, 0.2);
-			t0_energy[i][3] = t0_lost_energy[i][3] + generator.Gaus(0.0, 0.1);
-			t0_energy[i][4] = t0_lost_energy[i][4] + generator.Gaus(0.0, 0.1);
-			t0_energy[i][5] = t0_lost_energy[i][5] + generator.Gaus(0.0, 0.1);
-			t0_energy[i][6] = t0_lost_energy[i][6] + generator.Gaus(0.0, 1.0);
+			detect.t0_energy[i][0] =
+				detect.t0_lost_energy[i][0] + generator.Gaus(0.0, 0.2);
+			detect.t0_energy[i][1] =
+				detect.t0_lost_energy[i][1] + generator.Gaus(0.0, 0.8);
+			detect.t0_energy[i][2] =
+				detect.t0_lost_energy[i][2] + generator.Gaus(0.0, 0.2);
+			detect.t0_energy[i][3] =
+				detect.t0_lost_energy[i][3] + generator.Gaus(0.0, 0.1);
+			detect.t0_energy[i][4] =
+				detect.t0_lost_energy[i][4] + generator.Gaus(0.0, 0.1);
+			detect.t0_energy[i][5] =
+				detect.t0_lost_energy[i][5] + generator.Gaus(0.0, 0.1);
+			detect.t0_energy[i][6] =
+				detect.t0_lost_energy[i][6] + generator.Gaus(0.0, 1.0);
 		}
 
 		// calculate position
@@ -213,7 +199,7 @@ int main() {
 		// taf ring strip
 		int taf_ring_strip = int((event.rr - 68.0) / taf_ring_width);
 		// taf r
-		tafr = (taf_ring_strip + 0.5) * taf_ring_width + 68.0;
+		detect.tafr = (taf_ring_strip + 0.5) * taf_ring_width + 68.0;
 		// a virtual taf index
 		int taf_index = int(((event.recoil_phi / pi) + 1) * 3.0);
 		// effective taf phi, normalized to 0-60 degree
@@ -228,56 +214,75 @@ int main() {
 			(taf_phi_strip + 0.5) * taf_phi_width
 			+ 2.4 + taf_index * 60.0 - 180.0
 		) / 180.0 * pi;
-		tafz = event.rz;
-		tafx = tafr * cos(taf_phi);
-		tafy = tafr * sin(taf_phi);
+		detect.tafz = event.rz;
+		detect.tafx = detect.tafr * cos(taf_phi);
+		detect.tafy = detect.tafr * sin(taf_phi);
 		// tafx = event.rx;
 		// tafy = event.ry;
 
 		// T0 position
 		for (size_t i = 0; i < 2; ++i) {
-			int t0_x_strip = int(event.fragment_x[i] + 32.0);
-			t0x[i] = double(t0_x_strip) - 31.5;
-			int t0_y_strip = int(event.fragment_y[i] + 32.0);
-			t0y[i] = double(t0_y_strip) - 31.5;
+			// T0D1 position
+			int t0d1_x_strip = int(event.fragment_x[i] + 32.0);
+			detect.t0x[i][0] = double(t0d1_x_strip) - 31.5;
+			int t0d1_y_strip = int(event.fragment_y[i] + 32.0);
+			detect.t0y[i][0] = double(t0d1_y_strip) - 31.5;
 			// t0x[i] = event.fragment_x[i];
 			// t0y[i] = event.fragment_y[i];
-			t0z[i] = event.fragment_z[i];
-			t0r[i] = sqrt(pow(t0x[i], 2.0) + pow(t0y[i], 2.0));
+			detect.t0z[i][0] = event.fragment_z[i];
+			detect.t0r[i][0] = sqrt(
+				pow(detect.t0x[i][0], 2.0) + pow(detect.t0y[i][0], 2.0)
+			);
+
+			// T0D2, D3 position
+			for (size_t j = 1; j < 3; ++j) {
+				double z = j == 1 ? 111.76 : 123.52;
+				double r = z * tan(event.fragment_theta[i]);
+				double x = r * cos(event.fragment_phi[i]) + event.target_x;
+				double y = r * sin(event.fragment_phi[i]) + event.target_y;
+				int xstrip = int((x+32.0)/2.0);
+				int ystrip = int((y+32.0)/2.0);
+				detect.t0x[i][j] = double(xstrip) * 2.0 - 31.0;
+				detect.t0y[i][j] = double(ystrip) * 2.0 - 31.0;
+				detect.t0z[i][j] = z;
+				detect.t0r[i][j] = sqrt(
+					pow(detect.t0x[i][j], 2.0) + pow(detect.t0y[i][j], 2.0)
+				);
+			}
 		}
 
 		// PPAC position
 		for (size_t i = 0; i < 3; ++i) {
-			ppacx[i] =
+			detect.ppacx[i] =
 				ppac_xz[i] * tan(event.beam_theta) * cos(event.beam_phi)
 				+ event.target_x;
 			// simulated strips
-			ppacx[i] = int(ppacx[i] + 50.5) - 50.0;
-			ppacy[i] =
+			detect.ppacx[i] = int(detect.ppacx[i] + 50.5) - 50.0;
+			detect.ppacy[i] =
 				ppac_yz[i] * tan(event.beam_theta) * sin(event.beam_phi)
 				+ event.target_y;
 			// simulated strips
-			ppacy[i] = int(ppacy[i] + 50.5) - 50.0;
+			detect.ppacy[i] = int(detect.ppacy[i] + 50.5) - 50.0;
 		}
 		// fit and get reaction point
 		double kx, ky;
-		SimpleFit(ppac_xz, ppacx, kx, tx);
-		SimpleFit(ppac_yz, ppacy, ky, ty);
+		SimpleFit(ppac_xz, detect.ppacx, kx, detect.tx);
+		SimpleFit(ppac_yz, detect.ppacy, ky, detect.ty);
 		// tx = event.target_x;
 		// ty = event.target_y;
 
 		// check valid
-		valid = 0;
+		detect.valid = 0;
 		if (
 			event.rr > 68.0 && event.rr < 170.5
 			&& effective_taf_phi > 2.4 && effective_taf_phi < 57.6
-			&& taf_layer == 1
-			&& taf_lost_energy[1] > 6
+			&& detect.taf_layer == 1
+			&& detect.taf_lost_energy[1] > 6
 		) {
-			valid |= 0x1;
+			detect.valid |= 0x1;
 		}
 		for (size_t i = 0; i < 2; ++i) {
-			double l = 100.0 + t0_layer[i] * 11.76;
+			double l = 100.0 + detect.t0_layer[i] * 11.76;
 			double x =
 				l * tan(event.fragment_theta[i]) * cos(event.fragment_phi[i]);
 			double y =
@@ -287,26 +292,30 @@ int main() {
 				x > -32.0 && x < 32.0
 				&& y > -32.0 && y < 32.0
 			) {
-				valid |= 0x1 << (i+1);
+				detect.valid |= 0x1 << (i+1);
 			}
 		}
 
 		// rebuild kinematic energy
-		double taf_kinematic = taf_energy[0];
-		taf_kinematic += taf_layer == 1 ? taf_energy[1] : 0.0;
+		double taf_kinematic = detect.taf_energy[0];
+		taf_kinematic += detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
 		// double taf_kinematic = event.recoil_kinematic;
 		// double t0_kinematic[2] = {event.fragment_kinematic[0], event.fragment_kinematic[1]};
 		double t0_kinematic[2] = {0.0, 0.0};
 		for (size_t i = 0; i < 2; ++i) {
-			for (int j = 0; j < t0_layer[i]+1; ++j) {
-				t0_kinematic[i] += t0_energy[i][j];
+			for (int j = 0; j < detect.t0_layer[i]+1; ++j) {
+				t0_kinematic[i] += detect.t0_energy[i][j];
 			}
 		}
 
 		// rebuild Q value spectrum
 		ROOT::Math::XYZVector fp[2];
 		for (size_t i = 0; i < 2; ++i) {
-			fp[i] = ROOT::Math::XYZVector(t0x[i]-tx, t0y[i]-ty, t0z[i]);
+			fp[i] = ROOT::Math::XYZVector(
+				detect.t0x[i][0] - detect.tx,
+				detect.t0y[i][0] - detect.ty,
+				detect.t0z[i][0]
+			);
 			double mass = i == 0 ? be10_mass : he4_mass;
 			double momentum = sqrt(
 				pow(t0_kinematic[i], 2.0) + 2.0 * t0_kinematic[i] * mass
@@ -316,24 +325,39 @@ int main() {
 		double recoil_momentum = sqrt(
 			pow(taf_kinematic, 2.0) + 2.0 * taf_kinematic * h2_mass
 		);
-		ROOT::Math::XYZVector rp(tafx-tx, tafy-ty, tafz);
+		ROOT::Math::XYZVector rp(
+			detect.tafx - detect.tx,
+			detect.tafy - detect.ty,
+			detect.tafz
+		);
 		rp = rp.Unit() * recoil_momentum;
 		ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
 		double calculated_beam_kinematic =
 			sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
 		// Q value
-		q_value = t0_kinematic[0] + t0_kinematic[1]
+		detect.q = t0_kinematic[0] + t0_kinematic[1]
 			+ taf_kinematic - calculated_beam_kinematic;
 
 		// fill to tree
 		detect_tree.Fill();
 
+		// fill DSSD offset histograms
+		for (int i = 0; i < 2; ++i) {
+			hist_d1d2_x_offset.Fill(detect.t0x[i][0] - detect.t0x[i][1]);
+			hist_d1d2_y_offset.Fill(detect.t0y[i][0] - detect.t0y[i][1]);
+			hist_d1d3_x_offset.Fill(detect.t0x[i][0] - detect.t0x[i][2]);
+			hist_d1d3_y_offset.Fill(detect.t0y[i][0] - detect.t0y[i][2]);
+			hist_d2d3_x_offset.Fill(detect.t0x[i][1] - detect.t0x[i][2]);
+			hist_d2d3_y_offset.Fill(detect.t0y[i][1] - detect.t0y[i][2]);
+		}
 
 		// rebuild fake Q value
 		int rc = 12;
 		int pc = 12;
 		for (int i = 0; i <= rc; ++i) {
-			double fake_tafr = tafr + (i - rc/2) / double(rc) * taf_ring_width;
+			double fake_tafr =
+				detect.tafr
+				+ (i - rc/2) / double(rc) * taf_ring_width;
 			for (int j = 0; j <= pc; ++j) {
 				double fake_taf_phi = taf_phi
 					+ (j - pc/2) / double(pc) * taf_phi_width / 180.0 * pi;
@@ -342,7 +366,7 @@ int main() {
 				// fake_tafx = tafr * cos(taf_phi);
 				// fake_tafy = tafr * sin(taf_phi);
 				ROOT::Math::XYZVector fake_rp(
-					fake_tafx-tx, fake_tafy-ty, tafz
+					fake_tafx-detect.tx, fake_tafy-detect.ty, detect.tafz
 				);
 				fake_rp = fake_rp.Unit() * recoil_momentum;
 				ROOT::Math::XYZVector fake_bp = fp[0] + fp[1] + fake_rp;
@@ -350,7 +374,7 @@ int main() {
 					sqrt(fake_bp.Dot(fake_bp) + pow(c14_mass, 2.0)) - c14_mass;
 				double fake_q = t0_kinematic[0] + t0_kinematic[1]
 					+ taf_kinematic - fake_bk;
-				if (valid==7) hist_fake_q.Fill(fake_q);
+				if (detect.valid==7) hist_fake_q.Fill(fake_q);
 			}
 		}
 	}
@@ -361,6 +385,12 @@ int main() {
 	detect_file.cd();
 	// save histogram
 	hist_fake_q.Write();
+	hist_d1d2_x_offset.Write();
+	hist_d1d2_y_offset.Write();
+	hist_d1d3_x_offset.Write();
+	hist_d1d3_y_offset.Write();
+	hist_d2d3_x_offset.Write();
+	hist_d2d3_y_offset.Write();
 	// save tree
 	detect_tree.Write();
 	// close file
