@@ -19,7 +19,7 @@ Telescope::Telescope(
 }
 
 
-int Telescope::Track(double) {
+int Telescope::Track() {
 	std::cerr << "Error: Telescope::Track not implemented yet.\n";
 	return -1;
 }

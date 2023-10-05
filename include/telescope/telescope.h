@@ -47,10 +47,9 @@ public:
 
 
 	/// @brief track particle in telescope
-	/// @param[in] angle_tolerance angle tolerance in tracking
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Track(double angle_tolerance);
+	virtual int Track();
 
 
 	/// @brief identify particle in telescope

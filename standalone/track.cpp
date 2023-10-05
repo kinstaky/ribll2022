@@ -11,7 +11,6 @@ void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run telescope [tolerance]\n"
 		"  run               Set run number.\n"
 		"  telescope         Set telescope name.\n"
-		"  tolerance         Set angle tolerance, default is 0.0.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n";
@@ -98,8 +97,6 @@ int main(int argc, char **argv) {
 
 	unsigned int run = atoi(argv[pos_start]);
 	std::string name = argv[pos_start+1];
-	double tolerance = 0.0;
-	if (pos_start + 2 < argc) tolerance = atof(argv[pos_start+2]);
 
 	if (name == "xppac" || name == "vppac") {
 		Ppac ppac(run, name, tag);
@@ -114,7 +111,7 @@ int main(int argc, char **argv) {
 			std::cerr << "Error: Telescope " << name << " not found.\n";
 			return -1;
 		}
-		if (telescope->Track(tolerance)) {
+		if (telescope->Track()) {
 			std::cerr << "Error: Track " << name << " failed.\n";
 			return -1;
 		}

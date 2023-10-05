@@ -17,10 +17,9 @@ public:
 
 
 	/// @brief track particle
-	/// @param[in] angle_tolerance angle tolerance
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Track(double angle_tolerance) override;
+	virtual int Track() override;
 
 
 	/// @brief analyze trace

@@ -37,17 +37,15 @@ T0::T0(unsigned int run, const std::string &tag)
 /// @param[in] d1 t0d1 event
 /// @param[in] d2 t0d2 event
 /// @param[in] d3 t0d3 event
-/// @param[in] angle_tolerance angle tolerance
 /// @param[out] t0 t0 telescope event
-/// @param[out] angle_window array of angle tolerance window
+/// @param[out] offset_window array of angle tolerance window
 ///
 void TrackDssdEvent(
 	const DssdMergeEvent &d1,
 	const DssdMergeEvent &d2,
 	const DssdMergeEvent &d3,
-	double angle_tolerance,
 	T0Event &t0,
-	TH1F *angle_window
+	TH1F *offset_window
 ) {
 	// initialize t0 event
 	t0.num = 0;
@@ -66,7 +64,7 @@ void TrackDssdEvent(
 		++t0.num;
 	}
 	// fill d2 event in two cases:
-	// 1. fill with d1 event if under the angle tolerance
+	// 1. fill with d1 event if under the offset tolerance
 	// 2. fill to empty slot if none match d1 event found
 	for (unsigned short i = 0; i < d2.hit; ++i) {
 		// if (d2.time_flag[i] != 0) continue;
@@ -75,32 +73,26 @@ void TrackDssdEvent(
 		for (unsigned short j = 0; j < t0.num; ++j) {
 			// jump if a d2 event has filled
 			if ((t0.flag[j] & 0x2) != 0) continue;
-			if ((t0.flag[j] & 0x1) != 0) {
-				// found a d1 event, check the angle
-				// d1 particle position in lab coordinate
-				ROOT::Math::XYZVector d1_pos(
-					t0.x[j][0], t0.y[j][0], t0.z[j][0]
-				);
-				// d2 particle position in lab coordinate
-				ROOT::Math::XYZVector d2_pos(d2.x[i], d2.y[i], d2.z[i]);
-				double cos_theta =
-					d1_pos.Dot(d2_pos) / (d1_pos.R() * d2_pos.R());
-				// fill to d1d2 total window
-				angle_window[0].Fill(cos_theta);
-				if (cos_theta > angle_tolerance) {
-					// the angle is acceptable, fill into t0 event
-					t0.layer[j]++;
-					t0.flag[j] |= 0x2;
-					t0.energy[j][1] = d2.energy[i];
-					t0.time[j][1] = d2.time[i];
-					t0.x[j][1] = d2.x[i];
-					t0.y[j][1] = d2.y[i];
-					t0.z[j][1] = d2.z[i];
-					t0.d2_flag[j] = d2.flag[i];
-					fill = true;
-					// this d2 event has matched, goto next one
-					break;
-				}
+			if ((t0.flag[j] & 0x1) == 0) continue;
+			// position offset
+			double xoffset = d2.x[i] - t0.x[j][0];
+			double yoffset = d2.y[i] - t0.y[j][0];
+			// fill to d1d2 total window
+			offset_window[0].Fill(xoffset);
+			offset_window[1].Fill(yoffset);
+			if (fabs(xoffset) < 3.0 && fabs(yoffset) < 3.0) {
+				// the angle is acceptable, fill into t0 event
+				t0.layer[j]++;
+				t0.flag[j] |= 0x2;
+				t0.energy[j][1] = d2.energy[i];
+				t0.time[j][1] = d2.time[i];
+				t0.x[j][1] = d2.x[i];
+				t0.y[j][1] = d2.y[i];
+				t0.z[j][1] = d2.z[i];
+				t0.d2_flag[j] = d2.flag[i];
+				fill = true;
+				// this d2 event has matched, goto next one
+				break;
 			}
 		}
 		if (!fill) {
@@ -126,32 +118,30 @@ void TrackDssdEvent(
 	for (unsigned short i = 0; i < d3.hit; ++i) {
 		// if (d3.time_flag[i] != 0) continue;
 		// if (d3.case_tag != 300) continue;
-		// d3 particle position
-		ROOT::Math::XYZVector d3_pos(d3.x[i], d3.y[i], d3.z[i]);
 		for (unsigned short j = 0; j < t0.num; ++j) {
-			// d1 particle position
-			ROOT::Math::XYZVector d1_pos(
-				t0.x[j][0], t0.y[j][0], t0.z[j][0]
-			);
-			// d2 particle position
-			ROOT::Math::XYZVector d2_pos(
-				t0.x[j][1], t0.y[j][1], t0.z[j][1]
-			);
-			double cos_theta13 = d1_pos.Dot(d3_pos) / (d1_pos.R()*d3_pos.R());
-			double cos_theta23 = d2_pos.Dot(d3_pos) / (d2_pos.R()*d3_pos.R());
-			// fill d1d3 angle to total window
-			angle_window[1].Fill(cos_theta13);
-			// fill d2d3 angle to total window
-			angle_window[2].Fill(cos_theta23);
+			double d1d3_xoffset = d3.x[i] - t0.x[j][0];
+			double d1d3_yoffset = d3.y[i] - t0.y[j][0];
+			double d2d3_xoffset = d3.x[i] - t0.x[j][1];
+			double d2d3_yoffset = d3.y[i] - t0.y[j][1];
+			// fill d1d3 offset to total window
+			offset_window[2].Fill(d1d3_xoffset);
+			offset_window[3].Fill(d1d3_yoffset);
+			// fill d2d3 offset to total window
+			offset_window[4].Fill(d2d3_xoffset);
+			offset_window[5].Fill(d2d3_yoffset);
 			if (t0.flag[j] == 0x3) {
-				// fill d1d3 angle to flag7 window
-				angle_window[4].Fill(cos_theta13);
-				// fill d2d3 angle to flag7 window
-				angle_window[6].Fill(cos_theta23);
+				// fill d1d3 offset to flag7 window
+				offset_window[8].Fill(d1d3_xoffset);
+				offset_window[9].Fill(d1d3_yoffset);
+				// fill d2d3 offset to flag 7 window
+				offset_window[12].Fill(d2d3_xoffset);
+				offset_window[13].Fill(d2d3_yoffset);
 				// this slot has d1 and d2 events
 				if (
-					cos_theta13 > angle_tolerance
-					&& cos_theta23 > angle_tolerance
+					fabs(d2d3_xoffset) < 3.0
+					&& fabs(d2d3_yoffset) < 3.0
+					&& fabs(d1d3_xoffset) < 7.0
+					&& fabs(d1d3_yoffset) < 7.0
 				) {
 					// angle check pass, fill d3 event
 					t0.layer[j]++;
@@ -165,10 +155,11 @@ void TrackDssdEvent(
 					break;
 				}
 			} else if (t0.flag[j] == 0x1) {
-				// fill d1d3 angle to flag5 window
-				angle_window[3].Fill(cos_theta13);
+				// fill d1d3 offset to flag5 window
+				offset_window[6].Fill(d1d3_xoffset);
+				offset_window[7].Fill(d1d3_yoffset);
 				// this slot only contains d1 event
-				if (cos_theta13 > angle_tolerance) {
+				if (fabs(d1d3_xoffset) < 7.0 && fabs(d1d3_yoffset) < 7.0) {
 					// angle check pass, fill d3 event
 					t0.layer[j]++;
 					t0.flag[j] |= 0x4;
@@ -181,10 +172,11 @@ void TrackDssdEvent(
 					break;
 				}
 			} else if (t0.flag[j] == 0x2) {
-				// fill d2d3 angle to flag6 window
-				angle_window[5].Fill(cos_theta23);
+				// fill d2d3 offset to flag6 window
+				offset_window[10].Fill(d2d3_xoffset);
+				offset_window[11].Fill(d2d3_yoffset);
 				// this slot only has d2 event
-				if (cos_theta23 > angle_tolerance) {
+				if (fabs(d2d3_xoffset) < 3.0 && fabs(d2d3_yoffset) < 3.0) {
 					// angle check pass, fill d3 event
 					t0.layer[j]++;
 					t0.flag[j] |= 0x4;
@@ -254,7 +246,7 @@ void TrackSsdEvent(
 }
 
 
-int T0::Track(double angle_tolerance) {
+int T0::Track() {
 	// T0D1 merge file name
 	TString d1_file_name;
 	d1_file_name.Form(
@@ -360,15 +352,22 @@ int T0::Track(double angle_tolerance) {
 	// setup output branches
 	t0_event.SetupOutput(&opt);
 
-	// histogram of angle window between DSSD
-	TH1F angle_window[]{
-		TH1F("ha12", "total angle window of d1d2", 400, 0.6, 1),
-		TH1F("ha13", "total angle window of d1d3", 400, 0.6, 1),
-		TH1F("ha23", "total angle window of d2d3", 400, 0.6, 1),
-		TH1F("ha13a", "angle window of d1d3 under flag 5", 400, 0.6, 1),
-		TH1F("ha13b", "angle window of d1d3 under flag 7", 400, 0.6, 1),
-		TH1F("ha23a", "angle window of d2d3 under flag 6", 400, 0.6, 1),
-		TH1F("ha23b", "angle window of d2d3 under flag 7", 400, 0.6, 1)
+	// histogram of offset window between DSSD
+	TH1F hist_offset[]{
+		TH1F("hx12", "total x offset window of d1d2", 100, -5, 5),
+		TH1F("hy12", "total y offset window of d1d2", 100, -5, 5),
+		TH1F("hx13", "total x offset window of d1d3", 100, -10, 10),
+		TH1F("hy13", "total y offset window of d1d3", 100, -10, 10),
+		TH1F("hx23", "total x offset window of d2d3", 100, -5, 5),
+		TH1F("hy23", "total y offset window of d2d3", 100, -5, 5),
+		TH1F("hx13a", "total x offset window of d1d3 flag 5", 100, -10, 10),
+		TH1F("hy13a", "total y offset window of d1d3 flag 5", 100, -10, 10),
+		TH1F("hx13b", "total x offset window of d1d3 flag 7", 100, -10, 10),
+		TH1F("hy13b", "total y offset window of d1d3 flag 7", 100, -10, 10),
+		TH1F("hx23a", "total x offset window of d2d3 flag 6", 100, -5, 5),
+		TH1F("hy23a", "total y offset window of d2d3 flag 6", 100, -5, 5),
+		TH1F("hx23b", "total x offset window of d2d3 flag 7", 100, -5, 5),
+		TH1F("hy23b", "total y offset window of d2d3 flag 7", 100, -5, 5)
 	};
 
 
@@ -394,9 +393,8 @@ int T0::Track(double angle_tolerance) {
 		ipt->GetEntry(entry);
 		TrackDssdEvent(
 			d1_event, d2_event, d3_event,
-			angle_tolerance,
 			t0_event,
-			angle_window
+			hist_offset
 		);
 		TrackSsdEvent(s1_event, s2_event, s3_event, t0_event);
 		opt.Fill();
@@ -424,7 +422,7 @@ int T0::Track(double angle_tolerance) {
 	// save tree
 	opt.Write();
 	// save histograms
-	for (auto &hist : angle_window) {
+	for (auto &hist : hist_offset) {
 		hist.Write();
 	}
 	// close files
