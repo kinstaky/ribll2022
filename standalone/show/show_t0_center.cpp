@@ -15,6 +15,7 @@
 #include <TString.h>
 #include <TTree.h>
 
+#include "include/event/dssd_event.h"
 #include "include/event/t0_event.h"
 #include "include/event/particle_type_event.h"
 #include "include/event/particle_event.h"
@@ -83,63 +84,395 @@ int ParseArguments(
 	return result;
 }
 
+
+/// @brief search for index from binary flag
+/// @param[in] side 0-front, 1-back
+/// @param[in] flag binary flag to search
+/// @returns valid index of front or back side if only one valid bit is found,
+/// 	otherwise, returns -1
+int SearchIndex(int side, unsigned short flag) {
+	int counts = 0;
+	int index = -1;
+	int base = side == 0 ? 0x1 : 0x100;
+	for (int i = 0; i < 8; ++i) {
+		if ((flag & (base << i)) != 0) {
+			++counts;
+			index = i;
+		}
+	}
+	if (counts != 1) return -1;
+	return index;
+}
+
+// /// @brief search for offset in one run
+// /// @param[in] run run number
+// /// @param[in] tag trigger tag
+// /// @returns 0 if success, -1 otherwise
+// ///
+// int CalculateOffset(
+// 	unsigned int run,
+// 	const std::string &tag
+// ) {
+// 	// t0 file name
+// 	TString t0_file_name;
+// 	t0_file_name.Form(
+// 		"%s%st0-telescope-%s%04u.root",
+// 		kGenerateDataPath,
+// 		kTelescopeDir,
+// 		tag.empty() ? "" : (tag+"-").c_str(),
+// 		run
+// 	);
+// 	// t0 file
+// 	TFile t0_file(t0_file_name, "read");
+// 	// t0 tree
+// 	TTree *tree = (TTree*)t0_file.Get("tree");
+// 	if (!tree) {
+// 		std::cerr << "Error: Get tree from "
+// 			<< t0_file_name << " failed.\n";
+// 		return -1;
+// 	}
+// 	// particle type file name
+// 	TString type_file_name;
+// 	type_file_name.Form(
+// 		"%s%st0-particle-type-%s%04u.root",
+// 		kGenerateDataPath,
+// 		kParticleIdentifyDir,
+// 		tag.empty() ? "" : (tag+"-").c_str(),
+// 		run
+// 	);
+// 	tree->AddFriend("type=tree", type_file_name);
+// 	// ppac particle file name
+// 	TString ppac_file_name;
+// 	ppac_file_name.Form(
+// 		"%s%sxppac-particle-%s%04u.root",
+// 		kGenerateDataPath,
+// 		kParticleDir,
+// 		tag.empty() ? "" : (tag+"-").c_str(),
+// 		run
+// 	);
+// 	tree->AddFriend("ppac=tree", ppac_file_name);
+// 	// input t0 event
+// 	T0Event t0_event;
+// 	// input particle type event
+// 	ParticleTypeEvent type_event;
+// 	// input ppac event
+// 	ParticleEvent ppac_event;
+// 	// setup branches
+// 	t0_event.SetupInput(tree);
+// 	type_event.SetupInput(tree, "type.");
+// 	ppac_event.SetupInput(tree, "ppac.");
+
+// 	// output file name
+// 	TString output_file_name;
+// 	output_file_name.Form(
+// 		"%s%st0-center-%s%04u.root",
+// 		kGenerateDataPath,
+// 		kShowDir,
+// 		tag.empty() ? "" : (tag+"-").c_str(),
+// 		run
+// 	);
+// 	// output file
+// 	TFile opf(output_file_name, "recreate");
+// 	// offset of detectors
+// 	TH1F hd[4]{
+// 		TH1F("d2dx", "T0D2 #Deltax", 1000, -10, 10),
+// 		TH1F("d2dy", "T0D2 #Deltay", 1000, -10, 10),
+// 		TH1F("d3dx", "T0D3 #Deltax", 200, -10, 10),
+// 		TH1F("d3dy", "T0D3 #Deltay", 200, -10, 10)
+// 	};
+// 	TH1F hist_cos_theta[3]{
+// 		TH1F("d1d2t", "T0 D1D2 cos#theta", 100, 0.99, 1),
+// 		TH1F("d1d3t", "T0 D1D3 cos#theta", 100, 0.99, 1),
+// 		TH1F("d2d3t", "T0 D2D3 cos#theta", 100, 0.99, 1)
+// 	};
+// 	TH2F hd2dxx("d2dxx", "T0D2 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd2dxy("d2dxy", "T0D2 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd2dyx("d2dyx", "T0D2 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd2dyy("d2dyy", "T0D2 #Deltay VS y", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd3dxx("d3dxx", "T0D3 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd3dxy("d3dxy", "T0D3 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd3dyx("d3dyx", "T0D3 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
+// 	TH2F hd3dyy("d3dyy", "T0D3 #Deltay VS y", 800, -40, 40, 1000, -10, 10);
+// 	TTree opt("tree", "delta x and y of d2d3");
+// 	// recoreded x
+// 	double x[2];
+// 	// recorded y
+// 	double y[2];
+// 	// calculated x
+// 	double cx[2];
+// 	// calculated y
+// 	double cy[2];
+// 	opt.Branch("x", x, "x[2]/D");
+// 	opt.Branch("y", y, "y[2]/D");
+// 	opt.Branch("cx", cx, "cx[2]/D");
+// 	opt.Branch("cy", cy, "cy[2]/D");
+
+// 	// random number generator
+// 	TRandom3 generator(tree->GetEntries());
+
+// 	// total number of entries
+// 	long long entries = tree->GetEntries();
+// 	// 1/100 of entries, for showing process
+// 	long long entry100 = entries / 100 + 1;
+// 	// show start
+// 	printf("Filling offset of run %u   0%%", run);
+// 	for (long long entry = 0; entry < entries; ++entry) {
+// 		// show process
+// 		if (entry % entry100 == 0) {
+// 			printf("\b\b\b\b%3lld%%", entry / entry100);
+// 			fflush(stdout);
+// 		}
+// 		tree->GetEntry(entry);
+// 		// initialize
+// 		for (size_t i = 0; i < 2; ++i) {
+// 			x[i] = y[i] = cx[i] = cy[i] = -1e5;
+// 		}
+// 		for (unsigned short i = 0; i < t0_event.num; ++i) {
+// 			// check t0 flag
+// 			if ((t0_event.flag[i] & 0x3) != 0x3) continue;
+// 			// check type
+// 			if (type_event.mass[i] <= 0 || type_event.charge[i] <= 0) continue;
+// 			// check PPAC tracking
+// 			if (ppac_event.num != 4) continue;
+// 			// in target condition
+// 			if (pow(ppac_event.x[3]+3.3, 2.0)+pow(ppac_event.y[3]-1.0, 2.0) > 225.0) {
+// 				continue;
+// 			}
+
+// 			// target point position
+// 			ROOT::Math::XYZVector target(
+// 				ppac_event.x[3], ppac_event.y[3], 0.0
+// 			);
+
+// 			// get T0D1 position
+// 			// T0D1 x status flag
+// 			int t0d1_xflag = (t0_event.status[i]>>2) & 0x3;
+// 			// jump for special case
+// 			if (t0d1_xflag != 0 && t0d1_xflag != 1) continue;
+// 			// T0D1 x
+// 			double d1x = t0_event.x[i][0];
+// 			// continuous single strip event
+// 			if (t0d1_xflag == 0) {
+// 				d1x += generator.Rndm() - 0.5;
+// 			}
+// 			// T0D1 y status flag
+// 			int t0d1_yflag = t0_event.status[i] & 0x3;
+// 			// jump for special case
+// 			if (t0d1_yflag != 0 && t0d1_yflag != 1) continue;
+// 			// T0D1 y
+// 			double d1y = t0_event.y[i][0];
+// 			// continous single strip event
+// 			if (t0d1_yflag == 0) {
+// 				d1y += generator.Rndm() - 0.5;
+// 			}
+// 			// d1 position in lab coordinate
+// 			ROOT::Math::XYZVector d1_pos(d1x, d1y, d1_center.Z());
+
+// 			// get T0D2 position
+// 			// T0D2 x status flag
+// 			int t0d2_xflag = (t0_event.status[i]>>4) & 0x3;
+// 			// jump for special case
+// 			if (t0d2_xflag != 0 && t0d2_xflag != 1) continue;
+// 			// T0D2 x
+// 			double d2x = t0_event.x[i][1];
+// 			// continuous single strip event
+// 			if (t0d2_xflag == 0) {
+// 				d2x += generator.Rndm() * 2.0 - 1.0;
+// 			}
+// 			// T0D2 y status flag
+// 			int t0d2_yflag = (t0_event.status[i]>>6) & 0x3;
+// 			// jump for special case
+// 			if (t0d2_yflag != 0 && t0d2_yflag != 1) continue;
+// 			// T0D2 y
+// 			double d2y = t0_event.y[i][1];
+// 			//  continouts single strip event
+// 			if (t0d2_yflag == 0) {
+// 				d2y += generator.Rndm() * 2.0 - 1.0;
+// 			}
+// 			// d2 position in lab coordinate
+// 			ROOT::Math::XYZVector d2_pos(d2x, d2y, d2_center.Z());
+// 			// d1 position relate to target point
+// 			ROOT::Math::XYZVector d1_rel_pos = d1_pos - target;
+// 			// d2 posiition relate to target point
+// 			ROOT::Math::XYZVector d2_rel_pos = d2_pos - target;
+// 			// cos(theta) of d1 and d2 relative position
+// 			double d1d2_cos_theta = d1_rel_pos.Dot(d2_rel_pos)
+// 				/ (d1_rel_pos.R() * d2_rel_pos.R());
+// 			// fill to histogram
+// 			hist_cos_theta[0].Fill(d1d2_cos_theta);
+// 			// calculated d2 position from target point and d1 position
+// 			ROOT::Math::XYZVector d2_cal_pos = target;
+// 			d2_cal_pos += d1_rel_pos * (d2_center.Z()/d1_center.Z());
+// 			// fill offsets
+// 			hd[0].Fill((d2_cal_pos - d2_pos).X());
+// 			hd[1].Fill((d2_cal_pos - d2_pos).Y());
+// 			// fill offset correlation
+// 			hd2dxx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).X());
+// 			hd2dxy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).X());
+// 			hd2dyx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).Y());
+// 			hd2dyy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).Y());
+// 			// fill branches
+// 			if (i == 0) {
+// 				x[0] = d2_pos.X();
+// 				y[0] = d2_pos.Y();
+// 				cx[0] = d2_cal_pos.X();
+// 				cy[0] = d2_cal_pos.Y();
+// 			}
+
+// 			if (t0_event.flag[0] == 0x7) {
+// 				// get T0D3 position
+// 				// T0D3 x status flag
+// 				int t0d3_xflag = (t0_event.status[i]>>8) & 0x3;
+// 				// jump for special case
+// 				if (t0d3_xflag != 0 && t0d3_xflag != 1) continue;
+// 				// T0D3 x
+// 				double d3x = t0_event.x[i][2];
+// 				// continuous single strip event
+// 				if (t0d3_xflag == 0) {
+// 					d3x += generator.Rndm() * 2.0 - 1.0;
+// 				}
+// 				// T0D3 y status flag
+// 				int t0d3_yflag = (t0_event.status[i]>>10) & 0x3;
+// 				// jump for special case
+// 				if (t0d3_yflag != 0 && t0d3_yflag != 1) continue;
+// 				// T0D3 y
+// 				double d3y = t0_event.y[i][2];
+// 				//  continouts single strip event
+// 				if (t0d3_yflag == 0) {
+// 					d3y += generator.Rndm() * 2.0 - 1.0;
+// 				}
+// 				// d3 particle position
+// 				ROOT::Math::XYZVector d3_pos(d3x, d3y, d3_center.Z());
+// 				// d3 position relate to target point
+// 				ROOT::Math::XYZVector d3_rel_pos = d3_pos - target;
+// 				// cos(theta) of d1 and d3 relative position
+// 				double d1d3_cos_theta = d1_rel_pos.Dot(d3_rel_pos)
+// 					/ (d1_rel_pos.R() * d3_rel_pos.R());
+// 				// cso(theta) of d2 and d3 relative position
+// 				double d2d3_cos_theta = d2_rel_pos.Dot(d3_rel_pos)
+// 					/ (d2_rel_pos.R() * d3_rel_pos.R());
+// 				// fill to histgram
+// 				hist_cos_theta[1].Fill(d1d3_cos_theta);
+// 				hist_cos_theta[2].Fill(d2d3_cos_theta);
+// 				// calculated d3 position from target point and d1 position
+// 				ROOT::Math::XYZVector d3_cal_pos = target;
+// 				d3_cal_pos += d1_rel_pos * (d3_center.Z()/d1_center.Z());
+// 				// fill offsets
+// 				hd[2].Fill((d3_cal_pos - d3_pos).X());
+// 				hd[3].Fill((d3_cal_pos - d3_pos).Y());
+// 				// fill offset correlation
+// 				hd3dxx.Fill(d3_cal_pos.X(), (d3_cal_pos - d3_pos).X());
+// 				hd3dxy.Fill(d3_cal_pos.Y(), (d3_cal_pos - d3_pos).X());
+// 				hd3dyx.Fill(d3_cal_pos.X(), (d3_cal_pos - d3_pos).Y());
+// 				hd3dyy.Fill(d3_cal_pos.Y(), (d3_cal_pos - d3_pos).Y());
+// 				// fill branches
+// 				if (i == 0) {
+// 					x[1] = d3_pos.X();
+// 					y[1] = d3_pos.Y();
+// 					cx[1] = d3_cal_pos.X();
+// 					cy[1] = d3_cal_pos.Y();
+// 				}
+// 			}
+// 		}
+// 		opt.Fill();
+// 	}
+// 	// show finish
+// 	printf("\b\b\b\b100%%\n");
+
+// 	// statistics
+// 	CenterStatistics statistics(run, "t0", tag);
+
+// 	// fit offset
+// 	for (int i = 0; i < 2; ++i) {
+// 		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
+// 		fx.SetParameter(0, 20);
+// 		fx.SetParameter(1, 0.0);
+// 		fx.SetParameter(2, 1.0);
+// 		hd[i*2].Fit(&fx, "QR+");
+// 		statistics.x_offset[i] = fx.GetParameter(1);
+
+// 		TF1 fy(TString::Format("fy%d", i), "gaus", -2, 2);
+// 		fy.SetParameter(0, 20);
+// 		fy.SetParameter(1, 0.0);
+// 		fy.SetParameter(2, 1.0);
+// 		hd[i*2+1].Fit(&fy, "QR+");
+// 		statistics.y_offset[i] = fy.GetParameter(1);
+// 	}
+
+// 	// save histograms
+// 	for (size_t i = 0; i < 4; ++i) {
+// 		hd[i].Write();
+// 	}
+// 	for (size_t i = 0; i < 3; ++i) {
+// 		hist_cos_theta[i].Write();
+// 	}
+// 	hd2dxx.Write();
+// 	hd2dxy.Write();
+// 	hd2dyx.Write();
+// 	hd2dyy.Write();
+// 	hd3dxx.Write();
+// 	hd3dxy.Write();
+// 	hd3dyx.Write();
+// 	hd3dyy.Write();
+// 	opt.Write();
+// 	// close files
+// 	opf.Close();
+// 	t0_file.Close();
+
+// 	statistics.Write();
+// 	statistics.Print();
+
+// 	return 0;
+// }
+
+
 /// @brief search for offset in one run
 /// @param[in] run run number
 /// @param[in] tag trigger tag
 /// @returns 0 if success, -1 otherwise
 ///
-int CalculateOffset(
-	unsigned int run,
-	const std::string &tag
-) {
-	// t0 file name
-	TString t0_file_name;
-	t0_file_name.Form(
-		"%s%st0-telescope-%s%04u.root",
+int CalculateOffset(unsigned int run, const std::string &tag) {
+	// dssd merge events
+	DssdMergeEvent merge[3];
+
+	// t0d1 merge file name
+	TString d1_file_name = TString::Format(
+		"%s%st0d1-merge-%s%04u.root",
 		kGenerateDataPath,
-		kTelescopeDir,
+		kMergeDir,
 		tag.empty() ? "" : (tag+"-").c_str(),
 		run
 	);
-	// t0 file
-	TFile t0_file(t0_file_name, "read");
-	// t0 tree
-	TTree *tree = (TTree*)t0_file.Get("tree");
-	if (!tree) {
+	// t0d1 merge file
+	TFile d1_file(d1_file_name, "read");
+	// t0d1 merge tree
+	TTree *ipt = (TTree*)d1_file.Get("tree");
+	if (!ipt) {
 		std::cerr << "Error: Get tree from "
-			<< t0_file_name << " failed.\n";
+			<< d1_file_name << " failed.\n";
 		return -1;
 	}
-	// particle type file name
-	TString type_file_name;
-	type_file_name.Form(
-		"%s%st0-particle-type-%s%04u.root",
-		kGenerateDataPath,
-		kParticleIdentifyDir,
-		tag.empty() ? "" : (tag+"-").c_str(),
-		run
-	);
-	tree->AddFriend("type=tree", type_file_name);
-	// ppac particle file name
-	TString ppac_file_name;
-	ppac_file_name.Form(
-		"%s%sxppac-particle-%s%04u.root",
-		kGenerateDataPath,
-		kParticleDir,
-		tag.empty() ? "" : (tag+"-").c_str(),
-		run
-	);
-	tree->AddFriend("ppac=tree", ppac_file_name);
-	// input t0 event
-	T0Event t0_event;
-	// input particle type event
-	ParticleTypeEvent type_event;
-	// input ppac event
-	ParticleEvent ppac_event;
-	// setup branches
-	t0_event.SetupInput(tree);
-	type_event.SetupInput(tree, "type.");
-	ppac_event.SetupInput(tree, "ppac.");
+	// add friends
+	for (int i = 2; i <= 3; ++i) {
+		// t0dx merge file name
+		TString dx_file_name = TString::Format(
+			"%s%st0d%d-merge-%s%04u.root",
+			kGenerateDataPath,
+			kMergeDir,
+			i,
+			tag.empty() ? "" : (tag+"-").c_str(),
+			run
+		);
+		// add t0dx merge tree
+		ipt->AddFriend(
+			TString::Format("d%d=tree", i),
+			dx_file_name
+		);
+	}
+	// setup input branches
+	merge[0].SetupInput(ipt);
+	merge[1].SetupInput(ipt, "d2.");
+	merge[2].SetupInput(ipt, "d3.");
 
 	// output file name
 	TString output_file_name;
@@ -152,45 +485,28 @@ int CalculateOffset(
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
-	// offset of detectors
-	TH1F hd[4]{
-		TH1F("d2dx", "T0D2 #Deltax", 1000, -10, 10),
-		TH1F("d2dy", "T0D2 #Deltay", 1000, -10, 10),
-		TH1F("d3dx", "T0D3 #Deltax", 200, -10, 10),
-		TH1F("d3dy", "T0D3 #Deltay", 200, -10, 10)
-	};
-	TH1F hist_cos_theta[3]{
-		TH1F("d1d2t", "T0 D1D2 cos#theta", 100, 0.99, 1),
-		TH1F("d1d3t", "T0 D1D3 cos#theta", 100, 0.99, 1),
-		TH1F("d2d3t", "T0 D2D3 cos#theta", 100, 0.99, 1)
-	};
-	TH2F hd2dxx("d2dxx", "T0D2 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
-	TH2F hd2dxy("d2dxy", "T0D2 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
-	TH2F hd2dyx("d2dyx", "T0D2 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
-	TH2F hd2dyy("d2dyy", "T0D2 #Deltay VS y", 800, -40, 40, 1000, -10, 10);
-	TH2F hd3dxx("d3dxx", "T0D3 #Deltax VS x", 800, -40, 40, 1000, -10, 10);
-	TH2F hd3dxy("d3dxy", "T0D3 #Deltax VS y", 800, -40, 40, 1000, -10, 10);
-	TH2F hd3dyx("d3dyx", "T0D3 #Deltay VS x", 800, -40, 40, 1000, -10, 10);
-	TH2F hd3dyy("d3dyy", "T0D3 #Deltay VS y", 800, -40, 40, 1000, -10, 10);
-	TTree opt("tree", "delta x and y of d2d3");
-	// recoreded x
-	double x[2];
-	// recorded y
-	double y[2];
-	// calculated x
-	double cx[2];
-	// calculated y
-	double cy[2];
-	opt.Branch("x", x, "x[2]/D");
-	opt.Branch("y", y, "y[2]/D");
-	opt.Branch("cx", cx, "cx[2]/D");
-	opt.Branch("cy", cy, "cy[2]/D");
+	// histogram of d1d2 x offset
+	TH1F d1d2_x_offset("d1d2x", "d1d2 x offset", 1000, -10, 10);
+	// histogram of d1d2 y offset
+	TH1F d1d2_y_offset("d1d2y", "d1d2 y offset", 1000, -10, 10);
+	// histogram of d1d3 x offset
+	TH1F d1d3_x_offset("d1d3x", "d1d3 x offset", 100, -10, 10);
+	// histogram of d1d3 y offset
+	TH1F d1d3_y_offset("d1d3y", "d1d3 y offset", 100, -10, 10);
+	// histogram of d2d3 x offset
+	TH1F d2d3_x_offset("d2d3x", "d2d3 x offset", 100, -10, 10);
+	// histogram of d2d3 y offset
+	TH1F d2d3_y_offset("d2d3y", "d2d3 y offset", 100, -10, 10);
+	// histogram of d1+d3-2d2 x offset
+	TH1F d1d2d3_x_offset("d1d2d3x", "d1+d3-2d2 x offset", 100, -10, 10);
+	// histogram of d1+d3-2d2 y offset
+	TH1F d1d2d3_y_offset("d1d2d3y", "d1+d3-2d2 y offset", 100, -10, 10);
 
 	// random number generator
-	TRandom3 generator(tree->GetEntries());
+	TRandom3 generator(ipt->GetEntries());
 
 	// total number of entries
-	long long entries = tree->GetEntries();
+	long long entries = ipt->GetEntries();
 	// 1/100 of entries, for showing process
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -201,159 +517,40 @@ int CalculateOffset(
 			printf("\b\b\b\b%3lld%%", entry / entry100);
 			fflush(stdout);
 		}
-		tree->GetEntry(entry);
-		// initialize
-		for (size_t i = 0; i < 2; ++i) {
-			x[i] = y[i] = cx[i] = cy[i] = -1e5;
-		}
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
-			// check t0 flag
-			if ((t0_event.flag[i] & 0x3) != 0x3) continue;
-			// check type
-			if (type_event.mass[i] <= 0 || type_event.charge[i] <= 0) continue;
-			// check PPAC tracking
-			if (ppac_event.num != 4) continue;
-			// in target condition
-			if (pow(ppac_event.x[3]+3.3, 2.0)+pow(ppac_event.y[3]-1.0, 2.0) > 225.0) {
-				continue;
-			}
+		ipt->GetEntry(entry);
+		for (unsigned short i = 0; i < merge[0].hit; ++i) {
+			if (
+				SearchIndex(0, merge[0].flag[i]) < 0
+				|| SearchIndex(1, merge[0].flag[i]) < 0
+			) continue;
+			double d1x = merge[0].x[i] + generator.Rndm() - 0.5;
+			double d1y = merge[0].y[i] + generator.Rndm() - 0.5;
+			for (unsigned short j = 0; j < merge[1].hit; ++j) {
+				if (
+					SearchIndex(0, merge[1].flag[j]) < 0
+					|| SearchIndex(1, merge[1].flag[j]) < 0
+				) continue;
+				double d2x = merge[1].x[j] + generator.Rndm()*2.0 - 1.0;
+				double d2y = merge[1].y[j] + generator.Rndm()*2.0 - 1.0;
+				d1d2_x_offset.Fill(d2x-d1x);
+				d1d2_y_offset.Fill(d2y-d1y);
 
-			// target point position
-			ROOT::Math::XYZVector target(
-				ppac_event.x[3], ppac_event.y[3], 0.0
-			);
-
-			// get T0D1 position
-			// T0D1 x status flag
-			int t0d1_xflag = (t0_event.status[i]>>2) & 0x3;
-			// jump for special case
-			if (t0d1_xflag != 0 && t0d1_xflag != 1) continue;
-			// T0D1 x
-			double d1x = t0_event.x[i][0];
-			// continuous single strip event
-			if (t0d1_xflag == 0) {
-				d1x += generator.Rndm() - 0.5;
-			}
-			// T0D1 y status flag
-			int t0d1_yflag = t0_event.status[i] & 0x3;
-			// jump for special case
-			if (t0d1_yflag != 0 && t0d1_yflag != 1) continue;
-			// T0D1 y
-			double d1y = t0_event.y[i][0];
-			// continous single strip event
-			if (t0d1_yflag == 0) {
-				d1y += generator.Rndm() - 0.5;
-			}
-			// d1 position in lab coordinate
-			ROOT::Math::XYZVector d1_pos(d1x, d1y, d1_center.Z());
-
-			// get T0D2 position
-			// T0D2 x status flag
-			int t0d2_xflag = (t0_event.status[i]>>4) & 0x3;
-			// jump for special case
-			if (t0d2_xflag != 0 && t0d2_xflag != 1) continue;
-			// T0D2 x
-			double d2x = t0_event.x[i][1];
-			// continuous single strip event
-			if (t0d2_xflag == 0) {
-				d2x += generator.Rndm() * 2.0 - 1.0;
-			}
-			// T0D2 y status flag
-			int t0d2_yflag = (t0_event.status[i]>>6) & 0x3;
-			// jump for special case
-			if (t0d2_yflag != 0 && t0d2_yflag != 1) continue;
-			// T0D2 y
-			double d2y = t0_event.y[i][1];
-			//  continouts single strip event
-			if (t0d2_yflag == 0) {
-				d2y += generator.Rndm() * 2.0 - 1.0;
-			}
-			// d2 position in lab coordinate
-			ROOT::Math::XYZVector d2_pos(d2x, d2y, d2_center.Z());
-			// d1 position relate to target point
-			ROOT::Math::XYZVector d1_rel_pos = d1_pos - target;
-			// d2 posiition relate to target point
-			ROOT::Math::XYZVector d2_rel_pos = d2_pos - target;
-			// cos(theta) of d1 and d2 relative position
-			double d1d2_cos_theta = d1_rel_pos.Dot(d2_rel_pos)
-				/ (d1_rel_pos.R() * d2_rel_pos.R());
-			// fill to histogram
-			hist_cos_theta[0].Fill(d1d2_cos_theta);
-			// calculated d2 position from target point and d1 position
-			ROOT::Math::XYZVector d2_cal_pos = target;
-			d2_cal_pos += d1_rel_pos * (d2_center.Z()/d1_center.Z());
-			// fill offsets
-			hd[0].Fill((d2_cal_pos - d2_pos).X());
-			hd[1].Fill((d2_cal_pos - d2_pos).Y());
-			// fill offset correlation
-			hd2dxx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).X());
-			hd2dxy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).X());
-			hd2dyx.Fill(d2_cal_pos.X(), (d2_cal_pos - d2_pos).Y());
-			hd2dyy.Fill(d2_cal_pos.Y(), (d2_cal_pos - d2_pos).Y());
-			// fill branches
-			if (i == 0) {
-				x[0] = d2_pos.X();
-				y[0] = d2_pos.Y();
-				cx[0] = d2_cal_pos.X();
-				cy[0] = d2_cal_pos.Y();
-			}
-
-			if (t0_event.flag[0] == 0x7) {
-				// get T0D3 position
-				// T0D3 x status flag
-				int t0d3_xflag = (t0_event.status[i]>>8) & 0x3;
-				// jump for special case
-				if (t0d3_xflag != 0 && t0d3_xflag != 1) continue;
-				// T0D3 x
-				double d3x = t0_event.x[i][2];
-				// continuous single strip event
-				if (t0d3_xflag == 0) {
-					d3x += generator.Rndm() * 2.0 - 1.0;
-				}
-				// T0D3 y status flag
-				int t0d3_yflag = (t0_event.status[i]>>10) & 0x3;
-				// jump for special case
-				if (t0d3_yflag != 0 && t0d3_yflag != 1) continue;
-				// T0D3 y
-				double d3y = t0_event.y[i][2];
-				//  continouts single strip event
-				if (t0d3_yflag == 0) {
-					d3y += generator.Rndm() * 2.0 - 1.0;
-				}
-				// d3 particle position
-				ROOT::Math::XYZVector d3_pos(d3x, d3y, d3_center.Z());
-				// d3 position relate to target point
-				ROOT::Math::XYZVector d3_rel_pos = d3_pos - target;
-				// cos(theta) of d1 and d3 relative position
-				double d1d3_cos_theta = d1_rel_pos.Dot(d3_rel_pos)
-					/ (d1_rel_pos.R() * d3_rel_pos.R());
-				// cso(theta) of d2 and d3 relative position
-				double d2d3_cos_theta = d2_rel_pos.Dot(d3_rel_pos)
-					/ (d2_rel_pos.R() * d3_rel_pos.R());
-				// fill to histgram
-				hist_cos_theta[1].Fill(d1d3_cos_theta);
-				hist_cos_theta[2].Fill(d2d3_cos_theta);
-				// calculated d3 position from target point and d1 position
-				ROOT::Math::XYZVector d3_cal_pos = target;
-				d3_cal_pos += d1_rel_pos * (d3_center.Z()/d1_center.Z());
-				// fill offsets
-				hd[2].Fill((d3_cal_pos - d3_pos).X());
-				hd[3].Fill((d3_cal_pos - d3_pos).Y());
-				// fill offset correlation
-				hd3dxx.Fill(d3_cal_pos.X(), (d3_cal_pos - d3_pos).X());
-				hd3dxy.Fill(d3_cal_pos.Y(), (d3_cal_pos - d3_pos).X());
-				hd3dyx.Fill(d3_cal_pos.X(), (d3_cal_pos - d3_pos).Y());
-				hd3dyy.Fill(d3_cal_pos.Y(), (d3_cal_pos - d3_pos).Y());
-				// fill branches
-				if (i == 0) {
-					x[1] = d3_pos.X();
-					y[1] = d3_pos.Y();
-					cx[1] = d3_cal_pos.X();
-					cy[1] = d3_cal_pos.Y();
+				for (unsigned short k = 0; k < merge[2].hit; ++k) {
+					if (
+						SearchIndex(0, merge[2].flag[k]) < 0
+						|| SearchIndex(1, merge[2].flag[k]) < 0
+					) continue;
+					double d3x = merge[2].x[k] + generator.Rndm()*2.0 - 1.0;
+					double d3y = merge[2].y[k] + generator.Rndm()*2.0 - 1.0;
+					d1d3_x_offset.Fill(d3x-d1x);
+					d1d3_y_offset.Fill(d3y-d1y);
+					d2d3_x_offset.Fill(d3x-d2x);
+					d2d3_y_offset.Fill(d3y-d2y);
+					d1d2d3_x_offset.Fill(d1x+d3x-d2x-d2x);
+					d1d2d3_y_offset.Fill(d1y+d3y-d2y-d2y);
 				}
 			}
 		}
-		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -361,49 +558,48 @@ int CalculateOffset(
 	// statistics
 	CenterStatistics statistics(run, "t0", tag);
 
+	TH1F *hd[] = {
+		&d1d2_x_offset,
+		&d1d2_y_offset,
+		&d1d3_x_offset,
+		&d1d3_y_offset,
+		&d2d3_x_offset,
+		&d2d3_y_offset,
+		&d1d2d3_x_offset,
+		&d1d2d3_y_offset
+	};
 	// fit offset
-	for (int i = 0; i < 2; ++i) {
-		TF1 fx(TString::Format("fx%d", i), "gaus", -2, 2);
-		fx.SetParameter(0, 20);
+	for (int i = 0; i < 4; ++i) {
+		TF1 fx(TString::Format("fx%d", i), "gaus", -5, 5);
+		// fx.SetParameter(0, 1000);
 		fx.SetParameter(1, 0.0);
 		fx.SetParameter(2, 1.0);
-		hd[i*2].Fit(&fx, "QR+");
-		statistics.x_offset[i] = fx.GetParameter(1);
+		hd[i*2]->Fit(&fx, "QR+");
+		if (i < 3) statistics.x_offset[i] = fx.GetParameter(1);
+		else std::cout << fx.GetParameter(1) << "\n";
 
-		TF1 fy(TString::Format("fy%d", i), "gaus", -2, 2);
-		fy.SetParameter(0, 20);
+		TF1 fy(TString::Format("fy%d", i), "gaus", -5, 5);
+		// fy.SetParameter(0, 20);
 		fy.SetParameter(1, 0.0);
 		fy.SetParameter(2, 1.0);
-		hd[i*2+1].Fit(&fy, "QR+");
-		statistics.y_offset[i] = fy.GetParameter(1);
+		hd[i*2+1]->Fit(&fy, "QR+");
+		if (i < 3) statistics.y_offset[i] = fy.GetParameter(1);
+		else std::cout << fy.GetParameter(1) << "\n";
 	}
 
 	// save histograms
-	for (size_t i = 0; i < 4; ++i) {
-		hd[i].Write();
+	for (size_t i = 0; i < 8; ++i) {
+		hd[i]->Write();
 	}
-	for (size_t i = 0; i < 3; ++i) {
-		hist_cos_theta[i].Write();
-	}
-	hd2dxx.Write();
-	hd2dxy.Write();
-	hd2dyx.Write();
-	hd2dyy.Write();
-	hd3dxx.Write();
-	hd3dxy.Write();
-	hd3dyx.Write();
-	hd3dyy.Write();
-	opt.Write();
 	// close files
 	opf.Close();
-	t0_file.Close();
+	d1_file.Close();
 
 	statistics.Write();
 	statistics.Print();
 
 	return 0;
 }
-
 
 /// @brief show offsets of multiple runs in graph
 /// @param[in] run the start run number

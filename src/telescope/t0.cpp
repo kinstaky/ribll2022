@@ -123,25 +123,35 @@ void TrackDssdEvent(
 			double d1d3_yoffset = d3.y[i] - t0.y[j][0];
 			double d2d3_xoffset = d3.x[i] - t0.x[j][1];
 			double d2d3_yoffset = d3.y[i] - t0.y[j][1];
+			double d1d2d3_xoffset = t0.x[j][1] * 2.0 - t0.x[j][0] - d3.x[i];
+			double d1d2d3_yoffset = t0.y[j][1] * 2.0 - t0.y[j][0] - d3.y[i];
 			// fill d1d3 offset to total window
 			offset_window[2].Fill(d1d3_xoffset);
 			offset_window[3].Fill(d1d3_yoffset);
 			// fill d2d3 offset to total window
 			offset_window[4].Fill(d2d3_xoffset);
 			offset_window[5].Fill(d2d3_yoffset);
+			// fill d1d2d3 offset to total window
+			offset_window[6].Fill(d1d2d3_xoffset);
+			offset_window[7].Fill(d1d2d3_yoffset);
 			if (t0.flag[j] == 0x3) {
 				// fill d1d3 offset to flag7 window
-				offset_window[8].Fill(d1d3_xoffset);
-				offset_window[9].Fill(d1d3_yoffset);
+				offset_window[10].Fill(d1d3_xoffset);
+				offset_window[11].Fill(d1d3_yoffset);
 				// fill d2d3 offset to flag 7 window
-				offset_window[12].Fill(d2d3_xoffset);
-				offset_window[13].Fill(d2d3_yoffset);
+				offset_window[14].Fill(d2d3_xoffset);
+				offset_window[15].Fill(d2d3_yoffset);
 				// this slot has d1 and d2 events
 				if (
-					fabs(d2d3_xoffset) < 3.0
-					&& fabs(d2d3_yoffset) < 3.0
-					&& fabs(d1d3_xoffset) < 7.0
-					&& fabs(d1d3_yoffset) < 7.0
+					(
+						fabs(d2d3_xoffset) < 4.2
+						|| fabs(d1d2d3_xoffset) < 4.2
+					)
+					&&
+					(
+						fabs(d2d3_yoffset) < 4.2
+						|| fabs(d1d2d3_yoffset) < 4.2
+					)
 				) {
 					// angle check pass, fill d3 event
 					t0.layer[j]++;
@@ -156,8 +166,8 @@ void TrackDssdEvent(
 				}
 			} else if (t0.flag[j] == 0x1) {
 				// fill d1d3 offset to flag5 window
-				offset_window[6].Fill(d1d3_xoffset);
-				offset_window[7].Fill(d1d3_yoffset);
+				offset_window[8].Fill(d1d3_xoffset);
+				offset_window[9].Fill(d1d3_yoffset);
 				// this slot only contains d1 event
 				if (fabs(d1d3_xoffset) < 7.0 && fabs(d1d3_yoffset) < 7.0) {
 					// angle check pass, fill d3 event
@@ -173,8 +183,8 @@ void TrackDssdEvent(
 				}
 			} else if (t0.flag[j] == 0x2) {
 				// fill d2d3 offset to flag6 window
-				offset_window[10].Fill(d2d3_xoffset);
-				offset_window[11].Fill(d2d3_yoffset);
+				offset_window[12].Fill(d2d3_xoffset);
+				offset_window[13].Fill(d2d3_yoffset);
 				// this slot only has d2 event
 				if (fabs(d2d3_xoffset) < 3.0 && fabs(d2d3_yoffset) < 3.0) {
 					// angle check pass, fill d3 event
@@ -358,8 +368,10 @@ int T0::Track() {
 		TH1F("hy12", "total y offset window of d1d2", 100, -5, 5),
 		TH1F("hx13", "total x offset window of d1d3", 100, -10, 10),
 		TH1F("hy13", "total y offset window of d1d3", 100, -10, 10),
-		TH1F("hx23", "total x offset window of d2d3", 100, -5, 5),
-		TH1F("hy23", "total y offset window of d2d3", 100, -5, 5),
+		TH1F("hx23", "total x offset window of d2d3", 100, -10, 10),
+		TH1F("hy23", "total y offset window of d2d3", 100, -10, 10),
+		TH1F("hx123", "total x offset window of d1d2d3", 100, -10, 10),
+		TH1F("hy123", "total y offset window of d1d2d3", 100, -10, 10),
 		TH1F("hx13a", "total x offset window of d1d3 flag 5", 100, -10, 10),
 		TH1F("hy13a", "total y offset window of d1d3 flag 5", 100, -10, 10),
 		TH1F("hx13b", "total x offset window of d1d3 flag 7", 100, -10, 10),
