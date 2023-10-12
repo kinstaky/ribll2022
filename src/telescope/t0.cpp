@@ -38,7 +38,7 @@ T0::T0(unsigned int run, const std::string &tag)
 /// @param[in] d2 t0d2 event
 /// @param[in] d3 t0d3 event
 /// @param[out] t0 t0 telescope event
-/// @param[out] offset_window array of angle tolerance window
+/// @param[out] offset_window array of offset tolerance window
 ///
 void TrackDssdEvent(
 	const DssdMergeEvent &d1,
@@ -60,7 +60,7 @@ void TrackDssdEvent(
 		t0.x[t0.num][0] = d1.x[i];
 		t0.y[t0.num][0] = d1.y[i];
 		t0.z[t0.num][0] = d1.z[i];
-		t0.d1_flag[t0.num] = d1.flag[i];
+		t0.dssd_flag[t0.num][0] = d1.flag[i];
 		++t0.num;
 	}
 	// fill d2 event in two cases:
@@ -89,7 +89,7 @@ void TrackDssdEvent(
 				t0.x[j][1] = d2.x[i];
 				t0.y[j][1] = d2.y[i];
 				t0.z[j][1] = d2.z[i];
-				t0.d2_flag[j] = d2.flag[i];
+				t0.dssd_flag[j][1] = d2.flag[i];
 				fill = true;
 				// this d2 event has matched, goto next one
 				break;
@@ -107,14 +107,14 @@ void TrackDssdEvent(
 			t0.x[t0.num][1] = d2.x[i];
 			t0.y[t0.num][1] = d2.y[i];
 			t0.z[t0.num][1] = d2.z[i];
-			t0.d2_flag[t0.num] = d2.flag[i];
+			t0.dssd_flag[t0.num][1] = d2.flag[i];
 			++t0.num;
 		}
 	}
 	// fill d3 event in three cases:
-	// 1. fill with d1 and d2 events under angle tolerance
-	// 2. fill with only d1 event under angle tolerance
-	// 3. fill with only d2 event under angle tolerance
+	// 1. fill with d1 and d2 events under offset tolerance
+	// 2. fill with only d1 event under offset tolerance
+	// 3. fill with only d2 event under offset tolerance
 	for (unsigned short i = 0; i < d3.hit; ++i) {
 		// if (d3.time_flag[i] != 0) continue;
 		// if (d3.case_tag != 300) continue;
@@ -161,7 +161,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
-					t0.d3_flag[j] = d3.flag[i];
+					t0.dssd_flag[j][2] = d3.flag[i];
 					break;
 				}
 			} else if (t0.flag[j] == 0x1) {
@@ -178,7 +178,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
-					t0.d3_flag[j] = d3.flag[i];
+					t0.dssd_flag[j][2] = d3.flag[i];
 					break;
 				}
 			} else if (t0.flag[j] == 0x2) {
@@ -195,7 +195,7 @@ void TrackDssdEvent(
 					t0.x[j][2] = d3.x[i];
 					t0.y[j][2] = d3.y[i];
 					t0.z[j][2] = d3.z[i];
-					t0.d3_flag[j] = d3.flag[i];
+					t0.dssd_flag[j][2] = d3.flag[i];
 					break;
 				}
 			}
@@ -215,10 +215,8 @@ void TrackDssdEvent(
 					t0.x[j][k] = t0.x[j+1][k];
 					t0.y[j][k] = t0.y[j+1][k];
 					t0.z[j][k] = t0.z[j+1][k];
+					t0.dssd_flag[j][k] = t0.dssd_flag[j+1][k];
 				}
-				t0.d1_flag[j] = t0.d1_flag[j+1];
-				t0.d2_flag[j] = t0.d2_flag[j+1];
-				t0.d3_flag[j] = t0.d3_flag[j+1];
 			}
 			t0.num--;
 		}
@@ -2011,8 +2009,8 @@ int SearchTrackCombinations(
 		t0.z[t0.num][1] = 111.76;
 		t0.status[t0.num] = comb.status;
 		t0.points[t0.num] = comb.points;
-		t0.d1_flag[t0.num] = comb.flag[0];
-		t0.d2_flag[t0.num] = comb.flag[1];
+		t0.dssd_flag[t0.num][0] = comb.flag[0];
+		t0.dssd_flag[t0.num][1] = comb.flag[1];
 		++t0.num;
 	}
 
@@ -2181,8 +2179,8 @@ int SearchTrackCombinations(
 			t0.z[t0.num+i][1] = 111.76;
 			t0.status[t0.num+i] = comb.status[i];
 			t0.points[t0.num+i] = comb.points;
-			t0.d1_flag[t0.num+i] = comb.flag[0][i];
-			t0.d2_flag[t0.num+i] = comb.flag[1][i];
+			t0.dssd_flag[t0.num+i][0] = comb.flag[0][i];
+			t0.dssd_flag[t0.num+i][1] = comb.flag[1][i];
 		}
 		t0.num += 2;
 		binding_events += 2;
@@ -2274,7 +2272,7 @@ int SearchTrackCombinations(
 		t0.z[comb.d1d2_index][2] = 123.52;
 		t0.status[comb.d1d2_index] += comb.status*256;
 		t0.points[comb.d1d2_index] += comb.points;
-		t0.d3_flag[comb.d1d2_index] = comb.flag;
+		t0.dssd_flag[comb.d1d2_index][2] = comb.flag;
 	}
 
 	return binding_events;

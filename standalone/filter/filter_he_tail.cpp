@@ -191,6 +191,20 @@ int main(int argc, char **argv) {
 
 	// loop to add T0Dx friends
 	for (int i = 1; i <= 3; ++i) {
+		// input T0Dx merge file name
+		TString merge_file_name = TString::Format(
+			"%s%st0d%d-merge-%s%04d.root",
+			kGenerateDataPath,
+			kMergeDir,
+			i,
+			tag.empty() ? "" : (tag+"-").c_str(),
+			run
+		);
+		// add T0Dx merge friend
+		ipt->AddFriend(
+			TString::Format("d%dm=tree", i),
+			merge_file_name
+		);
 		// input T0Dx normalize result file name
 		TString norm_result_file_name = TString::Format(
 			"%s%st0d%d-result-%s%04d.root",
@@ -224,6 +238,8 @@ int main(int argc, char **argv) {
 
 	// input t0 event
 	T0Event t0_event;
+	// input merge event
+	DssdMergeEvent merge_events[3];
 	// input T0Dx normalize result events
 	DssdFundamentalEvent norm_events[3];
 	// // input T0Dx fundamental events
@@ -232,6 +248,9 @@ int main(int argc, char **argv) {
 	// setup input branches
 	t0_event.SetupInput(ipt);
 	for (int i = 0; i < 3; ++i) {
+		merge_events[i].SetupInput(
+			ipt, TString::Format("d%dm.", i+1).Data()
+		);
 		norm_events[i].SetupInput(
 			ipt, TString::Format("d%dr.", i+1).Data()
 		);
@@ -257,6 +276,7 @@ int main(int argc, char **argv) {
 	double energy[4][3];
 	double x[4][3];
 	double y[4][3];
+	unsigned short merge_hit[3];
 	unsigned short merge_flag[4][3];
 	unsigned short front_hit[3];
 	unsigned short back_hit[3];
@@ -272,6 +292,7 @@ int main(int argc, char **argv) {
 	opt.Branch("energy", energy, "e[num][3]/D");
 	opt.Branch("x", x, "x[num][3]/D");
 	opt.Branch("y", y, "y[num][3]/D");
+	opt.Branch("merge_hit", merge_hit, "mhit[3]/s");
 	opt.Branch("merge_flag", merge_flag, "mflag[num][3]/s");
 	for (int i = 0; i < 3; ++i) {
 		opt.Branch(
@@ -359,12 +380,11 @@ int main(int argc, char **argv) {
 				energy[i][j] = t0_event.energy[i][j];
 				x[i][j] = t0_event.x[i][j];
 				y[i][j] = t0_event.y[i][j];
+				merge_flag[i][j] = t0_event.dssd_flag[i][j];
 			}
-			merge_flag[i][0] = t0_event.d1_flag[i];
-			merge_flag[i][1] = t0_event.d2_flag[i];
-			merge_flag[i][2] = t0_event.d3_flag[i];
 		}
 		for (int i = 0; i < 3; ++i) {
+			merge_hit[i] = merge_events[i].hit;
 			front_hit[i] = norm_events[i].front_hit;
 			for (unsigned short j = 0; j < front_hit[i]; ++j) {
 				front_strip[i][j] = norm_events[i].front_strip[j];

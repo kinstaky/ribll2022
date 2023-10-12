@@ -214,14 +214,14 @@ int main(int argc, char **argv) {
 			unsigned int front_flag = 0;
 			unsigned int back_flag = 0;
 			if (layer == 1) {
-				front_flag = t0_event.d1_flag[i] & 0xff;
-				back_flag = (t0_event.d1_flag[i] >> 8) & 0xff;
+				front_flag = t0_event.dssd_flag[i][0] & 0xff;
+				back_flag = (t0_event.dssd_flag[i][0] >> 8) & 0xff;
 			} else if (layer == 2) {
-				front_flag = t0_event.d2_flag[i] & 0xff;
-				back_flag = (t0_event.d2_flag[i] >> 8) & 0xff;
+				front_flag = t0_event.dssd_flag[i][1] & 0xff;
+				back_flag = (t0_event.dssd_flag[i][1] >> 8) & 0xff;
 			} else if (layer == 3) {
-				front_flag = t0_event.d3_flag[i] & 0xff;
-				back_flag = (t0_event.d3_flag[i] >> 8) & 0xff;
+				front_flag = t0_event.dssd_flag[i][2] & 0xff;
+				back_flag = (t0_event.dssd_flag[i][2] >> 8) & 0xff;
 			} else {
 				std::cerr << "Error: Invalid Dssd layer " << layer << ".\n";
 				return -1;

@@ -182,13 +182,15 @@ public:
 
 	unsigned short hit;
 	unsigned int case_tag;
-	unsigned int flag[4];
-	double x[4];
-	double y[4];
-	double z[4];
-	double energy[4];
-	double time[4];
-	int time_flag[4];
+	unsigned int flag[8];
+	// 0-f1b1, 1-f1b2, 2-f2b1, 3-f2b2, 4-f1b2(bind), 5-f2b1(bind)
+	unsigned short merge_tag[8];
+	double x[8];
+	double y[8];
+	double z[8];
+	double energy[8];
+	double time[8];
+	int time_flag[8];
 };
 
 

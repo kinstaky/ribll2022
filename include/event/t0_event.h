@@ -35,9 +35,7 @@ public:
 	double z[8][4];
 	int status[8];
 	int points[8];
-	unsigned short d1_flag[8];
-	unsigned short d2_flag[8];
-	unsigned short d3_flag[8];
+	unsigned short dssd_flag[8][3];
 };
 
 }	// namespace ribll

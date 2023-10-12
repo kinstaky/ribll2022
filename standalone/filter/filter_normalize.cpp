@@ -280,10 +280,6 @@ int main(int argc, char **argv) {
 		for (unsigned short i = 0; i < pid_event.num; ++i) {
 			if (pid_event.layer[i] < 1) continue;
 			if (pid_event.mass[i] == 0 || pid_event.charge[i] == 0) continue;
-			unsigned short dssd_flags[3];
-			dssd_flags[0] = t0_event.d1_flag[i];
-			dssd_flags[1] = t0_event.d2_flag[i];
-			dssd_flags[2] = t0_event.d3_flag[i];
 
 			for (int j = 0; j < (pid_event.layer[i] >= 2 ? 3 : 2); ++j) {
 				// for convenience
@@ -292,11 +288,13 @@ int main(int argc, char **argv) {
 				// index in particle type event
 				filter_events[j].pid_index[num] = i;
 				// merge flag
-				filter_events[j].merge_flag[num] = dssd_flags[j];
+				filter_events[j].merge_flag[num] = t0_event.dssd_flag[i][j];
 
 				// get normalize result event index from merge flag
-				int front_norm_index = SearchIndex(0, dssd_flags[j]);
-				int back_norm_index = SearchIndex(1, dssd_flags[j]);
+				int front_norm_index =
+					SearchIndex(0, t0_event.dssd_flag[i][j]);
+				int back_norm_index =
+					SearchIndex(1, t0_event.dssd_flag[i][j]);
 				// check index
 				if (front_norm_index < 0 || back_norm_index < 0) continue;
 				// valid index, fill to filter event
