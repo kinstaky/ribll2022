@@ -193,12 +193,12 @@ int TriggerInterval(int run, const std::string &detector) {
 
 		// get entry
 		ipt->GetEntry(entry);
-		// period
-		double period = trigger_time - last_time;
-		// fill period
-		hist_time.Fill(period);
+		// interval
+		double interval = trigger_time - last_time;
+		// fill interval
+		hist_time.Fill(interval);
 		// check if shorter than min time
-		min_time = period < min_time ? period : min_time;
+		min_time = interval < min_time ? interval : min_time;
 		// update trigger time of last entry
 		last_time = trigger_time;
 	}
@@ -447,6 +447,123 @@ int MissToFInterval(int run) {
 }
 
 
+int PpacInterval(int run) {
+	// file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%sxppac-map-%04u.root",
+		kGenerateDataPath, kMappingDir, run
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input data
+	unsigned short index;
+	unsigned short side;
+	double time;
+	// setup branches
+	ipt->SetBranchAddress("index", &index);
+	ipt->SetBranchAddress("side", &side);
+	ipt->SetBranchAddress("time", &time);
+
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%sshow-interval-xppac-%04u.root",
+		kGenerateDataPath, kShowDir, run
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// output histogram
+	std::vector<TH1F> hist_time;
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 5; ++j) {
+			hist_time.emplace_back(
+				TString::Format("h%ds%d", i, j),
+				TString::Format("time interval of xppac %d side %d", i, j),
+				1000, 0, 100'000
+			);
+		}
+	}
+
+	// last entry's trigger time
+	double last_time[3][5];
+	double min_time[3][5];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 5; ++j) {
+			last_time[i][j] = -1e5;
+			min_time[i][j] = 1e20;
+		}
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of total entries, for showing process
+	long long entry100 = entries / 100;
+	// show start
+	std::cout << "Filling histogram   0%";
+	fflush(stdout);
+	// loop to fill histogram
+	for (long long entry = 0; entry < entries; ++entry) {
+		// showing process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		// get entry
+		ipt->GetEntry(entry);
+		// check if it's the first event
+		if (last_time[index][side] < -9e4) {
+			last_time[index][side] = time;
+			continue;
+		}
+		// interval
+		double interval = time - last_time[index][side];
+		// fill period
+		hist_time[index*5+side].Fill(interval);
+		// check if shorter than min time
+		min_time[index][side] = interval < min_time[index][side] ?
+			interval : min_time[index][side];
+		// update trigger time of last entry
+		last_time[index][side] = time;
+	}
+	// show end
+	std::cout << "\b\b\b\b100%\n";
+
+	// fit
+	// for (int i = 0; i < 15; ++i) {
+	// 	TF1 *f1 = new TF1(TString::Format("fit%d", i), "[0]*exp([1]*x)", 0, 20'000, 90'000);
+	// 	f1->SetParameter(0, hist_time[i].GetMaximum());
+	// 	f1->SetParameter(1, 1e-6);
+	// 	hist_time[i].Fit(f1, "RQ+");
+	// 	std::cout << "fb"[i>=64] << i%64 << " " << f1->GetParameter(1)*1e9 << "\n";
+	// }
+
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 5; ++j) {
+			std::cout << "xppac" << i << " side " << j
+				<< " " << min_time[0][i] << "\n";
+		}
+	}
+
+	// write histogram to output file
+	for (auto &hist : hist_time) {
+		hist.Write();
+	}
+	// close files
+	opf.Close();
+	ipf.Close();
+
+	return 0;
+}
+
+
 int main(int argc, char **argv) {
 
 	// check arguments
@@ -485,7 +602,9 @@ int main(int argc, char **argv) {
 	if (detector == "xt" || detector == "vt") {
 		if (TriggerInterval(run, detector)) return -1;
 	} else if (detector =="tof") {
-		if (TofInterval(run)) return -1;	
+		if (TofInterval(run)) return -1;
+	} else if (detector == "xppac") {
+		if (PpacInterval(run)) return -1;
 	} else {
 		if (DssdInterval(run, detector)) return -1;
 	}
