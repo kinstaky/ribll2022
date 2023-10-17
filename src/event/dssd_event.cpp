@@ -54,8 +54,8 @@ void DssdFundamentalEvent::SetupInput(
 
 
 void DssdFundamentalEvent::SetupOutput(TTree *tree) {
-	tree->Branch("front_hit", &front_hit, "fhit/s");
-	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("front_hit", &front_hit, "fhit/I");
+	tree->Branch("back_hit", &back_hit, "bhit/I");
 	tree->Branch("cfd", &cfd_flag, "cfd/s");
 	tree->Branch("front_strip", front_strip, "fs[fhit]/s");
 	tree->Branch("back_strip", back_strip, "bs[bhit]/s");
@@ -216,8 +216,8 @@ void DssdTimeEvent::SetupInput(
 
 
 void DssdTimeEvent::SetupOutput(TTree *tree) {
-	tree->Branch("front_hit", &front_hit, "fhit/s");
-	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("front_hit", &front_hit, "fhit/I");
+	tree->Branch("back_hit", &back_hit, "bhit/I");
 	tree->Branch("front_time_flag", front_time_flag, "ftf[fhit]/I");
 	tree->Branch("back_time_flag", back_time_flag, "btf[bhit]/I");
 }
@@ -237,8 +237,8 @@ void DssdNormalizeEvent::SetupInput(
 
 
 void DssdNormalizeEvent::SetupOutput(TTree *tree) {
-	tree->Branch("front_hit", &front_hit, "fhit/s");
-	tree->Branch("back_hit", &back_hit, "bhit/s");
+	tree->Branch("front_hit", &front_hit, "fhit/I");
+	tree->Branch("back_hit", &back_hit, "bhit/I");
 	tree->Branch("front_strip", front_strip, "fs[fhit]/s");
 	tree->Branch("back_strip", back_strip, "bs[bhit]/s");
 	tree->Branch("front_energy", front_energy, "fe[fhit]/D");
@@ -264,7 +264,7 @@ void DssdMergeEvent::SetupInput(
 
 
 void DssdMergeEvent::SetupOutput(TTree *tree) {
-	tree->Branch("hit", &hit, "hit/s");
+	tree->Branch("hit", &hit, "hit/I");
 	tree->Branch("case", &case_tag, "case/i");
 	tree->Branch("flag", flag, "flag[hit]/i");
 	tree->Branch("merge_tag", merge_tag, "mtag[hit]/s");
@@ -292,7 +292,7 @@ void AdssdMergeEvent::SetupInput(
 
 
 void AdssdMergeEvent::SetupOutput(TTree *tree) {
-	tree->Branch("hit", &hit, "hit/s");
+	tree->Branch("hit", &hit, "hit/I");
 	tree->Branch("radius", radius, "r[hit]/D");
 	tree->Branch("theta", theta, "theta[hit]/D");
 	tree->Branch("phi", phi, "phi[hit]/D");

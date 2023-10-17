@@ -119,6 +119,16 @@ int main(int argc, char **argv) {
 			i
 		));
 	}
+	// TFile ipf(
+	// 	TString::Format(
+	// 		"%s%st0-telescope-%04u.root",
+	// 		kGenerateDataPath,
+	// 		kTelescopeDir,
+	// 		run
+	// 	),
+	// 	"read"
+	// );
+	// TTree *ipt = (TTree*)ipf.Get("tree");
 	// input t0 telescope event
 	T0Event t0_event;
 	// setup input branches
@@ -239,10 +249,11 @@ int main(int argc, char **argv) {
 		// get event
 		chain.GetEntry(entry);
 
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
-			// select position
-			if (t0_event.x[i][1] < -9 || t0_event.x[i][1] > -3) continue;
-			if (t0_event.y[i][1] < -2 || t0_event.y[i][1] > 7) continue;
+		if (t0_event.num != 2) continue;
+		for (int i = 0; i < 1; ++i) {
+			// // select position
+			// if (t0_event.x[i][1] < -9 || t0_event.x[i][1] > -3) continue;
+			// if (t0_event.y[i][1] < -2 || t0_event.y[i][1] > 7) continue;
 			// if (t0_event.x[0][1] > -15 && t0_event.x[0][1] < -3 && t0_event.y[0][1] > -4 && t0_event.y[0][1] < 11) continue;
 			if (t0_event.flag[i] == 0x3) {
 				d1d2_pid.Fill(

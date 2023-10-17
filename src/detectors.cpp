@@ -360,8 +360,8 @@ int MatchWithoutTrigger(const std::string &detector, unsigned int run) {
 	// setup output branches
 	fundamental_event.SetupOutput(&opt);
 	// for convenient
-	unsigned short &fhit = fundamental_event.front_hit;
-	unsigned short &bhit = fundamental_event.back_hit;
+	int &fhit = fundamental_event.front_hit;
+	int &bhit = fundamental_event.back_hit;
 
 	// show start
 	printf("Filling fundamental events   0%%");

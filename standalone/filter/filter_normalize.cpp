@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
 
 			for (int j = 0; j < (pid_event.layer[i] >= 2 ? 3 : 2); ++j) {
 				// for convenience
-				unsigned short &num = filter_events[j].num;
+				int &num = filter_events[j].num;
 
 				// index in particle type event
 				filter_events[j].pid_index[num] = i;

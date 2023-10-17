@@ -23,7 +23,7 @@ public:
 	///
 	virtual void SetupOutput(TTree *tree) override;
 
-	unsigned short num;
+	int num;
 	unsigned short pid_index[4];
 	unsigned short merge_flag[4];
 	unsigned short norm_front_index[4];

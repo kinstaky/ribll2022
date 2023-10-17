@@ -21,7 +21,7 @@ void FilterEvent::SetupInput(TTree *tree, const std::string &prefix) {
 }
 
 void FilterEvent::SetupOutput(TTree *tree) {
-	tree->Branch("num", &num, "num/s");
+	tree->Branch("num", &num, "num/I");
 	tree->Branch("pid_index", pid_index, "pidi[num]/s");
 	tree->Branch("merge_flag", merge_flag, "mflag[num]/s");
 	tree->Branch("norm_front_index", norm_front_index, "normfi[num]/s");

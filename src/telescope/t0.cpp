@@ -37,6 +37,7 @@ T0::T0(unsigned int run, const std::string &tag)
 /// @param[in] d1 t0d1 event
 /// @param[in] d2 t0d2 event
 /// @param[in] d3 t0d3 event
+/// @param[in] hole hole flag
 /// @param[out] t0 t0 telescope event
 /// @param[out] offset_window array of offset tolerance window
 ///
@@ -44,13 +45,14 @@ void TrackDssdEvent(
 	const DssdMergeEvent &d1,
 	const DssdMergeEvent &d2,
 	const DssdMergeEvent &d3,
+	bool *hole,
 	T0Event &t0,
 	TH1F *offset_window
 ) {
 	// initialize t0 event
 	t0.num = 0;
 	// fill all d1 events
-	for (unsigned short i = 0; i < d1.hit; ++i) {
+	for (int i = 0; i < d1.hit; ++i) {
 		// if (d1.time_flag[i] != 0) continue;
 		// if (d1.case_tag != 300) continue;
 		t0.layer[t0.num] = 1;
@@ -66,11 +68,11 @@ void TrackDssdEvent(
 	// fill d2 event in two cases:
 	// 1. fill with d1 event if under the offset tolerance
 	// 2. fill to empty slot if none match d1 event found
-	for (unsigned short i = 0; i < d2.hit; ++i) {
+	for (int i = 0; i < d2.hit; ++i) {
 		// if (d2.time_flag[i] != 0) continue;
 		// if (d2.case_tag != 300) continue;
 		bool fill = false;
-		for (unsigned short j = 0; j < t0.num; ++j) {
+		for (int j = 0; j < t0.num; ++j) {
 			// jump if a d2 event has filled
 			if ((t0.flag[j] & 0x2) != 0) continue;
 			if ((t0.flag[j] & 0x1) == 0) continue;
@@ -91,6 +93,7 @@ void TrackDssdEvent(
 				t0.z[j][1] = d2.z[i];
 				t0.dssd_flag[j][1] = d2.flag[i];
 				fill = true;
+				t0.hole[j] = hole[i];
 				// this d2 event has matched, goto next one
 				break;
 			}
@@ -108,6 +111,7 @@ void TrackDssdEvent(
 			t0.y[t0.num][1] = d2.y[i];
 			t0.z[t0.num][1] = d2.z[i];
 			t0.dssd_flag[t0.num][1] = d2.flag[i];
+			t0.hole[t0.num] = hole[i];
 			++t0.num;
 		}
 	}
@@ -115,10 +119,10 @@ void TrackDssdEvent(
 	// 1. fill with d1 and d2 events under offset tolerance
 	// 2. fill with only d1 event under offset tolerance
 	// 3. fill with only d2 event under offset tolerance
-	for (unsigned short i = 0; i < d3.hit; ++i) {
+	for (int i = 0; i < d3.hit; ++i) {
 		// if (d3.time_flag[i] != 0) continue;
 		// if (d3.case_tag != 300) continue;
-		for (unsigned short j = 0; j < t0.num; ++j) {
+		for (int j = 0; j < t0.num; ++j) {
 			double d1d3_xoffset = d3.x[i] - t0.x[j][0];
 			double d1d3_yoffset = d3.y[i] - t0.y[j][0];
 			double d2d3_xoffset = d3.x[i] - t0.x[j][1];
@@ -202,20 +206,21 @@ void TrackDssdEvent(
 		}
 	}
 	// discard particles only contains the second layer
-	for (unsigned short i = 0; i < t0.num; ++i) {
+	for (int i = 0; i < t0.num; ++i) {
 		while (t0.flag[i] == 0x2 && i < t0.num) {
 			// this particle only contains d2 event,
 			// discard it and move the following layer ahead
-			for (unsigned short j = i; j < t0.num-1; ++j) {
+			for (int j = i; j < t0.num-1; ++j) {
 				t0.layer[j] = t0.layer[j+1];
 				t0.flag[j] = t0.flag[j+1];
-				for (unsigned short k = 0; k < 3; ++k) {
+				for (int k = 0; k < 3; ++k) {
 					t0.energy[j][k] = t0.energy[j+1][k];
 					t0.time[j][k] = t0.time[j+1][k];
 					t0.x[j][k] = t0.x[j+1][k];
 					t0.y[j][k] = t0.y[j+1][k];
 					t0.z[j][k] = t0.z[j+1][k];
 					t0.dssd_flag[j][k] = t0.dssd_flag[j+1][k];
+					t0.hole[j] = t0.hole[j+1];
 				}
 			}
 			t0.num--;
@@ -328,7 +333,9 @@ int T0::Track() {
 	d1_event.SetupInput(ipt);
 	// d2 event
 	DssdMergeEvent d2_event;
+	bool hole[8];
 	d2_event.SetupInput(ipt, "d2.");
+	ipt->SetBranchAddress("d2.hole", hole);
 	// d3 event
 	DssdMergeEvent d3_event;
 	d3_event.SetupInput(ipt, "d3.");
@@ -402,7 +409,7 @@ int T0::Track() {
 		// get event
 		ipt->GetEntry(entry);
 		TrackDssdEvent(
-			d1_event, d2_event, d3_event,
+			d1_event, d2_event, d3_event, hole,
 			t0_event,
 			hist_offset
 		);
@@ -417,7 +424,7 @@ int T0::Track() {
 			else if (t0_event.num == 3) ++track_statistics.particle3;
 			// update DSSD tracking statistics
 			dssd_statistics.total += t0_event.num;
-			for (unsigned short i = 0; i < t0_event.num; ++i) {
+			for (int i = 0; i < t0_event.num; ++i) {
 				if (t0_event.flag[i] == 1) ++dssd_statistics.flag1;
 				else if (t0_event.flag[i] == 3) ++dssd_statistics.flag3;
 				else if (t0_event.flag[i] == 5) ++dssd_statistics.flag5;
@@ -747,7 +754,7 @@ int T0::ParticleIdentify() {
 		ipt->GetEntry(entry);
 		// initialize output event
 		type_event.num = t0_event.num;
-		for (unsigned short i = 0; i < type_event.num; ++i) {
+		for (int i = 0; i < type_event.num; ++i) {
 			type_event.charge[i] = 0;
 			type_event.mass[i] = 0;
 			type_event.layer[i] = -1;
@@ -1072,7 +1079,7 @@ int T0::Calibrate(unsigned int end_run) {
 		}
 		// get event
 		t0_chain.GetEntry(entry);
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
+		for (int i = 0; i < t0_event.num; ++i) {
 			if (type_event.layer[i] == 1) {
 				double de = t0_event.energy[i][0];
 				double e = t0_event.energy[i][1];
@@ -1276,7 +1283,7 @@ int T0::Rebuild() {
 		ipt->GetEntry(entry);
 		// initialize particle event
 		particle_event.num = 0;
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
+		for (int i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
 			if (type_event.layer[i] < 1 || type_event.layer[i] > 6) continue;
@@ -1465,7 +1472,7 @@ int T0::ShowCalibration() {
 		// get event
 		ipt->GetEntry(entry);
 		// calculate DSSD energy
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
+		for (int i = 0; i < t0_event.num; ++i) {
 			for (size_t j = 0; j < 3; ++j) {
 				t0_event.energy[i][j] *= cali_params_[j*2+1];
 				t0_event.energy[i][j] += cali_params_[j*2];
@@ -1477,7 +1484,7 @@ int T0::ShowCalibration() {
 			t0_event.ssd_energy[j] += cali_params_[(j+3)*2];
 		}
 		// check flag
-		for (unsigned short i = 0; i < t0_event.num; ++i) {
+		for (int i = 0; i < t0_event.num; ++i) {
 			if (t0_event.flag[i] != 0x3) continue;
 			if (type_event.mass[i] == 0 || type_event.charge[i] == 0) continue;
 			size_t index = 0;
@@ -1553,8 +1560,8 @@ void SearchStripCombinations(
 	std::vector<StripGroup> &back_strips
 ) {
 	// for convenience
-	unsigned short &fhit = event.front_hit;
-	unsigned short &bhit = event.back_hit;
+	int &fhit = event.front_hit;
+	int &bhit = event.back_hit;
 	double *fe = event.front_energy;
 	double *be = event.back_energy;
 	double *ft = event.front_time;
@@ -1563,9 +1570,9 @@ void SearchStripCombinations(
 	unsigned short *bs = event.back_strip;
 
 	// search for front strips
-	for (unsigned short i = 0; i < fhit; ++i) {
+	for (int i = 0; i < fhit; ++i) {
 		front_strips.push_back({fe[i], ft[i], double(fs[i]), 1u<<i, 0, 0});
-		for (unsigned short j = i+1; j < fhit; ++j) {
+		for (int j = i+1; j < fhit; ++j) {
 			if (abs(fs[i]-fs[j]) == 1) {
 				fadt.Fill(ft[i]-ft[j]);
 			}
@@ -1585,9 +1592,9 @@ void SearchStripCombinations(
 		}
 	}
 	// search for back strips
-	for (unsigned short i = 0; i < bhit; ++i) {
+	for (int i = 0; i < bhit; ++i) {
 		back_strips.push_back({be[i], bt[i], double(bs[i]), 0x100u<<i, 0, 0});
-		for (unsigned short j = i+1; j < bhit; ++j) {
+		for (int j = i+1; j < bhit; ++j) {
 			if (abs(bs[i]-bs[j]) == 1) {
 				badt.Fill(bt[i]-bt[j]);
 			}
@@ -1902,7 +1909,7 @@ struct D3Combination {
 	unsigned int flag;
 	int status;
 	int points;
-	size_t d1d2_index;
+	int d1d2_index;
 
 	bool operator<(const D3Combination &other) const {
 		return points < other.points;
@@ -2189,7 +2196,7 @@ int SearchTrackCombinations(
 	// // particle types identified in T0D1 and T0D2
 	// std::vector<int> d1d2_types;
 	// // identify particles
-	// for (unsigned short i = 0; i < t0.num; ++i) {
+	// for (int i = 0; i < t0.num; ++i) {
 	// 	d1d2_types.push_back(
 	// 		D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_cuts)
 	// 	);
@@ -2197,7 +2204,7 @@ int SearchTrackCombinations(
 	// particle types identified in T0D1 and T0D2 tail
 	std::vector<int> d1d2_tail_types;
 	// identify particle tails
-	for (unsigned short i = 0; i < t0.num; ++i) {
+	for (int i = 0; i < t0.num; ++i) {
 		d1d2_tail_types.push_back(
 			D1D2ParticleIdentify(t0.energy[i][0], t0.energy[i][1], d1d2_tails)
 		);
@@ -2209,7 +2216,7 @@ int SearchTrackCombinations(
 	// search for combinations and evaluate points
 	for (const auto &d3 : d3_combinations) {
 		if (d3.num == 4) continue;
-		for (unsigned short i = 0; i < t0.num; ++i) {
+		for (int i = 0; i < t0.num; ++i) {
 			// if (d1d2_types[i] > 0) continue;
 			if (d1d2_tail_types[i] == 0) continue;
 			for (int j = 0; j < d3.num; ++j) {

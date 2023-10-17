@@ -118,7 +118,7 @@ int FillEvent(
 	statistics.conflict_events += strip_multiple_hit ? 1 : 0;
 
 
-	for (unsigned short i = 0; i < fundamental_event.front_hit; ++i) {
+	for (int i = 0; i < fundamental_event.front_hit; ++i) {
 		fundamental_event.front_strip[i] = front_events[i].strip;
 		fundamental_event.front_time[i] = front_events[i].time - trigger_time;
 		fundamental_event.front_energy[i] = front_events[i].energy;
@@ -126,7 +126,7 @@ int FillEvent(
 			front_events[i].cfd_flag ? (1 << i) : 0;
 		fundamental_event.front_decode_entry[i] = front_events[i].decode_entry;
 	}
-	for (unsigned short i = 0; i < fundamental_event.back_hit; ++i) {
+	for (int i = 0; i < fundamental_event.back_hit; ++i) {
 		fundamental_event.back_strip[i] = back_events[i].strip;
 		fundamental_event.back_time[i] = back_events[i].time - trigger_time;
 		fundamental_event.back_energy[i] = back_events[i].energy;
@@ -681,13 +681,13 @@ int Dssd::NormalizeResult(int iteration) {
 		// get event
 		ipt->GetEntry(entry);
 		if (iteration == 0) {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				event.front_energy[i] =
 					NormEnergy(0, event.front_strip[i], event.front_energy[i]);
 				event.front_time[i] -= norm_time_params_[0][event.front_strip[i]];
 				event.front_fundamental_index[i] = i;
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				event.back_energy[i] =
 					NormEnergy(1, event.back_strip[i], event.back_energy[i]);
 				event.back_time[i] -= norm_time_params_[1][event.back_strip[i]];
@@ -710,7 +710,7 @@ int Dssd::NormalizeResult(int iteration) {
 		} else {
 			event.front_hit = filter_event.num;
 			event.back_hit = filter_event.num;
-			for (unsigned short i = 0; i < filter_event.num; ++i) {
+			for (int i = 0; i < filter_event.num; ++i) {
 				event.front_strip[i] = filter_event.front_strip[i];
 				event.back_strip[i] = filter_event.back_strip[i];
 				event.front_energy[i] = NormEnergy(
@@ -863,12 +863,12 @@ int Dssd::ShowNormalize() {
 		}
 		// get event
 		ipt->GetEntry(entry);
-		for (unsigned short i = 0; i < event.front_hit; ++i) {
+		for (int i = 0; i < event.front_hit; ++i) {
 			event.front_energy[i] = NormEnergy(
 				0, event.front_strip[i], event.front_energy[i]
 			);
 		}
-		for (unsigned short i = 0; i < event.back_hit; ++i) {
+		for (int i = 0; i < event.back_hit; ++i) {
 			event.back_energy[i] = NormEnergy(
 				1, event.back_strip[i], event.back_energy[i]
 			);
@@ -1535,7 +1535,7 @@ void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
 /// @brief sort particles in merge event by energy
 /// @param[inout] merge merge event to sort
 ///
-void SortMergeEvent(DssdMergeEvent &merge) {
+void Dssd::SortMergeEvent(DssdMergeEvent &merge) {
 	if (merge.hit <= 1) return;
 	else if (merge.hit == 2 && merge.energy[0] < merge.energy[1]) {
 		SwapMergeEvent(merge, 0, 1);
@@ -1563,12 +1563,12 @@ void SortMergeEvent(DssdMergeEvent &merge) {
 /// @param[in] flag used strip flag
 /// @returns index of adjacent strip if found, -1 otherwise
 ///
-int SearchFrontAdjacentStrips(
+int Dssd::SearchFrontAdjacentStrips(
 	const DssdFundamentalEvent &event,
 	unsigned short strip,
 	unsigned short flag
 ) {
-	for (unsigned short i = 0; i < event.front_hit; ++i) {
+	for (int i = 0; i < event.front_hit; ++i) {
 		if (event.front_strip[i] == strip) continue;
 		if ((flag & (1 << i)) != 0) continue;
 		if (abs(event.front_strip[i] - strip) != 1) continue;
@@ -1585,12 +1585,12 @@ int SearchFrontAdjacentStrips(
 /// @param[in] flag used strip flag
 /// @returns index of adjacent strip if found, -1 otherwise
 ///
-int SearchBackAdjacentStrips(
+int Dssd::SearchBackAdjacentStrips(
 	const DssdFundamentalEvent &event,
 	unsigned short strip,
 	unsigned short flag
 ) {
-	for (unsigned short i = 0; i < event.back_hit; ++i) {
+	for (int i = 0; i < event.back_hit; ++i) {
 		if (event.back_strip[i] == strip) continue;
 		if ((flag & (1 << (i+8))) != 0) continue;
 		if (abs(event.back_strip[i] - strip) != 1) continue;
@@ -1606,7 +1606,7 @@ int SearchBackAdjacentStrips(
 /// @param[in] energy_diff energy difference tolerance
 /// @param[out] merge merge event to fill
 /// @returns merge hit
-int FillMergeEvent2(
+int Dssd::FillMergeEvent2(
 	const DssdFundamentalEvent &event,
 	double energy_diff,
 	DssdMergeEvent &merge
@@ -1616,8 +1616,8 @@ int FillMergeEvent2(
 	unsigned short used_flag = 0;
 
 	// for convenience
-	const unsigned short &fhit = event.front_hit;
-	const unsigned short &bhit = event.back_hit;
+	const int &fhit = event.front_hit;
+	const int &bhit = event.back_hit;
 	const unsigned short *fs = event.front_strip;
 	const unsigned short *bs = event.back_strip;
 	const double *fe = event.front_energy;
@@ -1631,18 +1631,18 @@ int FillMergeEvent2(
 	while (found && merge.hit < 4) {
 		found = false;
 		// search f1b1 event
-		for (unsigned short i = 0; i < fhit; ++i) {
+		for (int i = 0; i < fhit; ++i) {
 			// jump if it's used event
 			if ((used_flag & (1 << i)) != 0) continue;
 			// check f1b1 event
-			for (unsigned short j = 0; j < bhit; ++j) {
+			for (int j = 0; j < bhit; ++j) {
 				// jump if it's used event
 				if ((used_flag & (0x100 << j)) != 0) continue;
 				// found, check energy now
 				double de = fe[i] - be[j];
 				// jump if energy is out of range
 				if (fabs(de) < energy_diff) {
-					unsigned short num = merge.hit;
+					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x100 << j);
 					merge.merge_tag[num] = 0;
 					merge.energy[num] = fe[i];
@@ -1659,7 +1659,7 @@ int FillMergeEvent2(
 		}
 		if (found) continue;
 		// try to find f2b2 or f2b1 event
-		for (unsigned short i = 0; i < fhit; ++i) {
+		for (int i = 0; i < fhit; ++i) {
 			// jump if it's used event
 			if ((used_flag & (1 << i)) != 0) continue;
 			// search adjacent strip
@@ -1669,7 +1669,7 @@ int FillMergeEvent2(
 			// total energy of adjacent strips in front side
 			double total_front_energy = fe[i] + fe[fi];
 			// found adjacent strips in front side, check back side now
-			for (unsigned short j = 0; j < bhit; ++j) {
+			for (int j = 0; j < bhit; ++j) {
 				// jump if it's used event
 				if ((used_flag & (0x100 << j)) != 0) continue;
 				// search adjacent strip
@@ -1689,7 +1689,7 @@ int FillMergeEvent2(
 					&& fabs(de2) < energy_diff
 				) {
 					// fill f2b2-2 event
-					unsigned short num = merge.hit;
+					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x100 << j);
 					merge.merge_tag[num] = 0;
 					merge.energy[num] = fe[i];
@@ -1710,7 +1710,7 @@ int FillMergeEvent2(
 					found = true;
 					break;
 				} else {
-					unsigned short num = merge.hit;
+					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x1 << fi);
 					merge.flag[num] |= (0x100 << j)  | (0x100 << bi);
 					merge.merge_tag[num] = 3;
@@ -1731,13 +1731,13 @@ int FillMergeEvent2(
 			// found f2b2 event
 			if (found) break;
 			// adjacent strips in back side not found, check f2b1 event
-			for (unsigned short j = 0; j < bhit; ++j) {
+			for (int j = 0; j < bhit; ++j) {
 				// jump if it's used event
 				if ((used_flag & (0x100 << j)) != 0) continue;
 				// energy difference of sides
 				double de = total_front_energy - be[j];
 				if (de < energy_diff) {
-					unsigned short num = merge.hit;
+					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x1 << fi) | (0x100 << j);
 					merge.merge_tag[num] = 2;
 					merge.energy[num] = total_front_energy;
@@ -1758,11 +1758,11 @@ int FillMergeEvent2(
 		// found f2b2 or f2b1 event
 		if (found) continue;
 		// check f1b2 or f1b1 event now
-		for (unsigned short i = 0; i < fhit; ++i) {
+		for (int i = 0; i < fhit; ++i) {
 			// jump if it's used event
 			if ((used_flag & (1 << i)) != 0) continue;
 			// check back side now
-			for (unsigned short j = 0; j < bhit; ++j) {
+			for (int j = 0; j < bhit; ++j) {
 				// jump if it's used event
 				if ((used_flag & (1 << (j+8))) != 0) continue;
 				// search adjacent strip
@@ -1773,7 +1773,7 @@ int FillMergeEvent2(
 				double de = fe[i] - be[j] - be[bi];
 				// jump if energy is out of range
 				if (fabs(de) < energy_diff) {
-					unsigned short num = merge.hit;
+					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x100 << j) | (0x100 << bi);
 					merge.merge_tag[num] = 1;
 					merge.energy[num] = fe[i];
@@ -1793,21 +1793,21 @@ int FillMergeEvent2(
 		}
 	// 	if (found) continue;
 	// 	// search f1b2 bind events
-	// 	for (unsigned short i = 0; i < fhit; ++i) {
+	// 	for (int i = 0; i < fhit; ++i) {
 	// 		// jump if it's used event
 	// 		if ((used_flag & (1 << i)) != 0) continue;
 	// 		// check back side
-	// 		for (unsigned short j = 0; j < bhit; ++j) {
+	// 		for (int j = 0; j < bhit; ++j) {
 	// 			// ignore used event
 	// 			if ((used_flag & (1 << (j+8))) != 0) continue;
 	// 			// search for binding event
-	// 			for (unsigned short k = j+1; k < bhit; ++k) {
+	// 			for (int k = j+1; k < bhit; ++k) {
 	// 				// ignore used event
 	// 				if ((used_flag & (1 << (k+8))) != 0) continue;
 	// 				// found, check energy
 	// 				double de = fe[i] - be[j] - be[k];
 	// 				if (fabs(de) < energy_diff) {
-	// 					unsigned short num = merge.hit;
+	// 					int num = merge.hit;
 	// 					merge.flag[num] = (0x1 << i) | (0x100 << j);
 	// 					merge.merge_tag[num] = 4;
 	// 					merge.energy[num] = fe[i] * be[j] / (be[j] + be[k]);
@@ -1832,20 +1832,20 @@ int FillMergeEvent2(
 	// 	}
 	// 	if (found) continue;
 	// 	// search f2b1 bind events
-	// 	for (unsigned short i = 0; i < bhit; ++i) {
+	// 	for (int i = 0; i < bhit; ++i) {
 	// 		// jump if it's used event
 	// 		if ((used_flag & (0x100 << i)) != 0) continue;
 	// 		// check front side now
-	// 		for (unsigned short j = 0; j < fhit; ++j) {
+	// 		for (int j = 0; j < fhit; ++j) {
 	// 			// ignore used event
 	// 			if ((used_flag & (0x1 << j)) != 0) continue;
-	// 			for (unsigned short k = j+1; k < fhit; ++k) {
+	// 			for (int k = j+1; k < fhit; ++k) {
 	// 				// ignore used event
 	// 				if ((used_flag & (0x1 << k)) != 0) continue;
 	// 				// found, check energy
 	// 				double de = fe[j] + fe[k] - be[i];
 	// 				if (fabs(de) < energy_diff) {
-	// 					unsigned short num = merge.hit;
+	// 					int num = merge.hit;
 	// 					merge.flag[num] = (0x100 << i) | (0x1 << j);
 	// 					merge.merge_tag[num] = 5;
 	// 					merge.energy[num] = fe[j];
@@ -1912,8 +1912,8 @@ int Dssd::Merge(double energy_diff) {
 	fundamental_event.SetupInput(ipt);
 	// ipt->SetBranchAddress("ref.time", &ref_time);
 	// for convenient
-	unsigned short &fhit = fundamental_event.front_hit;
-	unsigned short &bhit = fundamental_event.back_hit;
+	int &fhit = fundamental_event.front_hit;
+	int &bhit = fundamental_event.back_hit;
 
 	// output file name
 	TString merge_file_name;
@@ -1976,7 +1976,7 @@ int Dssd::Merge(double energy_diff) {
 		else if (merge_num == 2) ++statistics.two_hit;
 		else if (merge_num == 3) ++statistics.three_hit;
 		else if (merge_num == 4) ++four_hit;
-		for (unsigned short i = 0; i < merge_event.hit; ++i) {
+		for (int i = 0; i < merge_event.hit; ++i) {
 			auto position =
 				CalculatePosition(merge_event.x[i], merge_event.y[i]);
 			merge_event.x[i] = position.X();

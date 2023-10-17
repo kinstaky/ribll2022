@@ -14,7 +14,7 @@ void ParticleTypeEvent::SetupInput(
 
 
 void ParticleTypeEvent::SetupOutput(TTree *tree) {
-	tree->Branch("num", &num, "num/s");
+	tree->Branch("num", &num, "num/I");
 	tree->Branch("charge", charge, "z[num]/s");
 	tree->Branch("mass", mass, "a[num]/s");
 	tree->Branch("layer", layer, "l[num]/S");

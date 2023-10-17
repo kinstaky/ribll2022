@@ -151,11 +151,57 @@ public:
 	///
 	virtual int Merge(double energy_diff);
 
+protected:
+
+	/// @brief Fill merge event from normalize result event, version 2
+	/// @param[in] event normalize result event
+	/// @param[in] energy_diff energy difference tolerance
+	/// @param[out] merge merge event to fill
+	/// @returns merge hit
+	int FillMergeEvent2(
+		const DssdFundamentalEvent &event,
+		double energy_diff,
+		DssdMergeEvent &merge
+	);
+
+
+	/// @brief search front ajacent strip to specific strip
+	/// @param[in] event normalize result event
+	/// @param[in] strip strip to search
+	/// @param[in] flag used strip flag
+	/// @returns index of adjacent strip if found, -1 otherwise
+	///
+	int SearchFrontAdjacentStrips(
+		const DssdFundamentalEvent &event,
+		unsigned short strip,
+		unsigned short flag
+	);
+
+
+	/// @brief search back ajacent strip to specific strip
+	/// @param[in] event normalize result event
+	/// @param[in] strip strip to search
+	/// @param[in] flag used strip flag
+	/// @returns index of adjacent strip if found, -1 otherwise
+	///
+	int SearchBackAdjacentStrips(
+		const DssdFundamentalEvent &event,
+		unsigned short strip,
+		unsigned short flag
+	);
+
+
+	/// @brief sort particles in merge event by energy
+	/// @param[inout] merge merge event to sort
+	///
+	void SortMergeEvent(DssdMergeEvent &merge);
+
 
 	//-------------------------------------------------------------------------
 	//								time
 	//-------------------------------------------------------------------------
 
+public:
 	/// @brief analyze time
 	/// @returns 0 if success, -1 otherwise
 	///

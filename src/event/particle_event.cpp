@@ -23,7 +23,7 @@ void ParticleEvent::SetupInput(
 
 
 void ParticleEvent::SetupOutput(TTree *tree) {
-	tree->Branch("num", &num, "num/s");
+	tree->Branch("num", &num, "num/I");
 	tree->Branch("charge", charge, "Z[num]/s");
 	tree->Branch("mass", mass, "A[num]/s");
 	tree->Branch("energy", energy, "e[num]/D");

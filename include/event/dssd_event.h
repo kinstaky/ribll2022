@@ -78,8 +78,8 @@ public:
 	///
 	virtual void Erase(size_t side, size_t index);
 
-	unsigned short front_hit;
-	unsigned short back_hit;
+	int front_hit;
+	int back_hit;
 	unsigned short cfd_flag;
 	unsigned short front_strip[8];
 	unsigned short back_strip[8];
@@ -127,8 +127,8 @@ public:
 	///
 	virtual void SetupOutput(TTree *tree) override;
 
-	unsigned short front_hit;
-	unsigned short back_hit;
+	int front_hit;
+	int back_hit;
 	int front_time_flag[8];
 	int back_time_flag[8];
 };
@@ -153,8 +153,8 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short front_hit;
-	unsigned short back_hit;
+	int front_hit;
+	int back_hit;
 	unsigned short front_strip[8];
 	unsigned short back_strip[8];
 	double front_energy[8];
@@ -180,7 +180,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short hit;
+	int hit;
 	unsigned int case_tag;
 	unsigned int flag[8];
 	// 0-f1b1, 1-f1b2, 2-f2b1, 3-f2b2, 4-f1b2(bind), 5-f2b1(bind)
@@ -212,7 +212,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short hit;
+	int hit;
 	double radius[4];
 	double theta[4];
 	double phi[4];

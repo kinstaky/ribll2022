@@ -24,7 +24,7 @@ public:
 
 
 	// fragments
-	unsigned short num;
+	int num;
 	unsigned short daughter_charge[4];
 	unsigned short daughter_mass[4];
 	double daughter_energy[4];

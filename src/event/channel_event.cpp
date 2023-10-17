@@ -58,7 +58,7 @@ void ChannelEvent::SetupInput(
 
 void ChannelEvent::SetupOutput(TTree *tree) {
 	// fragments
-	tree->Branch("num", &num, "num/s");
+	tree->Branch("num", &num, "num/I");
 	tree->Branch("charge", daughter_charge, "Z[num]/s");
 	tree->Branch("mass", daughter_mass, "A[num]/s");
 	tree->Branch("energy", daughter_energy, "e[num]/D");

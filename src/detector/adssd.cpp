@@ -59,8 +59,8 @@ int Adssd::Merge(double) {
 	// setup input branches
 	fundamental_event.SetupInput(ipt);
 	// for convenient
-	unsigned short &fhit = fundamental_event.front_hit;
-	unsigned short &bhit = fundamental_event.back_hit;
+	int &fhit = fundamental_event.front_hit;
+	int &bhit = fundamental_event.back_hit;
 	unsigned short *fs = fundamental_event.front_strip;
 	unsigned short *bs = fundamental_event.back_strip;
 	double *fe = fundamental_event.front_energy;

@@ -16,11 +16,12 @@ void T0Event::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress((prefix+"status").c_str(), status);
 	tree->SetBranchAddress((prefix+"points").c_str(), points);
 	tree->SetBranchAddress((prefix+"dssd_flag").c_str(), dssd_flag);
+	tree->SetBranchAddress((prefix+"hole").c_str(), hole);
 }
 
 
 void T0Event::SetupOutput(TTree *tree) {
-	tree->Branch("num", &num, "num/s");
+	tree->Branch("num", &num, "num/I");
 	tree->Branch("layer", layer, "l[num]/s");
 	tree->Branch("flag", flag, "flag[num]/s");
 	tree->Branch("energy", energy, "e[num][4]/D");
@@ -33,6 +34,7 @@ void T0Event::SetupOutput(TTree *tree) {
 	tree->Branch("status", status, "status[num]/I");
 	tree->Branch("points", points, "points[num]/I");
 	tree->Branch("dssd_flag", dssd_flag, "dssd_flag[num][3]/s");
+	tree->Branch("hole", hole, "hole[num]/O");
 }
 
 }

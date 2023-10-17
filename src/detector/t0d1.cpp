@@ -178,7 +178,7 @@ int T0d1::Normalize(unsigned int end_run, int iteration) {
 			}
 			ipt->GetEntry(entry);
 
-			for (unsigned short i = 0; i < filter_event.num; ++i) {
+			for (int i = 0; i < filter_event.num; ++i) {
 				unsigned short fs = filter_event.front_strip[i];
 				unsigned short bs = filter_event.back_strip[i];
 				double fe = filter_event.front_energy[i];
@@ -336,14 +336,14 @@ int T0d1::AnalyzeTime() {
 		time_event.front_hit = event.front_hit;
 		time_event.back_hit = event.back_hit;
 		if (ref_time < -9e4) {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				time_event.front_time_flag[i] = 9;
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				time_event.back_time_flag[i] = 9;
 			}
 		} else {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				if (event.front_strip[i] < 32 || event.front_strip[i] >= 48) {
 					if (cutf1->IsInside(
 						event.front_energy[i], event.front_time[i]-ref_time
@@ -362,7 +362,7 @@ int T0d1::AnalyzeTime() {
 					}
 				}
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				if (cutb->IsInside(
 					event.back_energy[i], event.back_time[i]-ref_time
 				)) {
@@ -857,14 +857,14 @@ bool Cut11Beam(
 	TH1F &hist_dt
 ) {
 	// for convenience
-	unsigned short &fhit = event.front_hit;
-	unsigned short &bhit = event.back_hit;
+	int &fhit = event.front_hit;
+	int &bhit = event.back_hit;
 	double *fe = event.front_energy;
 	double *be = event.back_energy;
 	double *ft = event.front_time;
 	double *bt = event.back_time;
 
-	for (unsigned short i = 0; i < fhit; ++i) {
+	for (int i = 0; i < fhit; ++i) {
 		// cut single strip beam
 		if (fe[i] < 31'000) continue;
 		for (unsigned short j = 0; j < bhit; ++j) {
@@ -908,19 +908,19 @@ bool Cut12Beam(
 	TH1F &hist_adt
 ) {
 	// for convenience
-	unsigned short &fhit = event.front_hit;
-	unsigned short &bhit = event.back_hit;
+	int &fhit = event.front_hit;
+	int &bhit = event.back_hit;
 	unsigned short *bs = event.back_strip;
 	double *fe = event.front_energy;
 	double *be = event.back_energy;
 	double *ft = event.front_time;
 	double *bt = event.back_time;
 
-	for (unsigned short i = 0; i < fhit; ++i) {
+	for (int i = 0; i < fhit; ++i) {
 		if (fe[i] < 31'000) continue;
 		// search for adjacent strips in back side
-		for (unsigned short j = 0; j < bhit-1; ++j) {
-			for (unsigned short k = j+1; k < bhit; ++k) {
+		for (int j = 0; j < bhit-1; ++j) {
+			for (int k = j+1; k < bhit; ++k) {
 				if (abs(bs[j]-bs[k]) != 1) continue;
 				hist_de.Fill(fe[i]-be[j]-be[k]);
 				hist_dt.Fill(ft[i]-bt[j]);
@@ -947,19 +947,19 @@ bool Cut21Beam(
 	TH1F &hist_adt
 ) {
 	// for convenience
-	unsigned short &fhit = event.front_hit;
-	unsigned short &bhit = event.back_hit;
+	int &fhit = event.front_hit;
+	int &bhit = event.back_hit;
 	unsigned short *fs = event.front_strip;
 	double *fe = event.front_energy;
 	double *be = event.back_energy;
 	double *ft = event.front_time;
 	double *bt = event.back_time;
 
-	for (unsigned short i = 0; i < bhit; ++i) {
+	for (int i = 0; i < bhit; ++i) {
 		if (be[i] < 31'000) continue;
 		// search for adjacent strips in back side
-		for (unsigned short j = 0; j < fhit-1; ++j) {
-			for (unsigned short k = j+1; k < fhit; ++k) {
+		for (int j = 0; j < fhit-1; ++j) {
+			for (int k = j+1; k < fhit; ++k) {
 				if (abs(fs[j]-fs[k]) != 1) continue;
 				hist_de.Fill(be[i]-fe[j]-fe[k]);
 				hist_dt.Fill(bt[i]-ft[j]);
@@ -986,8 +986,8 @@ bool Cut22Beam(
 	TH1F &hist_adt
 ) {
 	// for convenience
-	unsigned short &fhit = event.front_hit;
-	unsigned short &bhit = event.back_hit;
+	int &fhit = event.front_hit;
+	int &bhit = event.back_hit;
 	unsigned short *fs = event.front_strip;
 	unsigned short *bs = event.back_strip;
 	double *fe = event.front_energy;
@@ -995,13 +995,13 @@ bool Cut22Beam(
 	double *ft = event.front_time;
 	double *bt = event.back_time;
 
-	for (unsigned short i = 0; i < fhit; ++i) {
-		for (unsigned short j = i+1; j < fhit; ++j) {
+	for (int i = 0; i < fhit; ++i) {
+		for (int j = i+1; j < fhit; ++j) {
 			if (abs(fs[i]-fs[j]) != 1) continue;
 			if (fe[i]+fe[j] < 31'000) continue;
 			// search for adjacent strips in back side
-			for (unsigned short k = 0;  k < bhit; ++k) {
-				for (unsigned short l = k+1; l < bhit; ++l) {
+			for (int k = 0;  k < bhit; ++k) {
+				for (int l = k+1; l < bhit; ++l) {
 					if (abs(bs[k]-bs[l] != 1)) continue;
 					hist_de.Fill(fe[i]+fe[j]-be[k]-be[l]);
 					hist_dt.Fill(ft[i]-bt[k]);

@@ -24,7 +24,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short num;
+	int num;
 	unsigned short flag[4];
 	double energy[4][4];
 	double time[4][4];

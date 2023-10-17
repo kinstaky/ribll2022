@@ -234,7 +234,7 @@ int T0d2::Normalize(unsigned int, int iteration) {
 				}
 			} else {
 				// iteration > 0
-				for (unsigned short i = 0; i < filter_event.num; ++i) {
+				for (int i = 0; i < filter_event.num; ++i) {
 					unsigned short fs = filter_event.front_strip[i];
 					unsigned short bs = filter_event.back_strip[i];
 					double fe = filter_event.front_energy[i];
@@ -297,6 +297,7 @@ int T0d2::Normalize(unsigned int, int iteration) {
 
 	// close files
 	opf.Close();
+	pixel_file.Close();
 	ipf->Close();
 
 	// write parameters
@@ -308,6 +309,206 @@ int T0d2::Normalize(unsigned int, int iteration) {
 	return 0;
 }
 
+
+int T0d2::Merge(double energy_diff) {
+		// input file name
+	TString input_file_name;
+	input_file_name.Form(
+		"%s%s%s-result-%s%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	DssdFundamentalEvent fundamental_event;
+	// setup input branches
+	fundamental_event.SetupInput(ipt);
+	// for convenient
+	int &fhit = fundamental_event.front_hit;
+	int &bhit = fundamental_event.back_hit;
+
+	// pixel resolution file name
+	TString pixel_file_name = TString::Format(
+		"%s%sshow-t0d2-pixel-%04u.root",
+		kGenerateDataPath,
+		kShowDir,
+		run_
+	);
+	// pixel resolution file
+	TFile pixel_file(pixel_file_name, "read");
+	// resolution histogram
+	TH2F *hbr = (TH2F*)pixel_file.Get("hbr");
+	if (!hbr) {
+		std::cerr << "Error: Get pixel resolution from "
+			<< pixel_file_name << " failed.\n";
+		return -1;
+	}
+
+	// output file name
+	TString merge_file_name;
+	merge_file_name.Form(
+		"%s%s%s-merge-%s%04u.root",
+		kGenerateDataPath,
+		kMergeDir,
+		name_.c_str(),
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(merge_file_name, "recreate");
+	// output tree
+	TTree opt("tree", "tree of merged events");
+	// output event
+	DssdMergeEvent merge_event;
+	bool hole[8];
+	// setup output branches
+	merge_event.SetupOutput(&opt);
+	opt.Branch("hole", hole, "hole[hit]/O");
+
+	MergeStatistics statistics(run_, name_, tag_);
+	long long four_hit = 0;
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100;
+	// show start
+	printf("Writing merged events   0%%");
+	fflush(stdout);
+	// loop over events
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		ipt->GetEntry(entry);
+
+		int merge_num = FillMergeEvent2(
+			fundamental_event, energy_diff, merge_event
+		);
+
+		if (fhit > 0 && bhit > 0) ++statistics.total;
+		if (merge_num == 1) ++statistics.one_hit;
+		else if (merge_num == 2) ++statistics.two_hit;
+		else if (merge_num == 3) ++statistics.three_hit;
+		else if (merge_num == 4) ++four_hit;
+		for (int i = 0; i < merge_event.hit; ++i) {
+			if (merge_event.merge_tag[i] == 0) {
+				// f1b1
+				if (
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int(merge_event.y[i])+1
+					) > 0.08
+				) {
+					hole[i] = true;
+				} else {
+					hole[i] = false;
+				}
+			} else if (merge_event.merge_tag[i] == 1) {
+				// f1b2
+				if (
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int(merge_event.y[i])+1
+					) > 0.08
+					||
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int(merge_event.y[i])+2
+					) > 0.08
+				) {
+					hole[i] = true;
+				} else {
+					hole[i] = false;
+				}
+			} else if (merge_event.merge_tag[i] == 2) {
+				// f2b1
+				if (
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int(merge_event.y[i])+1
+					) > 0.08
+					||
+					hbr->GetBinContent(
+						int(merge_event.x[i])+2,
+						int(merge_event.y[i])+1
+					) > 0.08
+				) {
+					hole[i] = true;
+				} else {
+					hole[i] = false;
+				}
+			} else if (merge_event.merge_tag[i] == 3) {
+				// f2b2
+				if (
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int (merge_event.y[i])+1
+					) > 0.08
+					||
+					hbr->GetBinContent(
+						int(merge_event.x[i])+2,
+						int(merge_event.y[i])+1
+					) > 0.08
+					||
+					hbr->GetBinContent(
+						int(merge_event.x[i])+1,
+						int(merge_event.y[i])+2
+					) > 0.08
+					||
+					hbr->GetBinContent(
+						int(merge_event.x[i])+2,
+						int(merge_event.y[i])+2
+					) > 0.08
+				) {
+					hole[i] = true;
+				} else {
+					hole[i] = false;
+				}
+			} else {
+				hole[i] = false;
+			}
+			auto position =
+				CalculatePosition(merge_event.x[i], merge_event.y[i]);
+			merge_event.x[i] = position.X();
+			merge_event.y[i] = position.Y();
+			merge_event.z[i] = position.Z();
+		}
+		SortMergeEvent(merge_event);
+		opt.Fill();
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	// save trees
+	opt.Write();
+	// close files
+	opf.Close();
+	pixel_file.Close();
+	ipf.Close();
+
+	statistics.merged =
+		statistics.one_hit + statistics.two_hit
+		+ statistics.three_hit + four_hit;
+	// save and show statistics
+	statistics.Write();
+	statistics.Print();
+	return 0;
+}
 
 
 int T0d2::AnalyzeTime() {
@@ -395,14 +596,14 @@ int T0d2::AnalyzeTime() {
 		time_event.front_hit = event.front_hit;
 		time_event.back_hit = event.back_hit;
 		if (ref_time < -9e4) {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				time_event.front_time_flag[i] = 9;
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				time_event.back_time_flag[i] = 9;
 			}
 		} else {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				if (cutf->IsInside(
 					event.front_energy[i], event.front_time[i]-ref_time
 				)) {
@@ -415,7 +616,7 @@ int T0d2::AnalyzeTime() {
 					time_event.front_time_flag[i] = 8;
 				}
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				if (cutb->IsInside(
 					event.back_energy[i], event.back_time[i]-ref_time
 				)) {

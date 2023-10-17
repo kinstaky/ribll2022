@@ -331,14 +331,14 @@ int T0d3::AnalyzeTime() {
 		time_event.front_hit = event.front_hit;
 		time_event.back_hit = event.back_hit;
 		if (ref_time < -9e4) {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				time_event.front_time_flag[i] = 9;
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				time_event.back_time_flag[i] = 9;
 			}
 		} else {
-			for (unsigned short i = 0; i < event.front_hit; ++i) {
+			for (int i = 0; i < event.front_hit; ++i) {
 				if (cutf->IsInside(
 					event.front_energy[i], event.front_time[i]-ref_time
 				)) {
@@ -347,7 +347,7 @@ int T0d3::AnalyzeTime() {
 					time_event.front_time_flag[i] = 8;
 				}
 			}
-			for (unsigned short i = 0; i < event.back_hit; ++i) {
+			for (int i = 0; i < event.back_hit; ++i) {
 				if (cutb->IsInside(
 					event.back_energy[i], event.back_time[i]-ref_time
 				)) {

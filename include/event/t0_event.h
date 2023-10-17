@@ -23,7 +23,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short num;
+	int num;
 	unsigned short layer[8];
 	unsigned short flag[8];
 	unsigned short ssd_flag;
@@ -36,6 +36,7 @@ public:
 	int status[8];
 	int points[8];
 	unsigned short dssd_flag[8][3];
+	bool hole[8];
 };
 
 }	// namespace ribll

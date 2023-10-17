@@ -23,7 +23,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	unsigned short num;
+	int num;
 	unsigned short charge[4];
 	unsigned short mass[4];
 	short layer[4];

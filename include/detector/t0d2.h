@@ -33,6 +33,17 @@ public:
 
 
 	//-------------------------------------------------------------------------
+	//								merge
+	//-------------------------------------------------------------------------
+
+	/// @brief merge adjacent event in the same side and merge events of two sides
+	/// @param[in] energy_diff tolerant energy relateive difference
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int Merge(double energy_diff);
+
+
+	//-------------------------------------------------------------------------
 	//								time
 	//-------------------------------------------------------------------------
 
