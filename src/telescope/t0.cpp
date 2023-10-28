@@ -663,70 +663,70 @@ int T0::ParticleIdentify() {
 
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
-	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
-	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	// d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
-	d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
-	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-	// d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
-	// d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
-	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	// d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
-	// d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
-	// d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
-	// d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
-	// d1d2_cuts.push_back({6, 15, ReadCut("d1d2", "15C")});
+	d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-p1i1-4He")});
+	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-7Li")});
+	// d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-7Be")});
+	d1d2_cuts.push_back({4, 9, ReadCut("t0-d1d2-p1i1-9Be")});
+	d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-p1i1-10Be")});
+	// d1d2_cuts.push_back({5, 10, ReadCut("t0-d1d2-p1i1-10B")});
+	// d1d2_cuts.push_back({5, 11, ReadCut("t0-d1d2-p1i1-11B")});
+	// d1d2_cuts.push_back({5, 12, ReadCut("t0-d1d2-p1i1-12B")});
+	// d1d2_cuts.push_back({5, 13, ReadCut("t0-d1d2-p1i1-13B")});
+	// d1d2_cuts.push_back({6, 12, ReadCut("t0-d1d2-p1i1-12C")});
+	// d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-p1i1-13C")});
+	d1d2_cuts.push_back({6, 14, ReadCut("t0-d1d2-p1i1-14C")});
+	// d1d2_cuts.push_back({6, 15, ReadCut("t0-d1d2-p1i1-15C")});
 	// T0D1-D2 tail cuts
 	std::vector<ParticleCut> d1d2_tails;
-	d1d2_tails.push_back({2, 0, ReadCut("d1d2-tail", "He")});
-	// d1d2_tails.push_back({3, 0, ReadCut("d1d2-tail", "Li")});
-	d1d2_tails.push_back({4, 0, ReadCut("d1d2-tail", "Be")});
+	d1d2_tails.push_back({2, 0, ReadCut("t0-d1d2-tail-p1i1-He")});
+	d1d2_tails.push_back({3, 0, ReadCut("t0-d1d2-tail-p1i1-Li")});
+	d1d2_tails.push_back({4, 0, ReadCut("t0-d1d2-tail-p1i1-Be")});
 	// T0D1-D2 center cuts
 	std::vector<ParticleCut> d1d2_center_cuts;
-	d1d2_center_cuts.push_back({2, 4, ReadCut("d1d2-center", "He")});
-	d1d2_center_cuts.push_back({4, 10, ReadCut("d1d2-center", "Be")});
+	// d1d2_center_cuts.push_back({2, 4, ReadCut("t0-d1d2-center-He")});
+	// d1d2_center_cuts.push_back({4, 10, ReadCut("t0-d1d2-center-Be")});
 	// T0D1-D2 center tail cuts
 	std::vector<ParticleCut> d1d2_center_tails;
-	d1d2_center_tails.push_back({2, 0, ReadCut("d1d2-tail-center", "He")});
-	d1d2_center_tails.push_back({4, 0, ReadCut("d1d2-tail-center", "Be")});
+	// d1d2_center_tails.push_back({2, 0, ReadCut("t0-d1d2-tail-center-He")});
+	// d1d2_center_tails.push_back({4, 0, ReadCut("t0-d1d2-tail-center-Be")});
 
 	// T0D2-D3 cuts
 	std::vector<ParticleCut> d2d3_cuts;
-	d2d3_cuts.push_back({2, 4, ReadCut("d2d3", "4He")});
-	// d2d3_cuts.push_back({3, 7, ReadCut("d2d3", "7Li")});
-	d2d3_cuts.push_back({4, 10, ReadCut("d2d3", "10Be")});
+	d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-p1i1-4He")});
+	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-7Li")});
+	d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-10Be")});
 	// T0D2-D3 tail cuts
 	std::vector<ParticleCut> d2d3_tails;
-	d2d3_tails.push_back({2, 0, ReadCut("d2d3-tail", "He")});
+	d2d3_tails.push_back({2, 0, ReadCut("t0-d2d3-tail-p1i1-He")});
 	// T0D2-D3 center cuts
 	std::vector<ParticleCut> d2d3_center_cuts;
-	d2d3_center_cuts.push_back({2, 4, ReadCut("d2d3-center", "He")});
-	d2d3_center_cuts.push_back({4, 10, ReadCut("d2d3-center", "Be")});
+	// d2d3_center_cuts.push_back({2, 4, ReadCut("t0-d2d3-center-He")});
+	// d2d3_center_cuts.push_back({4, 10, ReadCut("t0-d2d3-center-Be")});
 	// T0D2-D3 center tail cuts
 	std::vector<ParticleCut> d2d3_center_tails;
-	d2d3_center_tails.push_back({2, 0, ReadCut("d2d3-tail-center", "He")});
+	// d2d3_center_tails.push_back({2, 0, ReadCut("t0-d2d3-tail-center-He")});
 
 	// T0D3-S1 cuts
 	std::vector<ParticleCut> d3s1_cuts;
-	d3s1_cuts.push_back({2, 4, ReadCut("d3s1", "4He")});
+	d3s1_cuts.push_back({2, 4, ReadCut("t0-d3s1-p1i1-4He")});
 	// T0D3-S1 tail cuts
 	std::vector<ParticleCut> d3s1_tails;
-	d3s1_tails.push_back({2, 0, ReadCut("d3s1-tail", "4He")});
+	d3s1_tails.push_back({2, 0, ReadCut("t0-d3s1-tail-p1i1-He")});
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_cuts;
-	s1s2_cuts.push_back({2, 4, ReadCut("s1s2", "4He")});
+	s1s2_cuts.push_back({2, 4, ReadCut("t0-s1s2-p1i1-4He")});
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_tails;
-	s1s2_tails.push_back({2, 0, ReadCut("s1s2-tail", "4He")});
+	s1s2_tails.push_back({2, 0, ReadCut("t0-s1s2-tail-p1i1-He")});
 	// T0S2-S3 cuts
 	std::vector<ParticleCut> s2s3_cuts;
-	s2s3_cuts.push_back({2, 4, ReadCut("s2s3", "4He")});
+	s2s3_cuts.push_back({2, 4, ReadCut("t0-s2s3-p1i1-4He")});
 	// T0S2-S3 pass cuts
 	std::vector<ParticleCut> s2s3_tails;
-	s2s3_tails.push_back({2, 4, ReadCut("s2s3-tail", "4He")});
+	s2s3_tails.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-He")});
 	// special cut of S1-S2 interaction
-	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("s1s2", "cross")};
+	std::unique_ptr<TCutG> s1s2_cross_cut{ReadCut("t0-s1s2-cross")};
 
 	//statistics
 	long long total = 0;
@@ -1293,23 +1293,6 @@ int T0::Rebuild() {
 			// fill mass number
 			particle_event.mass[particle_event.num] = type_event.mass[i];
 
-			// calculate energy from all Si detectors
-			// double energy = -1.0;
-			// if (type_event.charge[i] == 2 && type_event.mass[i] == 4) {
-			// 	double d1_energy = CaliEnergy(0, t0_event.energy[i][0]);
-			// 	// get d2 energy from d1 energy and delta energy calculator
-			// 	double d2_energy = delta_4He_calculator.Energy(0, d1_energy);
-			// 	// get total energy
-			// 	energy = d1_energy + d2_energy;
-			// } else if (type_event.charge[i] == 4 && type_event.mass[i] == 10) {
-			// 	double d1_energy = CaliEnergy(0, t0_event.energy[i][0]);
-			// 	// get d2 energy from d1 energy and delta energy calculator
-			// 	double d2_energy = delta_10Be_calculator.Energy(0, d1_energy);
-			// 	// get total energy
-			// 	energy = d1_energy + d2_energy;
-			// } else {
-			// 	energy = TotalEnergy(t0_event, type_event, i, csi_calculator);
-			// }
 			double energy =
 				TotalEnergy(t0_event, type_event, i, csi_calculator, delta_10Be_calculator);
 			// fill energy
@@ -2403,24 +2386,24 @@ int T0::MergeAndTrack() {
 
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
-	d1d2_cuts.push_back({2, 4, ReadCut("d1d2", "4He")});
-	// d1d2_cuts.push_back({3, 6, ReadCut("d1d2", "6Li")});
-	d1d2_cuts.push_back({3, 7, ReadCut("d1d2", "7Li")});
-	// d1d2_cuts.push_back({4, 7, ReadCut("d1d2", "7Be")});
-	// d1d2_cuts.push_back({4, 9, ReadCut("d1d2", "9Be")});
-	d1d2_cuts.push_back({4, 10, ReadCut("d1d2", "10Be")});
-	// d1d2_cuts.push_back({5, 10, ReadCut("d1d2", "10B")});
-	// d1d2_cuts.push_back({5, 11, ReadCut("d1d2", "11B")});
-	// d1d2_cuts.push_back({5, 12, ReadCut("d1d2", "12B")});
-	// d1d2_cuts.push_back({5, 13, ReadCut("d1d2", "13B")});
-	// d1d2_cuts.push_back({6, 12, ReadCut("d1d2", "12C")});
-	// d1d2_cuts.push_back({6, 13, ReadCut("d1d2", "13C")});
-	d1d2_cuts.push_back({6, 14, ReadCut("d1d2", "14C")});
+	d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-4He")});
+	// d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-7Li")});
+	// d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-7Be")});
+	// d1d2_cuts.push_back({4, 9, ReadCut("t0-d1d2-9Be")});
+	d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-10Be")});
+	// d1d2_cuts.push_back({5, 10, ReadCut("t0-d1d2-10B")});
+	// d1d2_cuts.push_back({5, 11, ReadCut("t0-d1d2-11B")});
+	// d1d2_cuts.push_back({5, 12, ReadCut("t0-d1d2-12B")});
+	// d1d2_cuts.push_back({5, 13, ReadCut("t0-d1d2-13B")});
+	// d1d2_cuts.push_back({6, 12, ReadCut("t0-d1d2-12C")});
+	// d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-13C")});
+	d1d2_cuts.push_back({6, 14, ReadCut("t0-d1d2-14C")});
 
 	std::vector<ParticleCut> d1d2_tails;
-	d1d2_tails.push_back({2, 0, ReadCut("d1d2-tail", "He")});
-	d1d2_tails.push_back({3, 0, ReadCut("d1d2-tail", "Li")});
-	d1d2_tails.push_back({4, 0, ReadCut("d1d2-tail", "Be")});
+	d1d2_tails.push_back({2, 0, ReadCut("t0-d1d2-tail-He")});
+	d1d2_tails.push_back({3, 0, ReadCut("t0-d1d2-tail-Li")});
+	d1d2_tails.push_back({4, 0, ReadCut("t0-d1d2-tail-Be")});
 
 	// statistics
 	long long particle_num[8];

@@ -16,7 +16,9 @@ void PrintUsage(const char *name) {
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -t tag            Set trigger tag.\n"
-		"  -c                Use calibrated energy.\n";
+		"  -c                Use calibrated energy.\n"
+		"  -o                Show hole area pid.\n"
+		"  -d                Use double event.\n";
 }
 
 /// @brief parse arguments
@@ -25,6 +27,8 @@ void PrintUsage(const char *name) {
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
 /// @param[out] calibration use calibration energy
+/// @param[out] hole show hole area
+/// @param[out] two use double events
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -34,12 +38,16 @@ int ParseArguments(
 	char **argv,
 	bool &help,
 	std::string &trigger_tag,
-	bool &calibration
+	bool &calibration,
+	bool &hole,
+	bool &two
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
 	calibration = false;
+	hole = false;
+	two = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -60,6 +68,11 @@ int ParseArguments(
 		} else if (argv[result][1] == 'c') {
 			// option of calibration tag
 			calibration = true;
+		} else if (argv[result][1] == 'o') {
+			// option of hole
+			hole = true;
+		} else if (argv[result][1] == 'd') {
+			two = true;
 		} else {
 			return -result;
 		}
@@ -78,8 +91,14 @@ int main(int argc, char **argv) {
 	std::string tag;
 	// calibration option
 	bool calibration = false;
+	// hole option
+	bool hole = false;
+	// double option
+	bool two = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag, calibration);
+	int pos_start = ParseArguments(
+		argc, argv, help, tag, calibration, hole, two
+	);
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
@@ -137,10 +156,11 @@ int main(int argc, char **argv) {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%st0-pid-%s%04u-%04u.root",
+		"%s%st0-pid-%s%s%04u-%04u.root",
 		kGenerateDataPath,
 		kShowDir,
 		tag.empty() ? "" : (tag+"-").c_str(),
+		hole ? "hole-" : "",
 		run,
 		end_run
 	);
@@ -249,12 +269,9 @@ int main(int argc, char **argv) {
 		// get event
 		chain.GetEntry(entry);
 
-		if (t0_event.num != 2) continue;
-		for (int i = 0; i < 1; ++i) {
-			// // select position
-			// if (t0_event.x[i][1] < -9 || t0_event.x[i][1] > -3) continue;
-			// if (t0_event.y[i][1] < -2 || t0_event.y[i][1] > 7) continue;
-			// if (t0_event.x[0][1] > -15 && t0_event.x[0][1] < -3 && t0_event.y[0][1] > -4 && t0_event.y[0][1] < 11) continue;
+		if (two && t0_event.num != 2) continue;
+		for (int i = 0; i < t0_event.num; ++i) {
+			if (hole && !t0_event.hole[i]) continue;
 			if (t0_event.flag[i] == 0x3) {
 				d1d2_pid.Fill(
 					t0_event.energy[i][1], t0_event.energy[i][0]

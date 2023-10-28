@@ -28,9 +28,11 @@ public:
 	unsigned short flag[4];
 	double energy[4][4];
 	double time[4][4];
-	double radius[4][4];
-	double theta[4][4];
-	double phi[4][4];
+	double radius[4];
+	double theta[4];
+	double phi[4];
+	unsigned short front_strip[4];
+	unsigned short back_strip[4];
 };
 
 

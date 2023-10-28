@@ -218,6 +218,8 @@ public:
 	double phi[4];
 	double energy[4];
 	double time[4];
+	unsigned short front_strip[4];
+	unsigned short back_strip[4];
 	long long decode_entry[4];
 };
 

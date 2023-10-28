@@ -146,7 +146,7 @@ int main() {
 		// input file
 		TFile channel_file(channel_file_name, "read");
 		// input tree
-		TTree *ipt = (TTree*)channel_file.Get("ftree");
+		TTree *ipt = (TTree*)channel_file.Get("tree");
 		if (!ipt) {
 			std::cerr << "Error: Get tree from "
 				<< channel_file_name << " failed.\n";
@@ -319,9 +319,9 @@ int main() {
 			d3_x[1] = t0.x[he4_indexes[i]][2];
 			d3_y[1] = t0.y[he4_indexes[i]][2];
 			ROOT::Math::Polar3DVector recoil_position(
-				taf[taf_indexes[i]].radius[0][0],
-				taf[taf_indexes[i]].theta[0][0],
-				taf[taf_indexes[i]].phi[0][0]
+				taf[taf_indexes[i]].radius[0],
+				taf[taf_indexes[i]].theta[0],
+				taf[taf_indexes[i]].phi[0]
 			);
 			rx = recoil_position.X();
 			ry = recoil_position.Y();

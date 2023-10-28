@@ -62,13 +62,14 @@ protected:
 
 
 	/// @brief write CsI calibrate parameters to file
+	/// @param[in] version version information
 	/// @returns 0 if success, -1 otherwise
 	///
-	int WriteCsiCalibrateParameters();
+	int WriteCsiCalibrateParameters(const char *version);
 
 private:
 	unsigned int index_;
-	double csi_calibrate_params_[4][4][3];
+	double csi_calibrate_params_[32][3];
 };
 
 }		// namespace ribll

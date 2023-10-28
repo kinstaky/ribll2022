@@ -167,6 +167,16 @@ int main(int argc, char **argv) {
 		"pidgb", "TAFD-CsI(Tl)-B #DeltaE-E pid #theta>0.8",
 		3000, 0, 30000, 2000, 0, 20.0
 	);
+	// 2D dE-E PID histogram of CsI A with thick correctness
+	TH2F pid_a_thick(
+		"pidat", "TAFD-CsI(Tl)-A #DeltaE-E pid thick correctness",
+		3000, 0, 30000, 2000, 0, 20.0
+	);
+	// 2D dE-E PID histogram of CsI B with thick correctness
+	TH2F pid_b_thick(
+		"pidbt", "TAFD-CsI(Tl)-B #DeltaE-E pid thick correctness",
+		3000, 0, 30000, 2000, 0, 20.0
+	);
 
 	// total number of entries
 	long long entries = chain.GetEntries();
@@ -187,23 +197,27 @@ int main(int argc, char **argv) {
 		if (ta_event.num != 1) continue;
 		double &de = ta_event.energy[0][0];
 		double &e = ta_event.energy[0][1];
+		// delta energy after thick correct
+		double cde = de * cos(ta_event.theta[0]);
 		if (ta_event.flag[0] == 0x3) {
 			total_pid.Fill(e, de);
-			if (ta_event.theta[0][0] < 0.8) {
+			if (ta_event.theta[0] < 0.8) {
 				pid_l8.Fill(e, de);
 				pid_l8_a.Fill(e, de);
 			} else {
 				pid_g8.Fill(e, de);
 				pid_g8_a.Fill(e, de);
 			}
+			pid_a_thick.Fill(e+(de-cde)*150.0, cde);
 		} else if (ta_event.flag[0] == 0x5) {
-			if (ta_event.theta[0][0] < 0.8) {
+			if (ta_event.theta[0] < 0.8) {
 				pid_l8.Fill(e, de);
 				pid_l8_b.Fill(e, de);
 			} else {
 				pid_g8.Fill(e, de);
 				pid_g8_b.Fill(e, de);
 			}
+			pid_b_thick.Fill(e+(de-cde)*150.0, cde);
 		}
 	}
 	// show finish
@@ -217,6 +231,8 @@ int main(int argc, char **argv) {
 	pid_g8_a.Write();
 	pid_l8_b.Write();
 	pid_g8_b.Write();
+	pid_a_thick.Write();
+	pid_b_thick.Write();
 	// close files
 	opf.Close();
 	return 0;

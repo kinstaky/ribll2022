@@ -586,7 +586,14 @@ int Calibrate() {
 double PositionXFromXIA(unsigned int run, double time, int index) {
 	double result = 0.0;
 	double offset[3];
-	if (run < 618) {
+	if (run <= 431) {
+		offset[0] = 9.9;
+		offset[1] = 9.3;
+		offset[2] = -1.6;
+		if (run == 422 || run == 423 || run == 427 || run == 431) {
+			offset[0] -= 10.0;
+		}
+	} else if (run < 618) {
 		offset[0] = -2.1;
 		offset[1] = -2.7;
 		offset[2] = -3.9;
@@ -627,7 +634,11 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		}
 	}
 	// // double correct[3] = {1.87, -0.97, -2.52};
-	// double correct[3] = {0.0, -2.23, -3.40};
+	double correct[3] = {0.0, -2.23, -3.40};
+	if (run <= 452) {
+		correct[1] = -2.26;
+		correct[2] = -3.41;
+	}
 	// if (run >= 675 && run <= 716) {
 	// 	correct[1] = -2.18;
 	// 	correct[2] = -3.44;
@@ -636,8 +647,8 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 	// 	correct[0] += -0.03;
 	// 	correct[1] += 0.045;
 	// }
-	// result = (time - offset[index]) / 4.0 + correct[index];
-	result = (time - offset[index]) / 4.0;
+	result = (time - offset[index]) / 4.0 + correct[index];
+	// result = (time - offset[index]) / 4.0;
 	// return round(result);
 	return result;
 }
@@ -646,7 +657,11 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	double result = 0.0;
 	double offset[3];
-	if (run < 618) {
+	if (run <= 431) {
+		offset[0] = -2.7;
+		offset[1] = 5.9;
+		offset[2] = 1.1;
+	} else if (run < 618) {
 		offset[0] = -8.7;
 		offset[1] = 1.9;
 		offset[2] = -2.9;
@@ -660,7 +675,11 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		offset[2] = 3.1;
 	}
 	// // double correct[3] = {-0.85, 0.25, 1.42};
-	// double correct[3] = {0.0, 0.84, 1.78};
+	double correct[3] = {0.0, 0.84, 1.78};
+	if (run <= 452) {
+		correct[1] = 0.95;
+		correct[2] = 1.89;
+	}
 	// if (run >= 675 && run <= 716) {
 	// 	correct[1] = 0.95;
 	// 	correct[2] = 1.84;
@@ -672,8 +691,8 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	// 	correct[1] += 0.11;
 	// 	correct[2] += 0.08;
 	// }
-	// result = (time - offset[index]) / -4.0 + correct[index];
-	result = (time - offset[index]) / -4.0;
+	result = (time - offset[index]) / -4.0 + correct[index];
+	// result = (time - offset[index]) / -4.0;
 	// return round(result);
 	return result;
 }

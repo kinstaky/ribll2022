@@ -100,14 +100,10 @@ public:
 protected:
 
 	/// @brief read cut from file
-	/// @param[in] prefix prefix of the cut
-	/// @param[in] particle particle type
+	/// @param[in] name cut name
 	/// @returns pointer to the cut if success, nullptr otherwise
 	///
-	std::unique_ptr<TCutG> ReadCut(
-		const char *prefix,
-		const char *particle
-	) const;
+	std::unique_ptr<TCutG> ReadCut(const char *name) const;
 
 
 	/// @brief read calibrate parameters from file

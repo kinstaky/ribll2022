@@ -54,19 +54,14 @@ int Telescope::Rebuild() {
 }
 
 
-std::unique_ptr<TCutG> Telescope::ReadCut(
-	const char *prefix,
-	const char *particle
-) const {
+std::unique_ptr<TCutG> Telescope::ReadCut(const char *name) const {
 	// cut file name
 	TString cut_file_name;
 	cut_file_name.Form(
-		"%s%scut/%s-%s-wk-b0-%s.txt",
+		"%s%scut/%s.txt",
 		kGenerateDataPath,
 		kParticleIdentifyDir,
-		name_.c_str(),
-		prefix,
-		particle
+		name
 	);
 	// open cut file to read points
 	std::ifstream fin(cut_file_name.Data());

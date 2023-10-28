@@ -21,7 +21,7 @@ Adssd::Adssd(
 }
 
 
-ROOT::Math::Polar3DVector Adssd::CalculatePosition(
+ROOT::Math::XYZVector Adssd::CalculatePosition(
 	unsigned short front_strip,
 	unsigned short back_strip
 ) const {
@@ -29,7 +29,11 @@ ROOT::Math::Polar3DVector Adssd::CalculatePosition(
 	radius  = radius * (front_strip + 0.5) + radius_range_.first;
 	double phi = (phi_range_.second - phi_range_.first) / BackStrip();
 	phi = phi * (back_strip + 0.5) + phi_range_.first;
-	ROOT::Math::Polar3DVector result(radius, 90.0*TMath::DegToRad(), phi);
+	ROOT::Math::XYZVector result(
+		radius * cos(phi),
+		radius * sin(phi),
+		0.0
+	);
 	result += center_;
 	return result;
 }
@@ -131,15 +135,20 @@ int Adssd::Merge(double) {
 		// initialize
 		merge_event.hit = 0;
 
-		if (fhit == 1 && bhit == 1) {
+		if (
+			(fhit == 1 && bhit == 1)
+			|| (fhit == 2 && bhit == 1)
+			|| (fhit == 1 && bhit == 2)
+		) {
 			fe[0] = cali_params[fs[0]][0] + cali_params[fs[0]][1] * fe[0];
 			merge_event.energy[0] = fe[0];
 			merge_event.time[0] = fundamental_event.front_time[0];
+			merge_event.front_strip[0] = fundamental_event.front_strip[0];
+			merge_event.back_strip[0] = fundamental_event.back_strip[0];
 			auto position = CalculatePosition(fs[0], bs[0]);
 			merge_event.radius[0] = position.R();
 			merge_event.phi[0] = position.Phi();
 			merge_event.theta[0] = position.Theta();
-			// merge_event.theta[0] = fs[0];
 			merge_event.decode_entry[0] =
 				fundamental_event.front_decode_entry[0];
 			merge_event.hit = 1;

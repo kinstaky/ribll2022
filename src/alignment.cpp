@@ -596,13 +596,6 @@ int Alignment::AlignGdc() {
 	// total entries
 	long long entries = first_tree->GetEntries();
 
-	// time offset, get from show_gdc_offset
-	// long long offset = run_;
-	// if (run_ <= 498) offset += 116;
-	// else if (run_ <= 500) offset += 117;
-	// else if (run_ <= 507) offset += 118;
-	// else if (run_ <= 512) offset += 119;
-	// else offset += 168;
 	long long offset = GetGdcOffset(run_);
 	if (offset < 0) {
 		std::cerr << "Error: Searching gdc 1 offset failed.\n";
@@ -644,7 +637,7 @@ int Alignment::AlignGdc() {
 	second_tree->SetBranchAddress("gmulti", gmulti);
 	second_tree->SetBranchAddress("gdc", gdc);
 
-	// second loop to read from first input file (this run)
+	// second loop to read from second input file (next run)
 	for (long long entry = 0; entry < offset; ++entry) {
 		second_tree->GetEntry(entry);
 		for (int i = 0; i < 128; ++i) {

@@ -47,8 +47,8 @@ double SimpleFit(const double *x, const double *y, double &k, double &b) {
 void FitAndFill(
 	const double *x,
 	const double *y,
-	const double,
-	const double,
+	const double x0,
+	const double y0,
 	TH1F *h
 ) {
 	// // fix T0D1 and fit 3 PPAC points
@@ -67,11 +67,11 @@ void FitAndFill(
 	// }
 
 	// fit 3 PPAC points and calculate T0D1 offset
-	double k, b;
-	SimpleFit(x, y, k, b);
-	h[0].Fill(y[0] - b - k * x[0]);
-	h[1].Fill(y[1] - b - k * x[1]);
-	h[2].Fill(y[2] - b - k * x[2]);
+	// double k, b;
+	// SimpleFit(x, y, k, b);
+	// h[0].Fill(y[0] - b - k * x[0]);
+	// h[1].Fill(y[1] - b - k * x[1]);
+	// h[2].Fill(y[2] - b - k * x[2]);
 
 
 	// // fit 3 PPAC points and calculate T0D1 offset
@@ -81,10 +81,10 @@ void FitAndFill(
 
 	// fix first PPAC and T0D1 points and calculate offset of other two PPACs
 	// hjx's method
-	// double k = (y0 - y[0]) / (x0 - x[0]);
-	// double b = y0 - k * x0;
-	// h[0].Fill(y[1] - b - k * x[1]);
-	// h[1].Fill(y[2] - b - k * x[2]);
+	double k = (y0 - y[0]) / (x0 - x[0]);
+	double b = y0 - k * x0;
+	h[0].Fill(y[1] - b - k * x[1]);
+	h[1].Fill(y[2] - b - k * x[2]);
 }
 
 
@@ -250,7 +250,7 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 	CenterStatistics statistics(run, "xppac", tag);
 
 	// fit offset
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < 2; ++i) {
 		TF1 fx(TString::Format("fx%d", i), "gaus", -5, 5);
 		fx.SetParameter(0, 20);
 		fx.SetParameter(1, 0.0);

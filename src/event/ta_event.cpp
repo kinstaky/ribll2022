@@ -13,6 +13,8 @@ void TaEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"radius").c_str(), radius);
 	tree->SetBranchAddress((prefix+"theta").c_str(), theta);
 	tree->SetBranchAddress((prefix+"phi").c_str(), phi);
+	tree->SetBranchAddress((prefix+"front_strip").c_str(), front_strip);
+	tree->SetBranchAddress((prefix+"back_strip").c_str(), back_strip);
 }
 
 
@@ -21,9 +23,11 @@ void TaEvent::SetupOutput(TTree *tree) {
 	tree->Branch("flag", flag, "f[num]/s");
 	tree->Branch("energy", energy, "e[num][4]/D");
 	tree->Branch("time", time, "t[num][4]/D");
-	tree->Branch("radius", radius, "r[num][4]/D");
-	tree->Branch("theta", theta, "theta[num][4]/D");
-	tree->Branch("phi", phi, "phi[num][4]/D");
+	tree->Branch("radius", radius, "r[num]/D");
+	tree->Branch("theta", theta, "theta[num]/D");
+	tree->Branch("phi", phi, "phi[num]/D");
+	tree->Branch("front_strip", front_strip, "fs[num]/s");
+	tree->Branch("back_strip", back_strip, "bs[num]/s");
 }
 
 }

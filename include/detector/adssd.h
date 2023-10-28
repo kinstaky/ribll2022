@@ -82,13 +82,13 @@ protected:
 	/// @param[in] back_strip back strip
 	/// @returns vector class point to position
 	///
-	ROOT::Math::Polar3DVector CalculatePosition(
+	ROOT::Math::XYZVector CalculatePosition(
 		unsigned short front_strip,
 		unsigned short back_strip
 	) const;
 
 
-	ROOT::Math::Polar3DVector center_;
+	ROOT::Math::XYZVector center_;
 	std::pair<double, double> radius_range_;
 	std::pair<double, double> phi_range_;
 };
