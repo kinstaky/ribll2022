@@ -14,6 +14,13 @@
 
 using namespace ribll;
 
+// parameters control the affect
+constexpr bool t0_strips_affect = true;
+constexpr bool taf_strips_affect = true;
+constexpr bool ppac_strips_affect = true;
+constexpr bool t0_energy_affect = true;
+constexpr bool taf_energy_affect = true;
+
 constexpr double pi = 3.1415926;
 constexpr double u = 931.494;
 constexpr double c14_mass = 13.9999505089 * u;
@@ -217,8 +224,10 @@ int main() {
 		detect.tafz = event.rz;
 		detect.tafx = detect.tafr * cos(taf_phi);
 		detect.tafy = detect.tafr * sin(taf_phi);
-		// tafx = event.rx;
-		// tafy = event.ry;
+		if (!taf_strips_affect) {
+			detect.tafx = event.rx;
+			detect.tafy = event.ry;
+		}
 
 		// T0 position
 		for (size_t i = 0; i < 2; ++i) {
@@ -227,8 +236,10 @@ int main() {
 			detect.t0x[i][0] = double(t0d1_x_strip) - 31.5;
 			int t0d1_y_strip = int(event.fragment_y[i] + 32.0);
 			detect.t0y[i][0] = double(t0d1_y_strip) - 31.5;
-			// t0x[i] = event.fragment_x[i];
-			// t0y[i] = event.fragment_y[i];
+			if (!t0_strips_affect) {
+				detect.t0x[i][0] = event.fragment_x[i];
+				detect.t0y[i][0] = event.fragment_y[i];
+			}
 			detect.t0z[i][0] = event.fragment_z[i];
 			detect.t0r[i][0] = sqrt(
 				pow(detect.t0x[i][0], 2.0) + pow(detect.t0y[i][0], 2.0)
@@ -268,8 +279,10 @@ int main() {
 		double kx, ky;
 		SimpleFit(ppac_xz, detect.ppacx, kx, detect.tx);
 		SimpleFit(ppac_yz, detect.ppacy, ky, detect.ty);
-		// tx = event.target_x;
-		// ty = event.target_y;
+		if (!ppac_strips_affect) {
+			detect.tx = event.target_x;
+			detect.ty = event.target_y;
+		}
 
 		// check valid
 		detect.valid = 0;
@@ -297,15 +310,23 @@ int main() {
 		}
 
 		// rebuild kinematic energy
-		double taf_kinematic = detect.taf_energy[0];
-		taf_kinematic += detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
-		// double taf_kinematic = event.recoil_kinematic;
-		// double t0_kinematic[2] = {event.fragment_kinematic[0], event.fragment_kinematic[1]};
+		double taf_kinematic;
+		if (taf_energy_affect) {
+			taf_kinematic = detect.taf_energy[0];
+			taf_kinematic += detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
+		} else {
+			taf_kinematic = event.recoil_kinematic;
+		}
 		double t0_kinematic[2] = {0.0, 0.0};
-		for (size_t i = 0; i < 2; ++i) {
-			for (int j = 0; j < detect.t0_layer[i]+1; ++j) {
-				t0_kinematic[i] += detect.t0_energy[i][j];
+		if (t0_energy_affect) {
+			for (size_t i = 0; i < 2; ++i) {
+				for (int j = 0; j < detect.t0_layer[i]+1; ++j) {
+					t0_kinematic[i] += detect.t0_energy[i][j];
+				}
 			}
+		} else {
+			t0_kinematic[0] = event.fragment_kinematic[0];
+			t0_kinematic[1] = event.fragment_kinematic[1];
 		}
 
 		// rebuild Q value spectrum

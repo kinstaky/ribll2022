@@ -466,12 +466,14 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 	TFile opf(output_file_name, "recreate");
 	// output calibration graphs, the first index is for CsI index
 	// the second index is for ADSSD strip
-	TGraph gcali[2][16];
+	TGraph gpcali[2][16];
+	TGraph gdcali[2][16];
 	// pid graph with calculated CsI energy for checking
 	TH2F pid("pid", "#DeltaE-E", 1000, 0, 200, 1000, 0, 15);
 
 	// CsI energy calculator
-	elc::CsiEnergyCalculator csi_calculator("2H");
+	elc::CsiEnergyCalculator h1_csi_calculator("1H");
+	elc::CsiEnergyCalculator h2_csi_calculator("2H");
 
 	// total number of entries
 	long long entries = ipt.GetEntries();
@@ -490,54 +492,74 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 		ipt.GetEntry(entry);
 		if (ta_event.num != 1) continue;
 		if (ta_event.flag[0] != 0x3 && ta_event.flag[0] != 0x5) continue;
-		// select only 2H
-		if (type_event.mass[0] !=2 || type_event.charge[0] != 1) continue;
+		// select only 1H and 2H
+		if (
+			(type_event.mass[0] != 1 && type_event.mass[0] != 2)
+			|| type_event.charge[0] != 1
+		) continue;
 
 		// calculate the first index in graph array case by phi angle
 		size_t csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
 		// CsI channel number
 		double csi_channel = ta_event.energy[0][1];
-		// calculated csi energy,
-		// the trick using mass number - 1 as index is used
-		double csi_energy = csi_calculator.Energy(
-			ta_event.theta[0], ta_event.energy[0][0], tafd_thick[index_]
-		);
-		gcali[csi_index][ta_event.front_strip[0]].AddPoint(
-			csi_energy, csi_channel
-		);
+		// CsI energy
+		double csi_energy;
+		if (type_event.mass[0] == 1) {
+			// calculated csi energy, 1H
+			csi_energy = h1_csi_calculator.Energy(
+				ta_event.theta[0], ta_event.energy[0][0], tafd_thick[index_]
+			);
+			gpcali[csi_index][ta_event.front_strip[0]].AddPoint(
+				csi_energy, csi_channel
+			);
+		} else {
+			// calculated csi energy, 2H
+			csi_energy = h2_csi_calculator.Energy(
+				ta_event.theta[0], ta_event.energy[0][0], tafd_thick[index_]
+			);
+			gdcali[csi_index][ta_event.front_strip[0]].AddPoint(
+				csi_energy, csi_channel
+			);
+		}
 		pid.Fill(csi_energy, ta_event.energy[0][0]);
-
-		// // fill the appropriate graph, the first index is chosen by phi
-		// // the second index is chosen ny theta and charge number
-		// // 25000 offset in channel to disinguish different isotopes
-		// // charge[0]-1 is the isotope, 0 for H, 1 for He
-		// // i - isotope_index[charge[0]-1] is offset in isotope, this
-		// // disinguishes between isotopes
-		// gcali[csi_index][theta_index][charge[0]-1]->AddPoint(
-		// 	csi_energy + 200 * (i - isotope_index[charge[0]-1]),
-		// 	csi_channel
-		// );
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	// fitting
+	// fitting 1H
 	for (size_t i = 0; i < 2; ++i) {
 		for (size_t j = 0; j < 16; ++j) {
-			// // fit 1H (p)
-			// TF1 fitp (
-			// 	TString::Format("fp%c8%c", "lg"[j], "ab"[i]),
-			// 	HFit, 0, 600, 3
-			// );
-			// // set initial values
-			// fitp.SetParameter(0, 200.0);
-			// fitp.SetParameter(1, 0.9);
-			// fitp.FixParameter(2, 0.0);
-			// // fit
-			// gcali[i][j][0].Fit(&fitp, "QR+");
-			// // record parameters
-			// fitp.GetParameters(csi_calibrate_params_[i*2+j][0]);
+			// fit 1H (p)
+			TF1 fitp (
+				TString::Format("fps%ld%c", j, "ab"[i]),
+				HFit, 0, 45, 3
+			);
+			// set initial values
+			fitp.SetParameter(0, 200.0);
+			fitp.SetParameter(1, 0.9);
+			fitp.SetParameter(2, 0.0);
+			// fit
+			gpcali[i][j].Fit(&fitp, "QR+");
+			// record parameters
+			fitp.GetParameters(csi_calibrate_params_[i*16+j]);
 
+			// print result
+			std::cout << "AB"[i] << j << " "
+				<< "1H " << fitp.GetParameter(0) << ", "
+				<< fitp.GetParameter(1) << ", "
+				<< fitp.GetParameter(2) << "\n";
+		}
+	}
+
+	// save parameters
+	if (WriteCsiCalibrateParameters("1H")) {
+		std::cerr << "Error: Write CsI calibrate parameters failed.\n";
+	}
+
+
+	// fitting 2H
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < 16; ++j) {
 			// fit 2H (d)
 			TF1 fitd (
 				TString::Format("fds%ld%c", j, "ab"[i]),
@@ -548,9 +570,23 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 			fitd.SetParameter(1, 0.9);
 			fitd.SetParameter(2, 0.0);
 			// fit
-			gcali[i][j].Fit(&fitd, "QR+");
+			gdcali[i][j].Fit(&fitd, "QR+");
 			// record parameters
 			fitd.GetParameters(csi_calibrate_params_[i*16+j]);
+
+			// print result
+			std::cout << "AB"[i] << j << " "
+				<< "2H " << fitd.GetParameter(0) << ", "
+				<< fitd.GetParameter(1) << ", "
+				<< fitd.GetParameter(2) << "\n";
+		}
+	}
+
+	// save parameters
+	if (WriteCsiCalibrateParameters("2H")) {
+		std::cerr << "Error: Write CsI calibrate parameters failed.\n";
+	}
+
 
 			// // fit 3H (t)
 			// TF1 fitt (
@@ -581,33 +617,36 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 			// fita.GetParameters(csi_calibrate_params_[i*2+j][3]);
 
 			// print result
-			std::cout << "AB"[i] << j << " "
+			// std::cout << "AB"[i] << j << " "
 				// << "1H " << fitp.GetParameter(0) << ", "
 				// << fitp.GetParameter(1) << ", "
 				// << fitp.GetParameter(2) << "\n"
-				<< "2H " << fitd.GetParameter(0) << ", "
-				<< fitd.GetParameter(1) << ", "
-				<< fitd.GetParameter(2) << "\n";
+				// << "2H " << fitd.GetParameter(0) << ", "
+				// << fitd.GetParameter(1) << ", "
+				// << fitd.GetParameter(2) << "\n";
 				// << "3H " << fitt.GetParameter(0) << ", "
 				// << fitt.GetParameter(1) << ", "
 				// << fitt.GetParameter(2) << "\n"
 				// << "4He " << fita.GetParameter(0) << ", "
 				// << fita.GetParameter(1) << ", "
 				// << fita.GetParameter(2) << "\n";
-		}
-	}
+	// 	}
+	// }
 
-	// save parameters
-	if (WriteCsiCalibrateParameters("2H")) {
-		std::cerr << "Error: Write CsI calibrate parameters failed.\n";
-	}
 
 	opf.cd();
 	// save graphs
 	for (size_t i = 0; i < 2; ++i) {
 		for (size_t j = 0; j < 16; ++j) {
-			gcali[i][j].Write(TString::Format(
-				"gs%ld%c", j, "ab"[i]
+			gpcali[i][j].Write(TString::Format(
+				"gps%ld%c", j, "ab"[i]
+			));
+		}
+	}
+	for (size_t i = 0; i < 2; ++i) {
+		for (size_t j = 0; j < 16; ++j) {
+			gdcali[i][j].Write(TString::Format(
+				"gds%ld%c", j, "ab"[i]
 			));
 		}
 	}
@@ -653,10 +692,11 @@ int Taf::WriteCsiCalibrateParameters(const char *version) {
 	// calibrate parameters file name
 	TString file_name;
 	file_name.Form(
-		"%s%staf%ucsi-cali-param.txt",
+		"%s%staf%ucsi-cali-param-%s-strips.txt",
 		kGenerateDataPath,
 		kCalibrationDir,
-		index_
+		index_,
+		version
 	);
 	// file output stream
 	std::ofstream fout(file_name.Data());
@@ -791,18 +831,14 @@ int Taf::Rebuild() {
 	TTree opt("tree", "taf particles");
 	// output particle event
 	ParticleEvent particle_event;
+	int csi_index;
 	// setup output branches
 	particle_event.SetupOutput(&opt);
+	opt.Branch("csi_index", &csi_index, "ci/I");
 
 	// read CsI calibrate parameters
 	if (ReadCsiCalibrateParameters()) {
 		return -1;
-	}
-
-	for (int i = 0; i < 32; ++i) {
-		std::cout << i << " " << csi_calibrate_params_[i][0]
-			<< " " << csi_calibrate_params_[i][1]
-			<< " " << csi_calibrate_params_[i][2] << "\n";
 	}
 
 	// totla number of entries
@@ -838,12 +874,12 @@ int Taf::Rebuild() {
 			// TAFD energy
 			double si_energy = ta_event.energy[0][0];
 			// calculate the first index of CsI calibration paramters
-			size_t csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
+			csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
 			// calculate CsI energy from calibrate parameters
 			double csi_energy = CalibrateCsiEnergy(
 				ta_event.energy[0][1],
 				csi_calibrate_params_[csi_index*16 + ta_event.front_strip[0]],
-				1
+				type_event.mass[0]-1
 			);
 			// calculate the total energy
 			particle_event.energy[0] = si_energy + csi_energy;

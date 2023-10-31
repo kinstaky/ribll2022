@@ -33,6 +33,7 @@ int main() {
 	// energy
 	double tafd_energy;
 	// double csi_energy;
+	double t0_energy[2];
 	// double d1_energy[2];
 	// double d2_energy[2];
 	// double d3_energy[2];
@@ -89,6 +90,7 @@ int main() {
 	// energy
 	opt.Branch("tafd_energy", &tafd_energy, "tafde/D");
 	// opt.Branch("csi_energy", &csi_energy, "csie/D");
+	opt.Branch("t0_energy", t0_energy, "t0e[2]/D");
 	// opt.Branch("d1_energy", d1_energy, "d1e[2]/D");
 	// opt.Branch("d2_energy", d2_energy, "d2e[2]/D");
 	// opt.Branch("d3_energy", d3_energy, "d3e[2]/D");
@@ -164,6 +166,7 @@ int main() {
 		std::vector<int> taf_indexes;
 		std::vector<int> be10_indexes;
 		std::vector<int> he4_indexes;
+		std::vector<double> t0_energies[2];
 		std::vector<double> q_values;
 
 		// loop to record information in channel
@@ -173,6 +176,8 @@ int main() {
 			taf_indexes.push_back(channel.taf_index);
 			be10_indexes.push_back(t0_index[0]);
 			he4_indexes.push_back(t0_index[1]);
+			t0_energies[0].push_back(channel.daughter_energy[0]);
+			t0_energies[1].push_back(channel.daughter_energy[1]);
 			double q = channel.daughter_energy[0] + channel.daughter_energy[1]
 				+ channel.recoil_energy - channel.parent_energy;
 			q_values.push_back(q);
@@ -286,6 +291,8 @@ int main() {
 			t0_tree->GetEntry(valid_entries[i]);
 			// energy
 			tafd_energy = taf[taf_indexes[i]].energy[0][0];
+			t0_energy[0] = t0_energies[0][i];
+			t0_energy[1] = t0_energies[1][i];
 			if (taf[taf_indexes[i]].flag[0] == 0x3) {
 				csi_index = taf_indexes[i]*2;
 			} else if (taf[taf_indexes[i]].flag[0] == 0x5) {

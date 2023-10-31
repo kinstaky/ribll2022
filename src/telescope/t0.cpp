@@ -1250,8 +1250,10 @@ int T0::Rebuild() {
 	TTree opt("tree", "t0 particles");
 	// output particle event
 	ParticleEvent particle_event;
+	bool hole[8];
 	// setup output branches
 	particle_event.SetupOutput(&opt);
+	opt.Branch("hole", hole, "hole[num]/O");
 
 	// read calibrate parameters
 	if (ReadCalibrateParameters() && ReadCalibrateParameters(9999)) {
@@ -1312,6 +1314,7 @@ int T0::Rebuild() {
 			// other information
 			particle_event.status[particle_event.num] = t0_event.status[i];
 			particle_event.index[particle_event.num] = i;
+			hole[particle_event.num] = t0_event.hole[i];
 			++particle_event.num;
 		}
 		opt.Fill();

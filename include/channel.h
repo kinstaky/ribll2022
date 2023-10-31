@@ -59,6 +59,14 @@ public:
 };
 
 
+class C14ToBe10He4H1ThreeBodyChannel : public Channel {
+public:
+	C14ToBe10He4H1ThreeBodyChannel(unsigned int run);
+
+	virtual int Coincide();
+};
+
+
 int MergeTaf(unsigned int run);
 
 

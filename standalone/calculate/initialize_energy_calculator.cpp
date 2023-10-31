@@ -11,9 +11,11 @@ int main() {
 		{"1H", "Si"},
 		{"1H", "Al"},
 		{"1H", "Mylar"},
+		{"1H", "CD2"},
 		{"2H", "Si"},
 		{"2H", "Al"},
 		{"2H", "Mylar"},
+		{"2H", "CD2"},
 		{"3H", "Si"},
 		{"3H", "Al"},
 		{"3H", "Mylar"},
@@ -23,18 +25,21 @@ int main() {
 		{"4He", "Si"},
 		{"4He", "Al"},
 		{"4He", "Mylar"},
+		{"4He", "CD2"},
 		{"6Li", "Si"},
 		{"7Li", "Si"},
 		{"7Be", "Si"},
 		{"9Be", "Si"},
 		{"10Be", "Si"},
+		{"10Be", "CD2"},
 		{"10B", "Si"},
 		{"11B", "Si"},
 		{"12B", "Si"},
 		{"13B", "Si"},
 		{"12C", "Si"},
 		{"13C", "Si"},
-		{"14C", "Si"}
+		{"14C", "Si"},
+		{"14C", "CD2"}
 	};
 	if (RangeEnergyCalculator::Initialize(list)) {
 		std::cerr << "Error: Initialize range-energy calculator failed.\n";

@@ -38,3 +38,14 @@ target_link_libraries(
 	csi_energy_calculator
 	PUBLIC range_energy_calculator
 )
+
+# target energy calculator library
+add_library(
+	target_energy_calculator
+	target_energy_calculator.cpp
+	${CALCULATOR_INCLUDE_DIR}/target_energy_calculator.h
+)
+target_link_libraries(
+	target_energy_calculator
+	PUBLIC range_energy_calculator
+)
