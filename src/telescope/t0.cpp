@@ -1122,13 +1122,13 @@ int T0::Calibrate(unsigned int end_run) {
 					if (de > 10'000.0 && de < 16'000.0) {
 						e_vs_de_offset.AddPoint(de+55'000.0, e);
 					}
-				} else if (
-					type_event.charge[i] == 4
-					&& type_event.mass[i] == 10
-				) {
-					if (de > 20'000.0 && de < 26'000.0) {
-						e_vs_de_offset.AddPoint(de+55'000.0, e);
-					}
+				// } else if (
+				// 	type_event.charge[i] == 4
+				// 	&& type_event.mass[i] == 10
+				// ) {
+				// 	if (de > 20'000.0 && de < 26'000.0) {
+				// 		e_vs_de_offset.AddPoint(de+55'000.0, e);
+				// 	}
 				}
 			} else if (type_event.layer[i] == 3) {
 				double de = t0_event.energy[i][2];
@@ -1194,6 +1194,111 @@ int T0::Calibrate(unsigned int end_run) {
 	calibration_file.Close();
 
 	return 0;
+}
+
+
+
+int T0::ReadCalibrateParameters(unsigned int end_run) {
+	// parameters file name
+	TString file_name;
+	if (end_run == 9999) {
+		file_name.Form(
+			"%s%s%s-calibration-param.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str()
+		);
+	} else if (end_run == run_) {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_
+		);
+	} else {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_,
+			end_run
+		);
+	}
+	// parameters file
+	std::ifstream fin(file_name.Data());
+	// check file
+	if (!fin.good()) {
+		std::cerr << "Error: Read calibrate parameters from "
+			<< file_name << " failed.\n";
+		return -1;
+	}
+	// read parameters
+	for (size_t i = 0; i < Layers(); ++i) {
+		fin >> cali_params_[i*2] >> cali_params_[i*2+1];
+	}
+	// close file
+	fin.close();
+	return 0;
+}
+
+
+int T0::WriteCalibrateParameters(unsigned int end_run) const {
+	// parameters file name
+	TString file_name;
+	if (end_run == 9999) {
+		file_name.Form(
+			"%s%s%s-calibration-param.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str()
+		);
+	} else if (end_run == run_) {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_
+		);
+	} else {
+		file_name.Form(
+			"%s%s%s-calibration-param-%04u-%04u.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			name_.c_str(),
+			run_,
+			end_run
+		);
+	}
+	// parameters file
+	std::ofstream fout(file_name.Data());
+	// check file
+	if (!fout.good()) {
+		std::cerr << "Error: Open calibrate file "
+			<< file_name << " failed.\n";
+		return -1;
+	}
+	// write parameters
+	for (size_t i = 0; i < Layers(); ++i) {
+		fout << cali_params_[i*2] << " " << cali_params_[i*2+1] << "\n";
+	}
+	// close file
+	fout.close();
+	return 0;
+}
+
+
+void T0::CalibrateResult(T0Event &t0) {
+	for (int i = 0; i < t0.num; ++i) {
+		for (int j = 0; j < 3; ++j) {
+			t0.energy[i][j] = CaliEnergy(j, t0.energy[i][j]);
+		}
+	}
+	for (int i = 0; i < 3; ++i) {
+		t0.ssd_energy[i] = CaliEnergy(i+3, t0.ssd_energy[i]);
+	}
 }
 
 
@@ -1520,10 +1625,6 @@ int T0::ShowCalibration() {
 	return 0;
 }
 
-
-int T0::CalibrateResult() {
-	return 0;
-}
 
 constexpr double comb_energy_threshold = 1000;
 constexpr double single_comb_time_threshold = 200;

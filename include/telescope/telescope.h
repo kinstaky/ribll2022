@@ -105,27 +105,12 @@ protected:
 	///
 	std::unique_ptr<TCutG> ReadCut(const char *name) const;
 
-
-	/// @brief read calibrate parameters from file
-	/// @returns 0 if success, -1 otherwise
-	///
-	int ReadCalibrateParameters(unsigned int run = 9999);
-
-
-	/// @brief write calibrate parameters to file
-	/// @returns 0 if success, -1 otherwise
-	///
-	int WriteCalibrateParameters(unsigned int run = 9999) const;
-
-
 	// run number
 	unsigned int run_;
 	// telescope name, e.g. t0, taf0
 	std::string name_;
 	// trigger tag
 	std::string tag_;
-	// calibrate parameters
-	double cali_params_[12];
 };
 
 

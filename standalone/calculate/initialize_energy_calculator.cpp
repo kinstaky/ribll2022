@@ -26,6 +26,7 @@ int main() {
 		{"4He", "Al"},
 		{"4He", "Mylar"},
 		{"4He", "CD2"},
+		{"6He", "Si"},
 		{"6Li", "Si"},
 		{"7Li", "Si"},
 		{"7Be", "Si"},
@@ -49,8 +50,13 @@ int main() {
 	const std::vector<std::string> t0_projectiles{
 		"1H",
 		"2H",
+		"3H",
+		"3He",
 		"4He",
+		"6He",
+		"6Li",
 		"7Li",
+		"9Be",
 		"10Be",
 		"14C"
 	};

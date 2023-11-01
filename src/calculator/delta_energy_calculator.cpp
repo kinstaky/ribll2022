@@ -74,9 +74,9 @@ int DeltaEnergyCalculator::Initialize(
 ) {
 
 	for (const std::string &projectile : projectiles) {
+		std::cout << "Delta " << projectile << "\n";
 		// output file name
-		TString output_file_name;
-		output_file_name.Form(
+		TString output_file_name = TString::Format(
 			"%s%s%s-delta-%s.root",
 			kGenerateDataPath,
 			kEnergyCalculateDir,

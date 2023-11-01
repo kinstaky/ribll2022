@@ -272,6 +272,7 @@ int main(int argc, char **argv) {
 		if (two && t0_event.num != 2) continue;
 		for (int i = 0; i < t0_event.num; ++i) {
 			if (hole && !t0_event.hole[i]) continue;
+			else if (t0_event.hole[i]) continue;
 			if (t0_event.flag[i] == 0x3) {
 				d1d2_pid.Fill(
 					t0_event.energy[i][1], t0_event.energy[i][0]

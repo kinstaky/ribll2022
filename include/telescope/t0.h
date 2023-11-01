@@ -37,6 +37,24 @@ public:
 	virtual int Calibrate(unsigned int end_run) override;
 
 
+	/// @brief read calibrate parameters from file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int ReadCalibrateParameters(unsigned int run = 9999);
+
+
+	/// @brief write calibrate parameters to file
+	/// @returns 0 if success, -1 otherwise
+	///
+	int WriteCalibrateParameters(unsigned int run = 9999) const;
+
+
+	/// @brief generate calibrate result
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual void CalibrateResult(T0Event &t0_event);
+
+
 	/// @brief show calibration result
 	/// @returns 0 if success, -1 otherwise
 	///
@@ -55,12 +73,6 @@ public:
 	/// @returns 0 if success, -1 otherwise
 	///
 	virtual int Rebuild() override;
-
-
-	/// @brief generate calibrate result
-	/// @returns 0 if success, -1 otherwise
-	///
-	virtual int CalibrateResult();
 
 
 	/// @brief merge and track at the same time
@@ -95,6 +107,8 @@ private:
 		return cali_params_[layer*2] + cali_params_[layer*2+1] * energy;
 	}
 
+	// calibrate parameters
+	double cali_params_[12];
 };
 
 };

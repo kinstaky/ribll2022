@@ -77,6 +77,7 @@ int RangeEnergyCalculator::Initialize(
 	double range[256];
 
 	for (const auto &[projectile, material] : list) {
+		std::cout << "Range " << projectile << ", " << material << "\n";
 		// get projectile mass number
 		std::stringstream ss;
 		ss << projectile;
