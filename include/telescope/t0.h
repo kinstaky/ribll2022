@@ -24,6 +24,12 @@ public:
 	virtual int Track() override;
 
 
+	/// @brief track in slice mode
+	/// @returns 0 if success, -1 otherwise
+	///
+	virtual int SliceTrack();
+
+
 	/// @brief identify particle in telescope
 	/// @returns 0 if success, -1 otherwise
 	///

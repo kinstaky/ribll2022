@@ -601,7 +601,7 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		offset[0] = -0.1;
 		offset[1] = 1.3;
 		offset[2] = -9.7;
-	} else if (run < 750) {
+	} else if (run <= 716) {
 		offset[0] = 15.9;
 		offset[1] = 1.3;
 		offset[2] = 2.3;
@@ -627,28 +627,26 @@ double PositionXFromXIA(unsigned int run, double time, int index) {
 		offset[0] = 17.1;
 		offset[1] = 1.3;
 		offset[2] = 2.3;
-		if (run == 753 || run == 755) {
+		if (run ==742 || run == 743 || run == 753 || run == 755) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[1][i];
 		} else if (run == 756 || run == 758 || run == 759 || run == 760 || run == 761) {
 			for (size_t i = 0; i < 3; ++i) offset[i] -= run_correct[2][i];
 		}
 	}
 	// // double correct[3] = {1.87, -0.97, -2.52};
-	double correct[3] = {0.0, -2.23, -3.40};
-	if (run <= 452) {
-		correct[1] = -2.26;
-		correct[2] = -3.41;
-	}
-	// if (run >= 675 && run <= 716) {
-	// 	correct[1] = -2.18;
-	// 	correct[2] = -3.44;
+	// double correct[3] = {0.0, -2.23, -3.40};
+	// if (run <= 452) {
+	// 	correct[1] = -2.26;
+	// 	correct[2] = -3.41;
+	// } else if (run >= 675 && run <= 716) {
+	// 	correct[1] = -2.27 + 0.12;
+	// 	correct[2] = -3.32 - 0.12;
+	// } else if (run >= 739) {
+	// 	correct[1] = -2.23 + 0.81 - 0.23;
+	// 	correct[2] = -3.40 + 0.46 - 0.15;
 	// }
-	// if (run > 640) {
-	// 	correct[0] += -0.03;
-	// 	correct[1] += 0.045;
-	// }
-	result = (time - offset[index]) / 4.0 + correct[index];
-	// result = (time - offset[index]) / 4.0;
+	// result = (time - offset[index]) / 4.0 + correct[index];
+	result = (time - offset[index]) / 4.0;
 	// return round(result);
 	return result;
 }
@@ -669,30 +667,29 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 		offset[0] = -10.7;
 		offset[1] = 13.7;
 		offset[2] = -2.9;
-	} else {
+	} else if (run <= 716) {
 		offset[0] = -14.7;
 		offset[1] = 1.7;
 		offset[2] = 3.1;
+	} else {
+		offset[0] = -14.9;
+		offset[1] = 1.9;
+		offset[2] = 3.1;
 	}
 	// // double correct[3] = {-0.85, 0.25, 1.42};
-	double correct[3] = {0.0, 0.84, 1.78};
-	if (run <= 452) {
-		correct[1] = 0.95;
-		correct[2] = 1.89;
-	}
-	// if (run >= 675 && run <= 716) {
+	// double correct[3] = {0.0, 0.84, 1.78};
+	// if (run <= 452) {
 	// 	correct[1] = 0.95;
-	// 	correct[2] = 1.84;
+	// 	correct[2] = 1.89;
+	// } else if (run >= 675 && run <= 716) {
+	// 	correct[1] = 0.92 + 0.06;
+	// 	correct[2] = 1.92 - 0.05;
+	// } else if (run >= 739) {
+	// 	correct[1] = 0.84 - 0.03 - 0.09;
+	// 	correct[2] = 1.78 - 0.01 - 0.03;
 	// }
-	// if (run > 640 && run <= 652) {
-	// 	correct[2] -= 0.04;
-	// } else {
-	// 	correct[0] -= 0.08;
-	// 	correct[1] += 0.11;
-	// 	correct[2] += 0.08;
-	// }
-	result = (time - offset[index]) / -4.0 + correct[index];
-	// result = (time - offset[index]) / -4.0;
+	// result = (time - offset[index]) / -4.0 + correct[index];
+	result = (time - offset[index]) / -4.0;
 	// return round(result);
 	return result;
 }
@@ -858,7 +855,7 @@ int Ppac::Track() {
 		// track y
 		if (yhit == 2) {
 			yk = (y_position[1] - y_position[0])
-				/ (yz[x_index[1]] - yz[y_index[0]]);
+				/ (yz[y_index[1]] - yz[y_index[0]]);
 			yb = y_position[0] - yk * yz[y_index[0]];
 		} else if (yhit == 3) {
 			double c2ny = SimpleFit(yz, y_position, yk, yb);

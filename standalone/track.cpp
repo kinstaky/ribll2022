@@ -13,7 +13,8 @@ void PrintUsage(const char *name) {
 		"  telescope         Set telescope name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n";
+		"  -t tag            Set trigger tag.\n"
+		"  -s                Track in slice mode.\n";
 }
 
 /// @brief parse arguments
@@ -21,6 +22,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
+/// @param[out] slice slice track
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -29,11 +31,13 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag
+	std::string &trigger_tag,
+	bool &slice
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
+	slice = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -51,6 +55,8 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
+		} else if (argv[result][1] == 's') {
+			slice = true;
 		} else {
 			return -result;
 		}
@@ -68,8 +74,10 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
+	// slice flag
+	bool slice = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag);
+	int pos_start = ParseArguments(argc, argv, help, tag, slice);
 
 	// need help
 	if (help) {
@@ -111,9 +119,16 @@ int main(int argc, char **argv) {
 			std::cerr << "Error: Telescope " << name << " not found.\n";
 			return -1;
 		}
-		if (telescope->Track()) {
-			std::cerr << "Error: Track " << name << " failed.\n";
-			return -1;
+		if (slice) {
+			if (telescope->SliceTrack()) {
+				std::cerr << "Error: SliceTrack " << name << " failed.\n";
+				return -1;
+			}
+		} else {
+			if (telescope->Track()) {
+				std::cerr << "Error: Track " << name << " failed.\n";
+				return -1;
+			}
 		}
 	}
 

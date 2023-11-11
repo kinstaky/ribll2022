@@ -67,6 +67,15 @@ public:
 };
 
 
+class C14ToHe4He4He6Channel : public Channel {
+public:
+
+	C14ToHe4He4He6Channel(unsigned int run);
+
+	virtual int Coincide();
+};
+
+
 int MergeTaf(unsigned int run);
 
 

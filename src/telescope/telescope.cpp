@@ -25,6 +25,12 @@ int Telescope::Track() {
 }
 
 
+int Telescope::SliceTrack() {
+	std::cerr << "Error: Telescope::SliceTrack not implemented yet.\n";
+	return -1;
+}
+
+
 int Telescope::ParticleIdentify() {
 	std::cerr << "Error: Telescope::ParticleIdentify not implemented yet.\n";
 	return -1;

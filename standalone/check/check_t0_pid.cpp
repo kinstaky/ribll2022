@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 	s2s3_pid.Write();
 
 	std::string particles[] = {
-		"3H", "4He", "6He", "6Li", "7Li", "9Be", "10Be"
+		"3H", "3He", "4He", "6He", "6Li", "7Li", "9Be", "10Be"
 	};
 	for (const std::string &particle : particles) {
 		TFile pid_file(

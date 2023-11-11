@@ -16,6 +16,7 @@ void PrintUsage(const char *name) {
 		"                      3 -- 14C+2H->10Be+4He+2H 3body\n"
 		"                      4 -- 15C+1H->14C+2H\n"
 		"                      5 -- 14C+1H->10Be+4He+1H 3body\n"
+		"                      6 -- 14C->4He+4He+6He\n"
 		"Options:\n"
 		"  -h                Print this help information.\n";
 }
@@ -122,6 +123,9 @@ int main(int argc, char **argv) {
 	} else if (condition == 5) {
 		// 14C+1H->10Be+4He+1H 3body
 		channel = std::make_unique<C14ToBe10He4H1ThreeBodyChannel>(run);
+	} else if (condition == 6) {
+		// 14C->4He+4He+6He
+		channel = std::make_unique<C14ToHe4He4He6Channel>(run);
 	} else {
 		std::cerr << "Error: Invalid case " << condition << ".\n";
 		return -1;

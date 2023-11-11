@@ -24,9 +24,11 @@ public:
 
 
 	int num;
-	unsigned short layer[8];
+	short layer[8];
 	unsigned short flag[8];
 	unsigned short ssd_flag;
+	unsigned short charge[8];
+	unsigned short mass[8];
 	double energy[8][4];
 	double time[8][4];
 	double ssd_energy[3];

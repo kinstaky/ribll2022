@@ -18,8 +18,9 @@
 using namespace ribll;
 
 constexpr double d1z = 100.0;
-constexpr double ppac_xz[3] = {-695.2, -454.2, -275.2};
-constexpr double ppac_yz[3] = {-689.2, -448.2, -269.2};
+constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
+constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
+constexpr int change_run = 717;
 
 double SimpleFit(const double *x, const double *y, double &k, double &b) {
 	int n = 3;
@@ -219,6 +220,13 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 	// random number generator
 	TRandom3 generator(tree->GetEntries());
 
+	double using_xz[3] = {ppac_xz[0], ppac_xz[2], ppac_xz[3]};
+	double using_yz[3] = {ppac_yz[0], ppac_yz[2], ppac_yz[3]};
+	if (run >= change_run) {
+		using_xz[0] = ppac_xz[1];
+		using_yz[0] = ppac_yz[1];
+	}
+
 	// total number of entries
 	long long entries = tree->GetEntries();
 	// 1/100 of entries, for showing process
@@ -241,8 +249,8 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		double d1x = t0_event.x[0] + generator.Rndm() - 0.5;
 		double d1y = t0_event.y[0] + generator.Rndm() - 0.5;
 
-		FitAndFill(ppac_xz, xppac_event.x, d1z, d1x, hdx);
-		FitAndFill(ppac_yz, xppac_event.y, d1z, d1y, hdy);
+		FitAndFill(using_xz, xppac_event.x, d1z, d1x, hdx);
+		FitAndFill(using_yz, xppac_event.y, d1z, d1y, hdy);
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");

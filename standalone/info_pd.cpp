@@ -18,6 +18,7 @@
 
 using namespace ribll;
 
+
 /// @brief search for index from binary flag
 /// @param[in] side 0-front, 1-back
 /// @param[in] flag binary flag to search
@@ -36,7 +37,6 @@ int SearchIndex(int side, unsigned short flag) {
 	if (counts != 1) return -1;
 	return index;
 }
-
 
 
 /// @brief get energy from theta
@@ -156,6 +156,10 @@ int main() {
 	// bool d2y_merge;
 	// bool tafd_r_merge;
 	// bool tafd_pi_merge;
+	unsigned short ppac_xflag;
+	unsigned short ppac_yflag;
+	double ppac_x[3];
+	double ppac_y[3];
 	// state
 	int state;
 	double q_value;
@@ -213,6 +217,10 @@ int main() {
 	// opt.Branch("d2y_merge", &d2y_merge, "d2ym/O");
 	// opt.Branch("tafd_r_merge", &tafd_r_merge, "tafdrm/O");
 	// opt.Branch("tafd_pi_merge", &tafd_pi_merge, "tafdpm/O");
+	opt.Branch("ppac_xflag", &ppac_xflag, "pxflag/s");
+	opt.Branch("ppac_yflag", &ppac_yflag, "pyflag/s");
+	opt.Branch("ppac_x", ppac_x, "ppacx[3]/D");
+	opt.Branch("ppac_y", ppac_y, "ppacy[3]/D");
 	// state
 	opt.Branch("state", &state, "state/I");
 	opt.Branch("q", &q_value, "q/D");
@@ -236,9 +244,16 @@ int main() {
 		ChannelEvent channel;
 		// t0 index
 		int t0_index;
+		// Q value
+		double input_q;
+		// coincide
+		bool coincide;
 		// setup input branches
 		channel.SetupInput(ipt);
 		ipt->SetBranchAddress("t0_index", &t0_index);
+		ipt->SetBranchAddress("q", &input_q);
+		ipt->SetBranchAddress("coincide", &coincide);
+
 
 		std::vector<long long> valid_entries;
 		std::vector<int> taf_indexes;
@@ -248,12 +263,13 @@ int main() {
 		// loop to record information in channel
 		for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 			ipt->GetEntry(entry);
+			if (!coincide) continue;
 			valid_entries.push_back(channel.entry);
 			taf_indexes.push_back(channel.taf_index);
 			t0_indexes.push_back(t0_index);
-			double q = channel.parent_energy + 1.006
-				- channel.daughter_energy[0] - channel.daughter_energy[1];
-			q_values.push_back(q);
+			// double q = channel.parent_energy + 1.006
+			// 	- channel.daughter_energy[0] - channel.daughter_energy[1];
+			q_values.push_back(input_q);
 			// if (q > -3.0 && q < 2.5) states.push_back(0);
 			// else if (q > 3.0 && q < 9.0) states.push_back(1);
 			// else states.push_back(-1);
@@ -346,6 +362,9 @@ int main() {
 		);
 		// setup input branches
 		xppac.SetupInput(t0_tree, "xppac.");
+		t0_tree->SetBranchAddress("xppac.xflag", &ppac_xflag);
+		t0_tree->SetBranchAddress("xppac.yflag", &ppac_yflag);
+
 
 		// T0Dx normalize result friend
 		DssdFundamentalEvent norm_events[2];
@@ -436,6 +455,11 @@ int main() {
 
 			tafd_pi_strip = taf[taf_indexes[i]].front_strip[0];
 			tafd_r_strip = taf[taf_indexes[i]].back_strip[0];
+
+			for (int i = 0; i < 3; ++i) {
+				ppac_x[i] = xppac.x[i];
+				ppac_y[i] = xppac.y[i];
+			}
 
 			q_value = q_values[i];
 

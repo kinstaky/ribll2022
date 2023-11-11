@@ -456,6 +456,725 @@ int T0::Track() {
 }
 
 
+class Slice {
+public:
+	unsigned short charge;
+	unsigned short mass;
+	bool tail;
+	int index[2];
+
+	Slice(
+		unsigned short c,
+		unsigned short m,
+		bool t,
+		int i1,
+		int i2
+	)
+	: charge(c)
+	, mass(m)
+	, tail(t)
+	{
+		index[0] = i1;
+		index[1] = i2;
+	}
+
+	bool Connectable(const Slice &next) {
+		return (
+			charge == next.charge
+			&& (mass == next.mass || mass == 0)
+			&& index[1] == next.index[0]
+			&& tail
+		);
+// std::cout << "Connect check:\n"
+// 	<< "This layer: Z = " << charge << ", A = " << mass << ", index = " << index[1] << ", tail = " << tail << "\n"
+// 	<< "Next layer: Z = " << next.charge << ", A = " << next.mass << ", index = " << next.index[0] << "\n"
+// 	<< "Result: " << result << "\n";
+
+// 		return result;
+	}
+};
+
+
+void BuildDssdSlice(
+	const DssdMergeEvent &layer1,
+	const DssdMergeEvent &layer2,
+	const std::vector<ParticleCut> &cuts,
+	const std::vector<ParticleCut> &tail_cuts,
+	double offset,
+	std::vector<Slice> &slices
+) {
+	for (int i = 0; i < layer1.hit; ++i) {
+		for (int j = 0; j < layer2.hit; ++j) {
+			double xoffset = layer1.x[i] - layer2.x[j];
+			double yoffset = layer1.y[i] - layer2.y[j];
+			// check x, y offset
+			if (fabs(xoffset) < offset && fabs(yoffset) < offset) {
+				// check penatrate PID curv
+				for (const auto &cut : cuts) {
+					if (cut.cut->IsInside(layer2.energy[j], layer1.energy[i])) {
+						// build slice
+						slices.emplace_back(
+							cut.charge,
+							cut.mass,
+							false,
+							i, j
+						);
+					}
+				}
+				// check pass PID curv
+				for (const auto &cut : tail_cuts) {
+					if (cut.cut->IsInside(layer2.energy[j], layer1.energy[i])) {
+						// build slice
+						slices.emplace_back(
+							cut.charge,
+							cut.mass,
+							true,
+							i, j
+						);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void BuildDssdSsdSlice(
+	const DssdMergeEvent &layer1,
+	const SsdEvent &layer2,
+	const std::vector<ParticleCut> &cuts,
+	const std::vector<ParticleCut> &tail_cuts,
+	std::vector<Slice> &slices
+) {
+	for (int i = 0; i < layer1.hit; ++i) {
+		for (const auto &cut : cuts) {
+			if (cut.cut->IsInside(layer2.energy, layer1.energy[i])) {
+				// build slice
+				slices.emplace_back(
+					cut.charge,
+					cut.mass,
+					false,
+					i, 0
+				);
+			}
+		}
+		for (const auto &cut : tail_cuts) {
+			if (cut.cut->IsInside(layer2.energy, layer1.energy[i])) {
+				// build slice
+				slices.emplace_back(
+					cut.charge,
+					cut.mass,
+					true,
+					i, 0
+				);
+			}
+		}
+	}
+	return;
+}
+
+
+void BuildSsdSlice(
+	const SsdEvent &layer1,
+	const SsdEvent &layer2,
+	const std::vector<ParticleCut> &cuts,
+	const std::vector<ParticleCut> &tail_cuts,
+	std::vector<Slice> &slices
+) {
+	for (const auto &cut : cuts) {
+		if (cut.cut->IsInside(layer2.energy, layer1.energy)) {
+			slices.emplace_back(
+				cut.charge, cut.mass,
+				false,
+				0, 0
+			);
+		}
+	}
+	for (const auto &cut : tail_cuts) {
+		if (cut.cut->IsInside(layer2.energy, layer1.energy)) {
+			slices.emplace_back(
+				cut.charge, cut.mass,
+				true,
+				0, 0
+			);
+		}
+	}
+}
+
+
+void BuildSlice(
+	const DssdMergeEvent &d1,
+	const DssdMergeEvent &d2,
+	const DssdMergeEvent &d3,
+	const SsdEvent &s1,
+	const SsdEvent &s2,
+	const SsdEvent &s3,
+	const std::vector<ParticleCut> &d1d2_cuts,
+	const std::vector<ParticleCut> &d1d2_tail_cuts,
+	const std::vector<ParticleCut> &d2d3_cuts,
+	const std::vector<ParticleCut> &d2d3_tail_cuts,
+	const std::vector<ParticleCut> &d3s1_cuts,
+	const std::vector<ParticleCut> &d3s1_tail_cuts,
+	const std::vector<ParticleCut> &s1s2_cuts,
+	const std::vector<ParticleCut> &s1s2_tail_cuts,
+	const std::vector<ParticleCut> &s2s3_cuts,
+	const std::vector<ParticleCut> &s2s3_tail_cuts,
+	std::vector<Slice> &d1d2_slices,
+	std::vector<Slice> &d2d3_slices,
+	std::vector<Slice> &d3s1_slices,
+	std::vector<Slice> &s1s2_slice,
+	std::vector<Slice> &s2s3_slice
+) {
+	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 3.0, d1d2_slices);
+	BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, d2d3_slices);
+	BuildDssdSsdSlice(d3, s1, d3s1_cuts, d3s1_tail_cuts, d3s1_slices);
+	BuildSsdSlice(s1, s2, s1s2_cuts, s1s2_tail_cuts, s1s2_slice);
+	BuildSsdSlice(s2, s3, s2s3_cuts, s2s3_tail_cuts, s2s3_slice);
+}
+
+
+struct SliceNode {
+	int layer;
+	int index;
+	int parent;
+	unsigned int flag;
+	bool leaf;
+};
+
+
+void BuildSliceTree(
+	std::vector<Slice> *slices,
+	std::vector<SliceNode> &nodes
+) {
+	nodes.clear();
+	// fill root node
+	nodes.push_back(SliceNode{-1, -1, 0, 0, false});
+	// start index of each layer in nodes
+	int start[6] = {
+		1, 1, 1, 1, 1, 1
+	};
+	// offset of each layer in flag
+	unsigned int offsets[6] = {
+		0, 8, 16, 24, 25, 26
+	};
+	// fill first layer
+	for (int i = 0; i < int(slices[0].size()); ++i) {
+		// T0D1 flag, with offset 0
+		unsigned int flag = 0x1 << slices[0][i].index[0];
+		// T0D2 flag, with offset 8
+		flag |= 0x100 << slices[0][i].index[1];
+		// insert new node
+		nodes.push_back(SliceNode{
+			0, i, 0, flag, !(slices[0][i].tail)
+		});
+		// increase start index
+		++start[1];
+	}
+
+
+	for (int layer = 1; layer < 5; ++layer) {
+		// intialize the next layer start value
+		start[layer+1] = start[layer];
+		// loop slice in this layer
+		for (int i = 0; i < int(slices[layer].size()); ++i) {
+			Slice &current_layer_slice = slices[layer][i];
+			// search for connectable slice in nodes
+			for (int j = start[layer-1]; j < start[layer]; ++j) {
+// std::cout << "layer " << layer << ", slice index " << i << ", node index " << j << "\n";
+				const SliceNode &node = nodes[j];
+				Slice &last_layer_slice = slices[layer-1][node.index];
+				if (last_layer_slice.Connectable(current_layer_slice)) {
+					// flag of current layer
+					unsigned int flag = 0x1 << (
+						current_layer_slice.index[1] + offsets[layer+1]
+					);
+					// or with the previous layers
+					flag |= node.flag;
+					if (layer == 4 && current_layer_slice.tail) {
+						// insert node that stop in CsI
+						nodes.push_back(SliceNode{
+							5, i, j, flag, true
+						});
+					} else {
+						// insert new node
+						nodes.push_back(SliceNode{
+							layer, i, j, flag, !(current_layer_slice.tail)
+						});
+					}
+					// increase start index
+					++start[layer+1];
+				}
+			}
+		}
+	}
+
+	// std::cout << "Node:\n";
+	// for (size_t i = 0; i < nodes.size(); ++i) {
+	// 	std::cout << i << " " << nodes[i].layer << ", "
+	// 		<< nodes[i].index << ", " << nodes[i].parent
+	// 		<< ", " << std::hex << nodes[i].flag << ", "
+	// 		<< std::dec << nodes[i].leaf << "\n";
+	// }
+
+	return;
+}
+
+
+struct LeaveGroup {
+	int prev;
+	int index;
+	int count;
+};
+
+
+bool CheckSliceFlag(
+	const std::vector<SliceNode> &leaves,
+	const std::vector<LeaveGroup> &groups,
+	int group_index,
+	unsigned int leave_flag
+) {
+	for (int i = group_index; i != 0; i = groups[i].prev) {
+		if ((leaves[groups[i].index].flag & leave_flag) != 0) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+void PickSliceGroup(
+	const std::vector<SliceNode> &nodes,
+	std::vector<SliceNode> &group
+) {
+	// leaves
+	std::vector<SliceNode> leaves;
+	// get leaves
+	for (const auto &node : nodes) {
+		if (node.leaf) leaves.push_back(node);
+	}
+
+	// groups
+	std::vector<LeaveGroup> groups;
+	// input the root slot
+	groups.push_back(LeaveGroup{-1, -1, 0});
+
+	// insert the first leave in groups
+	for (int i = 0; i < int(leaves.size()); ++i) {
+		groups.push_back(LeaveGroup{0, i, 1});
+	}
+
+	// start index to add more leaves
+	int start = 1;
+	// tail index to add more leaves, exclusive
+	int tail = groups.size();
+	// combine the leaves into groups
+	// if start is larget than or equal to tail, no new node has been add
+	// to the groups, so, terminate the loop
+	while (start < tail) {
+		for (int i = start; i < tail; ++i) {
+			for (int j = groups[i].index+1; j < int(leaves.size()); ++j) {
+				if (CheckSliceFlag(leaves, groups, i, leaves[j].flag)) {
+					// add new node to group
+					groups.push_back(LeaveGroup{i, j, groups[i].count+1});
+				}
+			}
+		}
+		start = tail;
+		tail = groups.size();
+	}
+
+	// search for the group with maximum count
+	// max count
+	int max_count = 0;
+	// index with maximum count
+	int max_index = 0;
+	// loop to search
+	for (int i = 0; i < int(groups.size()); ++i) {
+		if (groups[i].count > max_count) {
+			max_count = groups[i].count;
+			max_index = i;
+		}
+	}
+
+	group.clear();
+	for (int i = max_index; i != 0; i = groups[i].prev) {
+		group.push_back(leaves[groups[i].index]);
+	}
+}
+
+
+int T0::SliceTrack() {
+	// T0D1 merge file name
+	TString d1_file_name;
+	d1_file_name.Form(
+		"%s%st0d1-merge-%s%04u.root",
+		kGenerateDataPath,
+		kMergeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// T0D1 file
+	TFile d1_file(d1_file_name, "read");
+	// tree
+	TTree *ipt = (TTree*)d1_file.Get("tree");
+	if (!ipt) {
+		std::cout << "Error: Get tree from "
+			<< d1_file_name << " failed.\n";
+		return -1;
+	}
+	// T0D2 merge file name
+	TString d2_file_name;
+	d2_file_name.Form(
+		"%s%st0d2-merge-%s%04u.root",
+		kGenerateDataPath,
+		kMergeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("d2=tree", d2_file_name);
+	// T0D3 merge file name
+	TString d3_file_name;
+	d3_file_name.Form(
+		"%s%st0d3-merge-%s%04u.root",
+		kGenerateDataPath,
+		kMergeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("d3=tree", d3_file_name);
+	// T0S1 fundamental file name
+	TString s1_file_name;
+	s1_file_name.Form(
+		"%s%st0s1-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s1=tree", s1_file_name);
+	// T0S2 fundamental file name
+	TString s2_file_name;
+	s2_file_name.Form(
+		"%s%st0s2-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s2=tree", s2_file_name);
+	// T0S3 fundamental file name
+	TString s3_file_name;
+	s3_file_name.Form(
+		"%s%st0s3-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	ipt->AddFriend("s3=tree", s3_file_name);
+	// d1 event
+	DssdMergeEvent d1_event;
+	d1_event.SetupInput(ipt);
+	// d2 event
+	DssdMergeEvent d2_event;
+	bool hole[8];
+	d2_event.SetupInput(ipt, "d2.");
+	ipt->SetBranchAddress("d2.hole", hole);
+	// d3 event
+	DssdMergeEvent d3_event;
+	d3_event.SetupInput(ipt, "d3.");
+	// s1 event
+	SsdEvent s1_event;
+	s1_event.SetupInput(ipt, "s1.");
+	// s2 event
+	SsdEvent s2_event;
+	s2_event.SetupInput(ipt, "s2.");
+	// s3 event
+	SsdEvent s3_event;
+	s3_event.SetupInput(ipt, "s3.");
+
+	// T0 telescope file name
+	TString t0_file_name;
+	t0_file_name.Form(
+		"%s%st0-telescope-%s%04u.root",
+		kGenerateDataPath,
+		kTelescopeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// T0 teleescope file
+	TFile t0_file(t0_file_name, "recreate");
+	// T0 teleescope output tree
+	TTree opt("tree", "t0 telescope tree");
+	// t0 event
+	T0Event t0_event;
+	// setup output branches
+	t0_event.SetupOutput(&opt);
+
+	// T0D1-D2 cuts
+	std::vector<ParticleCut> d1d2_cuts;
+	// d1d2_cuts.push_back({1, 1, ReadCut("t0-d1d2-p1i1-1H")});
+	// d1d2_cuts.push_back({1, 2, ReadCut("t0-d1d2-p1i1-2H")});
+	// d1d2_cuts.push_back({1, 3, ReadCut("t0-d1d2-p1i1-3H")});
+	d1d2_cuts.push_back({2, 3, ReadCut("t0-d1d2-p1i1-3He")});
+	d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-p1i1-4He")});
+	d1d2_cuts.push_back({2, 6, ReadCut("t0-d1d2-p1i1-6He")});
+	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-6Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-7Li")});
+	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-8Li")});
+	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-9Li")});
+	d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-p1i1-7Be")});
+	d1d2_cuts.push_back({4, 9, ReadCut("t0-d1d2-p1i1-9Be")});
+	d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-p1i1-10Be")});
+	d1d2_cuts.push_back({5, 10, ReadCut("t0-d1d2-p1i1-10B")});
+	d1d2_cuts.push_back({5, 11, ReadCut("t0-d1d2-p1i1-11B")});
+	d1d2_cuts.push_back({5, 12, ReadCut("t0-d1d2-p1i1-12B")});
+	d1d2_cuts.push_back({5, 13, ReadCut("t0-d1d2-p1i1-13B")});
+	d1d2_cuts.push_back({6, 12, ReadCut("t0-d1d2-p1i1-12C")});
+	d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-p1i1-13C")});
+	d1d2_cuts.push_back({6, 14, ReadCut("t0-d1d2-p1i1-14C")});
+	// d1d2_cuts.push_back({6, 15, ReadCut("t0-d1d2-p1i1-15C")});
+	// T0D1-D2 tail cuts
+	std::vector<ParticleCut> d1d2_tails;
+	d1d2_tails.push_back({2, 0, ReadCut("t0-d1d2-tail-p1i1-He")});
+	d1d2_tails.push_back({3, 0, ReadCut("t0-d1d2-tail-p1i1-Li")});
+	d1d2_tails.push_back({4, 0, ReadCut("t0-d1d2-tail-p1i1-Be")});
+
+	// T0D2-D3 cuts
+	std::vector<ParticleCut> d2d3_cuts;
+	d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-p1i1-3He")});
+	d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-p1i1-4He")});
+	d2d3_cuts.push_back({2, 6, ReadCut("t0-d2d3-p1i1-6He")});
+	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-6Li")});
+	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-7Li")});
+	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-8Li")});
+	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-9Li")});
+	d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-9Be")});
+	d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-10Be")});
+	// T0D2-D3 tail cuts
+	std::vector<ParticleCut> d2d3_tails;
+	d2d3_tails.push_back({2, 0, ReadCut("t0-d2d3-tail-p1i1-He")});
+	d2d3_tails.push_back({3, 0, ReadCut("t0-d2d3-tail-p1i1-Li")});
+
+	// T0D3-S1 cuts
+	std::vector<ParticleCut> d3s1_cuts;
+	d3s1_cuts.push_back({2, 3, ReadCut("t0-d3s1-p1i1-3He")});
+	d3s1_cuts.push_back({2, 4, ReadCut("t0-d3s1-p1i1-4He")});
+	d3s1_cuts.push_back({2, 6, ReadCut("t0-d3s1-p1i1-6He")});
+	d3s1_cuts.push_back({3, 6, ReadCut("t0-d3s1-p1i1-6Li")});
+	d3s1_cuts.push_back({3, 7, ReadCut("t0-d3s1-p1i1-7Li")});
+	d3s1_cuts.push_back({3, 8, ReadCut("t0-d3s1-p1i1-8Li")});
+	d3s1_cuts.push_back({3, 9, ReadCut("t0-d3s1-p1i1-9Li")});
+	// T0D3-S1 tail cuts
+	std::vector<ParticleCut> d3s1_tails;
+	d3s1_tails.push_back({2, 0, ReadCut("t0-d3s1-tail-p1i1-He")});
+	// T0S1-S2 cuts
+	std::vector<ParticleCut> s1s2_cuts;
+	s1s2_cuts.push_back({2, 3, ReadCut("t0-s1s2-p1i1-3He")});
+	s1s2_cuts.push_back({2, 4, ReadCut("t0-s1s2-p1i1-4He")});
+	s1s2_cuts.push_back({2, 6, ReadCut("t0-s1s2-p1i1-6He")});
+	// T0S1-S2 cuts
+	std::vector<ParticleCut> s1s2_tails;
+	s1s2_tails.push_back({2, 0, ReadCut("t0-s1s2-tail-p1i1-He")});
+	s1s2_tails.push_back({2, 6, ReadCut("t0-s1s2-tail-p1i1-6He")});
+	// T0S2-S3 cuts
+	std::vector<ParticleCut> s2s3_cuts;
+	s2s3_cuts.push_back({2, 3, ReadCut("t0-s2s3-p1i1-3He")});
+	s2s3_cuts.push_back({2, 4, ReadCut("t0-s2s3-p1i1-4He")});
+	s2s3_cuts.push_back({2, 6, ReadCut("t0-s2s3-p1i1-6He")});
+	// T0S2-S3 pass cuts
+	std::vector<ParticleCut> s2s3_tails;
+	s2s3_tails.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
+	s2s3_tails.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
+
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Tracking t0   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get event
+		ipt->GetEntry(entry);
+
+		// slices
+		std::vector<Slice> slices[5];
+		// nodes
+		std::vector<SliceNode> nodes;
+		// result node group
+		std::vector<SliceNode> group;
+		// build slice from DSSD and SSD events
+		BuildSlice(
+			d1_event, d2_event, d3_event,
+			s1_event, s2_event, s3_event,
+			d1d2_cuts, d1d2_tails,
+			d2d3_cuts, d2d3_tails,
+			d3s1_cuts, d3s1_tails,
+			s1s2_cuts, s1s2_tails,
+			s2s3_cuts, s2s3_tails,
+			slices[0], slices[1], slices[2], slices[3], slices[4]
+		);
+		BuildSliceTree(slices, nodes);
+		PickSliceGroup(nodes, group);
+
+// if (t0_event.num == 2) continue;
+// if (
+// 	t0_event.num == 3
+// 	&& (
+// 		(t0_event.mass[0]==10 && t0_event.mass[1]==4)
+// 		|| (t0_event.mass[0]==10 && t0_event.mass[2]==4)
+// 		|| (t0_event.mass[1]==10 && t0_event.mass[0]==4)
+// 		|| (t0_event.mass[1]==10 && t0_event.mass[2]==4)
+// 		|| (t0_event.mass[2]==10 && t0_event.mass[1]==4)
+// 		|| (t0_event.mass[2]==10 && t0_event.mass[0]==4)
+// 	)
+// ) continue;
+// std::cout << "-------------------------\nEntry: " << entry << "\n";
+// std::cout << "Slices:\n";
+// for (int i = 0; i < 5; ++i) {
+// 	for (const auto &slice : slices[i]) {
+// 		std::cout << "Slice layer " << i
+// 			<< ": Z = " << slice.charge << ", A = " << slice.mass
+// 			<< ", tail = " << slice.tail << ", index = " << slice.index[0]
+// 			<< ", " << slice.index[1] << "\n";
+// 	}
+// }
+// std::cout << "Slice tree:\n";
+// for (const auto &node : nodes) {
+// 	std::cout << "layer " << node.layer << ", index = " << node.index
+// 		<< ", parent " << node.parent << ", flag = " << std::hex << node.flag
+// 		<< std::dec << ", leaf = " << node.leaf << "\n";
+// }
+// std::cout << "Slice group:\n";
+// for (const auto &node : group) {
+// 	std::cout << "layer " << node.layer << ", index = " << node.index
+// 		<< ", parent " << node.parent << ", flag = " << std::hex << node.flag
+// 		<< std::dec << ", leaf = " << node.leaf << "\n";
+// }
+
+		// fill output event
+		t0_event.num = int(group.size());
+		// if (t0_event.num > 8) t0_event.num = 8;
+		for (int i = 0; i < t0_event.num; ++i) {
+			int detect_layer = group[i].layer == 5 ? 4 : group[i].layer;
+			if (group[i].index >= int(slices[detect_layer].size())) {
+				std::cerr
+					<< "Error: group[i] index over range in run " << run_
+					<< ", entry " << entry
+					<< ", layer " << detect_layer
+					<< ", index is " << group[i].index
+					<< ", range " << slices[detect_layer].size()
+					<< " .\n";
+				return -1;
+			}
+			Slice *slice = &(slices[detect_layer][group[i].index]);
+
+			t0_event.layer[i] = group[i].layer + 1;
+			t0_event.flag[i] = group[i].layer == 0 ? 0x3 : 0x7;
+			t0_event.ssd_flag = group[i].flag >> 24;
+			t0_event.charge[i] = slice->charge;
+			t0_event.mass[i] = slice->mass;
+
+			SliceNode *node = &(group[i]);
+			for (int layer = detect_layer; layer >= 0; --layer) {
+				if (node->index >= int(slices[layer].size())) {
+					std::cerr
+						<< "Error: node index over range in run " << run_
+						<< ", entry " << entry
+						<< ", layer " << layer
+						<< ", index is " << node->index
+						<< ", range " << slices[layer].size()
+						<< " .\n";
+					return -1;
+				}
+				slice = &(slices[layer][node->index]);
+				if (layer == 0) {
+					// fill T0D1 information
+					int d1_index = slice->index[0];
+					if (d1_index >= d1_event.hit) {
+						std::cerr << "Error: D1 index over hit in run "
+							<< run_ << ", entry "
+							<< entry << ", index " << d1_index
+							<< ", hit " << d1_event.hit << " .\n";
+						return -1;
+					}
+					t0_event.energy[i][0] = d1_event.energy[d1_index];
+					t0_event.time[i][0] = d1_event.time[d1_index];
+					t0_event.x[i][0] = d1_event.x[d1_index];
+					t0_event.y[i][0] = d1_event.y[d1_index];
+					t0_event.z[i][0] = d1_event.z[d1_index];
+					t0_event.dssd_flag[i][0] = group[i].flag & 0xff;
+					// fill T0D2 information
+					int d2_index = slice->index[1];
+					if (d2_index >= d2_event.hit) {
+						std::cerr << "Error: D2 index over hit in run "
+							<< run_ << ", entry "
+							<< entry << ", index " << d2_index
+							<< ", hit " << d2_event.hit << " .\n";
+						return -1;
+					}
+					t0_event.energy[i][1] = d2_event.energy[d2_index];
+					t0_event.time[i][1] = d2_event.time[d2_index];
+					t0_event.x[i][1] = d2_event.x[d2_index];
+					t0_event.y[i][1] = d2_event.y[d2_index];
+					t0_event.z[i][1] = d2_event.z[d2_index];
+					t0_event.dssd_flag[i][1] = (group[i].flag >> 8) & 0xff;
+					t0_event.hole[i] = hole[d2_index];
+				} else if (layer == 1) {
+					// fill T0D3 information
+					int d3_index = slice->index[1];
+					if (d3_index >= d3_event.hit) {
+						std::cerr << "Error: D1 index over hit in run "
+							<< run_ << ", entry "
+							<< entry << ", index " << d3_index
+							<< ", hit " << d3_event.hit << " .\n";
+						return -1;
+					}
+					t0_event.energy[i][2] = d3_event.energy[d3_index];
+					t0_event.time[i][2] = d3_event.time[d3_index];
+					t0_event.x[i][2] = d3_event.x[d3_index];
+					t0_event.y[i][2] = d3_event.y[d3_index];
+					t0_event.z[i][2] = d3_event.z[d3_index];
+					t0_event.dssd_flag[i][2] = (group[i].flag >> 16) & 0xff;
+				} else if (layer == 2) {
+					// fill T0S1 information
+					t0_event.ssd_energy[0] = s1_event.energy;
+				} else if (layer == 3) {
+					t0_event.ssd_energy[1] = s2_event.energy;
+				} else if (layer == 4) {
+					t0_event.ssd_energy[2] = s3_event.energy;
+				}
+				node = &(nodes[node->parent]);
+			}
+		}
+
+		opt.Fill();
+	}
+
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	std::vector<bool> identify;
+	identify.push_back(true);
+
+	// save tree
+	opt.Write();
+	t0_file.WriteObject(&identify, "identify");
+	// close files
+	t0_file.Close();
+	d1_file.Close();
+
+	return 0;
+}
+
+
 int DssdParticleIdentify(
 	const T0Event &t0,
 	size_t index,
@@ -663,18 +1382,23 @@ int T0::ParticleIdentify() {
 
 	// T0D1-D2 cuts
 	std::vector<ParticleCut> d1d2_cuts;
+	// d1d2_cuts.push_back({1, 1, ReadCut("t0-d1d2-p1i1-1H")});
+	// d1d2_cuts.push_back({1, 2, ReadCut("t0-d1d2-p1i1-2H")});
+	// d1d2_cuts.push_back({1, 3, ReadCut("t0-d1d2-p1i1-3H")});
+	d1d2_cuts.push_back({2, 3, ReadCut("t0-d1d2-p1i1-3He")});
 	d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-p1i1-4He")});
+	d1d2_cuts.push_back({2, 6, ReadCut("t0-d1d2-p1i1-6He")});
 	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-6Li")});
 	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-7Li")});
-	// d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-7Be")});
+	d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-p1i1-7Be")});
 	d1d2_cuts.push_back({4, 9, ReadCut("t0-d1d2-p1i1-9Be")});
 	d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-p1i1-10Be")});
-	// d1d2_cuts.push_back({5, 10, ReadCut("t0-d1d2-p1i1-10B")});
-	// d1d2_cuts.push_back({5, 11, ReadCut("t0-d1d2-p1i1-11B")});
-	// d1d2_cuts.push_back({5, 12, ReadCut("t0-d1d2-p1i1-12B")});
-	// d1d2_cuts.push_back({5, 13, ReadCut("t0-d1d2-p1i1-13B")});
-	// d1d2_cuts.push_back({6, 12, ReadCut("t0-d1d2-p1i1-12C")});
-	// d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-p1i1-13C")});
+	d1d2_cuts.push_back({5, 10, ReadCut("t0-d1d2-p1i1-10B")});
+	d1d2_cuts.push_back({5, 11, ReadCut("t0-d1d2-p1i1-11B")});
+	d1d2_cuts.push_back({5, 12, ReadCut("t0-d1d2-p1i1-12B")});
+	d1d2_cuts.push_back({5, 13, ReadCut("t0-d1d2-p1i1-13B")});
+	d1d2_cuts.push_back({6, 12, ReadCut("t0-d1d2-p1i1-12C")});
+	d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-p1i1-13C")});
 	d1d2_cuts.push_back({6, 14, ReadCut("t0-d1d2-p1i1-14C")});
 	// d1d2_cuts.push_back({6, 15, ReadCut("t0-d1d2-p1i1-15C")});
 	// T0D1-D2 tail cuts
@@ -1122,13 +1846,13 @@ int T0::Calibrate(unsigned int end_run) {
 					if (de > 10'000.0 && de < 16'000.0) {
 						e_vs_de_offset.AddPoint(de+55'000.0, e);
 					}
-				// } else if (
-				// 	type_event.charge[i] == 4
-				// 	&& type_event.mass[i] == 10
-				// ) {
-				// 	if (de > 20'000.0 && de < 26'000.0) {
-				// 		e_vs_de_offset.AddPoint(de+55'000.0, e);
-				// 	}
+				} else if (
+					type_event.charge[i] == 4
+					&& type_event.mass[i] == 10
+				) {
+					if (de > 20'000.0 && de < 26'000.0) {
+						e_vs_de_offset.AddPoint(de+55'000.0, e);
+					}
 				}
 			} else if (type_event.layer[i] == 3) {
 				double de = t0_event.energy[i][2];
@@ -1321,24 +2045,36 @@ int T0::Rebuild() {
 			<< telescope_file_name << " failed.\n";
 		return -1;
 	}
-	// particle type file name
-	TString particle_type_file_name;
-	particle_type_file_name.Form(
-		"%s%st0-particle-type-%s%04u.root",
-		kGenerateDataPath,
-		kParticleIdentifyDir,
-		tag_.empty() ? "" : (tag_+"-").c_str(),
-		run_
-	);
-	// add friend
-	ipt->AddFriend("type=tree", particle_type_file_name);
 	// input telescope event
 	T0Event t0_event;
-	// input type event
-	ParticleTypeEvent type_event;
 	// setup input branches
 	t0_event.SetupInput(ipt);
-	type_event.SetupInput(ipt, "type.");
+
+	// has identify?
+	std::vector<bool> *identify =
+		(std::vector<bool>*)telescope_file.Get("identify");
+
+	// input type event
+	ParticleTypeEvent type_event;
+	if (!identify || !(identify->at(0))) {
+		// particle type file name
+		TString particle_type_file_name;
+		particle_type_file_name.Form(
+			"%s%st0-particle-type-%s%04u.root",
+			kGenerateDataPath,
+			kParticleIdentifyDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			run_
+		);
+		// add friend
+		ipt->AddFriend("type=tree", particle_type_file_name);
+		// setup input branches
+		type_event.SetupInput(ipt, "type.");
+	} else {
+		ipt->SetBranchAddress("charge", type_event.charge);
+		ipt->SetBranchAddress("mass", type_event.mass);
+		ipt->SetBranchAddress("layer", type_event.layer);
+	}
 
 	// output file name
 	TString particle_file_name;
@@ -1443,17 +2179,17 @@ double T0::TotalEnergy(
 	const ParticleTypeEvent &type,
 	const size_t index,
 	const elc::CsiEnergyCalculator &csi_calculator,
-	const elc::DeltaEnergyCalculator &delta_calculator
+	const elc::DeltaEnergyCalculator &/*delta_calculator*/
 ) const {
 	// total energy
 	double energy = CaliEnergy(0, t0.energy[index][0]);
 	// DSSD layers particle hit
 	if (type.layer[index] >= 1) {
-		if (type.charge[index] == 4 && type.mass[index] >= 9) {
-			energy += delta_calculator.Energy(0, energy);
-		} else {
+		// if (type.charge[index] == 4 && type.mass[index] == 10) {
+			// energy += delta_calculator.Energy(0, energy);
+		// } else {
 			energy += CaliEnergy(1, t0.energy[index][1]);
-		}
+		// }
 	}
 	if (type.layer[index] >= 2) energy += CaliEnergy(2, t0.energy[index][2]);
 	// return energy if particle stop at T0D2

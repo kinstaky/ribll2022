@@ -79,9 +79,14 @@ int main() {
 	// unsigned int d3_y_strip[2];
 	// unsigned int r_ring_strip[2];
 	// unsigned int r_pi_strip[2];
+	// PPAC information
+	unsigned short ppac_xflag, ppac_yflag;
+	double ppac_x[3], ppac_y[3];
 	// state
 	// int state;
 	double out_q;
+	// other information
+	bool hole[2];
 
 	// setup output branches
 	// indexes and layers
@@ -131,8 +136,13 @@ int main() {
 	// opt.Branch("d2ys", d2_y_strip, "d2ys[2]/D");
 	// opt.Branch("rrs", &r_ring_strip, "rrs/D");
 	// opt.Branch("rps", &r_pi_strip, "rps/D");
+	opt.Branch("ppac_xflag", &ppac_xflag, "pxflag/s");
+	opt.Branch("ppac_yflag", &ppac_yflag, "pyflag/s");
+	opt.Branch("ppac_x", ppac_x, "ppacx[3]/D");
+	opt.Branch("ppac_y", ppac_y, "ppacy[3]/D");
 	// opt.Branch("state", &state, "state/I");
 	opt.Branch("q", &out_q, "q/D");
+	opt.Branch("hole", hole, "hole[2]/O");
 
 	for (unsigned int run = 618; run <= 652; ++run) {
 		if (run == 628) continue;
@@ -206,13 +216,18 @@ int main() {
 				<< t0_tele_file_name << " failed.\n";
 			return -1;
 		}
-		// add T0 particle identify file
-		t0_tree->AddFriend("pid=tree", TString::Format(
-			"%s%st0-particle-type-ta-%04u.root",
-			kGenerateDataPath,
-			kParticleIdentifyDir,
-			run
-		));
+		// identify flag
+		std::vector<bool> *identify =
+			(std::vector<bool>*)t0_tele_file.Get("identify");
+		if (!identify || !(identify->at(0))) {
+			// add T0 particle identify file
+			t0_tree->AddFriend("pid=tree", TString::Format(
+				"%s%st0-particle-type-ta-%04u.root",
+				kGenerateDataPath,
+				kParticleIdentifyDir,
+				run
+			));
+		}
 		// // add T0D1 normalize result friend
 		// t0_tree->AddFriend("t0d1=tree", TString::Format(
 		// 	"%s%st0d1-result-ta-%04u.root",
@@ -278,7 +293,13 @@ int main() {
 
 		// setup input branches
 		t0.SetupInput(t0_tree);
-		t0_type.SetupInput(t0_tree, "pid.");
+		if (!identify || !(identify->at(0))) {
+			t0_type.SetupInput(t0_tree, "pid.");
+		} else {
+			t0_tree->SetBranchAddress("mass", t0_type.mass);
+			t0_tree->SetBranchAddress("charge", t0_type.charge);
+			t0_tree->SetBranchAddress("layer", t0_type.layer);
+		}
 		// t0d1.SetupInput(t0_tree, "t0d1.");
 		// t0d2.SetupInput(t0_tree, "t0d2.");
 		for (int i = 0; i < 6; ++i) {
@@ -286,6 +307,8 @@ int main() {
 			// tafd[i].SetupInput(t0_tree, TString::Format("tafd%d.", i).Data());
 		}
 		xppac.SetupInput(t0_tree, "xppac.");
+		t0_tree->SetBranchAddress("xppac.xflag", &ppac_xflag);
+		t0_tree->SetBranchAddress("xppac.yflag", &ppac_yflag);
 
 		for (size_t i = 0; i < valid_entries.size(); ++i) {
 			t0_tree->GetEntry(valid_entries[i]);
@@ -334,7 +357,13 @@ int main() {
 			ry = recoil_position.Y();
 			tx = xppac.x[3];
 			ty = xppac.y[3];
+			for (int i = 0; i < 3; ++i) {
+				ppac_x[i] = xppac.x[i];
+				ppac_y[i] = xppac.y[i];
+			}
 			out_q = q_values[i];
+			hole[0] = t0.hole[be10_indexes[i]];
+			hole[1] = t0.hole[he4_indexes[i]];
 
 			opt.Fill();
 		}
