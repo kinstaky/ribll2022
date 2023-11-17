@@ -46,6 +46,8 @@ const char* const kEnergyCalculateDir = "energy_calculate/";
 const char* const kFilterDir = "filter/";
 const char* const kSummaryDir = "summary/";
 const char* const kSimulateDir = "simulate/";
+const char* const kInformationDir = "info/";
+const char* const kOptimizeDir = "opt/";
 
 //-----------------------------------------------------------------------------
 //								xia vme alignment

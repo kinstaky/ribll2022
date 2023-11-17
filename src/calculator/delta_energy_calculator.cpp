@@ -28,7 +28,7 @@ DeltaEnergyCalculator::DeltaEnergyCalculator(
 	auto search = layers.find(telescope);
 	if (search == layers.end()) {
 		std::cerr << "Error: Telescope " << telescope
-			<< " in delta calculation  not found.\n";
+			<< " in delta calculation not found.\n";
 		throw std::runtime_error("telescope not found");
 	}
 	int layer = search->second;

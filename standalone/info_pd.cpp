@@ -80,6 +80,54 @@ int EnergyTheta(
 }
 
 
+/// @brief get momentum from kinematic energy
+/// @param[in] mass mass of particle
+/// @param[in] kinematic kinematic energy of particle
+/// @returns momentum of particle
+///
+inline double MomentumFromKinematic(double mass, double kinematic) {
+	return sqrt((2.0 * mass + kinematic) * kinematic);
+}
+
+
+///	@brief get cos(theta) from energy
+/// @param[in] beam_mass mass of beam
+/// @param[in] fragment1_mass mass of fragment1
+/// @param[in] fragment2_mass mass of fragment2
+/// @param[in] q Q value
+/// @param[in] beam_kinematic kinematic energy of beam
+/// @param[in] fragment1_kinematic kinematic energy of fragment1
+/// @returns angle theta of fragment1 and beam
+///
+double ThetaEnergy(
+	double beam_mass,
+	double fragment1_mass,
+	double fragment2_mass,
+	double q,
+	double beam_kinematic,
+	double fragment1_kinematic
+) {
+	double fragment2_kinematic = q + beam_kinematic - fragment1_kinematic;
+
+	double momentum_beam = MomentumFromKinematic(beam_mass, beam_kinematic);
+	double momentum_fragment1 =
+		MomentumFromKinematic(fragment1_mass, fragment1_kinematic);
+	double momentum_fragment2 =
+		MomentumFromKinematic(fragment2_mass, fragment2_kinematic);
+
+	double cos_theta =
+		(
+			pow(momentum_fragment1, 2.0)
+			+ pow(momentum_beam, 2.0)
+			- pow(momentum_fragment2, 2.0)
+		)
+		/ (2.0 * momentum_fragment1 * momentum_beam);
+
+	return cos_theta;
+}
+
+
+
 int main() {
 	// output file name
 	TString output_file_name = TString::Format(
@@ -486,31 +534,44 @@ int main() {
 	constexpr double mass_2h = u * 2.0135531980;
 	constexpr double mass_14c = u * 13.9999505089;
 	constexpr double mass_15c = u * 15.0073077289;
-	// calculate theorical graph
+	// // calculate theorical graph
+	// for (int i = 0; i < 2; ++i) {
+	// 	double q_value = i == 0 ? 1.0064550 : 1.0064550 - 6.0938;
+	// 	for (double theta = 0.4; theta < 0.9; theta += 0.01) {
+	// 		double kinematic_energy[2];
+	// 		int root_num = EnergyTheta(
+	// 			mass_15c, mass_2h, mass_14c,
+	// 			theta, q_value,
+	// 			430.0,
+	// 			kinematic_energy[0], kinematic_energy[1]
+	// 		);
+	// 		if (root_num > 0 && kinematic_energy[0] < 70.0) {
+	// 			theory_energy_theta[i].AddPoint(theta, kinematic_energy[0]);
+	// 		}
+	// 	}
+	// 	for (double theta = 0.9; theta > 0.4; theta -= 0.01) {
+	// 		double kinematic_energy[2];
+	// 		int root_num = EnergyTheta(
+	// 			mass_15c, mass_2h, mass_14c,
+	// 			theta, q_value,
+	// 			430.0,
+	// 			kinematic_energy[0], kinematic_energy[1]
+	// 		);
+	// 		if (root_num == 1) theory_energy_theta[i].AddPoint(theta, kinematic_energy[0]);
+	// 		else if (root_num == 2) theory_energy_theta[i].AddPoint(theta, kinematic_energy[1]);
+	// 	}
+	// }
+
 	for (int i = 0; i < 2; ++i) {
 		double q_value = i == 0 ? 1.0064550 : 1.0064550 - 6.0938;
-		for (double theta = 0.4; theta < 0.9; theta += 0.01) {
-			double kinematic_energy[2];
-			int root_num = EnergyTheta(
+		for (double energy = 0.0; energy < 70.0; energy += 0.5) {
+			double cos_theta = ThetaEnergy(
 				mass_15c, mass_2h, mass_14c,
-				theta, q_value,
-				430.0,
-				kinematic_energy[0], kinematic_energy[1]
+				q_value, 430.0, energy
 			);
-			if (root_num > 0 && kinematic_energy[0] < 70.0) {
-				theory_energy_theta[i].AddPoint(theta, kinematic_energy[0]);
+			if (cos_theta > -1.0 && cos_theta < 1.0) {
+				theory_energy_theta[i].AddPoint(acos(cos_theta), energy);
 			}
-		}
-		for (double theta = 0.9; theta > 0.4; theta -= 0.01) {
-			double kinematic_energy[2];
-			int root_num = EnergyTheta(
-				mass_15c, mass_2h, mass_14c,
-				theta, q_value,
-				430.0,
-				kinematic_energy[0], kinematic_energy[1]
-			);
-			if (root_num == 1) theory_energy_theta[i].AddPoint(theta, kinematic_energy[0]);
-			else if (root_num == 2) theory_energy_theta[i].AddPoint(theta, kinematic_energy[1]);
 		}
 	}
 

@@ -87,6 +87,7 @@ int main() {
 	double out_q;
 	// other information
 	bool hole[2];
+	int run_number;
 
 	// setup output branches
 	// indexes and layers
@@ -143,8 +144,9 @@ int main() {
 	// opt.Branch("state", &state, "state/I");
 	opt.Branch("q", &out_q, "q/D");
 	opt.Branch("hole", hole, "hole[2]/O");
+	opt.Branch("run", &run_number, "run/I");
 
-	for (unsigned int run = 618; run <= 652; ++run) {
+	for (unsigned int run = 618; run <= 716; ++run) {
 		if (run == 628) continue;
 		if (run > 652 && run < 675) continue;
 		std::cout << "Processing run " << run << "\n";
@@ -364,6 +366,7 @@ int main() {
 			out_q = q_values[i];
 			hole[0] = t0.hole[be10_indexes[i]];
 			hole[1] = t0.hole[he4_indexes[i]];
+			run_number = run;
 
 			opt.Fill();
 		}

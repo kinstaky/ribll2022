@@ -8,16 +8,300 @@
 #include <TTree.h>
 #include <Math/Vector3D.h>
 
-#include "include/event/channel_event.h"
+#include "include/event/threebody_info_event.h"
+#include "include/optimize_utilities.h"
+
 
 using namespace ribll;
 
-constexpr double be10_mass = 10.0113403769;
-constexpr double he4_mass = 4.0015060943;
-constexpr double h2_mass = 2.0135531980;
-constexpr double c14_mass = 13.9999505089;
+// double t0_param[6][2] = {
+// 	0.668185, 0.00532703,
+// 	-1.55102, 0.00624239,
+// 	-11.0104, 0.00753879,
+// 	-17.9571, 0.00341486,
+// 	-27.1883, 0.00407052,
+// 	-42.8738, 0.00430493
+// };
 
-constexpr double u = 931.494;
+double t0_param[6][2] = {
+	{0.0553516, 0.00532019},
+	{-0.12591, 0.00632308},
+	{0.552785, 0.00579009},
+	{0.837779, 0.00233567},
+	{-0.306592, 0.00221028},
+	{3.0818, 0.00235991}
+};
+
+
+double ppac_correct[2][3] = {
+	{0, 2.23, 3.4},
+	{0, -0.84, -1.78}
+};
+
+
+// double csi_param[12][3] = {
+// 	{123.941, 1.0962, 397.026},
+// 	{244.067, 0.926528, -283.163},
+// 	{554.833, 0.771826, -1224.23},
+// 	{159.841, 1.08703, 122.915},
+// 	{206.051, 1.04658, -183.394},
+// 	{124.698, 1.17357, 370.916},
+// 	{331.666, 0.935188, -1026.46},
+// 	{335.989, 0.893188, -321.06},
+// 	{426.265, 0.870843, -848.672},
+// 	{333.405, 0.888081, -524.698},
+// 	{243.491, 0.983349, -179.367},
+// 	{132.49, 1.15958, 78.8477}
+// };
+
+
+double csi_param[12][3] = {
+	{273.278, 0.9159, -350.988},
+	{280.876, 0.8937, -584.531},
+	{386.048, 0.8575, -616.000},
+	{319.845, 0.9122, -368.000},
+	{346.592, 0.9312, -843.328},
+	{319.096, 0.9146, -377.708},
+	{289.534, 0.9638, -516.000},
+	{381.000, 0.8550, -632.000},
+	{510.623, 0.8433, -916.000},
+	{386.525, 0.8638, -610.244},
+	{285.668, 0.9571, -413.028},
+	{300.415, 0.9672, -165.075}
+};
+
+
+// double pos_param[6][2] = {
+// 	{-3.00068, -0.0174848},
+// 	{0.530552, -4.95597},
+// 	{-0.453959, 1.39616},
+// 	{0.817438, 1.99788},
+// 	{1.37519, -1.14332},
+// 	{2.08862, 3.909}
+// };
+
+double pos_param[6][2] = {
+	{-0.42, 0.05},
+	{0.59, 0.46},
+	{1.22, 0.43},
+	{0.92, -0.46},
+	{0.69, -3.48},
+	{-0.95, 2.11}
+};
+
+
+double ThreeBodyProcess(
+	const ThreeBodyInfoEvent &event,
+	double &be_kinematic,
+	double &he_kinematic,
+	double &d_kinematic,
+	double &c_kinematic
+) {
+	// 10Be kinematic energy
+	// T0D1 energy
+	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	// T0D2 energy
+	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+	// T0D3 energy
+	if (event.layer[0] > 1) {
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+	}
+	// T0S1 energy
+	if (event.layer[0] > 2) {
+		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+	}
+	// T0S2 energy
+	if (event.layer[0] > 3) {
+		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+	}
+	// T0S3 energy
+	if (event.layer[0] > 4) {
+		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+	}
+
+	// 4He kinematic energy
+	// T0D1 energy
+	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	// T0D2 energy
+	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+	// T0D3 energy
+	if (event.layer[1] > 1) {
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+	}
+	// T0S1 energy
+	if (event.layer[1] > 2) {
+		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+	}
+	// T0S2 energy
+	if (event.layer[1] > 3) {
+		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+	}
+	// T0S3 energy
+	if (event.layer[1] > 4) {
+		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+	}
+
+	// 2H kinematic energy
+	d_kinematic = event.tafd_energy + pow(
+		(event.csi_channel - csi_param[event.csi_index][2]) / csi_param[event.csi_index][0],
+		1.0 / csi_param[event.csi_index][1]
+	);
+
+
+	// calculate reaction point
+	double ppac_cx[3], ppac_cy[3];
+	for (int i = 0; i < 3; ++i) {
+		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
+		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
+	}
+	// slope and intercept
+	double xk, yk, xb, yb;
+	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+
+	// 10Be momentum
+	double be_momentum = MomentumFromKinematic(mass_10be, be_kinematic);
+	// 10Be momentum vector
+	ROOT::Math::XYZVector p_be(
+		event.d1x[0] - xb,
+		event.d1y[0] - yb,
+		100.0
+	);
+	p_be = p_be.Unit() * be_momentum;
+
+	// 4He momentum
+	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	// 4He momentum vector
+	ROOT::Math::XYZVector p_he(
+		event.d1x[1] - xb,
+		event.d1y[1] - yb,
+		100.0
+	);
+	p_he = p_he.Unit() * he_momentum;
+
+	// 2H momentum
+	double d_momentum = MomentumFromKinematic(mass_2h, d_kinematic);
+	// 2H momentum vector
+	ROOT::Math::XYZVector p_d(
+		event.rx - xb + pos_param[event.csi_index/2][0],
+		event.ry - yb + pos_param[event.csi_index/2][1],
+		135.0
+	);
+	p_d = p_d.Unit() * d_momentum;
+
+	// beam 14C momentum vector
+	ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
+	// 14C momentum
+	double c_momentum = p_c.R();
+	// 14C kinematic energy
+	c_kinematic =
+		sqrt(pow(c_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
+
+	// three-fold Q value
+	double q = be_kinematic + he_kinematic + d_kinematic - c_kinematic;
+
+	return q;
+}
+
+
+double TwoBodyProcess(
+	const ThreeBodyInfoEvent &event,
+	double excited_10be
+) {
+	// 10Be kinematic energy
+	// T0D1 energy
+	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	// T0D2 energy
+	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+	// T0D3 energy
+	if (event.layer[0] > 1) {
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+	}
+	// T0S1 energy
+	if (event.layer[0] > 2) {
+		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+	}
+	// T0S2 energy
+	if (event.layer[0] > 3) {
+		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+	}
+	// T0S3 energy
+	if (event.layer[0] > 4) {
+		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+	}
+
+	// 4He kinematic energy
+	// T0D1 energy
+	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	// T0D2 energy
+	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+	// T0D3 energy
+	if (event.layer[1] > 1) {
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+	}
+	// T0S1 energy
+	if (event.layer[1] > 2) {
+		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+	}
+	// T0S2 energy
+	if (event.layer[1] > 3) {
+		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+	}
+	// T0S3 energy
+	if (event.layer[1] > 4) {
+		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+	}
+
+	// calculate reaction point
+	double ppac_cx[3], ppac_cy[3];
+	for (int i = 0; i < 3; ++i) {
+		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
+		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
+	}
+	// slope and intercept
+	double xk, yk, xb, yb;
+	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+
+	// 10Be momentum
+	double be_momentum = MomentumFromKinematic(
+		mass_10be + excited_10be, be_kinematic
+	);
+	// 10Be momentum vector
+	ROOT::Math::XYZVector p_be(
+		event.d1x[0] - xb,
+		event.d1y[0] - yb,
+		100.0
+	);
+	p_be = p_be.Unit() * be_momentum;
+
+	// 4He momentum
+	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	// 4He momentum vector
+	ROOT::Math::XYZVector p_he(
+		event.d1x[1] - xb,
+		event.d1y[1] - yb,
+		100.0
+	);
+	p_he = p_he.Unit() * he_momentum;
+
+	// excited 14C momentum vector
+	ROOT::Math::XYZVector p_c = p_be + p_he;
+	// excited 14C momentum
+	double c_momentum = p_c.R();
+	// excited 14C total energy
+	double c_energy =
+		(be_kinematic + mass_10be + excited_10be)
+		+ (he_kinematic + mass_4he);
+	// excited 14C mass
+	double excited_c_mass = sqrt(
+		pow(c_energy, 2.0) - pow(c_momentum, 2.0)
+	);
+	// excited energy of 14C
+	double excited_14c = excited_c_mass - mass_14c;
+
+	return excited_14c;
+}
 
 double QSpectrum(double *x, double *par) {
 	double result = 0.0;
@@ -28,20 +312,23 @@ double QSpectrum(double *x, double *par) {
 }
 
 int main() {
-	TChain input_chain("tree", "input channel chain");
-	for (unsigned int run = 618; run <= 716; ++run) {
-		if (run == 628) continue;
-		if (run > 652 && run < 675) continue;
-		input_chain.AddFile(TString::Format(
-			"%s%sC14-10Be-4He-2H-%04u.root/tree",
-			kGenerateDataPath,
-			kChannelDir,
-			run
-		));
+	// input file name
+	TString input_file_name = TString::Format(
+		"%s%sthreebody.root", kGenerateDataPath, kInformationDir
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
 	}
-	ChannelEvent channel;
-	// setup input tree
-	channel.SetupInput(&input_chain);
+	// input data
+	ThreeBodyInfoEvent event;
+	// setup input branches
+	event.SetupInput(ipt);
 
 	// output file name
 	TString output_file_name;
@@ -56,62 +343,80 @@ int main() {
 	// histogram of Q value
 	TH1F hist_q("hq", "Q value", 60, -23, -8);
 	hist_q.SetLineColor(kBlack);
+	// histogram of Q value seperated by CsI index
+	std::vector<TH1F> sep_hist_q;
+	for (int i = 0; i < 12; ++i) sep_hist_q.emplace_back(
+		TString::Format("hq%d", i), "Q", 60, -23, -8
+	);
 	// histogram of 14C decay to all state of 10Be
 	TH1F c_spec_all("hsca", "spectrum of 14C", 100, 10, 40);
 	// spectrum of 14C decay to 10Be ground state
-	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 50, 10, 40);
+	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 60, 10, 40);
 	// spectrum of 14C decay to 10Be 3.5 MeV state
-	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.5MeV state", 60, 10, 40);
+	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 60, 10, 40);
 	// spectrum of 14C decay to 10Be 6 MeV state
 	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 60, 10, 40);
 	// spectrum of 14C decay to 10Be 7.5 MeV state
 	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 60, 10, 40);
+	// output tree
+	TTree opt("tree", "spectrum");
+	// output data
+	double be_kinematic, he_kinematic, d_kinematic, c_kinematic;
+	double threebody_q;
+	int be_state;
+	double c_excited;
+	// setup output branches
+	opt.Branch("be_kinematic", &be_kinematic, "bek/D");
+	opt.Branch("he_kinematic", &he_kinematic, "hek/D");
+	opt.Branch("d_kinematic", &d_kinematic, "dk/D");
+	opt.Branch("c_kinematic", &c_kinematic, "ck/D");
+	opt.Branch("q", &threebody_q, "q/D");
+	opt.Branch("be_state",  &be_state, "state/I");
+	opt.Branch("c_excited", &c_excited, "cex/D");
 
-	for (long long entry = 0; entry < input_chain.GetEntriesFast(); ++entry) {
-		input_chain.GetEntry(entry);
-		double q = channel.daughter_energy[0] + channel.daughter_energy[1]
-			+ channel.recoil_energy - channel.parent_energy;
-		hist_q.Fill(q);
-		// 10Be excited energy
-		double be_excited = -q - 11.3;
-		// double be_excited = 0.0;
-		// if (q > -13.5) be_excited = 0.0;
-		// else if (q > -16.5) be_excited = 3.5;
-		// else if (q > -19) be_excited = 6.0;
-		// else be_excited = 7.5;
-		// calculate 14C excited spectrum
-		ROOT::Math::XYZVector be_momentum(
-			channel.daughter_px[0],
-			channel.daughter_py[0],
-			channel.daughter_pz[0]
-		);
-		double be_energy = sqrt(
-			pow(be_momentum.R(), 2.0)
-			+ pow(be10_mass*u+be_excited, 2.0)
-		);
-		ROOT::Math::XYZVector he_momentum(
-			channel.daughter_px[1],
-			channel.daughter_py[1],
-			channel.daughter_pz[1]
-		);
-		double he_energy = sqrt(
-			pow(he_momentum.R(), 2.0)
-			+ pow(he4_mass*u, 2.0)
-		);
-		ROOT::Math::XYZVector c_momentum = be_momentum + he_momentum;
-		double c_energy = be_energy + he_energy;
-		double c_excited_mass = sqrt(
-			pow(c_energy, 2.0)
-			- pow(c_momentum.R(), 2.0)
-		);
-		double c_excited = c_excited_mass - c14_mass*u;
+	constexpr double q_correct[12] = {
+		0.5, 0.0, -0.6, -0.6, -0.8, -0.6,
+		-0.2, -0.5, 0.0, 0.0, 0.0, -0.3
+	};
 
-		if (channel.parent_energy < 378 || channel.parent_energy > 390) continue;
+	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
+		ipt->GetEntry(entry);
+
+		threebody_q = ThreeBodyProcess(
+			event,
+			be_kinematic, he_kinematic, d_kinematic, c_kinematic
+		);
+
+		// q value correct
+		threebody_q += q_correct[event.csi_index];
+
+		// if (threebody_q > -13.5 && threebody_q < -10) be_state = 0;
+		// else if (threebody_q > -16 && threebody_q < -14.5) be_state = 1;
+		// else if (threebody_q > -19 && threebody_q < -16.5) be_state = 2;
+		// else be_state = -1;
+
+		if (threebody_q > -13 && threebody_q < -10) be_state = 0;
+		else if (threebody_q > -16 && threebody_q < -15) be_state = 1;
+		else if (threebody_q > -19 && threebody_q < -17) be_state = 2;
+		else be_state = -1;
+
+		double be_excited = 0.0;
+		if (be_state == 1) be_excited = 3.368;
+		else if (be_state == 2) be_excited = 6.179;
+
+		c_excited = TwoBodyProcess(
+			event, be_excited
+		);
+
+		hist_q.Fill(threebody_q);
+		sep_hist_q[event.csi_index].Fill(threebody_q);
 		c_spec_all.Fill(c_excited);
-		if (q < -10.5 && q > -13) c_spec_0.Fill(c_excited);
-		if (q < -14 && q > -15.5) c_spec_1.Fill(c_excited);
-		if (q < -16.3 && q > -18.5) c_spec_2.Fill(c_excited);
-		if (q < -20.0 && q > -21.0) c_spec_3.Fill(c_excited);
+		if (be_state == 0) c_spec_0.Fill(c_excited);
+		if (be_state == 1) c_spec_1.Fill(c_excited);
+		if (be_state == 2) c_spec_2.Fill(c_excited);
+		if (be_state == 3) c_spec_3.Fill(c_excited);
+
+		opt.Fill();
 	}
 
 	// fit histograms
@@ -158,11 +463,14 @@ int main() {
 
 	// save
 	hist_q.Write();
+	for (TH1F &hist : sep_hist_q) hist.Write();
 	c_spec_all.Write();
 	c_spec_0.Write();
 	c_spec_1.Write();
 	c_spec_2.Write();
 	c_spec_3.Write();
+	// save tree
+	opt.Write();
 	// close files
 	output_file.Close();
 	return 0;
