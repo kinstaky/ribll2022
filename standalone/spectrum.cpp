@@ -54,6 +54,21 @@ double ppac_correct[2][3] = {
 // 	{132.49, 1.15958, 78.8477}
 // };
 
+// double csi_param[12][3] = {
+// 	{245.278, 0.945929, -230.988},
+// 	{236.876, 0.946186, -277.531},
+// 	{646.048, 0.755082, -1834.6},
+// 	{219.845, 1.01966, -291.14},
+// 	{346.592, 0.931183, -843.328},
+// 	{155.096, 1.14706, -161.708},
+// 	{593.534, 0.816273, -1837.39},
+// 	{397.154, 0.869776, -744.446},
+// 	{602.623, 0.808347, -1741.13},
+// 	{406.525, 0.84879, -610.244},
+// 	{273.668, 0.967122, -461.028},
+// 	{188.415, 1.08716, -265.075}
+// };
+
 
 double csi_param[12][3] = {
 	{273.278, 0.9159, -350.988},
@@ -89,6 +104,15 @@ double pos_param[6][2] = {
 	{-0.95, 2.11}
 };
 
+// double pos_param[6][2] = {
+// 	{1.77919, 1.34676},
+// 	{1.78847, -2.74042},
+// 	{1.2214, 0.427209},
+// 	{0.921257, -0.460719},
+// 	{0.692692, -3.47688},
+// 	{-0.95645, 2.10895}
+// };
+
 
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
@@ -99,12 +123,12 @@ double ThreeBodyProcess(
 ) {
 	// 10Be kinematic energy
 	// T0D1 energy
-	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
@@ -121,12 +145,12 @@ double ThreeBodyProcess(
 
 	// 4He kinematic energy
 	// T0D1 energy
-	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
@@ -163,8 +187,8 @@ double ThreeBodyProcess(
 	double be_momentum = MomentumFromKinematic(mass_10be, be_kinematic);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.d1x[0] - xb,
-		event.d1y[0] - yb,
+		event.be_x[0] - xb,
+		event.be_y[0] - yb,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
@@ -173,8 +197,8 @@ double ThreeBodyProcess(
 	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.d1x[1] - xb,
-		event.d1y[1] - yb,
+		event.he_x[0] - xb,
+		event.he_y[0] - yb,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -183,14 +207,19 @@ double ThreeBodyProcess(
 	double d_momentum = MomentumFromKinematic(mass_2h, d_kinematic);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
-		event.rx - xb + pos_param[event.csi_index/2][0],
-		event.ry - yb + pos_param[event.csi_index/2][1],
+		event.d_x - xb + pos_param[event.csi_index/2][0],
+		event.d_y - yb + pos_param[event.csi_index/2][1],
 		135.0
 	);
 	p_d = p_d.Unit() * d_momentum;
 
 	// beam 14C momentum vector
 	ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
+
+// std::cout << p_be.X() << ", " << p_be.Y() << ", " << p_be.Z() << "\n"
+// 	<< p_he.X() << ", " << p_he.Y() << ", " << p_he.Z() << "\n"
+// 	<< p_d.X() << ", " << p_d.Y() << ", " << p_d.Z() << "\n"
+// 	<< p_c.X() << ", " << p_c.Y() << ", " << p_c.Z() << "\n";
 	// 14C momentum
 	double c_momentum = p_c.R();
 	// 14C kinematic energy
@@ -210,12 +239,12 @@ double TwoBodyProcess(
 ) {
 	// 10Be kinematic energy
 	// T0D1 energy
-	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
@@ -232,12 +261,12 @@ double TwoBodyProcess(
 
 	// 4He kinematic energy
 	// T0D1 energy
-	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
@@ -269,8 +298,8 @@ double TwoBodyProcess(
 	);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.d1x[0] - xb,
-		event.d1y[0] - yb,
+		event.be_x[0] - xb,
+		event.be_y[0] - yb,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
@@ -279,8 +308,8 @@ double TwoBodyProcess(
 	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.d1x[1] - xb,
-		event.d1y[1] - yb,
+		event.he_x[0] - xb,
+		event.he_y[0] - yb,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -303,13 +332,24 @@ double TwoBodyProcess(
 	return excited_14c;
 }
 
-double QSpectrum(double *x, double *par) {
-	double result = 0.0;
-	for (int i = 0; i < 4; ++i) {
-		result += par[3*i] * exp(-0.5*pow((x[0]-par[3*i+1])/par[3*i+2], 2.0));
+
+class Spectrum {
+public:
+
+	Spectrum(int n): n_(n) {}
+
+	double operator()(double *x, double *par) {
+		double result = 0.0;
+		for (int i = 0; i < n_; ++i) {
+			result += par[3*i] * exp(-0.5 * pow((x[0] - par[3*i+1]) / par[3*i+2], 2.0));
+		}
+		return result;
 	}
-	return result;
-}
+
+private:
+	int n_;
+};
+
 
 int main() {
 	// input file name
@@ -329,6 +369,19 @@ int main() {
 	ThreeBodyInfoEvent event;
 	// setup input branches
 	event.SetupInput(ipt);
+
+	ipt->AddFriend(
+		"group=tree",
+		TString::Format(
+			"%s%sthreebody-group.root",
+			kGenerateDataPath,
+			kOptimizeDir
+		)
+	);
+	double mean;
+	double sigma;
+	ipt->SetBranchAddress("group.q_mean", &mean);
+	ipt->SetBranchAddress("group.q_sigma", &sigma);
 
 	// output file name
 	TString output_file_name;
@@ -351,13 +404,22 @@ int main() {
 	// histogram of 14C decay to all state of 10Be
 	TH1F c_spec_all("hsca", "spectrum of 14C", 100, 10, 40);
 	// spectrum of 14C decay to 10Be ground state
-	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 60, 10, 40);
+	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 300, 10, 40);
 	// spectrum of 14C decay to 10Be 3.5 MeV state
-	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 60, 10, 40);
+	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 300, 10, 40);
 	// spectrum of 14C decay to 10Be 6 MeV state
-	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 60, 10, 40);
+	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 300, 10, 40);
 	// spectrum of 14C decay to 10Be 7.5 MeV state
-	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 60, 10, 40);
+	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 300, 10, 40);
+	// spectrum in the range of hjx's article
+	TH1F hjx_spectrum0("hjx0", "spectrum", 35, 12, 19);
+	// sepectrum of first excited state in hjx's article range
+	TH1F hjx_spectrum1("hjx1", "spectrum", 45, 16, 25);
+	// spectrum of 6MeV excited state in Baba's article predicted range
+	TH1F sigma_predicted_spectrum2("baba2", "spectrum", 110, 19, 30);
+	hjx_spectrum0.SetLineColor(kBlack);
+	hjx_spectrum1.SetLineColor(kBlack);
+	sigma_predicted_spectrum2.SetLineColor(kBlack);
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
@@ -373,6 +435,8 @@ int main() {
 	opt.Branch("q", &threebody_q, "q/D");
 	opt.Branch("be_state",  &be_state, "state/I");
 	opt.Branch("c_excited", &c_excited, "cex/D");
+	opt.Branch("mean", &mean, "mean/D");
+	opt.Branch("sigma", &sigma, "sigma/D");
 
 	constexpr double q_correct[12] = {
 		0.5, 0.0, -0.6, -0.6, -0.8, -0.6,
@@ -395,8 +459,8 @@ int main() {
 		// else if (threebody_q > -19 && threebody_q < -16.5) be_state = 2;
 		// else be_state = -1;
 
-		if (threebody_q > -13 && threebody_q < -10) be_state = 0;
-		else if (threebody_q > -16 && threebody_q < -15) be_state = 1;
+		if (threebody_q > -14 && threebody_q < -10) be_state = 0;
+		else if (threebody_q > -16.5 && threebody_q < -14.5) be_state = 1;
 		else if (threebody_q > -19 && threebody_q < -17) be_state = 2;
 		else be_state = -1;
 
@@ -408,19 +472,32 @@ int main() {
 			event, be_excited
 		);
 
-		hist_q.Fill(threebody_q);
-		sep_hist_q[event.csi_index].Fill(threebody_q);
-		c_spec_all.Fill(c_excited);
-		if (be_state == 0) c_spec_0.Fill(c_excited);
-		if (be_state == 1) c_spec_1.Fill(c_excited);
-		if (be_state == 2) c_spec_2.Fill(c_excited);
-		if (be_state == 3) c_spec_3.Fill(c_excited);
+		if (sigma < 0.2) {
+			hist_q.Fill(threebody_q);
+			sep_hist_q[event.csi_index].Fill(threebody_q);
+			c_spec_all.Fill(c_excited);
+			if (be_state == 0){
+				c_spec_0.Fill(c_excited);
+				hjx_spectrum0.Fill(c_excited);
+			} else if (be_state == 1) {
+				c_spec_1.Fill(c_excited);
+				hjx_spectrum1.Fill(c_excited);
+			} else if (be_state == 2) {
+				c_spec_2.Fill(c_excited);
+				sigma_predicted_spectrum2.Fill(c_excited);
+			} else if (be_state == 3) {
+				c_spec_3.Fill(c_excited);
+			}
+		}
 
 		opt.Fill();
 	}
 
+
+	// fit total Q spectrum
+	Spectrum total_q_spectrum(4);
 	// fit histograms
-	TF1 fit_q_spectrum("fq", QSpectrum, -23, -8, 12);
+	TF1 fit_q_spectrum("fq", total_q_spectrum, -23, -8, 12);
 	double fit_q_initial_parameters[12] = {
 		20.0, -11.5, 1.0,
 		60.0, -15.0, 1.0,
@@ -437,9 +514,9 @@ int main() {
 	fit_q_spectrum.SetParLimits(1, -13.0, -11.0);
 	fit_q_spectrum.SetParLimits(4, -16.0, -13.5);
 	fit_q_spectrum.SetParLimits(7, -18.5, -16.5);
-	fit_q_spectrum.SetParLimits(10, -21.0, -20.0);
+	fit_q_spectrum.SetParLimits(10, -21.0, -19.0);
 	// set limits to sigma
-	fit_q_spectrum.SetParLimits(11, 0.1, 10.0);
+	// fit_q_spectrum.SetParLimits(11, 0.1, 10.0);
 	fit_q_spectrum.SetNpx(1000);
 	hist_q.Fit(&fit_q_spectrum, "R+");
 
@@ -456,10 +533,175 @@ int main() {
 		hist_q.GetListOfFunctions()->Add(fit_q_spectrums[i]);
 	}
 
+	std::cout << "Fit Q spectrum result:\n";
 	for (int i = 0; i < 4; ++i) {
 		std::cout << q_parameters[i*3] << " " << q_parameters[i*3+1]
 			<< " " << q_parameters[i*3+2] << "\n";
 	}
+
+
+
+	// fit hjx range spectrum
+	Spectrum hjx_peaks(7);
+	// fitting function
+	TF1 fit_hjx("fhjx", hjx_peaks, 12, 19, 21);
+	double fit_hjx_initial_parameters[21] = {
+		2.0, 13.6, 0.05,
+		5.8, 14.3, 0.08,
+		6.0, 14.9, 0.05,
+		10.0, 15.7, 0.05,
+		5.0, 16.0, 0.1,
+		3.0, 16.9, 0.1,
+		5.0, 18.0, 0.4
+	};
+
+	fit_hjx.SetParameters(fit_hjx_initial_parameters);
+
+	fit_hjx.SetParLimits(0, 1.0, 3.0);
+	fit_hjx.SetParLimits(1, 13.4, 14.0);
+	fit_hjx.SetParLimits(2, 0.0, 0.2);
+
+	fit_hjx.SetParLimits(3, 2.0, 10.0);
+	fit_hjx.SetParLimits(4, 14.1, 14.7);
+	fit_hjx.SetParLimits(5, 0.0, 0.2);
+
+	fit_hjx.SetParLimits(6, 2.0, 10.0);
+	fit_hjx.SetParLimits(7, 14.8, 15.2);
+	fit_hjx.SetParLimits(8, 0.0, 0.4);
+
+	fit_hjx.SetParLimits(9, 2.0, 30.0);
+	fit_hjx.SetParLimits(10, 15.3, 15.9);
+	fit_hjx.SetParLimits(11, 0.0, 0.2);
+
+	fit_hjx.SetParLimits(12, 0.0, 10.0);
+	fit_hjx.SetParLimits(13, 15.9, 16.4);
+	fit_hjx.SetParLimits(14, 0.0, 0.25);
+
+	fit_hjx.SetParLimits(15, 0.0, 10.0);
+	fit_hjx.SetParLimits(16, 16.5, 17.2);
+	fit_hjx.SetParLimits(17, 0.0, 0.15);
+
+	fit_hjx.SetParLimits(18, 0.0, 10.0);
+	fit_hjx.SetParLimits(19, 17.6, 18.6);
+	fit_hjx.SetParLimits(20, 0.0, 1.0);
+
+	fit_hjx.SetNpx(1000);
+	hjx_spectrum0.Fit(&fit_hjx, "R+");
+	double hjx_final_parameters[21];
+	fit_hjx.GetParameters(hjx_final_parameters);
+	TF1 *fit_hjxs[7];
+	for (int i = 0; i < 7; ++i) {
+		fit_hjxs[i] = new TF1(
+			TString::Format("fhjx0%d", i), "gaus", 12, 19
+		);
+		fit_hjxs[i]->SetParameters(hjx_final_parameters+3*i);
+		fit_hjxs[i]->SetLineColor(kBlue);
+		fit_hjxs[i]->SetNpx(200);
+		hjx_spectrum0.GetListOfFunctions()->Add(fit_hjxs[i]);
+	}
+
+	std::cout << "Fit hjx spectrum result:\n";
+	for (int i = 0; i < 7; ++i) {
+		std::cout << hjx_final_parameters[i*3] << " " << hjx_final_parameters[i*3+1]
+			<< " " << hjx_final_parameters[i*3+2] << "\n";
+	}
+
+
+
+	// first excited state
+	Spectrum first_peaks(3);
+	// fitting function
+	TF1 fit_hjx1("fhjx1", first_peaks, 16, 19, 9);
+	double fit_hjx1_initial_parameters[9] = {
+		10.0, 17.3, 0.08,
+		5.0, 17.9, 0.1,
+		15.0, 18.5, 0.1,
+	};
+
+	fit_hjx1.SetParameters(fit_hjx1_initial_parameters);
+
+	fit_hjx1.SetParLimits(0, 2.0, 20.0);
+	fit_hjx1.SetParLimits(1, 17.0, 17.5);
+	fit_hjx1.SetParLimits(2, 0.0, 0.2);
+
+	fit_hjx1.SetParLimits(3, 2.0, 20.0);
+	fit_hjx1.SetParLimits(4, 17.2, 18.0);
+	fit_hjx1.SetParLimits(5, 0.0, 0.4);
+
+	fit_hjx1.SetParLimits(6, 2.0, 30.0);
+	fit_hjx1.SetParLimits(7, 18.0, 19.0);
+	fit_hjx1.SetParLimits(8, 0.0, 0.4);
+
+
+	fit_hjx1.SetNpx(1000);
+	hjx_spectrum1.Fit(&fit_hjx1, "R+");
+	double hjx1_final_parameters[9];
+	fit_hjx1.GetParameters(hjx1_final_parameters);
+	TF1 *fit_hjxs1[3];
+	for (int i = 0; i < 3; ++i) {
+		fit_hjxs1[i] = new TF1(
+			TString::Format("fhjx1%d", i), "gaus", 16, 19
+		);
+		fit_hjxs1[i]->SetParameters(hjx1_final_parameters+3*i);
+		fit_hjxs1[i]->SetLineColor(kBlue);
+		fit_hjxs1[i]->SetNpx(200);
+		hjx_spectrum1.GetListOfFunctions()->Add(fit_hjxs1[i]);
+	}
+
+	std::cout << "Fit hjx spectrum first excited result:\n";
+	for (int i = 0; i < 3; ++i) {
+		std::cout << hjx1_final_parameters[i*3] << " " << hjx1_final_parameters[i*3+1]
+			<< " " << hjx1_final_parameters[i*3+2] << "\n";
+	}
+
+
+
+	// 6MeV excited state
+	Spectrum second_peaks(3);
+	// fitting function
+	TF1 fit_baba2("fbaba2", second_peaks, 21, 30, 9);
+	double fit_baba2_initial_parameters[9] = {
+		20.0, 21.4, 0.05,
+		20.0, 22.2, 0.05,
+		10.0, 23.6, 0.2
+	};
+
+	fit_baba2.SetParameters(fit_baba2_initial_parameters);
+
+	fit_baba2.SetParLimits(0, 2.0, 50.0);
+	fit_baba2.SetParLimits(1, 21.0, 22.0);
+	fit_baba2.SetParLimits(2, 0.0, 1.0);
+
+	fit_baba2.SetParLimits(3, 2.0, 50.0);
+	fit_baba2.SetParLimits(4, 21.8, 23.0);
+	fit_baba2.SetParLimits(5, 0.0, 1.0);
+
+	fit_baba2.SetParLimits(6, 0.0, 50.0);
+	fit_baba2.SetParLimits(7, 23.0, 25.0);
+	fit_baba2.SetParLimits(8, 0.0, 1.0);
+
+
+	fit_baba2.SetNpx(1000);
+	sigma_predicted_spectrum2.Fit(&fit_baba2, "R+");
+	double baba2_final_parameters[9];
+	fit_baba2.GetParameters(baba2_final_parameters);
+	TF1 *fit_babas2[3];
+	for (int i = 0; i < 3; ++i) {
+		fit_babas2[i] = new TF1(
+			TString::Format("fbaba2%d", i), "gaus", 21, 30
+		);
+		fit_babas2[i]->SetParameters(baba2_final_parameters+3*i);
+		fit_babas2[i]->SetLineColor(kBlue);
+		fit_babas2[i]->SetNpx(200);
+		sigma_predicted_spectrum2.GetListOfFunctions()->Add(fit_babas2[i]);
+	}
+
+	std::cout << "Fit predicted sigma bond spectrum result:\n";
+	for (int i = 0; i < 3; ++i) {
+		std::cout << baba2_final_parameters[i*3] << " " << baba2_final_parameters[i*3+1]
+			<< " " << baba2_final_parameters[i*3+2] << "\n";
+	}
+
 
 	// save
 	hist_q.Write();
@@ -469,6 +711,9 @@ int main() {
 	c_spec_1.Write();
 	c_spec_2.Write();
 	c_spec_3.Write();
+	hjx_spectrum0.Write();
+	hjx_spectrum1.Write();
+	sigma_predicted_spectrum2.Write();
 	// save tree
 	opt.Write();
 	// close files

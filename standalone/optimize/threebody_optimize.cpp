@@ -46,16 +46,16 @@ double ThreeBodyProcess(
 ) {
 	// 10Be kinematic energy
 	// T0D1 energy
-	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
 	if (calculated_t0d2) {
 		be_kinematic += be_calc->Energy(0, be_kinematic);
 	} else {
-		be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+		be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	}
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
@@ -72,16 +72,16 @@ double ThreeBodyProcess(
 
 	// 4He kinematic energy
 	// T0D1 energy
-	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
 	if (calculated_t0d2) {
 		he_kinematic += he_calc->Energy(0, he_kinematic);
 	} else {
-		he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+		he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	}
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
@@ -124,8 +124,8 @@ double ThreeBodyProcess(
 	double be_momentum = MomentumFromKinematic(mass_10be, be_kinematic);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.d1x[0] - xb,
-		event.d1y[0] - yb,
+		event.be_x[0] - xb,
+		event.be_y[0] - yb,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
@@ -134,8 +134,8 @@ double ThreeBodyProcess(
 	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.d1x[1] - xb,
-		event.d1y[1] - yb,
+		event.he_x[0] - xb,
+		event.he_y[0] - yb,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -144,14 +144,19 @@ double ThreeBodyProcess(
 	double d_momentum = MomentumFromKinematic(mass_2h, d_kinematic);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
-		event.rx - xb + pos_param[0],
-		event.ry - yb + pos_param[1],
+		event.d_x - xb + pos_param[0],
+		event.d_y - yb + pos_param[1],
 		135.0
 	);
 	p_d = p_d.Unit() * d_momentum;
 
 	// beam 14C momentum vector
 	ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
+// std::cout << p_be.X() << ", " << p_be.Y() << ", " << p_be.Z() << "\n"
+// 	<< p_he.X() << ", " << p_he.Y() << ", " << p_he.Z() << "\n"
+// 	<< p_d.X() << ", " << p_d.Y() << ", " << p_d.Z() << "\n"
+// 	<< p_c.X() << ", " << p_c.Y() << ", " << p_c.Z() << "\n";
+
 	// 14C momentum
 	double c_momentum = p_c.R();
 	// 14C kinematic energy
@@ -172,12 +177,12 @@ double TwoBodyProcess(
 ) {
 	// 10Be kinematic energy
 	// T0D1 energy
-	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[0];
+	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[0];
+	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[0];
+		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
@@ -194,12 +199,12 @@ double TwoBodyProcess(
 
 	// 4He kinematic energy
 	// T0D1 energy
-	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.d1_channel[1];
+	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.d2_channel[1];
+	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.d3_channel[1];
+		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
@@ -237,8 +242,8 @@ double TwoBodyProcess(
 	);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.d1x[0] - xb,
-		event.d1y[0] - yb,
+		event.be_x[0] - xb,
+		event.be_y[0] - yb,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
@@ -247,8 +252,8 @@ double TwoBodyProcess(
 	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.d1x[1] - xb,
-		event.d1y[1] - yb,
+		event.he_x[1] - xb,
+		event.he_y[1] - yb,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -635,13 +640,13 @@ int main(int argc, char **argv) {
 	}
 
 	// solve optimization problem
-	ceres::Solver::Options options;
-	options.max_num_iterations = 100;
-	options.linear_solver_type = ceres::DENSE_QR;
-	options.minimizer_progress_to_stdout = true;
-	ceres::Solver::Summary summary;
-	ceres::Solve(options, &problem, &summary);
-	std::cout << summary.BriefReport() << "\n";
+	// ceres::Solver::Options options;
+	// options.max_num_iterations = 100;
+	// options.linear_solver_type = ceres::DENSE_QR;
+	// options.minimizer_progress_to_stdout = true;
+	// ceres::Solver::Summary summary;
+	// ceres::Solve(options, &problem, &summary);
+	// std::cout << summary.BriefReport() << "\n";
 
 	// get l0 from ppac parameters
 	ppac_correct[0][0] = ppac_param[0];

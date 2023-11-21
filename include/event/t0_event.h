@@ -29,12 +29,12 @@ public:
 	unsigned short ssd_flag;
 	unsigned short charge[8];
 	unsigned short mass[8];
-	double energy[8][4];
-	double time[8][4];
+	double energy[8][3];
+	double time[8][3];
 	double ssd_energy[3];
-	double x[8][4];
-	double y[8][4];
-	double z[8][4];
+	double x[8][3];
+	double y[8][3];
+	double z[8][3];
 	int status[8];
 	int points[8];
 	unsigned short dssd_flag[8][3];

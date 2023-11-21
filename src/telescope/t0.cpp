@@ -1110,7 +1110,7 @@ int T0::SliceTrack() {
 					t0_event.x[i][0] = d1_event.x[d1_index];
 					t0_event.y[i][0] = d1_event.y[d1_index];
 					t0_event.z[i][0] = d1_event.z[d1_index];
-					t0_event.dssd_flag[i][0] = group[i].flag & 0xff;
+					t0_event.dssd_flag[i][0] = d1_event.flag[d1_index];
 					// fill T0D2 information
 					int d2_index = slice->index[1];
 					if (d2_index >= d2_event.hit) {
@@ -1125,7 +1125,7 @@ int T0::SliceTrack() {
 					t0_event.x[i][1] = d2_event.x[d2_index];
 					t0_event.y[i][1] = d2_event.y[d2_index];
 					t0_event.z[i][1] = d2_event.z[d2_index];
-					t0_event.dssd_flag[i][1] = (group[i].flag >> 8) & 0xff;
+					t0_event.dssd_flag[i][1] = d2_event.flag[d2_index];
 					t0_event.hole[i] = hole[d2_index];
 				} else if (layer == 1) {
 					// fill T0D3 information
@@ -1142,7 +1142,7 @@ int T0::SliceTrack() {
 					t0_event.x[i][2] = d3_event.x[d3_index];
 					t0_event.y[i][2] = d3_event.y[d3_index];
 					t0_event.z[i][2] = d3_event.z[d3_index];
-					t0_event.dssd_flag[i][2] = (group[i].flag >> 16) & 0xff;
+					t0_event.dssd_flag[i][2] = d3_event.flag[d3_index];
 				} else if (layer == 2) {
 					// fill T0S1 information
 					t0_event.ssd_energy[0] = s1_event.energy;

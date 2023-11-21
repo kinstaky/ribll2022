@@ -432,7 +432,7 @@ int C12ToThreeAlphaChannel::Coincide() {
 		channel.beam_time = xppac.time[3];
 		// beam p
 		ROOT::Math::XYZVector bp(xppac.px[3], xppac.py[3], xppac.pz[3]);
-		double bp_value = MomentumFromEnergy(channel.beam_energy, 6, 14);
+		double bp_value = MomentumFromEnergy(channel.beam_energy, 6, 12);
 		bp *= bp_value;
 		channel.beam_px = bp.X();
 		channel.beam_py = bp.Y();
@@ -453,7 +453,7 @@ int C12ToThreeAlphaChannel::Coincide() {
 			pp += p[i];
 		}
 		channel.parent_energy = 0.0;
-		for (unsigned short i = 0; i < channel.num; ++i) {
+		for (int i = 0; i < channel.num; ++i) {
 			channel.parent_energy += channel.daughter_energy[i]
 				+ IonMass(
 					channel.daughter_charge[i],
