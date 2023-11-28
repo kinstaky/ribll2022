@@ -138,17 +138,7 @@ int main(int argc, char **argv) {
 			i
 		));
 	}
-	// TFile ipf(
-	// 	TString::Format(
-	// 		"%s%st0-telescope-%04u.root",
-	// 		kGenerateDataPath,
-	// 		kTelescopeDir,
-	// 		run
-	// 	),
-	// 	"read"
-	// );
-	// TTree *ipt = (TTree*)ipf.Get("tree");
-	// input t0 telescope event
+	// input event
 	T0Event t0_event;
 	// setup input branches
 	t0_event.SetupInput(&chain);
@@ -167,10 +157,15 @@ int main(int argc, char **argv) {
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// 2D histogram of d1d2 pid
+	// TH2F d1d2_pid(
+	// 	"d1d2", "d1d2 #DeltaE-E pid",
+	// 	2500, 0, 50000, 3000, 0, 60000
+	// );
 	TH2F d1d2_pid(
 		"d1d2", "d1d2 #DeltaE-E pid",
-		2500, 0, 50000, 3000, 0, 60000
+		2500, 0, 250, 3000, 0, 300
 	);
+
 	// 2D histogram of d1d2 pid (stop in d2)
 	TH2F d1d2_pid_stop(
 		"d1d2s", "d1d2 #DeltaE-E pid",
@@ -179,7 +174,7 @@ int main(int argc, char **argv) {
 	// 2D histogram of d2d3 pid
 	TH2F d2d3_pid(
 		"d2d3", "d2d3 #DeltaE-E pid",
-		1750, 0, 35000, 2000, 0, 40000
+		1750, 0, 175, 2000, 0, 200
 	);
 	// 2D histogram of d2d3 pid stop in d3
 	TH2F d2d3_pid_stop(
@@ -221,6 +216,22 @@ int main(int argc, char **argv) {
 		"d1d3s", "d1d3 #DeltaE-E pid",
 		1750, 0, 35000, 750, 0, 15000
 	);
+
+	// 2D histogram of d1d2 pid
+	TH2F d1d2_cali_pid(
+		"d1d2c", "d1d2 #DeltaE-E pid",
+		2500, 0, 250, 3000, 0, 300
+	);
+
+
+	double t0_param[6][2] = {
+		{0.0553516, 0.00532019},
+		{-0.12591, 0.00632308},
+		{0.552785, 0.00579009},
+		{0.837779, 0.00233567},
+		{-0.306592, 0.00221028},
+		{3.0818, 0.00235991}
+	};
 
 	// double cali_param[6][2];
 	// for (size_t i = 0; i < 6; ++i) {
@@ -268,6 +279,11 @@ int main(int argc, char **argv) {
 		}
 		// get event
 		chain.GetEntry(entry);
+		for (int i = 0; i < t0_event.num; ++i) {
+			for (int j = 0; j < 3; ++j) {
+				t0_event.energy[i][j] = t0_param[j][0] + t0_param[j][1] * t0_event.energy[i][j];
+			}
+		}
 
 		if (two && t0_event.num != 2) continue;
 		for (int i = 0; i < t0_event.num; ++i) {
@@ -280,9 +296,17 @@ int main(int argc, char **argv) {
 				d1d2_pid_stop.Fill(
 					t0_event.energy[i][1], t0_event.energy[i][0]
 				);
+				d1d2_cali_pid.Fill(
+					t0_param[1][0] + t0_param[1][1] * t0_event.energy[i][1],
+					t0_param[0][0] + t0_param[0][1] * t0_event.energy[i][0]
+				);
 			} else if (t0_event.flag[i] == 0x7) {
 				d1d2_pid.Fill(t0_event.energy[i][1], t0_event.energy[i][0]);
 				d2d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][1]);
+				d1d2_cali_pid.Fill(
+					t0_param[1][0] + t0_param[1][1] * t0_event.energy[i][1],
+					t0_param[0][0] + t0_param[0][1] * t0_event.energy[i][0]
+				);
 				// d1d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][0]);
 				if (t0_event.ssd_flag == 0x0) {
 					d2d3_pid_stop.Fill(
@@ -359,6 +383,7 @@ int main(int argc, char **argv) {
 	s2s3_pid.Write();
 	d1d3_pid.Write();
 	d1d3_pid_stop.Write();
+	d1d2_cali_pid.Write();
 	// close files
 	opf.Close();
 	return 0;

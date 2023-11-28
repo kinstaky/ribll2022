@@ -12,6 +12,9 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress(
 		(prefix+"be10_excited").c_str(), &fragment_excited_energy
 	);
+	// tree->SetBranchAddress(
+	// 	(prefix+"be10_state").c_str(), &fragment_state
+	// );
 	tree->SetBranchAddress(
 		(prefix+"beam_theta").c_str(), &beam_theta
 	);
@@ -82,6 +85,7 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("beam_kinematic", &beam_kinematic, "bk/D");
 	tree->Branch("c14_excited", &beam_excited_energy, "c14ex/D");
 	tree->Branch("be10_excited", &fragment_excited_energy, "be10ex/D");
+	tree->Branch("be10_state", &fragment_state, "be10state/I");
 	tree->Branch("beam_theta", &beam_theta, "btheta/D");
 	tree->Branch("beam_phi", &beam_phi, "bphi/D");
 	tree->Branch("target_x", &target_x, "tx/D");

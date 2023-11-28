@@ -31,6 +31,7 @@ public:
 	double target_x;
 	double target_y;
 	double fragment_excited_energy;
+	int fragment_state;
 	double parent_kinematic;
 	double parent_theta;
 	double parent_phi;

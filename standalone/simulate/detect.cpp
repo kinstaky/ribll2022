@@ -2,6 +2,9 @@
 #include <iostream>
 
 #include <TFile.h>
+#include <TF1.h>
+#include <TGraph.h>
+#include <TMultiGraph.h>
 #include <TH1F.h>
 #include <TRandom3.h>
 #include <TString.h>
@@ -30,6 +33,8 @@ constexpr double h2_mass = 2.0135531980 * u;
 
 constexpr double ppac_xz[3] = {-695.2, -454.2, -275.2};
 constexpr double ppac_yz[3] = {-689.2, -448.2, -269.2};
+
+constexpr double state_start[3] = {12.5, 16.0, 18.5};
 
 double SimpleFit(const double *x, double *y, double &k, double &b) {
 	int n = 3;
@@ -80,6 +85,8 @@ int main() {
 		kGenerateDataPath,
 		kSimulateDir
 	);
+	// output file
+	TFile detect_file(detect_file_name, "recreate");
 	// fake q value histogram
 	TH1F hist_fake_q("hfq", "fake q value", 1000, -20, -10);
 	// T0D1,D2 x offset
@@ -94,8 +101,12 @@ int main() {
 	TH1F hist_d2d3_x_offset("hd2d3xo", "D2D3 x offset", 20, -10, 10);
 	// T0D2,D3 y offset
 	TH1F hist_d2d3_y_offset("hd2d3yo", "D2D3 y offset", 20, -10, 10);
-	// output file
-	TFile detect_file(detect_file_name, "recreate");
+	// detecting efficiency
+	TGraph g_efficiency[3];
+	// detecting efficiency multi graph
+	TMultiGraph mg_efficiency;
+	// energy resolution
+	TH1F hist_energy_res("heres", "energy resolution", 100, -3, 3);
 	// output tree
 	TTree detect_tree("tree", "detected data");
 	// output detect data
@@ -113,6 +124,22 @@ int main() {
 
 	// initialize random number generator
 	TRandom3 generator(0);
+
+	// efficiency point x
+	double efficiency_x[3][100];
+	// efficiency point y
+	double efficiency_y[3][100];
+	// counts of generated data in a specific 10Be and 14C excited energy range
+	int generate_counts[3][100];
+	// counts of detected data in a specific 10Be and 14C excited energy range
+	int detect_counts[3][100];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 100; ++j) {
+			efficiency_x[i][j] = state_start[i] + j * 0.5;
+			generate_counts[i][j] = 0;
+			detect_counts[i][j] = 0;
+		}
+	}
 
 	// show start
 	printf("Simulating   0%%");
@@ -294,6 +321,7 @@ int main() {
 		) {
 			detect.valid |= 0x1;
 		}
+		// check T0 geometry range
 		for (size_t i = 0; i < 2; ++i) {
 			double l = 100.0 + detect.t0_layer[i] * 11.76;
 			double x =
@@ -301,12 +329,35 @@ int main() {
 			double y =
 				l * tan(event.fragment_theta[i]) * cos(event.fragment_phi[i]);
 			if (
-				// t0_layer[i] > 0
-				x > -32.0 && x < 32.0
+				detect.t0_layer[i] > 0
+				&& x > -32.0 && x < 32.0
 				&& y > -32.0 && y < 32.0
 			) {
 				detect.valid |= 0x1 << (i+1);
 			}
+		}
+		// check T0 hit same strip
+		// check T0D1, T0D2
+		if (
+			detect.t0_layer[0] > 0 && detect.t0_layer[1] > 0
+			&& (
+				detect.t0x[0][0] == detect.t0x[1][0]
+				|| detect.t0y[0][0] == detect.t0y[1][0]
+				|| detect.t0x[0][1] == detect.t0x[1][1]
+				|| detect.t0y[0][1] == detect.t0y[1][1]
+			)
+		) {
+			detect.valid &= 0x1;
+		}
+		// check T0D3
+		if (
+			detect.t0_layer[0] > 1 && detect.t0_layer[1] > 1
+			&& (
+				detect.t0x[0][2] == detect.t0x[1][2]
+				|| detect.t0y[0][2] == detect.t0y[1][2]
+			)
+		) {
+			detect.valid &= 0x1;
 		}
 
 		// rebuild kinematic energy
@@ -359,8 +410,54 @@ int main() {
 		detect.q = t0_kinematic[0] + t0_kinematic[1]
 			+ taf_kinematic - calculated_beam_kinematic;
 
+		// rebuild 14C excited energy
+		// rebuild state
+		int rebuild_state = -1;
+		double rebuild_be_excited = 0.0;
+		if (detect.q > -13 && detect.q < -10) {
+			rebuild_state = 0;
+			rebuild_be_excited = 0.0;
+		} else if (detect.q > -16 && detect.q < -14) {
+			rebuild_state = 1;
+			rebuild_be_excited = 3.368;
+		} else if (detect.q > -19 && detect.q < -16.7) {
+			rebuild_state = 2;
+			rebuild_be_excited = 6.179;
+		}
+		// calcualted 14C momentum vecotr
+		ROOT::Math::XYZVector cbp = fp[0] + fp[1];
+		// excited 14C momentum
+		double c_momentum = cbp.R();
+		// excited 14C total energy
+		double c_energy =
+			(t0_kinematic[0] + be10_mass + rebuild_be_excited)
+			+ (t0_kinematic[1] + he4_mass);
+		// excited 14C mass
+		double excited_c_mass = sqrt(
+			pow(c_energy, 2.0) - pow(c_momentum, 2.0)
+		);
+		// excited energy of 14C
+		double excited_14c = excited_c_mass - c14_mass;
+		if (detect.valid == 7 && rebuild_state != -1) {
+			hist_energy_res.Fill(excited_14c - event.beam_excited_energy);
+		}
 		// fill to tree
 		detect_tree.Fill();
+
+		// increase counts
+		int state = 0;
+		if (event.fragment_excited_energy == 3.368) {
+			state = 1;
+		} else if (event.fragment_excited_energy == 6.179) {
+			state = 2;
+		}
+		int index = int(round(
+			(event.beam_excited_energy - state_start[state]) / 0.5
+		));
+		if (index >= 0 && index < 100) {
+			generate_counts[state][index]++;
+			if (detect.valid == 7 && rebuild_state != -1) detect_counts[state][index]++;
+		}
 
 		// fill DSSD offset histograms
 		for (int i = 0; i < 2; ++i) {
@@ -402,6 +499,27 @@ int main() {
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
+	// calculate efficiency
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 100; ++j) {
+			if (generate_counts[i][j] == 0) continue;
+			efficiency_y[i][j] =
+				double(detect_counts[i][j]) / generate_counts[i][j];
+			g_efficiency[i].AddPoint(
+				efficiency_x[i][j], efficiency_y[i][j]
+			);
+		}
+	}
+	mg_efficiency.Add(g_efficiency);
+	mg_efficiency.Add(g_efficiency+1);
+	mg_efficiency.Add(g_efficiency+2);
+
+	// fit energy resolution
+	TF1 fit_res("f1", "gaus", -2, 2);
+	hist_energy_res.Fit(&fit_res, "R+");
+	std::cout << "Energy resolution " <<
+		fit_res.GetParameter(2) * 2.0 * sqrt(2.0 * log(2.0)) << "\n";
+
 
 	detect_file.cd();
 	// save histogram
@@ -412,6 +530,13 @@ int main() {
 	hist_d1d3_y_offset.Write();
 	hist_d2d3_x_offset.Write();
 	hist_d2d3_y_offset.Write();
+	for (int i = 0; i < 3; ++i) {
+		g_efficiency[i].Write(TString::Format(
+			"gef%d", i
+		));
+	}
+	mg_efficiency.Write("mgef");
+	hist_energy_res.Write();
 	// save tree
 	detect_tree.Write();
 	// close file

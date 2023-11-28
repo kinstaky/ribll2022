@@ -178,6 +178,17 @@ int main(int argc, char **argv) {
 		3000, 0, 30000, 2000, 0, 20.0
 	);
 
+	// 2D calibrated dE-E PID histogram of CsI A
+	TH2F pid_a_calibrated(
+		"pidac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
+		3000, 0, 100, 2000, 0, 20.0
+	);
+	// 2D calibrated dE-E PID histogram of CsI A
+	TH2F pid_g8_a_calibrated(
+		"pidgac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
+		3000, 0, 100, 2000, 0, 20.0
+	);
+
 	// total number of entries
 	long long entries = chain.GetEntries();
 	// 1/100 of entries
@@ -207,8 +218,10 @@ int main(int argc, char **argv) {
 			} else {
 				pid_g8.Fill(e, de);
 				pid_g8_a.Fill(e, de);
+				pid_g8_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 			}
 			pid_a_thick.Fill(e+(de-cde)*150.0, cde);
+			pid_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 		} else if (ta_event.flag[0] == 0x5) {
 			if (ta_event.theta[0] < 0.8) {
 				pid_l8.Fill(e, de);
@@ -233,6 +246,8 @@ int main(int argc, char **argv) {
 	pid_g8_b.Write();
 	pid_a_thick.Write();
 	pid_b_thick.Write();
+	pid_a_calibrated.Write();
+	pid_g8_a_calibrated.Write();
 	// close files
 	opf.Close();
 	return 0;

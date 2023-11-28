@@ -278,7 +278,7 @@ int main() {
 	double fragment1_angle, fragment2_angle;
 
 
-	constexpr int entries = 300'000;
+	constexpr int entries = 3'000'000;
 	for (int entry = 0; entry < entries; ++entry) {
 		// get reaction point x
 		event.target_x = generator.Gaus(0.0, 3.0);
@@ -308,13 +308,15 @@ int main() {
 		// total energy of beam particle
 		double beam_energy = beam_mass + event.beam_kinematic;
 		// get beam excited energy
-		event.beam_excited_energy = generator.Rndm() * 10.0;
 		if (entry >= entries / 3 * 2) {
-			event.beam_excited_energy += 20.0;
+			event.beam_excited_energy =
+				12.0125 + 6.179 + generator.Rndm() * (40.0 - 12.0125 - 6.179) + 0.1;
 		} else if (entry >= entries / 3) {
-			event.beam_excited_energy += 18.5;
+			event.beam_excited_energy =
+				12.0125 + 3.368 + generator.Rndm() * (40.0 - 12.0125 - 3.368) + 0.1;
 		} else {
-			event.beam_excited_energy += 15.0;
+			event.beam_excited_energy =
+				12.0125 + generator.Rndm() * (20.0 - 12.0125) + 0.1;
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;
 
@@ -326,10 +328,13 @@ int main() {
 
 		// get fragment excited energy
 		event.fragment_excited_energy = 0.0;
+		event.fragment_state = 0;
 		if (entry >= entries / 3 * 2) {
-			event.fragment_excited_energy = 6.0;
+			event.fragment_excited_energy = 6.179;
+			event.fragment_state = 2;
 		} else if (entry >= entries / 3) {
-			event.fragment_excited_energy = 3.5;
+			event.fragment_excited_energy = 3.368;
+			event.fragment_state = 1;
 		}
 		double fragment1_mass = be10_mass + event.fragment_excited_energy;
 		// get breakup angle theta

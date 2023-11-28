@@ -3,6 +3,7 @@
 #include <TChain.h>
 #include <TF1.h>
 #include <TFile.h>
+#include <TGraph.h>
 #include <TH1F.h>
 #include <TString.h>
 #include <TTree.h>
@@ -383,6 +384,18 @@ int main() {
 	ipt->SetBranchAddress("group.q_mean", &mean);
 	ipt->SetBranchAddress("group.q_sigma", &sigma);
 
+	// simulated file to get efficiency
+	TString simulate_file_name = TString::Format(
+		"%s%sdetect.root",
+		kGenerateDataPath,
+		kSimulateDir
+	);
+	// simulate file
+	TFile simulate_file(simulate_file_name, "read");
+	TGraph *eff0 = (TGraph*)simulate_file.Get("gef0");
+	TGraph *eff1 = (TGraph*)simulate_file.Get("gef1");
+	TGraph *eff2 = (TGraph*)simulate_file.Get("gef2");
+
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
@@ -392,7 +405,6 @@ int main() {
 	);
 	// output file
 	TFile output_file(output_file_name, "recreate");
-
 	// histogram of Q value
 	TH1F hist_q("hq", "Q value", 60, -23, -8);
 	hist_q.SetLineColor(kBlack);
@@ -404,22 +416,24 @@ int main() {
 	// histogram of 14C decay to all state of 10Be
 	TH1F c_spec_all("hsca", "spectrum of 14C", 100, 10, 40);
 	// spectrum of 14C decay to 10Be ground state
-	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 300, 10, 40);
+	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 100, 12, 32);
 	// spectrum of 14C decay to 10Be 3.5 MeV state
-	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 300, 10, 40);
+	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 100, 12, 32);
 	// spectrum of 14C decay to 10Be 6 MeV state
-	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 300, 10, 40);
+	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 100, 12, 32);
 	// spectrum of 14C decay to 10Be 7.5 MeV state
-	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 300, 10, 40);
+	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 100, 12, 32);
 	// spectrum in the range of hjx's article
 	TH1F hjx_spectrum0("hjx0", "spectrum", 35, 12, 19);
 	// sepectrum of first excited state in hjx's article range
 	TH1F hjx_spectrum1("hjx1", "spectrum", 45, 16, 25);
 	// spectrum of 6MeV excited state in Baba's article predicted range
-	TH1F sigma_predicted_spectrum2("baba2", "spectrum", 110, 19, 30);
+	TH1F sigma_predicted_spectrum2("baba2", "spectrum", 55, 19, 30);
 	hjx_spectrum0.SetLineColor(kBlack);
 	hjx_spectrum1.SetLineColor(kBlack);
 	sigma_predicted_spectrum2.SetLineColor(kBlack);
+	// corrected efficiency
+	TGraph gefc[3];
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
@@ -702,6 +716,18 @@ int main() {
 			<< " " << baba2_final_parameters[i*3+2] << "\n";
 	}
 
+	gefc[0].AddPoint(12.0, 0.0);
+	gefc[1].AddPoint(15.0, 0.0);
+	gefc[2].AddPoint(18.0, 0.0);
+	for (int i = 0; i < 41; ++i) {
+		gefc[0].AddPoint(12.0+i*0.5, 25.0*eff0->Eval(12.0+i*0.5));
+	}
+	for (int i = 0; i < 35; ++i) {
+		gefc[1].AddPoint(15.0+i*0.5, 40.0*eff1->Eval(15.0+i*0.5));
+	}
+	for (int i = 0; i < 29; ++i) {
+		gefc[2].AddPoint(18.0+i*0.5, 40.0*eff2->Eval(18.0+i*0.5));
+	}
 
 	// save
 	hist_q.Write();
@@ -714,6 +740,9 @@ int main() {
 	hjx_spectrum0.Write();
 	hjx_spectrum1.Write();
 	sigma_predicted_spectrum2.Write();
+	gefc[0].Write("gef0");
+	gefc[1].Write("gef1");
+	gefc[2].Write("gef2");
 	// save tree
 	opt.Write();
 	// close files
