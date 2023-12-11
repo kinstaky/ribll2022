@@ -248,15 +248,18 @@ double LinearRiseExpDecayCosineVibrate(double *x, double *par) {
 	return LinearRiseExpDecay(x, f1Par) + CosineVibrate(x, f2Par);
 }
 
-int Adssd::AnalyzeTrace() {
+
+int FitTrace(
+	int run,
+	const std::string &name
+) {
 	// input trace file name
-	TString trace_file_name;
-	trace_file_name.Form(
+	TString trace_file_name = TString::Format(
 		"%s%s%s-trace-ta-%04u.root",
 		kGenerateDataPath,
 		kTraceDir,
-		name_.c_str(),
-		run_
+		name.c_str(),
+		run
 	);
 	// input trace file
 	TFile ipf(trace_file_name, "read");
@@ -273,8 +276,8 @@ int Adssd::AnalyzeTrace() {
 		"%s%staf%d-telescope-ta-%04u.root",
 		kGenerateDataPath,
 		kTelescopeDir,
-		name_[4] - '0',
-		run_
+		name[4] - '0',
+		run
 	);
 	// add friend
 	ipt->AddFriend("tele=tree", tele_file_name);
@@ -298,8 +301,8 @@ int Adssd::AnalyzeTrace() {
 		"%s%s%s-rise-ta-%04u.root",
 		kGenerateDataPath,
 		kTraceDir,
-		name_.c_str(),
-		run_
+		name.c_str(),
+		run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -652,6 +655,161 @@ int Adssd::AnalyzeTrace() {
 	// close files
 	opf.Close();
 	ipf.Close();
+	return 0;
+}
+
+
+int DifferentTrace(
+	int run,
+	const std::string &name,
+	int length,
+	int window
+) {
+	// input trace file name
+	TString trace_file_name = TString::Format(
+		"%s%s%s-trace-ta-%04u.root",
+		kGenerateDataPath,
+		kTraceDir,
+		name.c_str(),
+		run
+	);
+	// input trace file
+	TFile ipf(trace_file_name, "read");
+	// input trace tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< trace_file_name << " failed.\n";
+		return -1;
+	}
+	// trace points
+	int points;
+	// trace data
+	unsigned short raw_trace[length];
+	// setup input branches
+	ipt->SetBranchAddress("point", &points);
+	ipt->SetBranchAddress("trace", raw_trace);
+
+	// trace in floating numbers
+	double trace[length];
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%s%s-diff-ta-%04u.root",
+		kGenerateDataPath,
+		kTraceDir,
+		name.c_str(),
+		run
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// graph for checking trace
+	TGraph g_trace[10];
+	// filled graph number
+	int g_trace_num = 0;
+	// output tree
+	TTree opt("tree", "rise time");
+	// output data
+	double amplitude;
+	// setup output branches
+	opt.Branch("amplitude", &amplitude, "ampl/D");
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Analyzing trace   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		// get trace
+		ipt->GetEntry(entry);
+
+		if (points == 0) {
+			amplitude = -1e5;
+			opt.Fill();
+			continue;
+		}
+
+		// average differental
+		for (int i = 0; i < points; ++i) {
+			trace[i] = 0.0;
+			if (i - window < 0) continue;
+			if (i + window >= points) continue;
+			for (int j = i+1; j <= i+window; ++j) {
+				trace[i] += raw_trace[j];
+			}
+			for (int j = i-1; j >= i-window; --j) {
+				trace[i] -= raw_trace[j];
+			}
+		}
+
+		// search for maximum and minimum point
+		double max_value = -1e5;
+		int max_index = -1;
+		double min_value = 1e5;
+		int min_index = -1;
+		for (int i = 0; i < points; ++i) {
+			if (trace[i] > max_value || max_index == -1) {
+				max_value = trace[i];
+				max_index = i;
+			}
+			if (trace[i] < min_value || min_index == -1) {
+				min_value = trace[i];
+				min_index = i;
+			}
+		}
+
+		amplitude = max_value - min_value;
+		opt.Fill();
+
+		// fill first 10 trace to graph for checking
+		if (g_trace_num < 10) {
+			for (unsigned short i = 0; i < points; ++i) {
+				g_trace[g_trace_num].AddPoint(i, trace[i]);
+			}
+			// add max point
+			TMarker *marker_max = new TMarker(
+				max_index, trace[max_index], 20
+			);
+			marker_max->SetMarkerColor(kRed);
+			g_trace[g_trace_num].GetListOfFunctions()->Add(marker_max);
+			// add min point
+			TMarker *marker_min = new TMarker(
+				min_index, trace[min_index], 20
+			);
+			marker_min->SetMarkerColor(kRed);
+			g_trace[g_trace_num].GetListOfFunctions()->Add(marker_min);
+
+			++g_trace_num;
+		}
+
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	for (int i = 0; i < g_trace_num; ++i) {
+		g_trace[i].Write(TString::Format("g%d", i));
+	}
+	// save tree
+	opt.Write();
+	// close files
+	opf.Close();
+	ipf.Close();
+	return 0;
+}
+
+
+int Adssd::AnalyzeTrace() {
+	if (DifferentTrace(run_, name_, 2000, 20)) {
+		std::cerr << "Error: Different trace of " << name_ << " failed.\n";
+		return -1;
+	}
 	return 0;
 }
 

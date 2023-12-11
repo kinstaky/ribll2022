@@ -92,8 +92,10 @@ int TraceMapper::Map() {
 			TFile opf(trace_file_name, "recreate");
 			// output trace tree
 			TTree opt("tree", "trace");
+			// output data
+			int points;
 			// setup output branches
-			opt.Branch("point", &ltra, "p/s");
+			opt.Branch("point", &points, "p/I");
 			opt.Branch("trace", trace, "t[p]/s");
 
 			// 1/100 of entries, for showing process
@@ -109,8 +111,9 @@ int TraceMapper::Map() {
 				}
 				if (input_entries[entry] >= 0) {
 					ipt->GetEntry(input_entries[entry]);
+					points = ltra;
 				} else {
-					ltra = 0;
+					points = 0;
 				}
 				opt.Fill();
 			}
