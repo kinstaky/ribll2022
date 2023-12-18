@@ -147,7 +147,9 @@ Edge EdgeDetect(TH1F *hist) {
 	const double threshold = 3;
 	const int check_num = 4;
 	// detect rise edge
-	bool detect = false;
+	bool detect_rise = false;
+	// detect fall edge
+	bool detect_fall = false;
 	// return result of left edge and right edge
 	Edge result{0.0, 0.0};
 	// bins of histogram
@@ -159,18 +161,19 @@ Edge EdgeDetect(TH1F *hist) {
 				++over_threshold;
 			}
 		}
-		if (!detect) {
+		if (!detect_rise) {
 			if (over_threshold == check_num) {
-
-				detect = true;
+				detect_rise = true;
 				result.left = hist->GetBinCenter(i);
 				result.right = result.left;
 			}
 		} else if (over_threshold == 0) {
+			detect_fall = true;
 			result.right = hist->GetBinCenter(i);
 			break;
 		}
 	}
+	if (!detect_fall) result.right = hist->GetBinCenter(bins-check_num+1);
 	return result;
 }
 
@@ -242,7 +245,7 @@ void Alignment::GroupAlignment() {
 					auto xia_iter = std::lower_bound(
 						xia_times_.begin(),
 						xia_times_.end(),
-						vme_time + offset - search_window_
+						vme_time + offset
 					);
 					xia_iter != xia_times_.end();
 					++xia_iter
@@ -283,7 +286,7 @@ void Alignment::GroupAlignment() {
 
 		// time window for first match
 		TH1F first_match_window(
-			TString::Format("ht%d_1", group), "window", 1000, -window, window
+			TString::Format("ht%d_1", group), "window", 1000, 0, window
 		);
 		// first match out of the loop to calculate the average and variance
 		for (
@@ -302,7 +305,7 @@ void Alignment::GroupAlignment() {
 				auto xia_iter = std::lower_bound(
 					xia_times_.begin(),
 					xia_times_.end(),
-					vme_time + offset - window
+					vme_time + offset
 				);
 				xia_iter != xia_times_.end();
 				++xia_iter
@@ -341,7 +344,7 @@ void Alignment::GroupAlignment() {
 		window_vs_group[1].AddPoint(group, window);
 		// time window in the second match
 		TH1F second_match_window(
-			TString::Format("ht%d_2", group), "window", 100, -window, window
+			TString::Format("ht%d_2", group), "window", 50, -window, window
 		);
 		// the second match
 		for (
