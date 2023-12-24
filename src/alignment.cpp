@@ -316,7 +316,11 @@ void Alignment::GroupAlignment() {
 				++match_events;
 				++match_count;
 			}
-			if (match_count > 1) ++oversize;
+			if (match_count == 1) {
+				++statistics_.first_align_events;
+			} else {
+				++oversize;
+			}
 		}
 		// detect edge
 		Edge edge = EdgeDetect(&first_match_window);
@@ -374,7 +378,11 @@ void Alignment::GroupAlignment() {
 				++match_events;
 				++match_count;
 			}
-			if (match_count > 1) ++oversize;
+			if (match_count == 1) {
+				++statistics_.second_align_events;
+			} else {
+				++oversize;
+			}
 		}
 		// detect edge
 		edge = EdgeDetect(&second_match_window);
@@ -404,7 +412,7 @@ void Alignment::GroupAlignment() {
 		window_vs_group[2].AddPoint(group, window);
 		// time window in the third match
 		TH1F third_match_window(
-			TString::Format("ht%d_3", group), "window", 100, -window, window
+			TString::Format("ht%d_3", group), "window", 30, -window, window
 		);
 		// the third match to fill the tree
 		for (
@@ -438,6 +446,7 @@ void Alignment::GroupAlignment() {
 				xia_time = *xia_iter;
 			}
 			if (match_count == 1) {
+				++statistics_.third_align_events;
 				++statistics_.align_events;
 			} else if (match_count > 1) {
 				++oversize;

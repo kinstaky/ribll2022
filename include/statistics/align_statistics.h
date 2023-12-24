@@ -85,6 +85,12 @@ public:
 	}
 
 
+	// number of events aligned in first window
+	long long first_align_events;
+	// number of events aligned in second window
+	long long second_align_events;
+	// number of events aligned in third window
+	long long third_align_events;
 	// number of VME events can be aligned
 	long long align_events;
 	// number of VME events match more than one VME trigger in XIA

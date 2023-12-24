@@ -554,7 +554,6 @@ int main() {
 	}
 
 
-
 	// fit hjx range spectrum
 	Spectrum hjx_peaks(7);
 	// fitting function

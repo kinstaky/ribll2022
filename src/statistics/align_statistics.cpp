@@ -9,6 +9,9 @@ AlignStatistics::AlignStatistics(
 	unsigned int group
 )
 : Statistics(run)
+, first_align_events(0)
+, second_align_events(0)
+, third_align_events(0)
 , align_events(0)
 , oversize_events(0)
 , xia_events_(xia_events)
@@ -23,7 +26,17 @@ void AlignStatistics::Write() {
 
 
 void AlignStatistics::Print() const {
-	std::cout << "xia alignment rate "
+	std::cout
+		<< "first alignment rate "
+		<< first_align_events << " / " << xia_events_ << " "
+		<< double(first_align_events) / double(xia_events_) << "\n"
+		<< "second alignment rate "
+		<< second_align_events << " / " << xia_events_ << " "
+		<< double(second_align_events) / double(xia_events_) << "\n"
+		<< "third alignment rate "
+		<< third_align_events << " / " << xia_events_ << " "
+		<< double(third_align_events) / double(xia_events_) << "\n"
+		<< "xia alignment rate "
 		<< align_events << " / " << xia_events_ << " "
 		<< double(align_events) / double(xia_events_) << "\n"
 		<< "vme alignment rate "

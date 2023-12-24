@@ -410,6 +410,7 @@ int Ppac::GetSumRange(
 
 
 int Ppac::Merge(double) {
+	bool vppac = name_[0] == 'v';
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(
@@ -447,12 +448,12 @@ int Ppac::Merge(double) {
 		hist_diff_time.emplace_back(
 			TString::Format("hdx%d", i),
 			TString::Format("diff time of x%d", i),
-			1000, -100, 100
+			vppac ? 400 : 1000, -100, 100
 		);
 		hist_diff_time.emplace_back(
 			TString::Format("hdy%d", i),
 			TString::Format("diff time of y%d", i),
-			1000, -100, 100
+			vppac ? 400 : 1000, -100, 100
 		);
 	}
 	// output tree

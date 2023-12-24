@@ -67,10 +67,16 @@ target_link_libraries(
 	show_normalize PRIVATE detectors
 )
 
-# show t0 center
+# show T0 center
 add_executable(show_t0_center show_t0_center.cpp)
 target_link_libraries(
 	show_t0_center PRIVATE event statistics ROOT::Graf
+)
+
+# show T0 inverse tracking
+add_executable(show_t0_inverse_tracking show_t0_inverse_tracking.cpp)
+target_link_libraries(
+	show_t0_inverse_tracking PRIVATE event ROOT::Graf
 )
 
 # show T0 pid
