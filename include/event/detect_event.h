@@ -27,6 +27,7 @@ public:
 	int taf_layer;
 	double taf_lost_energy[2];
 	double taf_energy[2];
+	// particle stop layer, 0-T0D1, 1-T0D2, 2-T0D3
 	int t0_layer[2];
 	double t0_lost_energy[2][7];
 	double t0_energy[2][7];
@@ -40,7 +41,9 @@ public:
 	double t0r[2][3];
 	double ppacx[3];
 	double ppacy[3];
+	// target x from PPAC
 	double tx;
+	// target y from PPAC
 	double ty;
 	int valid;
 	double q;

@@ -14,20 +14,22 @@
 
 #include "include/event/t0_event.h"
 #include "include/event/particle_event.h"
+#include "include/event/threebody_info_event.h"
 #include "include/statistics/center_statistics.h"
+#include "include/optimize_utilities.h"
 
 using namespace ribll;
 
 constexpr double d1z = 100.0;
 constexpr double d2z = 111.76;
-constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
-constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
+const double t0z[3] = {100.0, 111.76, 123.52};
+// constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
+// constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
 constexpr double ppac_correctx[3] = {0.0, -2.23, -3.40};
 constexpr double ppac_correcty[3] = {0.0, 0.84, 1.78};
 constexpr int change_run = 717;
 
-double SimpleFit(const double *x, const double *y, double &k, double &b) {
-	int n = 3;
+double SimpleFit(const double *x, const double *y, const int n, double &k, double &b) {
 	double sumx = 0.0;
 	double sumy = 0.0;
 	double sumxy = 0.0;
@@ -83,6 +85,7 @@ void PrintUsage(const char *name) {
 		"  end_run           Set the last run, inclusive.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
+		"  -i                Use threebody info, 4He, 10Be.\n"
 		"  -t tag            Set trigger tag.\n"
 		"Examples:\n"
 		"  " << name << " 600        Show center of run 600.\n"
@@ -95,6 +98,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
+/// @param[out] info use threebody information
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -103,11 +107,13 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag
+	std::string &trigger_tag,
+	bool &info
 ) {
 	// initialize
 	help = false;
 	trigger_tag.clear();
+	info = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -125,6 +131,8 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
+		} else if (argv[result][1] == 'i') {
+			info = true;
 		} else {
 			return -result;
 		}
@@ -262,9 +270,127 @@ int InverseTrack(unsigned int run, const std::string &tag) {
 }
 
 
+int InverseTrackInfo() {
+	// input file name
+	TString info_file_name;
+	info_file_name.Form(
+		"%s%sthreebody.root",
+		kGenerateDataPath,
+		kInformationDir
+	);
+	// info file
+	TFile info_file(info_file_name, "read");
+	// info tree
+	TTree *tree = (TTree*)info_file.Get("tree");
+	if (!tree) {
+		std::cerr << "Error: Get tree from "
+			<< info_file_name << " failed.\n";
+		return -1;
+	}
+	// input info event
+	ThreeBodyInfoEvent info;
+	// setup branches
+	info.SetupInput(tree);
+
+	// output file name
+	TString output_file_name;
+	output_file_name.Form(
+		"%s%st0-inverse-tb.root",
+		kGenerateDataPath, kShowDir
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// T0 10Be and 4He target dx
+	TH1F t0_dx12("htdx12", "T0 10Be and 4He target dx", 100, -25, 25);
+	// T0 10Be and 4He target dy
+	TH1F t0_dy12("htdy12", "T0 10Be and 4He target dy", 100, -25, 25);
+	// PPAC and T0 10Be tracking target dx
+	TH1F ppac_t0_dx1(
+		"hptdx1", "PPAC and T0 10Be tracking target dx", 100, -25, 25
+	);
+	// PPAC and T0 10Be tracking target dy
+	TH1F ppac_t0_dy1(
+		"hptdy1", "PPAC and T0 10Be tracking target dy", 100, -25, 25
+	);
+	// PPAC and T0 4He tracking target dx
+	TH1F ppac_t0_dx2(
+		"hptdx2", "PPAC and T0 4He tracking target dx", 100, -25, 25
+	);
+	// PPAC and T0 4He tracking target dy
+	TH1F ppac_t0_dy2(
+		"hptdy2", "PPAC and T0 4He tracking target dy", 100, -25, 25
+	);
+
+	// random number generator
+	TRandom3 generator(tree->GetEntries());
+
+	constexpr double using_xz[3] = {
+		-695.2, -454.2, -275.2
+	};
+	constexpr double using_yz[3] = {
+		-689.2, -448.2, -269.2
+	};
+
+	// total number of entries
+	long long entries = tree->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Inverse tracking   0%%");
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		tree->GetEntry(entry);
+
+		// correct PPAC
+		for (int i = 0; i < 3; ++i) {
+			info.ppac_x[i] += ppac_correctx[i];
+			info.ppac_y[i] += ppac_correcty[i];
+		}
+
+		double xk, xb, yk, yb;
+		TrackPpac(info.ppac_xflag, using_xz, info.ppac_x, xk, xb);
+		TrackPpac(info.ppac_yflag, using_yz, info.ppac_y, yk, yb);
+
+		double xk0, xb0, yk0, yb0;
+		int len0 = info.layer[0] == 1 ? 2 : 3;
+		SimpleFit(t0z, info.be_x, len0, xk0, xb0);
+		SimpleFit(t0z, info.be_y, len0, yk0, yb0);
+
+		double xk1, xb1, yk1, yb1;
+		int len1 = info.layer[1] == 1 ? 2 : 3;
+		SimpleFit(t0z, info.he_x, len1, xk1, xb1);
+		SimpleFit(t0z, info.he_y, len1, yk1, yb1);
+
+		// fill to histogram
+		t0_dx12.Fill(xb1 - xb0);
+		t0_dy12.Fill(yb1 - yb0);
+		ppac_t0_dx1.Fill(xb0 - xb);
+		ppac_t0_dy1.Fill(yb0- yb);
+		ppac_t0_dx2.Fill(xb1 - xb);
+		ppac_t0_dy2.Fill(yb1 - yb);
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	t0_dx12.Write();
+	t0_dy12.Write();
+	ppac_t0_dx1.Write();
+	ppac_t0_dy1.Write();
+	ppac_t0_dx2.Write();
+	ppac_t0_dy2.Write();
+	// close files
+	opf.Close();
+	info_file.Close();
+	return 0;
+}
+
 
 int main(int argc, char **argv) {
-	if (argc < 2) {
+	if (argc < 1) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
@@ -273,8 +399,10 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
+	// info flag
+	bool info = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag);
+	int pos_start = ParseArguments(argc, argv, help, tag, info);
 
 	// need help
 	if (help) {
@@ -290,24 +418,31 @@ int main(int argc, char **argv) {
 		PrintUsage(argv[0]);
 		return -1;
 	}
-	if (pos_start >= argc) {
-		// positional arguments less than 1
-		std::cerr << "Error: Miss run argument.\n";
-		PrintUsage(argv[0]);
-		return -1;
-	}
 
-	// run number
-	unsigned int run = atoi(argv[pos_start]);
-	unsigned int end_run = run;
-	if (pos_start + 1 < argc) {
-		end_run = atoi(argv[pos_start+1]);
-	}
-
-	if (run == end_run) {
-		if (InverseTrack(run, tag)) {
-			std::cerr << "Error: Inverse track error.\n";
+	if (info) {
+		if (InverseTrackInfo()) {
+			std::cerr << "Error: Inverse track threebody info error.\n";
 			return -1;
+		}
+	} else {
+		if (pos_start >= argc) {
+			// positional arguments less than 1
+			std::cerr << "Error: Miss run argument.\n";
+			PrintUsage(argv[0]);
+			return -1;
+		}
+
+		// run number
+		unsigned int run = atoi(argv[pos_start]);
+		unsigned int end_run = run;
+		if (pos_start + 1 < argc) {
+			end_run = atoi(argv[pos_start+1]);
+		}
+		if (run == end_run) {
+			if (InverseTrack(run, tag)) {
+				std::cerr << "Error: Inverse track error.\n";
+				return -1;
+			}
 		}
 	}
 

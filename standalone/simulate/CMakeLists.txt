@@ -18,6 +18,10 @@ add_executable(detect detect.cpp)
 target_include_directories(detect PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(detect PRIVATE event range_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf)
 
+# track simulate data
+add_executable(sim_track simulate_track.cpp)
+target_link_libraries(sim_track PRIVATE event ROOT::Graf)
+
 # simulate live time
 add_executable(live_time live_time.cpp)
 target_include_directories(live_time PRIVATE ${PROJECT_SOURCE_DIR})
