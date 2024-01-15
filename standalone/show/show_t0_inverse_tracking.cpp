@@ -190,13 +190,21 @@ int InverseTrack(unsigned int run, const std::string &tag) {
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
+	// reaction point X from PPAC
 	TH1F txppac("ptx", "target x from PPAC", 300, -30, 30);
+	// reaction point Y from PPAC
 	TH1F typpac("pty", "target y from PPAC", 300, -30, 30);
+	// reaction point X from T0
 	TH1F txt0("ttx", "target x from T0", 300, -30, 30);
+	// reaction point Y from T0
 	TH1F tyt0("tty", "target y from T0", 300, -30, 30);
+	// dX from PPAC and T0 at T0D1
 	TH1F diffx("dx", "target x difference", 300, -30, 30);
+	// dY from PPAC and T0 at T0D1
 	TH1F diffy("dy", "target y difference", 300, -30, 30);
+	// reaction point dX from PPAC and T0
 	TH1F t0dx("t0dx", "x position difference", 300, -30, 30);
+	// reaction point dY from PPAC and T0
 	TH1F t0dy("t0dy", "y position difference", 300, -30, 30);
 
 	// random number generator
@@ -320,6 +328,21 @@ int InverseTrackInfo() {
 	TH1F ppac_t0_dy2(
 		"hptdy2", "PPAC and T0 4He tracking target dy", 100, -25, 25
 	);
+	TTree opt("tree", "T0 inverse tracking");
+	// output data
+	// PPAC reaction ponit
+	double ptx, pty;
+	// T0 10Be reaction point
+	double betx, bety;
+	// T0 4He reaction point
+	double hetx, hety;
+	// setup output branches
+	opt.Branch("ptx", &ptx, "ptx/D");
+	opt.Branch("pty", &pty, "pty/D");
+	opt.Branch("betx", &betx, "betx/D");
+	opt.Branch("bety", &bety, "bety/D");
+	opt.Branch("hetx", &hetx, "hetx/D");
+	opt.Branch("hety", &hety, "hety/D");
 
 	// random number generator
 	TRandom3 generator(tree->GetEntries());
@@ -333,16 +356,7 @@ int InverseTrackInfo() {
 
 	// total number of entries
 	long long entries = tree->GetEntries();
-	// 1/100 of entries, for showing process
-	long long entry100 = entries / 100 + 1;
-	// show start
-	printf("Inverse tracking   0%%");
 	for (long long entry = 0; entry < entries; ++entry) {
-		// show process
-		if (entry % entry100 == 0) {
-			printf("\b\b\b\b%3lld%%", entry / entry100);
-			fflush(stdout);
-		}
 		tree->GetEntry(entry);
 
 		// correct PPAC
@@ -372,16 +386,26 @@ int InverseTrackInfo() {
 		ppac_t0_dy1.Fill(yb0- yb);
 		ppac_t0_dx2.Fill(xb1 - xb);
 		ppac_t0_dy2.Fill(yb1 - yb);
-	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
 
+		// fill tree
+		ptx = xb;
+		pty = yb;
+		betx = xb0;
+		bety = yb0;
+		hetx = xb1;
+		hety = yb1;
+		opt.Fill();
+	}
+
+	// save histograms
 	t0_dx12.Write();
 	t0_dy12.Write();
 	ppac_t0_dx1.Write();
 	ppac_t0_dy1.Write();
 	ppac_t0_dx2.Write();
 	ppac_t0_dy2.Write();
+	// save tree
+	opt.Write();
 	// close files
 	opf.Close();
 	info_file.Close();

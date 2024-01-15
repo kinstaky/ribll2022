@@ -149,7 +149,6 @@ int main() {
 		double deuterium_momentum = MomentumFromEnergy(deuterium_energy, 1, 2);
 		double carbon_momentum = MomentumFromEnergy(carbon_energy, 4, 14, excited_energy);
 		// cosine law
-		// cosine law
 		double deuterium_cos_theta = (
 			pow(deuterium_momentum, 2.0)
 			+ pow(beam_momentum, 2.0)

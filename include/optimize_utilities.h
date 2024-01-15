@@ -16,13 +16,13 @@ constexpr double ppac_xz[3] = {-695.2, -454.2, -275.2};
 constexpr double ppac_yz[3] = {-689.2, -448.2, -269.2};
 
 
-/// @brief get momentum from kinematic energy
+/// @brief get momentum from kinetic energy
 /// @param[in] mass mass of particle
-/// @param[in] kinematic kinematic energy of particle
+/// @param[in] kinetic kinetic energy of particle
 /// @returns momentum of particle
 ///
-inline double MomentumFromKinematic(double mass, double kinematic) {
-	return sqrt((2.0 * mass + kinematic) * kinematic);
+inline double MomentumFromKinetic(double mass, double kinetic) {
+	return sqrt((2.0 * mass + kinetic) * kinetic);
 }
 
 

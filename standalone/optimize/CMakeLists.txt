@@ -28,3 +28,12 @@ target_include_directories(
 target_link_libraries(
 	threebody_group PRIVATE event ROOT::Graf
 )
+
+add_executable(single_ppac_track_parameter single_ppac_track_parameter.cpp)
+target_link_libraries(
+	single_ppac_track_parameter PRIVATE Ceres::ceres event ROOT::Graf 
+)
+
+# ppac_group
+add_executable(ppac_group ppac_group.cpp)
+target_link_libraries(ppac_group PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf)

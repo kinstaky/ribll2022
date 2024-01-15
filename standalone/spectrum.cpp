@@ -115,59 +115,187 @@ double pos_param[6][2] = {
 // };
 
 
+
+/// @brief single PPAC tracking, optimize deutron relative approximate method
+/// @param[in] be_kinetic kinematic energy of 10Be
+/// @param[in] he_kinetic kinematic energy of 4He
+/// @param[in] d_kinetic kinematic energy of 2H
+/// @param[in] ppac_z distance of PPAC from target
+/// @param[in] be_position 10Be position on T0
+/// @param[in] he_position 4He position on T0
+/// @param[in] d_position 2H position on TAFD
+/// @param[in] d_position_v 2H position on TAFD other direction
+/// @param[in] c_position beam position on PPAC
+/// @returns reaction point
+///
+double DeutronRelativeApproximateTrack(
+	double be_kinetic,
+	double he_kinetic,
+	double d_kinetic,
+	double ppac_z,
+	double be_position,
+	double he_position,
+	double d_position,
+	double d_position_v,
+	double c_position
+) {
+	// 10Be parameter
+	double a_be = sqrt(
+		(2.0 * mass_10be + be_kinetic) * be_kinetic
+	) / 100.0;
+	// 4He parameter
+	double a_he = sqrt(
+		(2.0 * mass_4he + he_kinetic) * he_kinetic
+	) / 100.0;
+	// 2H parameter
+	double a_d = sqrt(
+		(2.0 * mass_2h + d_kinetic) * d_kinetic
+	) / sqrt(
+		135.0 * 135.0
+		+ d_position * d_position
+		+ d_position_v * d_position_v
+	);
+	// 14C parameter
+	double a_c = -sqrt(
+		(2.0 * mass_14c + 385.0) * 385.0
+	) / ppac_z;
+	// calculate
+	double numerator = a_be * be_position;
+	numerator += a_he * he_position;
+	numerator += a_d * d_position;
+	numerator += a_c * c_position;
+	double denominator = a_be + a_he + a_d + a_c;
+	return numerator / denominator;
+}
+
+
+/// @brief Track PPAC points and get the line
+/// @param[in] flag point valid flag
+/// @param[in] x point x position (actually is z)
+/// @param[in] y point y position (actually is x or y)
+/// @param[in] be_kinetic kinematic energy of 10Be
+/// @param[in] he_kinetic kinematic energy of 4He
+/// @param[in] d_kinetic kinematic energy of 2H
+/// @param[in] ppac_z distance of PPAC from target
+/// @param[in] be_position 10Be position on T0
+/// @param[in] he_position 4He position on T0
+/// @param[in] d_position 2H position on TAFD
+/// @param[in] d_position_v 2H position on TAFD other direction
+/// @returns reaction point
+///
+double TrackPpac(
+	unsigned short flag,
+	const double *x,
+	const double *y,
+	double be_kinetic,
+	double he_kinetic,
+	double d_kinetic,
+	double be_position,
+	double he_position,
+	double d_position,
+	double d_position_v
+) {
+	// beam slope and reaction point
+	double k, b;
+	b = -1e5;
+	if (flag == 0x1) {
+		b = DeutronRelativeApproximateTrack(
+			be_kinetic, he_kinetic, d_kinetic, x[0],
+			be_position, he_position, d_position, d_position_v, y[0]
+		);
+	} else if (flag == 0x2) {
+		b = DeutronRelativeApproximateTrack(
+			be_kinetic, he_kinetic, d_kinetic, x[1],
+			be_position, he_position, d_position, d_position_v, y[1]
+		);
+	} else if (flag == 0x4) {
+		b = DeutronRelativeApproximateTrack(
+			be_kinetic, he_kinetic, d_kinetic, x[2],
+			be_position, he_position, d_position, d_position_v, y[2]
+		);
+	} else if (flag == 0x3) {
+		k = (y[0] - y[1]) / (x[0] - x[1]);
+		b = y[0] - k * x[0];
+	} else if (flag == 0x5) {
+		k = (y[0] - y[2]) / (x[0] - x[2]);
+		b = y[0] - k * x[0];
+	} else if (flag == 0x6) {
+		k = (y[1] - y[2]) / (x[1] - x[2]);
+		b = y[1] - k * x[1];
+	} else if (flag == 0x7) {
+		SimpleFit(x, y, k, b);
+	} else {
+		std::cerr << "Error: Unknown flag " << flag << "\n";
+	}
+	return b;
+}
+
+
+/// @brief rebuild threebody reaction process
+/// @param[in] event input event
+/// @param[out] tx reaction point x
+/// @param[out] ty reaction point y
+/// @param[out] be_kinetic 10Be kinetic energy
+/// @param[out] he_kinetic 4He kinetic energy
+/// @param[out] d_kinetic 2H kinetic energy
+/// @param[out] c_kinetic 14C kinetic energy
+/// @returns Q value
+///
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
-	double &be_kinematic,
-	double &he_kinematic,
-	double &d_kinematic,
-	double &c_kinematic
+	double &tx,
+	double &ty,
+	double &be_kinetic,
+	double &he_kinetic,
+	double &d_kinetic,
+	double &c_kinetic
 ) {
 	// 10Be kinematic energy
 	// T0D1 energy
-	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
+	be_kinetic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+	be_kinetic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
+		be_kinetic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
-		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		be_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[0] > 3) {
-		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		be_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[0] > 4) {
-		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		be_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
 	// 4He kinematic energy
 	// T0D1 energy
-	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
+	he_kinetic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+	he_kinetic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
+		he_kinetic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
-		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		he_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[1] > 3) {
-		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		he_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[1] > 4) {
-		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
 	// 2H kinematic energy
-	d_kinematic = event.tafd_energy + pow(
+	d_kinetic = event.tafd_energy + pow(
 		(event.csi_channel - csi_param[event.csi_index][2]) / csi_param[event.csi_index][0],
 		1.0 / csi_param[event.csi_index][1]
 	);
@@ -179,37 +307,43 @@ double ThreeBodyProcess(
 		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
 		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
 	}
-	// slope and intercept
-	double xk, yk, xb, yb;
-	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	tx = TrackPpac(
+		event.ppac_xflag, ppac_xz, ppac_cx,
+		be_kinetic, he_kinetic, d_kinetic,
+		event.be_x[0], event.he_x[0], event.d_x, event.d_y
+	);
+	ty = TrackPpac(
+		event.ppac_yflag, ppac_yz, ppac_cy,
+		be_kinetic, he_kinetic, d_kinetic,
+		event.be_y[0], event.he_y[0], event.d_y, event.d_x
+	);
 
 	// 10Be momentum
-	double be_momentum = MomentumFromKinematic(mass_10be, be_kinematic);
+	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.be_x[0] - xb,
-		event.be_y[0] - yb,
+		event.be_x[0] - tx,
+		event.be_y[0] - ty,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.he_x[0] - xb,
-		event.he_y[0] - yb,
+		event.he_x[0] - tx,
+		event.he_y[0] - ty,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
 
 	// 2H momentum
-	double d_momentum = MomentumFromKinematic(mass_2h, d_kinematic);
+	double d_momentum = MomentumFromKinetic(mass_2h, d_kinetic);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
-		event.d_x - xb + pos_param[event.csi_index/2][0],
-		event.d_y - yb + pos_param[event.csi_index/2][1],
+		event.d_x - tx + pos_param[event.csi_index/2][0],
+		event.d_y - ty + pos_param[event.csi_index/2][1],
 		135.0
 	);
 	p_d = p_d.Unit() * d_momentum;
@@ -224,93 +358,51 @@ double ThreeBodyProcess(
 	// 14C momentum
 	double c_momentum = p_c.R();
 	// 14C kinematic energy
-	c_kinematic =
+	c_kinetic =
 		sqrt(pow(c_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
 
 	// three-fold Q value
-	double q = be_kinematic + he_kinematic + d_kinematic - c_kinematic;
+	double q = be_kinetic + he_kinetic + d_kinetic - c_kinetic;
 
 	return q;
 }
 
 
+/// @brief calculate 14C exicted energy
+/// @param[in] event input event
+/// @param[in] be_kinetic 10Be kinetic energy
+/// @param[in] he_kinetic 4He kinetic energy
+/// @param[in] tx reaction point x
+/// @param[in] ty reaction point y
+/// @param[in] excited_10be excited energy of 10Be
+/// @returns excited energy of 14C
+///
 double TwoBodyProcess(
 	const ThreeBodyInfoEvent &event,
-	double excited_10be
+	const double be_kinetic,
+	const double he_kinetic,
+	const double tx,
+	const double ty,
+	const double excited_10be
 ) {
-	// 10Be kinematic energy
-	// T0D1 energy
-	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
-	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
-	// T0D3 energy
-	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
-	}
-	// T0S1 energy
-	if (event.layer[0] > 2) {
-		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	}
-	// T0S2 energy
-	if (event.layer[0] > 3) {
-		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	}
-	// T0S3 energy
-	if (event.layer[0] > 4) {
-		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	}
-
-	// 4He kinematic energy
-	// T0D1 energy
-	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
-	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
-	// T0D3 energy
-	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
-	}
-	// T0S1 energy
-	if (event.layer[1] > 2) {
-		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	}
-	// T0S2 energy
-	if (event.layer[1] > 3) {
-		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	}
-	// T0S3 energy
-	if (event.layer[1] > 4) {
-		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	}
-
-	// calculate reaction point
-	double ppac_cx[3], ppac_cy[3];
-	for (int i = 0; i < 3; ++i) {
-		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
-		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
-	}
-	// slope and intercept
-	double xk, yk, xb, yb;
-	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
-
 	// 10Be momentum
-	double be_momentum = MomentumFromKinematic(
-		mass_10be + excited_10be, be_kinematic
+	double be_momentum = MomentumFromKinetic(
+		mass_10be + excited_10be, be_kinetic
 	);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.be_x[0] - xb,
-		event.be_y[0] - yb,
+		event.be_x[0] - tx,
+		event.be_y[0] - ty,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.he_x[0] - xb,
-		event.he_y[0] - yb,
+		event.he_x[0] - tx,
+		event.he_y[0] - ty,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -321,8 +413,8 @@ double TwoBodyProcess(
 	double c_momentum = p_c.R();
 	// excited 14C total energy
 	double c_energy =
-		(be_kinematic + mass_10be + excited_10be)
-		+ (he_kinematic + mass_4he);
+		(be_kinetic + mass_10be + excited_10be)
+		+ (he_kinetic + mass_4he);
 	// excited 14C mass
 	double excited_c_mass = sqrt(
 		pow(c_energy, 2.0) - pow(c_momentum, 2.0)
@@ -371,18 +463,18 @@ int main() {
 	// setup input branches
 	event.SetupInput(ipt);
 
-	ipt->AddFriend(
-		"group=tree",
-		TString::Format(
-			"%s%sthreebody-group.root",
-			kGenerateDataPath,
-			kOptimizeDir
-		)
-	);
-	double mean;
-	double sigma;
-	ipt->SetBranchAddress("group.q_mean", &mean);
-	ipt->SetBranchAddress("group.q_sigma", &sigma);
+	// ipt->AddFriend(
+	// 	"group=tree",
+	// 	TString::Format(
+	// 		"%s%sthreebody-group.root",
+	// 		kGenerateDataPath,
+	// 		kOptimizeDir
+	// 	)
+	// );
+	// double mean;
+	// double sigma;
+	// ipt->SetBranchAddress("group.q_mean", &mean);
+	// ipt->SetBranchAddress("group.q_sigma", &sigma);
 
 	// simulated file to get efficiency
 	TString simulate_file_name = TString::Format(
@@ -437,20 +529,22 @@ int main() {
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
-	double be_kinematic, he_kinematic, d_kinematic, c_kinematic;
+	double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
 	double threebody_q;
 	int be_state;
 	double c_excited;
+	bool ppac_valid;
 	// setup output branches
-	opt.Branch("be_kinematic", &be_kinematic, "bek/D");
-	opt.Branch("he_kinematic", &he_kinematic, "hek/D");
-	opt.Branch("d_kinematic", &d_kinematic, "dk/D");
-	opt.Branch("c_kinematic", &c_kinematic, "ck/D");
+	opt.Branch("be_kinetic", &be_kinetic, "bek/D");
+	opt.Branch("he_kinetic", &he_kinetic, "hek/D");
+	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
+	opt.Branch("c_kinetic", &c_kinetic, "ck/D");
 	opt.Branch("q", &threebody_q, "q/D");
 	opt.Branch("be_state",  &be_state, "state/I");
 	opt.Branch("c_excited", &c_excited, "cex/D");
-	opt.Branch("mean", &mean, "mean/D");
-	opt.Branch("sigma", &sigma, "sigma/D");
+	// opt.Branch("mean", &mean, "mean/D");
+	// opt.Branch("sigma", &sigma, "sigma/D");
+	opt.Branch("ppac_valid", &ppac_valid, "pvalid/O");
 
 	constexpr double q_correct[12] = {
 		0.5, 0.0, -0.6, -0.6, -0.8, -0.6,
@@ -460,9 +554,19 @@ int main() {
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 		ipt->GetEntry(entry);
 
+		// check PPAC flags
+		ppac_valid = true;
+		if (event.ppac_xflag == 0 || event.ppac_yflag == 0) {
+			ppac_valid = false;
+			opt.Fill();
+			continue;
+		}
+
+		// reaction point
+		double tx, ty;
 		threebody_q = ThreeBodyProcess(
-			event,
-			be_kinematic, he_kinematic, d_kinematic, c_kinematic
+			event, tx, ty,
+			be_kinetic, he_kinetic, d_kinetic, c_kinetic
 		);
 
 		// q value correct
@@ -483,10 +587,11 @@ int main() {
 		else if (be_state == 2) be_excited = 6.179;
 
 		c_excited = TwoBodyProcess(
-			event, be_excited
+			event, be_kinetic, he_kinetic,
+			tx, ty, be_excited
 		);
 
-		if (sigma < 0.2) {
+		// if (sigma < 0.2) {
 			hist_q.Fill(threebody_q);
 			sep_hist_q[event.csi_index].Fill(threebody_q);
 			c_spec_all.Fill(c_excited);
@@ -502,7 +607,7 @@ int main() {
 			} else if (be_state == 3) {
 				c_spec_3.Fill(c_excited);
 			}
-		}
+		// }
 
 		opt.Fill();
 	}

@@ -9,112 +9,13 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/ppac_event.h"
+#include "include/event/tof_event.h"
 #include "include/event/particle_event.h"
 
 namespace ribll {
 
 constexpr unsigned int kChangePpacRun = 717;
 
-constexpr double sum_range[][19][2] = {
-	{
-		// 618 <= run <= 640
-		// x0, y0
-		{100, 120},		// x0-a0
-		{100, 120},		// y0-a0
-		{100, 120},		// x0-a1
-		{100, 120},		// y0-a1
-		{70, 90},		// x0-a2
-		{70, 90},		// y0-a2
-		// x1, y1
-		{85, 105},		// x1-a0
-		{100, 120},		// y1-a0
-		{90, 110},		// x1-a1
-		{100, 120},		// y1-a1
-		{70, 90},		// x1-a2
-		{70, 90},		// y1-a2
-		// x2, y2
-		{100, 120},		// x2-a0
-		{110, 130},		// y2-a0
-		{100, 120},		// x2-a1
-		{110, 130},		// y2-a1
-		{80, 100},		// x2-a2
-		{80, 100}		// y2-a2
-	},
-	{
-		// run == 641, 642, 644, 645, 648, 649, 651
-		// x0, y0
-		{75, 95},		// x0-a0
-		{70, 90},		// y0-a0
-		{85, 105},		// x0-a1
-		{85, 105},		// y0-a1
-		{70, 90},		// x0-a2
-		{70, 90},		// y0-a2
-		// x1, y1
-		{90, 110},		// x1-a0
-		{85, 105},		// y1-a0
-		{100, 120},		// x1-a1
-		{95, 115},		// y1-a1
-		{80, 100},		// x1-a2
-		{80, 100},		// y1-a2
-		// x2, y2
-		{90, 110},		// x2-a0
-		{85, 105},		// y2-a0
-		{100, 120},		// x2-a1
-		{100, 120},		// y2-a1
-		{85, 105},		// x2-a2
-		{85, 105}		// y2-a2
-	}
-};
-constexpr double fit_range[][18][2] = {
-	{
-		// 618 <= run <= 640
-		// x0, y0
-		{107, 109},		// x0-a0
-		{106, 108},		// y0-a0
-		{107, 110},		// x0-a1
-		{106, 109},		// y0-a1
-		{79, 82},		// x0-a2
-		{77, 80},		// y0-a2
-		// x1, y1
-		{102, 105},		// x1-a0
-		{109, 112},		// y1-a0
-		{103, 105},		// x1-a1
-		{110.5, 113},	// y1-a1
-		{74, 77},		// x1-a2
-		{81, 84},		// y1-a2
-		// x2, y2
-		{113, 116},		// x2-a0
-		{120, 124},		// y2-a0
-		{114, 117},		// x2-a1
-		{121, 124},		// y2-a1
-		{85.5, 88},		// x2-a2
-		{93.5, 96}		// y2-a2
-	},
-	{
-		// run == 641, 642, 644, 645, 648, 649, 651
-		// x0, y0
-		{83, 86},		// x0-a0
-		{81, 84},		// y0-a0
-		{95, 98},		// x0-a1
-		{94, 97},		// y0-a1
-		{79, 82},		// x0-a2
-		{77, 80},		// y0-a2
-		// x1, y1
-		{94, 97},		// x1-a0
-		{93, 96},		// y1-a0
-		{107, 110},		// x1-a1
-		{106, 109},		// y1-a1
-		{90, 93},		// x1-a2
-		{89, 92},		// y1-a2
-		// x2, y2
-		{97, 100},		// x2-a0
-		{95, 98},		// y2-a0
-		{110, 113},		// x2-a1
-		{107, 110},		// y2-a1
-		{93, 96},		// x2-a2
-		{91, 94}		// y2-a2
-	}
-};
 constexpr double run_correct[][3] = {
 	// run == 643
 	{10, 0, 10},
@@ -234,7 +135,7 @@ int Ppac::GetSumRange(
 	TTree *ipt,
 	double *range
 ) {
-	if (tag_.empty() || name_ == "vppac") {
+	if (tag_.empty()) {
 		// 1D histogram of sum of time to find the range in large range
 		std::vector<TH1F> large_sum_time;
 		for (int i = 0; i < 18; ++i) {
@@ -409,6 +310,106 @@ int Ppac::GetSumRange(
 }
 
 
+int Ppac::GetVmeSumRange(
+	PpacFundamentalEvent &ppac,
+	TofFundamentalEvent &vtof,
+	TTree *ipt,
+	double *range
+) {
+	// 1D histogram of sum of time to find the range in large range
+	std::vector<TH1F> sum_time;
+	for (int i = 0; i < 6; ++i) {
+		sum_time.emplace_back(
+			TString::Format("hs%c%d", "xy"[i%2], i/2),
+			TString::Format("sum time of %c%d", "xy"[i%2], i/2),
+			200, 40, 80
+		);
+	}
+
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	// 1/100 of entries
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Filling sum time histograms   0%%");
+	fflush(stdout);
+	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+		ipt->GetEntry(entry);
+		if (vtof.time[1] < -9e4) continue;
+		// fill sum time x
+		for (int i = 0; i < 3; ++i) {
+			// x flag
+			unsigned int xflag = 0x3 << (5*i);
+			if ((ppac.flag & xflag) != xflag) continue;
+			sum_time[2*i].Fill(
+				ppac.x1[i] + ppac.x2[i] - vtof.time[1] - vtof.time[1]
+			);
+		}
+		// fill sum time y
+		for (int i = 0; i < 3; ++i) {
+			// y flag
+			unsigned int yflag = 0xc << (5*i);
+			if ((ppac.flag & yflag) != yflag) continue;
+			sum_time[2*i+1].Fill(
+				ppac.y1[i] + ppac.y2[i] - vtof.time[1] - vtof.time[1]
+			);
+		}
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	double centers[6];
+	// fit and get range
+	for (int i = 0; i < 6; ++i) {
+		// fit function
+		TF1 fit(
+			TString::Format("f%c%d", "xy"[i%2], i/2),
+			"gaus", 40, 80
+		);
+		sum_time[i].Fit(&fit, "QR+");
+		double mean = fit.GetParameter(1);
+		double sigma = fit.GetParameter(2);
+		range[i*2] = mean - sigma * 3.0;
+		range[i*2+1] = mean + sigma * 3.0;
+		centers[i] = mean;
+	}
+	// save histograms
+	for (TH1F &hist : sum_time) {
+		hist.Write();
+	}
+
+	// write ranges to file
+	// range file name
+	TString range_file_name = TString::Format(
+		"%s%s%s-range-%04u.txt",
+		kGenerateDataPath,
+		kTimeDir,
+		name_.c_str(),
+		run_
+	);
+	// output range text file
+	std::ofstream fout(range_file_name.Data());
+	if (!fout.good()) {
+		std::cerr << "Error: Open range file "
+			<< range_file_name << " failed.\n";
+		return -1;
+	}
+	// write range
+	for (size_t i = 0; i < 6; ++i) {
+		fout << range[i*2] << " " << range[i*2+1]
+			<< " " << centers[i] << "\n";
+	}
+	// close file
+	fout.close();
+	return 0;
+}
+
+
 int Ppac::Merge(double) {
 	bool vppac = name_[0] == 'v';
 	// input file name
@@ -425,10 +426,24 @@ int Ppac::Merge(double) {
 	TFile ipf(input_file_name, "read");
 	// input tree
 	TTree *ipt = (TTree*)ipf.Get("tree");
+
+	if (vppac) {
+		// add VToF friend
+		ipt->AddFriend("vtof=tree", TString::Format(
+			"%s%svtof-fundamental-%s%04u.root",
+			kGenerateDataPath,
+			kFundamentalDir,
+			tag_.empty() ? "" : (tag_+"-").c_str(),
+			run_
+		));
+	}
 	// input event
-	PpacFundamentalEvent fundamental;
+	PpacFundamentalEvent ppac;
+	TofFundamentalEvent vtof;
 	// setup input branches
-	fundamental.SetupInput(ipt);
+	ppac.SetupInput(ipt);
+	if (vppac) vtof.SetupInput(ipt, "vtof.");
+
 
 	// output file name
 	TString output_file_name;
@@ -466,9 +481,16 @@ int Ppac::Merge(double) {
 	// range get from fitting
 	double range[18][2];
 
-	if (GetSumRange(fundamental, ipt, (double*)range)) {
-		std::cerr << "Error: GetSumRange failed.\n";
-		return -1;
+	if (vppac) {
+		if (GetVmeSumRange(ppac, vtof, ipt, (double*)range)) {
+			std::cerr << "Error: GetVmeSumRange failed.\n";
+			return -1;
+		}
+	} else {
+		if (GetSumRange(ppac, ipt, (double*)range)) {
+			std::cerr << "Error: GetSumRange failed.\n";
+			return -1;
+		}
 	}
 
 	// total number of entries
@@ -488,79 +510,113 @@ int Ppac::Merge(double) {
 		// initialize merge event
 		merge.xflag = 0;
 		merge.yflag = 0;
-		// check anode
-		int valid_anode = 0;
-		for (unsigned int i = 0; i < 3; ++i) {
-			unsigned int aflag = 0x10 << (i * 5);
-			if ((fundamental.flag & aflag) == aflag) {
-				++valid_anode;
-			}
-		}
-		// fill x
-		for (int i = 0; i < 3; ++i) {
-			// sum of x in range
-			int x_in_range = 0;
-			// x flag
-			unsigned int xflag = 0x3 << (i * 5);
-			// check x flag
-			if ((fundamental.flag & xflag) != xflag) continue;
-			// check x sum
-			for (int j = 0; j < 3; ++j) {
-				unsigned int aflag = 0x10 << (j*5);
-				if ((fundamental.flag & aflag) != aflag) continue;
-				double sum = fundamental.x1[i] + fundamental.x2[i]
-					- fundamental.anode[j] - fundamental.anode[j];
-				size_t index = (i*3 + j) * 2;
-				if (sum > range[index][0] && sum < range[index][1]) {
-					++x_in_range;
+
+		if (vppac && vtof.time[1] > -9e4) {
+			// fill x
+			for (int i = 0; i < 3; ++i) {
+				// x flag
+				unsigned int xflag = 0x3 << (i * 5);
+				// check x flag
+				if ((ppac.flag & xflag) != xflag) continue;
+				// x sum
+				double sum = ppac.x1[i] + ppac.x2[i]
+					- vtof.time[1] - vtof.time[1];
+				// check x sum
+				if (sum > range[i*2][0] && sum < range[i*2][1]) {
+					merge.xflag |= 0x1 << i;
+					merge.x[i] = ppac.x1[i] - ppac.x2[i];
+					hist_diff_time[i*2].Fill(merge.x[i]);
 				}
 			}
-			// pass check
-			if (
-				(valid_anode == 1 && x_in_range == 1)
-				|| (valid_anode >= 2 && x_in_range >= 2)
-			) {
-				// fill x flag
-				merge.xflag |= 0x1 << i;
-				// fill x value
-				merge.x[i] = fundamental.x1[i] - fundamental.x2[i];
-				// fill difference histogram
-				hist_diff_time[i*2].Fill(merge.x[i]);
-			}
-		}
-		// fill y
-		for (int i = 0; i < 3; ++i) {
-			// sum of y in range
-			int y_in_range = 0;
-			// y flag
-			unsigned int yflag = 0xc << (i * 5);
-			// check y flag
-			if ((fundamental.flag & yflag) != yflag) continue;
-			// check sum of y
-			for (int j = 0; j < 3; ++j) {
-				unsigned int aflag = 0x10 << (j*5);
-				if ((fundamental.flag & aflag) != aflag) continue;
-				double sum = fundamental.y1[i] + fundamental.y2[i]
-					- fundamental.anode[j] - fundamental.anode[j];
-				size_t index = ((i*3) + j)*2 + 1;
-				if (sum > range[index][0] && sum < range[index][1]) {
-					++y_in_range;
+			// fill y
+			for (int i = 0; i < 3; ++i) {
+				// y flag
+				unsigned int yflag = 0xc << (i * 5);
+				// check y flag
+				if ((ppac.flag & yflag) != yflag) continue;
+				// sum of y
+				double sum = ppac.y1[i] + ppac.y2[i]
+					- vtof.time[1] - vtof.time[1];
+				// check y sum
+				if (sum > range[i*2+1][0] && sum < range[i*2+1][1]) {
+					merge.yflag |= 0x1 << i;
+					merge.y[i] = ppac.y1[i] - ppac.y2[i];
+					hist_diff_time[i*2+1].Fill(merge.y[i]);
 				}
 			}
-			// pass check
-			if (
-				(valid_anode == 1 && y_in_range == 1)
-				|| (valid_anode >= 2 && y_in_range >= 2)
-			) {
-				// fill y flag
-				merge.yflag |= 0x1 << i;
-				// fill y value
-				merge.y[i] = fundamental.y1[i] - fundamental.y2[i];
-				// fill difference histogram
-				hist_diff_time[i*2+1].Fill(merge.y[i]);
+		} else if (!vppac) {
+			// fill x
+			for (int i = 0; i < 3; ++i) {
+				// sum of x in range
+				bool x_in_range = false;
+				// x flag
+				unsigned int xflag = 0x3 << (i * 5);
+				// check x flag
+				if ((ppac.flag & xflag) != xflag) continue;
+				// check x sum
+				for (int j = 0; j < 3; ++j) {
+					// anode flag
+					unsigned int aflag = 0x10 << (j*5);
+					// check anode flag
+					if ((ppac.flag & aflag) != aflag) continue;
+					// x sum
+					double sum = ppac.x1[i] + ppac.x2[i]
+						- ppac.anode[j] - ppac.anode[j];
+					// get sum index
+					size_t index = (i*3 + j) * 2;
+					// check x sum
+					if (sum > range[index][0] && sum < range[index][1]) {
+						x_in_range = true;
+						break;
+					}
+				}
+				// pass check
+				if (x_in_range) {
+					// fill x flag
+					merge.xflag |= 0x1 << i;
+					// fill x value
+					merge.x[i] = ppac.x1[i] - ppac.x2[i];
+					// fill difference histogram
+					hist_diff_time[i*2].Fill(merge.x[i]);
+				}
+			}
+			// fill y
+			for (int i = 0; i < 3; ++i) {
+				// sum of y in range
+				bool y_in_range = false;
+				// y flag
+				unsigned int yflag = 0xc << (i * 5);
+				// check y flag
+				if ((ppac.flag & yflag) != yflag) continue;
+				// check sum of y
+				for (int j = 0; j < 3; ++j) {
+					// anode flag
+					unsigned int aflag = 0x10 << (j*5);
+					// check anode flag
+					if ((ppac.flag & aflag) != aflag) continue;
+					// y sum
+					double sum = ppac.y1[i] + ppac.y2[i]
+						- ppac.anode[j] - ppac.anode[j];
+					// y sum index
+					size_t index = ((i*3) + j)*2 + 1;
+					// check y sum
+					if (sum > range[index][0] && sum < range[index][1]) {
+						y_in_range = true;
+						break;
+					}
+				}
+				// pass check
+				if (y_in_range) {
+					// fill y flag
+					merge.yflag |= 0x1 << i;
+					// fill y value
+					merge.y[i] = ppac.y1[i] - ppac.y2[i];
+					// fill difference histogram
+					hist_diff_time[i*2+1].Fill(merge.y[i]);
+				}
 			}
 		}
-		for (int i = 0; i < 3; ++i) merge.time[i] = fundamental.anode[i];
+		for (int i = 0; i < 3; ++i) merge.time[i] = ppac.anode[i];
 		opt.Fill();
 	}
 	// show finish
@@ -578,10 +634,153 @@ int Ppac::Merge(double) {
 }
 
 
-int Calibrate() {
-	std::cerr << "PPAC::Calibrate is not implemented yet.\n";
-	return -1;
+int Ppac::Normalize() {
+	// VPPAC file name
+	TString vppac_file_name = TString::Format(
+		"%s%svppac-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// VPPAC file
+	TFile vppac_file(vppac_file_name, "read");
+	// VPPAC tree
+	TTree *ipt = (TTree*)vppac_file.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< vppac_file_name << " failed.\n";
+		return -1;
+	}
+
+	// XPPAC file name
+	TString xppac_file_name = TString::Format(
+		"%s%sxppac-fundamental-%s%04u.root",
+		kGenerateDataPath,
+		kFundamentalDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// add friend
+	ipt->AddFriend("xppac=tree", xppac_file_name);
+
+	// fundamental event
+	PpacFundamentalEvent vppac, xppac;
+	vppac.SetupInput(ipt);
+	xppac.SetupInput(ipt, "xppac.");
+
+	// output file name
+	TString output_file_name = TString::Format(
+		"%s%sppac-normalize-%s%04u.root",
+		kGenerateDataPath,
+		kNormalizeDir,
+		tag_.empty() ? "" : (tag_+"-").c_str(),
+		run_
+	);
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// histograms x/y difference
+	std::vector<TH1F> hist_diff;
+	for (int i = 0; i < 3; ++i) {
+		hist_diff.emplace_back(
+			TString::Format("hdx%d", i),
+			TString::Format("x%d difference", i),
+			400, -20, 20
+		);
+	}
+	for (int i = 0; i < 3; ++i) {
+		hist_diff.emplace_back(
+			TString::Format("hdy%d", i),
+			TString::Format("y%d difference", i),
+			400, -20, 20
+		);
+	}
+
+	// total entries
+	long long entries = ipt->GetEntries();
+	// loop to fill histograms
+	for (long long entry = 0; entry < entries; ++entry) {
+		// get data
+		ipt->GetEntry(entry);
+		// loop PPACs
+		for (int i = 0; i < 3; ++i) {
+			// x flag
+			unsigned int xflag = 0x3 << (i*5);
+			// check x
+			if ((vppac.flag & xppac.flag & xflag) == xflag) {
+				hist_diff[i].Fill(
+					vppac.x1[i] - vppac.x2[i] - xppac.x1[i] + xppac.x2[i]
+				);
+			}
+
+			// y flag
+			unsigned int yflag = 0xc << (i*5);
+			// check y
+			if ((vppac.flag & xppac.flag & yflag) == yflag) {
+				hist_diff[i+3].Fill(
+					vppac.y1[i] - vppac.y2[i] - xppac.y1[i] + xppac.y2[i]
+				);
+			}
+		}
+	}
+
+	// max bin time value
+	double max_bin_time[6];
+	// search maximum bin
+	for (int i = 0; i < 6; ++i) {
+		int max_bin = 1;
+		double max_content = hist_diff[i].GetBinContent(1);
+		// loop bins
+		for (int bin = 2; bin <= hist_diff[i].GetNbinsX(); ++bin) {
+			if (hist_diff[i].GetBinContent(bin) > max_content) {
+				max_bin = bin;
+				max_content = hist_diff[i].GetBinContent(bin);
+			}
+		}
+		max_bin_time[i] = hist_diff[i].GetBinCenter(max_bin);
+	}
+
+
+	// mean value of difference
+	double mean[6];
+	// fit
+	for (int i = 0; i < 6; ++i) {
+		TF1 *fit = new TF1(
+			TString::Format("f%c%d", "xy"[i/3], i%3),
+			"gaus", max_bin_time[i]-2, max_bin_time[i]+2
+		);
+		hist_diff[i].Fit(fit, "RQ+");
+		mean[i] = fit->GetParameter(1);
+	}
+
+	// save mean value
+	// text file name
+	TString mean_file_name = TString::Format(
+		"%s%sppac-normalize-%04u.txt",
+		kGenerateDataPath,
+		kNormalizeDir,
+		run_
+	);
+	// mean file
+	std::ofstream fout(mean_file_name.Data());
+	if (!fout.good()) {
+		std::cerr << "Error: Open file " << mean_file_name << " failed.\n";
+		return -1;
+	}
+	for (int i = 0; i < 6; ++i) {
+		fout << mean[i] << "\n";
+	}
+	// close file
+	fout.close();
+
+	// save histograms
+	for (auto &hist : hist_diff) hist.Write();
+	// close files
+	opf.Close();
+	vppac_file.Close();
+	return 0;
 }
+
 
 
 double PositionXFromXIA(unsigned int run, double time, int index) {
@@ -696,6 +895,18 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 }
 
 
+double VmePositionX(double time, int index) {
+	double vme_correct_x[3] = {-0.25, 1.5, 0.25};
+	return (time - vme_correct_x[index]) / 4.0;
+}
+
+
+double VmePositionY(double time, int index) {
+	double vme_correct_y[3] = {-0.75, 0.0, -0.75};
+	return (time - vme_correct_y[index]) / -4.0;
+}
+
+
 double SimpleFit(const double *x, double *y, double &k, double &b) {
 	int n = 3;
 	double sumx = 0.0;
@@ -730,6 +941,7 @@ constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
 constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
 
 int Ppac::Track() {
+	bool vppac = name_[0] == 'v';
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s%s-merge-%s%04u.root",
@@ -796,6 +1008,22 @@ int Ppac::Track() {
 		yz[0] = ppac_yz[1];
 	}
 
+	double normalize_parameters[6];
+	// read normalize parameters
+	if (!vppac) {
+		TString norm_file_name = TString::Format(
+			"%s%sppac-normalize-%04u.txt",
+			kGenerateDataPath, kNormalizeDir, run_
+		);
+		std::ifstream fin(norm_file_name);
+		if (!fin.good()) {
+			std::cerr << "Error: Open file " << norm_file_name << " failed.\n";
+			return -1;
+		}
+		for (int i = 0; i < 6; ++i) fin >> normalize_parameters[i];
+		fin.close();
+	}
+
 	// total number of entries
 	long long entries = ipt->GetEntries();
 	// 1/100 of entries, for showing process
@@ -826,12 +1054,24 @@ int Ppac::Track() {
 		// check flag and fill hit and position
 		for (size_t i = 0; i < 3; ++i) {
 			if ((merge.xflag & (1 << i)) != 0) {
-				x_position[xhit] = PositionXFromXIA(run_, merge.x[i], i);
+				if (vppac) {
+					x_position[xhit] = VmePositionX(merge.x[i], i);
+				} else {
+					merge.x[i] += normalize_parameters[i];
+					x_position[xhit] = VmePositionX(merge.x[i], i);
+					// x_position[xhit] = PositionXFromXIA(run_, merge.x[i], i);
+				}
 				x_index[xhit] = i;
 				++xhit;
 			}
 			if ((merge.yflag & (1 << i)) != 0) {
-				y_position[yhit] = PositionYFromXIA(run_, merge.y[i], i);
+				if (vppac) {
+					y_position[yhit] = VmePositionY(merge.y[i], i);
+				} else {
+					merge.y[i] += normalize_parameters[i+3];
+					y_position[yhit] = VmePositionY(merge.y[i], i);
+					// y_position[yhit] = PositionYFromXIA(run_, merge.y[i], i);
+				}
 				y_index[yhit] = i;
 				++yhit;
 			}

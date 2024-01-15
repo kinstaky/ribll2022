@@ -31,20 +31,16 @@ public:
 	int t0_layer[2];
 	double t0_lost_energy[2][7];
 	double t0_energy[2][7];
-	double tafx;
-	double tafy;
-	double tafz;
-	double tafr;
-	double t0x[2][3];
-	double t0y[2][3];
-	double t0z[2][3];
-	double t0r[2][3];
-	double ppacx[3];
-	double ppacy[3];
-	// target x from PPAC
-	double tx;
-	// target y from PPAC
-	double ty;
+	// TAF poisition
+	double tafx, tafy, tafz, tafr;
+	// T0 poisition
+	double t0x[2][3], t0y[2][3], t0z[2][3], t0r[2][3];
+	// PPAC position
+	double ppacx[3], ppacy[3];
+	// target x,y from PPAC
+	double tx, ty;
+	// kinetic energy
+	double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
 	int valid;
 	double q;
 };

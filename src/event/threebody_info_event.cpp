@@ -22,6 +22,7 @@ void ThreeBodyInfoEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"d_y").c_str(), &d_y);
 	tree->SetBranchAddress((prefix+"tx").c_str(), &tx);
 	tree->SetBranchAddress((prefix+"ty").c_str(), &ty);
+	tree->SetBranchAddress((prefix+"ppac_flag").c_str(), &ppac_flag);
 	tree->SetBranchAddress((prefix+"ppac_xflag").c_str(), &ppac_xflag);
 	tree->SetBranchAddress((prefix+"ppac_yflag").c_str(), &ppac_yflag);
 	tree->SetBranchAddress((prefix+"ppac_x").c_str(), ppac_x);
@@ -51,6 +52,7 @@ void ThreeBodyInfoEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"q").c_str(), &q);
 	tree->SetBranchAddress((prefix+"hole").c_str(), hole);
 	tree->SetBranchAddress((prefix+"run").c_str(), &run);
+	tree->SetBranchAddress((prefix+"entry").c_str(), &entry);
 }
 
 
@@ -71,6 +73,7 @@ void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
 	tree->Branch("d_y", &d_y, "dy/D");
 	tree->Branch("tx", &tx, "tx/D");
 	tree->Branch("ty", &ty, "ty/D");
+	tree->Branch("ppac_flag", &ppac_flag, "pflag/I");
 	tree->Branch("ppac_xflag", &ppac_xflag, "pxflag/s");
 	tree->Branch("ppac_yflag", &ppac_yflag, "pyflag/s");
 	tree->Branch("ppac_x", ppac_x, "ppacx[3]/D");
@@ -100,6 +103,7 @@ void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
 	tree->Branch("q", &q, "q/D");
 	tree->Branch("hole", hole, "hole[2]/O");
 	tree->Branch("run", &run, "run/I");
+	tree->Branch("entry", &entry, "entry/L");
 }
 
 }	// ribll

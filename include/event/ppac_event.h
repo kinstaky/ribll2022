@@ -62,6 +62,7 @@ public:
 	///
 	virtual inline void Nullify() {
 		hit = 0;
+		flag = 0;
 	}
 
 

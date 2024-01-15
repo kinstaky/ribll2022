@@ -17,9 +17,10 @@ public:
 
 	/// @brief constructor
 	/// @param[in] run run number
+	/// @param[in] name detector name, tof or vtof
 	/// @param[in] tag trigger tag
 	///
-	Tof(unsigned int run, const std::string &tag);
+	Tof(unsigned int run, const std::string &name, const std::string &tag);
 
 
 	///	@brief default destructor

@@ -44,6 +44,7 @@ size_t Crate3Mapper::CreatePPACTree(bool independent) {
 
 	TTree *opt = new TTree("tree", "tree of vppac");
 	ppac_event_.SetupOutput(opt);
+	opt->Branch("multi", &multi_, "multi/i");
 	if (!independent) {
 		opt->Branch("timestamp", &align_time_, "ts/L");
 	}
@@ -67,6 +68,7 @@ size_t Crate3Mapper::CreateADSSDTree(const char *name, bool independent) {
 
 	TTree *opt = new TTree("tree", TString::Format("tree of %s", name));
 	dssd_event_.SetupOutput(opt);
+	opt->Branch("multi", &multi_, "multi/i");
 	if (!independent) {
 		opt->Branch("timestamp", &align_time_, "ts/L");
 	}
@@ -89,6 +91,7 @@ size_t Crate3Mapper::CreateTofTree(bool independent) {
 
 	TTree *opt = new TTree("tree", "tree of vtof");
 	tof_event_.SetupOutput(opt);
+	opt->Branch("multi", &multi_, "multi/i");
 	if (!independent) {
 		opt->Branch("timestamp", &align_time_, "ts/L");
 	}
@@ -184,10 +187,14 @@ int Crate3Mapper::Map(bool independent) {
 		tof_event_.time[0] = -1e5;
 		tof_event_.time[1] = -1e5;
 		tof_event_.cfd_flag = 0;
+		multi_ = 0;
 		for (size_t i = 0; i < 2; ++i) {
 			if (gmulti_[0][125+i] > 0) {
 				tof_event_.time[i] =
 					(gdc_[0][125+i][0] - gdc_[0][127][0]) * 0.1;
+			}
+			if (gmulti_[0][125+i] > 1) {
+				multi_ |= 0x1 << i;
 			}
 		}
 		FillTree(vtof_index);
@@ -242,12 +249,19 @@ int Crate3Mapper::Map(bool independent) {
 					(gdc_[0][i*5+100][0] - gdc_[0][127][0]) * 0.1;
 			}
 		}
+		multi_ = 0;
+		for (int i = 0; i < 15; ++i) {
+			if (gmulti_[0][96+i] > 1) {
+				multi_ |= 0x1 << i;
+			}
+		}
 		FillTree(vppac_index);
 
 		// taf
 		dssd_event_.cfd_flag = 0;
 		for (size_t i = 0; i < 2; ++i) {
 			dssd_event_.front_hit = dssd_event_.back_hit = 0;
+			multi_ = 0;
 			// check front side
 			for (size_t j = 0; j < 16; ++j) {
 				double energy
@@ -264,6 +278,9 @@ int Crate3Mapper::Map(bool independent) {
 						dssd_event_.front_time[index] = 0.0;
 					}
 					++dssd_event_.front_hit;
+				}
+				if (align_gmulti_[i*16+j] > 1) {
+					multi_ |= 0x1 << j;
 				}
 			}
 			// check back side
@@ -307,6 +324,9 @@ int Crate3Mapper::Map(bool independent) {
 					dssd_event_.front_time[index]
 						= (gdc_[0][((6-i)%6)*16+j][0] - gdc_[0][127][0]) * 0.1;
 					++dssd_event_.front_hit;
+				}
+				if (gmulti_[0][((6-i)%6)*16+j] > 1) {
+					multi_ |= 0x1 << j;
 				}
 			}
 			// check back side

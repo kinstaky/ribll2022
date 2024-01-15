@@ -15,8 +15,8 @@
 namespace ribll {
 
 
-Tof::Tof(unsigned int run, const std::string &tag)
-: Detector(run, "tof", tag) {
+Tof::Tof(unsigned int run, const std::string &name, const std::string &tag)
+: Detector(run, name, tag) {
 }
 
 

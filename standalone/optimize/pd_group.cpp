@@ -21,7 +21,7 @@
 using namespace ribll;
 
 constexpr double excitation = 6.0938;
-constexpr double beam_kinematic = 430.0;
+constexpr double beam_kinetic = 430.0;
 
 
 ///	@brief get cos(theta) from energy
@@ -29,8 +29,8 @@ constexpr double beam_kinematic = 430.0;
 /// @param[in] fragment1_mass mass of fragment1
 /// @param[in] fragment2_mass mass of fragment2
 /// @param[in] q Q value
-/// @param[in] beam_kinematic kinematic energy of beam
-/// @param[in] fragment1_kinematic kinematic energy of fragment1
+/// @param[in] beam_kinetic kinetic energy of beam
+/// @param[in] fragment1_kinetic kinetic energy of fragment1
 /// @returns angle theta of fragment1 and beam
 ///
 double ThetaEnergy(
@@ -38,16 +38,16 @@ double ThetaEnergy(
 	double fragment1_mass,
 	double fragment2_mass,
 	double q,
-	double beam_kinematic,
-	double fragment1_kinematic
+	double beam_kinetic,
+	double fragment1_kinetic
 ) {
-	double fragment2_kinematic = q + beam_kinematic - fragment1_kinematic;
+	double fragment2_kinetic = q + beam_kinetic - fragment1_kinetic;
 
-	double momentum_beam = MomentumFromKinematic(beam_mass, beam_kinematic);
+	double momentum_beam = MomentumFromKinetic(beam_mass, beam_kinetic);
 	double momentum_fragment1 =
-		MomentumFromKinematic(fragment1_mass, fragment1_kinematic);
+		MomentumFromKinetic(fragment1_mass, fragment1_kinetic);
 	double momentum_fragment2 =
-		MomentumFromKinematic(fragment2_mass, fragment2_kinematic);
+		MomentumFromKinetic(fragment2_mass, fragment2_kinetic);
 
 	double cos_theta =
 		(
@@ -104,21 +104,21 @@ public:
 		const double * const csi_param,
 		double *residual
 	) const {
-		// calculate fragment kinematic energy
+		// calculate fragment kinetic energy
 		double csi_energy = pow(
 			(csi_channel_ - csi_param[1]) / csi_param[0],
 			1.0 / csi_power_
 		);
 
-		double fragment1_kinematic = tafd_energy_ + csi_energy;
+		double fragment1_kinetic = tafd_energy_ + csi_energy;
 
-		// calculate kinematic and momentum
+		// calculate kinetic and momentum
 		double q = 1.0064550;
 		q = state_ == 0 ? q : q - 6.0938;
 		// calculated theta
 		double calculated_theta = ThetaEnergy(
 			mass_15c, mass_2h, mass_14c,
-			q, 430.0, fragment1_kinematic
+			q, 430.0, fragment1_kinetic
 		);
 
 		if (calculated_theta < -1.0 || calculated_theta > 1.0) {
@@ -336,7 +336,7 @@ int main(int, char **argv) {
 				new CostFunctor(
 					state,
 					tafd_energy, csi_channel,
-					beam_kinematic,
+					beam_kinetic,
 					bpx, bpy, bpz,
 					tafx, tafy,
 					ppac_xflag, ppac_yflag,
@@ -424,7 +424,7 @@ int main(int, char **argv) {
 
 		// beam momentum
 		double beam_momentum =
-			MomentumFromKinematic(mass_15c, beam_kinematic);
+			MomentumFromKinetic(mass_15c, beam_kinetic);
 		// beam momentum direction
 		ROOT::Math::XYZVector p2(bpx, bpy, bpz);
 		// beam momentum vector
@@ -442,7 +442,7 @@ int main(int, char **argv) {
 
 
 		for (size_t i = 0; i < a0_group[0].size(); ++i) {
-			// calculate fragment1 kinematic energy
+			// calculate fragment1 kinetic energy
 			csi_energy = pow(
 				(csi_channel-a2_group[csi_index][i])/a0_group[csi_index][i],
 				1.0/a1_group[csi_index][i]
@@ -450,7 +450,7 @@ int main(int, char **argv) {
 			taf_energy = tafd_energy + csi_energy;
 
 			// calculate fragment1 momentum
-			double momentum1 = MomentumFromKinematic(mass_2h, taf_energy);
+			double momentum1 = MomentumFromKinetic(mass_2h, taf_energy);
 			// fragment1 momentum vector
 			ROOT::Math::XYZVector f1p = p1 * momentum1;
 
@@ -462,7 +462,7 @@ int main(int, char **argv) {
 			) - mass_14c;
 			// Q value from missing mass method
 			miss_q_value =
-				beam_kinematic + 1.0064550 - taf_energy - cf2e;
+				beam_kinetic + 1.0064550 - taf_energy - cf2e;
 
 			// fill to histograms
 			energy_theta[csi_index][i].AddPoint(angle, taf_energy);

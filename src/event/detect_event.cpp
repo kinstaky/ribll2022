@@ -23,6 +23,10 @@ void DetectEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress((prefix+"ppacy").c_str(), ppacy);
 	tree->SetBranchAddress((prefix+"tx").c_str(), &tx);
 	tree->SetBranchAddress((prefix+"ty").c_str(), &ty);
+	tree->SetBranchAddress((prefix+"be_kinetic").c_str(), &be_kinetic);
+	tree->SetBranchAddress((prefix+"he_kinetic").c_str(), &he_kinetic);
+	tree->SetBranchAddress((prefix+"d_kinetic").c_str(), &d_kinetic);
+	tree->SetBranchAddress((prefix+"c_kinetic").c_str(), &c_kinetic);
 	tree->SetBranchAddress((prefix+"valid").c_str(), &valid);
 	tree->SetBranchAddress((prefix+"q").c_str(), &q);
 }
@@ -47,6 +51,10 @@ void DetectEvent::SetupOutput(TTree *tree) {
 	tree->Branch("ppacy", ppacy, "ppacy[3]/D");
 	tree->Branch("tx", &tx, "tx/D");
 	tree->Branch("ty", &ty, "ty/D");
+	tree->Branch("be_kinetic", &be_kinetic, "bek/D");
+	tree->Branch("he_kinetic", &he_kinetic, "hek/D");
+	tree->Branch("d_kinetic", &d_kinetic, "dk/D");
+	tree->Branch("c_kinetic", &c_kinetic, "ck/D");
 	tree->Branch("valid", &valid, "valid/I");
 	tree->Branch("q", &q, "q/D");
 }

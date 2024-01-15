@@ -11,6 +11,7 @@
 #include <TTree.h>
 #include <Math/Vector3D.h>
 
+#include "include/simulate_defs.h"
 #include "include/event/generate_event.h"
 #include "include/event/detect_event.h"
 #include "include/calculator/range_energy_calculator.h"
@@ -23,16 +24,6 @@ constexpr bool taf_strips_affect = true;
 constexpr bool ppac_strips_affect = true;
 constexpr bool t0_energy_affect = true;
 constexpr bool taf_energy_affect = true;
-
-constexpr double pi = 3.1415926;
-constexpr double u = 931.494;
-constexpr double c14_mass = 13.9999505089 * u;
-constexpr double be10_mass = 10.0113403769 * u;
-constexpr double he4_mass = 4.0015060943 * u;
-constexpr double h2_mass = 2.0135531980 * u;
-
-constexpr double ppac_xz[3] = {-695.2, -454.2, -275.2};
-constexpr double ppac_yz[3] = {-689.2, -448.2, -269.2};
 
 constexpr double state_start[3] = {12.5, 16.0, 18.5};
 
@@ -87,8 +78,6 @@ int main() {
 	);
 	// output file
 	TFile detect_file(detect_file_name, "recreate");
-	// fake q value histogram
-	TH1F hist_fake_q("hfq", "fake q value", 1000, -20, -10);
 	// T0D1,D2 x offset
 	TH1F hist_d1d2_x_offset("hd1d2xo", "D1D2 x offset", 20, -10, 10);
 	// T0D1,D2 x offset
@@ -159,10 +148,10 @@ int main() {
 		generate_tree->GetEntry(entry);
 
 		// calculate taf energy
-		double recoil_range = h2_calculator.Range(event.recoil_kinematic);
+		double recoil_range = h2_calculator.Range(event.recoil_kinetic);
 		if (recoil_range < 150.0 / cos(event.recoil_theta)) {
 			detect.taf_layer = 0;
-			detect.taf_lost_energy[0] = event.recoil_kinematic;
+			detect.taf_lost_energy[0] = event.recoil_kinetic;
 			detect.taf_lost_energy[1] = 0.0;
 		} else {
 			detect.taf_layer = 1;
@@ -170,7 +159,7 @@ int main() {
 				recoil_range - 150.0 / cos(event.recoil_theta)
 			);
 			detect.taf_lost_energy[0] =
-				event.recoil_kinematic - detect.taf_lost_energy[1];
+				event.recoil_kinetic - detect.taf_lost_energy[1];
 		}
 		// detected energy
 		detect.taf_energy[0] =
@@ -185,8 +174,8 @@ int main() {
 			for (size_t j = 0; j < 7; ++j) {
 				detect.t0_lost_energy[i][j] = 0.0;
 			}
-			range[i] = frag_calculators[i]->Range(event.fragment_kinematic[i]);
-			residual_energy[i] = event.fragment_kinematic[i];
+			range[i] = frag_calculators[i]->Range(event.fragment_kinetic[i]);
+			residual_energy[i] = event.fragment_kinetic[i];
 
 			for (size_t j = 0; j < 6; ++j) {
 				double thick = t0_thickness[j] / cos(event.fragment_theta[i]);
@@ -360,24 +349,25 @@ int main() {
 			detect.valid &= 0x1;
 		}
 
-		// rebuild kinematic energy
-		double taf_kinematic;
+		// rebuild kinetic energy
 		if (taf_energy_affect) {
-			taf_kinematic = detect.taf_energy[0];
-			taf_kinematic += detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
+			detect.d_kinetic = detect.taf_energy[0];
+			detect.d_kinetic +=
+				detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
 		} else {
-			taf_kinematic = event.recoil_kinematic;
+			detect.d_kinetic = event.recoil_kinetic;
 		}
-		double t0_kinematic[2] = {0.0, 0.0};
+		detect.be_kinetic = detect.he_kinetic = 0.0;
 		if (t0_energy_affect) {
-			for (size_t i = 0; i < 2; ++i) {
-				for (int j = 0; j < detect.t0_layer[i]+1; ++j) {
-					t0_kinematic[i] += detect.t0_energy[i][j];
-				}
+			for (int i = 0; i < detect.t0_layer[0]+1; ++i) {
+				detect.be_kinetic += detect.t0_energy[0][i];
+			}
+			for (int i = 0; i < detect.t0_layer[1]+1; ++i) {
+				detect.he_kinetic += detect.t0_energy[1][i];
 			}
 		} else {
-			t0_kinematic[0] = event.fragment_kinematic[0];
-			t0_kinematic[1] = event.fragment_kinematic[1];
+			detect.be_kinetic = event.fragment_kinetic[0];
+			detect.he_kinetic = event.fragment_kinetic[1];
 		}
 
 		// rebuild Q value spectrum
@@ -389,13 +379,15 @@ int main() {
 				detect.t0z[i][0]
 			);
 			double mass = i == 0 ? be10_mass : he4_mass;
+			double kinetic = i == 0 ?
+				detect.be_kinetic : detect.he_kinetic;
 			double momentum = sqrt(
-				pow(t0_kinematic[i], 2.0) + 2.0 * t0_kinematic[i] * mass
+				pow(kinetic, 2.0) + 2.0 * kinetic * mass
 			);
 			fp[i] = fp[i].Unit() * momentum;
 		}
 		double recoil_momentum = sqrt(
-			pow(taf_kinematic, 2.0) + 2.0 * taf_kinematic * h2_mass
+			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * h2_mass
 		);
 		ROOT::Math::XYZVector rp(
 			detect.tafx - detect.tx,
@@ -404,11 +396,10 @@ int main() {
 		);
 		rp = rp.Unit() * recoil_momentum;
 		ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
-		double calculated_beam_kinematic =
-			sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
+		detect.c_kinetic = sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
 		// Q value
-		detect.q = t0_kinematic[0] + t0_kinematic[1]
-			+ taf_kinematic - calculated_beam_kinematic;
+		detect.q = detect.be_kinetic + detect.he_kinetic
+			+ detect.d_kinetic - detect.c_kinetic;
 
 		// rebuild 14C excited energy
 		// rebuild state
@@ -430,8 +421,8 @@ int main() {
 		double c_momentum = cbp.R();
 		// excited 14C total energy
 		double c_energy =
-			(t0_kinematic[0] + be10_mass + rebuild_be_excited)
-			+ (t0_kinematic[1] + he4_mass);
+			(detect.be_kinetic + be10_mass + rebuild_be_excited)
+			+ (detect.he_kinetic + he4_mass);
 		// excited 14C mass
 		double excited_c_mass = sqrt(
 			pow(c_energy, 2.0) - pow(c_momentum, 2.0)
@@ -468,33 +459,6 @@ int main() {
 			hist_d2d3_x_offset.Fill(detect.t0x[i][1] - detect.t0x[i][2]);
 			hist_d2d3_y_offset.Fill(detect.t0y[i][1] - detect.t0y[i][2]);
 		}
-
-		// rebuild fake Q value
-		int rc = 12;
-		int pc = 12;
-		for (int i = 0; i <= rc; ++i) {
-			double fake_tafr =
-				detect.tafr
-				+ (i - rc/2) / double(rc) * taf_ring_width;
-			for (int j = 0; j <= pc; ++j) {
-				double fake_taf_phi = taf_phi
-					+ (j - pc/2) / double(pc) * taf_phi_width / 180.0 * pi;
-				double fake_tafx = fake_tafr * cos(fake_taf_phi);
-				double fake_tafy = fake_tafr * sin(fake_taf_phi);
-				// fake_tafx = tafr * cos(taf_phi);
-				// fake_tafy = tafr * sin(taf_phi);
-				ROOT::Math::XYZVector fake_rp(
-					fake_tafx-detect.tx, fake_tafy-detect.ty, detect.tafz
-				);
-				fake_rp = fake_rp.Unit() * recoil_momentum;
-				ROOT::Math::XYZVector fake_bp = fp[0] + fp[1] + fake_rp;
-				double fake_bk =
-					sqrt(fake_bp.Dot(fake_bp) + pow(c14_mass, 2.0)) - c14_mass;
-				double fake_q = t0_kinematic[0] + t0_kinematic[1]
-					+ taf_kinematic - fake_bk;
-				if (detect.valid==7) hist_fake_q.Fill(fake_q);
-			}
-		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -523,7 +487,6 @@ int main() {
 
 	detect_file.cd();
 	// save histogram
-	hist_fake_q.Write();
 	hist_d1d2_x_offset.Write();
 	hist_d1d2_y_offset.Write();
 	hist_d1d3_x_offset.Write();

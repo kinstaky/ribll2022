@@ -43,7 +43,9 @@ public:
 	double d_x, d_y;
 	// target position
 	double tx, ty;
-	// PPAC flag
+	// PPAC flag, 0-XPPAC, 1-VPPAC
+	int ppac_flag;
+	// PPAC x,y flag
 	unsigned short ppac_xflag, ppac_yflag;
 	// PPAC position
 	double ppac_x[3], ppac_y[3];
@@ -69,6 +71,7 @@ public:
 	bool hole[2];
 	// run
 	int run;
+	long long entry;
 };
 
 } // ribll

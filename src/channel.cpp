@@ -267,7 +267,7 @@ int Be8ToTwoAlphaChannel::Coincide() {
 		}
 		// parent mass
 		double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
-		// parent kinematic energy
+		// parent kinetic energy
 		channel.parent_energy -= pm;
 
 		// fill parent momentum
@@ -462,7 +462,7 @@ int C12ToThreeAlphaChannel::Coincide() {
 		}
 		// parent mass
 		double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
-		// parent kinematic energy
+		// parent kinetic energy
 		channel.parent_energy -= pm;
 
 		// fill parent momentum
@@ -750,6 +750,13 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		kParticleDir,
 		run_
 	));
+	// add VME PPAC friend
+	ipt->AddFriend("vppac=tree", TString::Format(
+		"%s%svppac-particle-ta-%04d.root",
+		kGenerateDataPath,
+		kParticleDir,
+		run_
+	));
 	// input T0 particle events
 	ParticleEvent t0;
 	bool hole[4];
@@ -760,6 +767,10 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	ParticleEvent xppac;
 	unsigned short xppac_xflag;
 	unsigned short xppac_yflag;
+	// input VME PPAC particle event
+	ParticleEvent vppac;
+	unsigned short vppac_xflag;
+	unsigned short vppac_yflag;
 	// setup input branches
 	t0.SetupInput(ipt);
 	ipt->SetBranchAddress("hole", hole);
@@ -773,6 +784,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	xppac.SetupInput(ipt, "xppac.");
 	ipt->SetBranchAddress("xppac.xflag", &xppac_xflag);
 	ipt->SetBranchAddress("xppac.yflag", &xppac_yflag);
+	vppac.SetupInput(ipt, "vppac.");
+	ipt->SetBranchAddress("vppac.xflag", &vppac_xflag);
+	ipt->SetBranchAddress("vppac.yflag", &vppac_yflag);
 
 	// output file name
 	TString output_file_name;
@@ -793,11 +807,20 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	int t0_index[8];
 	double q_value;
 	int csi_index;
+	int ppac_flag;
+	// PPAC xhit and yhit
+	int xhit, yhit;
+	// XPPAC num
+	int xnum;
 	// setup output branches
 	channel.SetupOutput(&opt);
 	opt.Branch("t0_index", t0_index, "t0_index[num]/I");
 	opt.Branch("q", &q_value, "q/D");
 	opt.Branch("csi_index", &csi_index, "ci/I");
+	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
+	opt.Branch("ppac_xhit", &xhit, "pxhit/I");
+	opt.Branch("ppac_yhit", &yhit, "pyhit/I");
+	opt.Branch("xppac_num", &xnum, "xnum/I");
 	// setup output branches for fake tree
 	channel.SetupOutput(&fake_tree);
 	fake_tree.Branch("t0_index", t0_index, "t0_index[num]/I");
@@ -878,12 +901,51 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			++conflict_taf;
 			continue;
 		}
+
+		// xnum = xppac.num;
+		// xhit = yhit = 0;
+		// for (int i = 0; i < 3; ++i) {
+		// 	int tmp_flag = 1 << i;
+		// 	if ((xppac_xflag & tmp_flag) == tmp_flag) ++xhit;
+		// 	if ((xppac_yflag & tmp_flag) == tmp_flag) ++yhit;
+		// }
+		// channel.num = 2;
+		// channel.recoil = 1;
+		// opt.Fill();
+		// continue;
+
+		// reaction point
+		double tx, ty, tz;
+		tx = ty = tz = 0.0;
 		// check PPAC tracking
-		if (xppac.num != 4) continue;
-		// if (xppac_xflag != 0x7 || xppac_yflag != 0x7) continue;
-		if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
-			continue;
-		}
+		// if (vppac.num == 4) {
+		// 	ppac_flag = 1;
+		// 	// if (pow(vppac.x[3]+4.0, 2.0)+pow(vppac.y[3]-1.0, 2.0) > 225.0) {
+		// 	// 	continue;
+		// 	// }
+		// 	tx = vppac.x[3];
+		// 	ty = vppac.y[3];
+		// 	tz = vppac.z[3];
+		// } else if (xppac.num == 4) {
+		// 	ppac_flag = 0;
+		// 	// if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
+		// 	// 	continue;
+		// 	// }
+		// 	tx = xppac.x[3];
+		// 	ty = xppac.y[3];
+		// 	tz = xppac.z[3];
+		// } else {
+		// 	continue;
+		// }
+
+		// if (xppac.num != 4) continue;
+		// if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
+		// 	continue;
+		// }
+		ppac_flag = 0;
+		tx = xppac.x[3];
+		ty = xppac.y[3];
+		tz = xppac.z[3];
 
 		// fill channel particle number
 		channel.num = 2;
@@ -902,9 +964,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 				channel.daughter_mass[i]
 			);
 			p.emplace_back(
-				t0.x[index[i]] - xppac.x[3],
-				t0.y[index[i]] - xppac.y[3],
-				t0.z[index[i]] - xppac.z[3]
+				t0.x[index[i]] - tx,
+				t0.y[index[i]] - ty,
+				t0.z[index[i]] - tz
 			);
 			p[i] = p[i].Unit() * momentum;
 			channel.daughter_px[i] = p[i].X();
@@ -932,9 +994,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		);
 		// recoil p
 		ROOT::Math::XYZVector rp(
-			taf[taf_index].x[0] - xppac.x[3],
-			taf[taf_index].y[0] - xppac.y[3],
-			taf[taf_index].z[0] - xppac.z[3]
+			taf[taf_index].x[0] - tx,
+			taf[taf_index].y[0] - ty,
+			taf[taf_index].z[0] - tz
 		);
 		rp = rp.Unit() * recoil_momentum;
 		channel.recoil_px = rp.X();
@@ -946,8 +1008,12 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 
 		// fill beam from PPAC
 		channel.beam_energy = 385.0;
-		channel.beam_time = xppac.time[3];
-		ROOT::Math::XYZVector bp(xppac.px[3], xppac.py[3], xppac.pz[3]);
+		channel.beam_time = ppac_flag == 1 ? vppac.time[3] : xppac.time[3];
+		ROOT::Math::XYZVector bp(
+			ppac_flag == 1 ? vppac.px[3] : xppac.px[3],
+			ppac_flag == 1 ? vppac.py[3] : xppac.py[3],
+			ppac_flag == 1 ? vppac.pz[3] : xppac.pz[3]
+		);
 		double bp_value = MomentumFromEnergy(channel.beam_energy, 6, 14);
 		bp = bp.Unit() * bp_value;
 		channel.beam_px = bp.X();
@@ -1056,7 +1122,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 
 	// save trees
 	opt.Write();
-	fake_tree.Write();
+	// fake_tree.Write();
 	// close file
 	t0_file.Close();
 	opf.Close();
@@ -1535,7 +1601,7 @@ int C14ToHe4He4He6Channel::Coincide() {
 		}
 		// parent mass
 		double pm = sqrt(channel.parent_energy * channel.parent_energy - pp.Mag2());
-		// parent kinematic energy
+		// parent kinetic energy
 		channel.parent_energy -= pm;
 
 		// fill parent momentum

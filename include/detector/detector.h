@@ -392,25 +392,13 @@ int Detector::VmeMatchTrigger() {
 
 	// total number of VME trigger events
 	long long entries = vt_tree->GetEntries();
-	// 1/100 of entries
-	// long long entry100 = entries / 100 + 1;
-	// show start
-	printf("Reading VME trigger   0%%");
-	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
-		// show process
-		// if (entry % entry100 == 0) {
-		// 	printf("\b\b\b\b%3lld%%", entry / entry100);
-		// 	fflush(stdout);
-		// }
 		// get entry
 		vt_tree->GetEntry(entry);
 		// add valid timestamp or invalid -1 timestamp based on time
 		if (vt_event.time > -9e4) vt_times.push_back(vt_event.timestamp);
 		else vt_times.push_back(-1);
 	}
-	// show finish
-	printf("\b\b\b\b100%%\n");
 	// close vt input file
 	vt_file->Close();
 
@@ -449,10 +437,14 @@ int Detector::VmeMatchTrigger() {
 	long long timestamp;
 	// input and output event
 	FundamentalEvent fundamental_event;
+	// input time multi
+	unsigned int multi;
 	// setup input and output branches
 	ipt->SetBranchAddress("timestamp", &timestamp);
 	fundamental_event.SetupInput(ipt);
+	ipt->SetBranchAddress("multi", &multi);
 	fundamental_event.SetupOutput(opt);
+	opt->Branch("multi", &multi, "multi/i");
 
 	// for statistics
 	MatchTriggerStatistics statistics(

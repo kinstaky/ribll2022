@@ -1,21 +1,17 @@
-#include <cmath>
 #include <iostream>
-#include <fstream>
 
-#include <TFile.h>
-#include <TGraph.h>
-#include <TH1F.h>
 #include <TString.h>
+#include <TFile.h>
+#include <TH1F.h>
 #include <TTree.h>
 #include <Math/Vector3D.h>
 
-#include "include/optimize_utilities.h"
 #include "include/event/threebody_info_event.h"
-
+#include "include/optimize_utilities.h"
 
 using namespace ribll;
 
-double t0_param[6][2] = {
+constexpr double t0_param[6][2] = {
 	{0.0553516, 0.00532019},
 	{-0.12591, 0.00632308},
 	{0.552785, 0.00579009},
@@ -24,12 +20,26 @@ double t0_param[6][2] = {
 	{3.0818, 0.00235991}
 };
 
+constexpr double csi_param[12][3] = {
+	{216.579, 0.97, -23.4389},
+	{214.067, 0.96, -26.1516},
+	{200.308, 1.02, -155.26},
+	{276.858, 0.96, -468.231},
+	{233.155, 1.02, -211.293},
+	{327.988, 0.96, -988.938},
+	{318.893, 0.96, -758.227},
+	{269.045, 0.96, -222.745},
+	{291.919, 0.96, -346.013},
+	{241.453, 0.96, 100.75},
+	{268.52, 0.96, -196.279},
+	{234.844, 1.02, -188.712}
+};
+
 
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
-	const double a0,
-	const double a1,
-	const double a2,
+	const double ppac_parameter_x,
+	const double ppac_parameter_y,
 	double &be_kinetic,
 	double &he_kinetic,
 	double &d_kinetic,
@@ -79,6 +89,9 @@ double ThreeBodyProcess(
 		he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
+	double a0 = csi_param[event.csi_index][0];
+	double a1 = csi_param[event.csi_index][1];
+	double a2 = csi_param[event.csi_index][2];
 	// 2H kinetic energy
 	d_kinetic = event.tafd_energy + pow(
 		(event.csi_channel - a2) / a0,
@@ -86,8 +99,8 @@ double ThreeBodyProcess(
 	);
 
 	double ppac_correct[2][3] = {
-		{0.0, 0.0, 0.0},
-		{0.0, 0.0, 0.0}
+		{ppac_parameter_x, 0.0, 0.0},
+		{ppac_parameter_y, 0.0, 0.0}
 	};
 	PpacOffsetX(ppac_correct[0][0], ppac_correct[0][1], ppac_correct[0][2]);
 	PpacOffsetY(ppac_correct[1][0], ppac_correct[1][1], ppac_correct[1][2]);
@@ -152,73 +165,7 @@ double ThreeBodyProcess(
 }
 
 
-
-
-void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options]\n"
-		"Options:\n"
-		"  -h                Print this help information.\n"
-		"  -c                Set calculate T0D2 flags.\n"
-		"  -i                Iteration mode.\n";
-}
-
-
-/// @brief parse arguments
-/// @param[in] argc number of arguments
-/// @param[in] argv arguments
-/// @param[out] help need help
-/// @returns start index of positional arguments if succes, if failed returns
-///		-argc (negative argc) for miss argument behind option,
-/// 	or -index (negative index) for invalid arguemnt
-///
-int ParseArguments(
-	int argc,
-	char **argv,
-	bool &help
-) {
-	// initialize
-	help = false;
-	// start index of positional arugments
-	int result = 0;
-	for (result = 1; result < argc; ++result) {
-		// assumed that all options have read
-		if (argv[result][0] != '-') break;
-		// short option contains only one letter
-		if (argv[result][2] != 0) return -result;
-		if (argv[result][1] == 'h') {
-			help = true;
-			return result;
-		}else {
-			return -result;
-		}
-	}
-	return result;
-}
-
-
-int main(int argc, char **argv) {
-
-	// help flag
-	bool help = false;
-	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help);
-
-	// need help
-	if (help) {
-		PrintUsage(argv[0]);
-		return 0;
-	}
-
-	if (pos_start < 0) {
-		if (-pos_start < argc) {
-			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
-		} else {
-			std::cerr << "Error: Option need parameter.\n";
-		}
-		PrintUsage(argv[0]);
-		return -1;
-	}
-
+int main() {
 	// input file name
 	TString input_file_name = TString::Format(
 		"%s%sthreebody.root", kGenerateDataPath, kInformationDir
@@ -232,94 +179,97 @@ int main(int argc, char **argv) {
 			<< input_file_name << " failed.\n";
 		return -1;
 	}
+	// add CsI group result
+	ipt->AddFriend("group=tree", TString::Format(
+		"%s%sthreebody-group.root", kGenerateDataPath, kOptimizeDir
+	));
 	// input data
 	ThreeBodyInfoEvent event;
+	double csi_mean;
+	double csi_sigma;
 	// setup input branches
 	event.SetupInput(ipt);
+	ipt->SetBranchAddress("group.q_mean", &csi_mean);
+	ipt->SetBranchAddress("group.q_sigma", &csi_sigma);
 
-	// output file
-	TFile opf(
-		TString::Format(
-			"%s%sthreebody-group.root",
-			kGenerateDataPath,
-			kOptimizeDir
-		),
-		"recreate"
+	constexpr int groups = 64;
+
+	// output file name
+	TString output_file_name = TString::Format(
+		"%s%sppac-group.root", kGenerateDataPath, kOptimizeDir
 	);
-	// group parameters Q value spectrum
-	std::vector<TH1F> group_q_spectrum;
-	std::vector<TGraph> group_g;
-	// output tree
-	TTree opt("tree", "group Q mean and sigma");
-	// output data
-	double q_mean;
-	double q_sigma;
-	// setup output branches
-	opt.Branch("q_mean", &q_mean, "mean/D");
-	opt.Branch("q_sigma", &q_sigma, "sigma/D");
-
-
-	std::vector<double> csi_parameters[12][3];
-
-	// read CsI calibration parameters from file
-	for (int i = 0; i < 12; ++i) {
-		std::ifstream fin(TString::Format(
-			"%s%scsi-group-parameters-%d.txt",
-			kGenerateDataPath,
-			kOptimizeDir,
-			i
-		).Data());
-		double a0, a1, a2;
-		while (fin.good()) {
-			fin >> a0 >> a1 >> a2;
-			csi_parameters[i][0].push_back(a0);
-			csi_parameters[i][1].push_back(a1);
-			csi_parameters[i][2].push_back(a2);
-		}
-		fin.close();
+	// output file
+	TFile opf(output_file_name, "recreate");
+	// group parameters Q value
+	std::vector<TH1F> hist_group_q;
+	// Q value spectrum for each group
+	std::vector<TH1F> hist_q_spectrum;
+	for (int i = 0; i < groups; ++i) {
+		hist_q_spectrum.emplace_back(
+			TString::Format("hq%d", i), "Q",
+			100, -23, -8
+		);
 	}
-	int groups = csi_parameters[0][0].size();
+	// output tree
+	TTree opt("tree", "ppac group");
+	// output data
+	int num;
+	double ppac_parameter_x[groups];
+	double ppac_parameter_y[groups];
+	double group_q[groups];
+	double q_mean, q_sigma;
+	// setup output branches
+	opt.Branch("num", &num, "num/I");
+	opt.Branch("lx", ppac_parameter_x, "lx[num]/D");
+	opt.Branch("ly", ppac_parameter_y, "ly[num]/D");
+	opt.Branch("q", group_q, "q[num]/D");
+	opt.Branch("q_mean", &q_mean, "q_mean/D");
+	opt.Branch("q_sigma", &q_sigma, "q_sigma/D");
 
+	double q, be_kinetic, he_kinetic, d_kinetic, c_kinetic;
 
-	// kinetic energy
-	double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
-	// loop to calculate Q value
-	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
+	// total number of entries
+	long long entries = ipt->GetEntries();
+	for (long long entry = 0; entry < entries; ++entry) {
+		// get data
 		ipt->GetEntry(entry);
 
-		group_q_spectrum.emplace_back(
-			TString::Format("hgq%lld", entry),
-			"group Q",
-			300, -23, -8
+		hist_group_q.emplace_back(
+			TString::Format("hgq%lld", entry), "group Q",
+			1000, -23, -8
 		);
-		group_g.emplace_back();
 
-		for (int i = 0; i < groups; ++i) {
-			double q_value = ThreeBodyProcess(
-				event,
-				csi_parameters[event.csi_index][0][i],
-				csi_parameters[event.csi_index][1][i],
-				csi_parameters[event.csi_index][2][i],
-				be_kinetic, he_kinetic, d_kinetic, c_kinetic
-			);
-
-			group_q_spectrum[entry].Fill(q_value);
-			group_g[entry].AddPoint(csi_parameters[event.csi_index][1][i], q_value);
+		num = 0;
+		if (csi_sigma > 0.2) {
+			opt.Fill();
+			continue;
 		}
 
-		q_mean = group_q_spectrum[entry].GetMean();
-		q_sigma = group_q_spectrum[entry].GetStdDev(1);
-		// fillt to tree
+		for (double lx = -4.0; lx < 4.0; lx += 1.0) {
+			for (double ly = -4.0; ly < 4.0; ly += 1.0) {
+				q = ThreeBodyProcess(
+					event,
+					lx, ly,
+					be_kinetic, he_kinetic, d_kinetic, c_kinetic
+				);
+				// fill histogram
+				hist_group_q[entry].Fill(q);
+				hist_q_spectrum[num].Fill(q);
+				// fill tree
+				ppac_parameter_x[num] = lx;
+				ppac_parameter_y[num] = ly;
+				group_q[num] = q;
+				++num;
+			}
+		}
+		q_mean = hist_group_q[entry].GetMean();
+		q_sigma = hist_group_q[entry].GetStdDev();
 		opt.Fill();
 	}
 
-
 	// save histograms
-	opf.cd();
-	for (size_t i = 0; i < group_q_spectrum.size(); ++i) {
-		group_q_spectrum[i].Write();
-		group_g[i].Write(TString::Format("gg%ld", i));
-	}
+	for (auto &hist : hist_group_q) hist.Write();
+	for (auto &hist : hist_q_spectrum) hist.Write();
 	// save tree
 	opt.Write();
 	// close files

@@ -117,13 +117,21 @@ int main(int argc, char **argv) {
 	}
 
 	for (auto dssd_name : dssd_names) {
-		std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
-		if (!dssd) continue;
+		if (dssd_name == "xppac" || dssd_name == "vppac") {
+			Ppac ppac(run, dssd_name, tag);
+			if (ppac.Normalize()) {
+				std::cerr << "Error: Normalize " << dssd_name << " failed.\n";
+				return -1;
+			}
+		} else {
+			std::shared_ptr<Dssd> dssd = CreateDssd(dssd_name, run, tag);
+			if (!dssd) continue;
 
-		if (dssd->Normalize(end_run, iteration)) {
-			std::cerr << "Error: Normalize "
-				<< dssd_name << " failed.\n";
-			continue;
+			if (dssd->Normalize(end_run, iteration)) {
+				std::cerr << "Error: Normalize "
+					<< dssd_name << " failed.\n";
+				continue;
+			}
 		}
 	}
 	return 0;

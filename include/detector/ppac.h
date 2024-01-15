@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "include/detector/detector.h"
+#include "include/event/tof_event.h"
 #include "include/event/ppac_event.h"
 
 
@@ -43,13 +44,37 @@ public:
 	virtual int Merge(double) override;
 
 
+	/// @brief normalize XPPAC and VPPAC
+	/// @returns 0 if success, -1 otherwise
+	int Normalize();
+
+
 	/// @brief track PPAC events and calculate the reaction point
 	/// @returns 0 if success, -1 otherwise
 	virtual int Track();
 
 private:
 
+	/// @brief get sum range in XPPAC
+	/// @param[in] fundamental data to read
+	/// @param[in] ipt tree to read
+	/// @param[in] range sum range result
+	/// @returns 0 if success, -1 otherwise
 	int GetSumRange(PpacFundamentalEvent &fundamental, TTree *ipt, double *range);
+
+
+	/// @brief get sum range in VPPAC
+	/// @param[in] ppac PPAC data to read
+	/// @param[in] vtof ToF data to read
+	/// @param[in] ipt tree to read
+	/// @param[in] range sum range result
+	/// @returns 0 if success, -1 otherwise
+	int GetVmeSumRange(
+		PpacFundamentalEvent &ppac,
+		TofFundamentalEvent &vtof,
+		TTree *ipt,
+		double *range
+	);
 };
 
 }	// namespace ribll

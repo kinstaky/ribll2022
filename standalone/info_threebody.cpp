@@ -55,8 +55,12 @@ int main() {
 	TTree opt("tree", "information of three body");
 	// output data
 	ThreeBodyInfoEvent event;
+	// int vppac_num, xppac_num;
+	int xppac_num;
 	// setup output branches
 	event.SetupOutput(&opt);
+	// opt.Branch("vnum", &vppac_num, "vnum/I");
+	opt.Branch("xnum", &xppac_num, "xnum/I");
 
 	for (unsigned int run = 618; run <= 716; ++run) {
 		if (run == 628) continue;
@@ -82,9 +86,12 @@ int main() {
 		ChannelEvent channel;
 		// t0 index
 		int t0_index[8];
+		// PPAC flag
+		int ppac_flag;
 		// setup input branches
 		channel.SetupInput(ipt);
 		ipt->SetBranchAddress("t0_index", t0_index);
+		ipt->SetBranchAddress("ppac_flag", &ppac_flag);
 
 		std::vector<long long> valid_entries;
 		std::vector<int> taf_indexes;
@@ -92,6 +99,7 @@ int main() {
 		std::vector<int> he4_indexes;
 		std::vector<double> t0_energies[2];
 		std::vector<double> q_values;
+		std::vector<int> ppac_flags;
 
 		// loop to record information in channel
 		for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -105,6 +113,7 @@ int main() {
 			double q = channel.daughter_energy[0] + channel.daughter_energy[1]
 				+ channel.recoil_energy - channel.parent_energy;
 			q_values.push_back(q);
+			ppac_flags.push_back(ppac_flag);
 			// double q = channel.parent_energy + 1.006
 			// 	- channel.daughter_energy[0] - channel.daughter_energy[1];
 			// if (q > -3.0 && q < 2.5) states.push_back(0);
@@ -197,6 +206,16 @@ int main() {
 				run
 			)
 		);
+		// // add vppac as friend
+		// t0_tree->AddFriend(
+		// 	"vppac=tree",
+		// 	TString::Format(
+		// 		"%s%svppac-particle-ta-%04u.root",
+		// 		kGenerateDataPath,
+		// 		kParticleDir,
+		// 		run
+		// 	)
+		// );
 		// input events
 		// T0 telescope event
 		T0Event t0;
@@ -209,6 +228,9 @@ int main() {
 		DssdFundamentalEvent tafd[6];
 		// XPPAC events
 		ParticleEvent xppac;
+		// VPPAC events
+		// ParticleEvent vppac;
+		// unsigned short vppac_xflag, vppac_yflag;
 
 		// setup input branches
 		t0.SetupInput(t0_tree);
@@ -229,6 +251,9 @@ int main() {
 		xppac.SetupInput(t0_tree, "xppac.");
 		t0_tree->SetBranchAddress("xppac.xflag", &event.ppac_xflag);
 		t0_tree->SetBranchAddress("xppac.yflag", &event.ppac_yflag);
+		// vppac.SetupInput(t0_tree, "vppac.");
+		// t0_tree->SetBranchAddress("vppac.xflag", &vppac_xflag);
+		// t0_tree->SetBranchAddress("vppac.yflag", &vppac_yflag);
 
 		for (size_t i = 0; i < valid_entries.size(); ++i) {
 			t0_tree->GetEntry(valid_entries[i]);
@@ -268,13 +293,27 @@ int main() {
 			);
 			event.d_x = recoil_position.X();
 			event.d_y = recoil_position.Y();
+
+			// vppac_num = vppac.num;
+			xppac_num = xppac.num;
+			event.ppac_flag = ppac_flags[i];
+			// if (ppac_flags[i] == 0) {
 			event.tx = xppac.x[3];
 			event.ty = xppac.y[3];
 			for (int j = 0; j < 3; ++j) {
 				event.ppac_x[j] = xppac.x[j];
 				event.ppac_y[j] = xppac.y[j];
 			}
-
+			// } else if (ppac_flags[i] == 1) {
+				// event.tx = vppac.x[3];
+			// 	event.ty = vppac.y[3];
+			// 	for (int j = 0; j < 3; ++j) {
+			// 		event.ppac_x[j] = vppac.x[j];
+			// 		event.ppac_y[j] = vppac.y[j];
+			// 	}
+			// 	event.ppac_xflag = vppac_xflag;
+			// 	event.ppac_yflag = vppac_yflag;
+			// }
 
 			// fill t0d1 10Be result
 			if (FillResult(
@@ -430,6 +469,7 @@ int main() {
 			event.hole[0] = t0.hole[be10_indexes[i]];
 			event.hole[1] = t0.hole[he4_indexes[i]];
 			event.run = run;
+			event.entry = valid_entries[i];
 
 			opt.Fill();
 		}

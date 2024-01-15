@@ -94,6 +94,21 @@ target_link_libraries(
 	show_ppac_center PRIVATE event statistics ROOT::Graf
 )
 
+# show PPAC sum
+add_executable(show_ppac_change show_ppac_change.cpp)
+target_include_directories(
+	show_ppac_change PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(
+	show_ppac_change PRIVATE ROOT::Core ROOT::RIO ROOT::Graf
+)
+
+# show PPAC effect
+add_executable(show_ppac_effect show_ppac_effect.cpp)
+target_link_libraries(
+	show_ppac_effect PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
+)
+
 # show time-energy
 add_executable(show_time_energy show_time_energy.cpp)
 target_link_libraries(show_time_energy PRIVATE detectors event ROOT::Hist)
@@ -121,3 +136,7 @@ target_link_libraries(show_d2_shift PRIVATE event ROOT::Core ROOT::RIO ROOT::Gra
 # show T0D2 pixel
 add_executable(show_d2_pixel show_d2_pixel.cpp)
 target_link_libraries(show_d2_pixel PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf ROOT::Gpad)
+
+# # show resist strip
+# add_executable(show_resist_strip show_resist_strip.cpp)
+# target_link_libraries(show_resist_strip PRIVATE event ROOT::Graf)

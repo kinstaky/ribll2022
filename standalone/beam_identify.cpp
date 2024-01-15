@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 	}
 	unsigned int run = atoi(argv[1]);
 
-	Tof tof(run, "");
+	Tof tof(run, "tof", "");
 	if (tof.BeamIdentify()) {
 		std::cerr << "Error: Identify beam falied.\n";
 		return -1;

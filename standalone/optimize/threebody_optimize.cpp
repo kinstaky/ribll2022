@@ -39,65 +39,65 @@ double ThreeBodyProcess(
 	const double *csi_param,
 	const double *pos_param,
 	const double *ppac_param,
-	double &be_kinematic,
-	double &he_kinematic,
-	double &d_kinematic,
-	double &c_kinematic
+	double &be_kinetic,
+	double &he_kinetic,
+	double &d_kinetic,
+	double &c_kinetic
 ) {
-	// 10Be kinematic energy
+	// 10Be kinetic energy
 	// T0D1 energy
-	be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
+	be_kinetic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
 	if (calculated_t0d2) {
-		be_kinematic += be_calc->Energy(0, be_kinematic);
+		be_kinetic += be_calc->Energy(0, be_kinetic);
 	} else {
-		be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+		be_kinetic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	}
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
+		be_kinetic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
-		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		be_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[0] > 3) {
-		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		be_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[0] > 4) {
-		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		be_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
-	// 4He kinematic energy
+	// 4He kinetic energy
 	// T0D1 energy
-	he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
+	he_kinetic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
 	if (calculated_t0d2) {
-		he_kinematic += he_calc->Energy(0, he_kinematic);
+		he_kinetic += he_calc->Energy(0, he_kinetic);
 	} else {
-		he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+		he_kinetic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	}
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
+		he_kinetic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
-		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		he_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[1] > 3) {
-		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		he_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[1] > 4) {
-		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
-	// 2H kinematic energy
-	d_kinematic = event.tafd_energy + pow(
+	// 2H kinetic energy
+	d_kinetic = event.tafd_energy + pow(
 		(event.csi_channel - csi_param[2]) / csi_param[0],
 		1.0 / csi_param[1]
 	);
@@ -121,7 +121,7 @@ double ThreeBodyProcess(
 	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
-	double be_momentum = MomentumFromKinematic(mass_10be, be_kinematic);
+	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
 		event.be_x[0] - xb,
@@ -131,7 +131,7 @@ double ThreeBodyProcess(
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
 		event.he_x[0] - xb,
@@ -141,7 +141,7 @@ double ThreeBodyProcess(
 	p_he = p_he.Unit() * he_momentum;
 
 	// 2H momentum
-	double d_momentum = MomentumFromKinematic(mass_2h, d_kinematic);
+	double d_momentum = MomentumFromKinetic(mass_2h, d_kinetic);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
 		event.d_x - xb + pos_param[0],
@@ -159,12 +159,12 @@ double ThreeBodyProcess(
 
 	// 14C momentum
 	double c_momentum = p_c.R();
-	// 14C kinematic energy
-	c_kinematic =
+	// 14C kinetic energy
+	c_kinetic =
 		sqrt(pow(c_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
 
 	// three-fold Q value
-	double q = be_kinematic + he_kinematic + d_kinematic - c_kinematic;
+	double q = be_kinetic + he_kinetic + d_kinetic - c_kinetic;
 
 	return q;
 }
@@ -175,48 +175,48 @@ double TwoBodyProcess(
 	const double *ppac_param,
 	double excited_10be
 ) {
-	// 10Be kinematic energy
+	// 10Be kinetic energy
 	// T0D1 energy
-	double be_kinematic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
+	double be_kinetic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 	// T0D2 energy
-	be_kinematic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+	be_kinetic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
 	// T0D3 energy
 	if (event.layer[0] > 1) {
-		be_kinematic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
+		be_kinetic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[0] > 2) {
-		be_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		be_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[0] > 3) {
-		be_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		be_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[0] > 4) {
-		be_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		be_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
-	// 4He kinematic energy
+	// 4He kinetic energy
 	// T0D1 energy
-	double he_kinematic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
+	double he_kinetic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 	// T0D2 energy
-	he_kinematic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+	he_kinetic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
 	// T0D3 energy
 	if (event.layer[1] > 1) {
-		he_kinematic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
+		he_kinetic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 	}
 	// T0S1 energy
 	if (event.layer[1] > 2) {
-		he_kinematic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
+		he_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 	}
 	// T0S2 energy
 	if (event.layer[1] > 3) {
-		he_kinematic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
+		he_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 	}
 	// T0S3 energy
 	if (event.layer[1] > 4) {
-		he_kinematic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
+		he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
 	}
 
 	double ppac_correct[2][3] = {
@@ -237,8 +237,8 @@ double TwoBodyProcess(
 	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
-	double be_momentum = MomentumFromKinematic(
-		mass_10be + excited_10be, be_kinematic
+	double be_momentum = MomentumFromKinetic(
+		mass_10be + excited_10be, be_kinetic
 	);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
@@ -249,7 +249,7 @@ double TwoBodyProcess(
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinematic(mass_4he, he_kinematic);
+	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
 		event.he_x[1] - xb,
@@ -264,8 +264,8 @@ double TwoBodyProcess(
 	double c_momentum = p_c.R();
 	// excited 14C total energy
 	double c_energy =
-		(be_kinematic + mass_10be + excited_10be)
-		+ (he_kinematic + mass_4he);
+		(be_kinetic + mass_10be + excited_10be)
+		+ (he_kinetic + mass_4he);
 	// excited 14C mass
 	double excited_c_mass = sqrt(
 		pow(c_energy, 2.0) - pow(c_momentum, 2.0)
@@ -317,7 +317,7 @@ public:
 		double ppac_param[2] = {0.0, 0.0};
 #endif
 
-		double be_kinematic, he_kinematic, d_kinematic, c_kinematic;
+		double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
 
 		double q = ThreeBodyProcess(
 			event_,
@@ -326,7 +326,7 @@ public:
 			csi_param_full,
 			pos_param,
 			ppac_param,
-			be_kinematic, he_kinematic, d_kinematic, c_kinematic
+			be_kinetic, he_kinetic, d_kinetic, c_kinetic
 		);
 
 		double excited_energy = 0.0;
@@ -487,19 +487,19 @@ int main(int argc, char **argv) {
 	// output tree
 	TTree opt("tree", "threebody tree");
 	// output data
-	double be_kinematic;
-	double he_kinematic;
-	double d_kinematic;
-	double c_kinematic;
+	double be_kinetic;
+	double he_kinetic;
+	double d_kinetic;
+	double c_kinetic;
 	double q_value;
 	int be_state;
 	double c_excited;
 	// setup output branches
 	opt.Branch("csi_index", &event.csi_index, "ci/I");
-	opt.Branch("be_kinematic", &be_kinematic, "bek/D");
-	opt.Branch("he_kinematic", &he_kinematic, "hek/D");
-	opt.Branch("d_kinematic", &d_kinematic, "dk/D");
-	opt.Branch("c_kinematic", &c_kinematic, "ck/D");
+	opt.Branch("be_kinetic", &be_kinetic, "bek/D");
+	opt.Branch("he_kinetic", &he_kinetic, "hek/D");
+	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
+	opt.Branch("c_kinetic", &c_kinetic, "ck/D");
 	opt.Branch("q", &q_value, "q/D");
 	opt.Branch("state", &be_state, "state/I");
 	opt.Branch("excited", &c_excited, "ex/D");
@@ -569,12 +569,12 @@ int main(int argc, char **argv) {
 			csi_param[event.csi_index],
 			pos_param[event.csi_index/2],
 			ppac_param,
-			be_kinematic, he_kinematic, d_kinematic, c_kinematic
+			be_kinetic, he_kinetic, d_kinetic, c_kinetic
 		);
 
 		init_q_spectrum.Fill(q_value);
 		init_q_sep_spectrum[event.csi_index].Fill(q_value);
-		init_hist_beam_energy.Fill(c_kinematic);
+		init_hist_beam_energy.Fill(c_kinetic);
 
 		// get state
 		int state;
@@ -728,7 +728,7 @@ int main(int argc, char **argv) {
 			csi_param[event.csi_index],
 			pos_param[event.csi_index/2],
 			ppac_param,
-			be_kinematic, he_kinematic, d_kinematic, c_kinematic
+			be_kinetic, he_kinetic, d_kinetic, c_kinetic
 		);
 
 		if (q_value > -13.5 && q_value < -10) be_state = 0;
@@ -748,7 +748,7 @@ int main(int argc, char **argv) {
 
 		opt_q_spectrum.Fill(q_value);
 		opt_q_sep_spectrum[event.csi_index].Fill(q_value);
-		opt_hist_beam_energy.Fill(c_kinematic);
+		opt_hist_beam_energy.Fill(c_kinetic);
 
 		// fill to tree
 		opt.Fill();

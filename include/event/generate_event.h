@@ -24,7 +24,7 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	double beam_kinematic;
+	double beam_kinetic;
 	double beam_excited_energy;
 	double beam_theta;
 	double beam_phi;
@@ -32,17 +32,17 @@ public:
 	double target_y;
 	double fragment_excited_energy;
 	int fragment_state;
-	double parent_kinematic;
+	double parent_kinetic;
 	double parent_theta;
 	double parent_phi;
-	double recoil_kinematic;
+	double recoil_kinetic;
 	double recoil_theta;
 	double recoil_phi;
 	double rx;
 	double ry;
 	double rz;
 	double rr;
-	double fragment_kinematic[2];
+	double fragment_kinetic[2];
 	double fragment_theta[2];
 	double fragment_phi[2];
 	double fragment_x[2];

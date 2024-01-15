@@ -94,6 +94,7 @@ private:
 	long long align_time_;
 	int align_gmulti_[128];
 	int align_gdc_[128][5];
+	unsigned int multi_;
 };
 
 }		// namespace ribll

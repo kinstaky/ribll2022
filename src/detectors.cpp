@@ -14,8 +14,8 @@ std::shared_ptr<Detector> CreateDetector(
 	unsigned int run,
 	const std::string &tag
 ) {
-	if (name == "tof") {
-		return std::make_shared<Tof>(run, tag);
+	if (name == "tof" || name == "vtof") {
+		return std::make_shared<Tof>(run, name, tag);
 	} else if (name == "vt") {
 		return std::make_shared<VmeTrigger>(run, tag);
 	} else if (name == "xppac") {
