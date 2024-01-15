@@ -137,6 +137,6 @@ target_link_libraries(show_d2_shift PRIVATE event ROOT::Core ROOT::RIO ROOT::Gra
 add_executable(show_d2_pixel show_d2_pixel.cpp)
 target_link_libraries(show_d2_pixel PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf ROOT::Gpad)
 
-# # show resist strip
-# add_executable(show_resist_strip show_resist_strip.cpp)
-# target_link_libraries(show_resist_strip PRIVATE event ROOT::Graf)
+# show resist strip
+add_executable(show_resist_strip show_resist_strip.cpp)
+target_link_libraries(show_resist_strip PRIVATE event ROOT::Graf)

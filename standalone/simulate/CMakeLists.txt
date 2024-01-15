@@ -23,9 +23,9 @@ target_link_libraries(sim_track PRIVATE event ROOT::Graf)
 add_executable(single_ppac_track single_ppac_track.cpp)
 target_link_libraries(single_ppac_track PRIVATE event ROOT::Graf)
 
-# # resist strip
-# add_executable(sim_resist_strip simulate_resist_strip.cpp)
-# target_link_libraries(sim_resist_strip PRIVATE event ROOT::Graf)
+# resist strip
+add_executable(sim_resist_strip simulate_resist_strip.cpp)
+target_link_libraries(sim_resist_strip PRIVATE event ROOT::Graf)
 
 # simulate live time
 add_executable(live_time live_time.cpp)
