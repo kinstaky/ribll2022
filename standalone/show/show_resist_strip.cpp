@@ -135,7 +135,7 @@ int main() {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%sresist_strip.root", kGenerateDataPath, kShowDir
+		"%s%sresist-strip.root", kGenerateDataPath, kShowDir
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -148,10 +148,12 @@ int main() {
 	// output data
 	bool valid;
 	double q_mean, q_sigma;
+	double represent_q[3];
 	// setup output branches
 	opt.Branch("vaild", &valid, "valid/O");
 	opt.Branch("q_mean", &q_mean, "qmean/D");
 	opt.Branch("q_sigma", &q_sigma, "qsigma/D");
+	opt.Branch("represent_q", represent_q, "rq[3]/D");
 
 	// parameters
 	int strip_params[strips];
@@ -291,6 +293,87 @@ int main() {
 		// get fitted parameter
 		q_mean = q_fit->GetParameter(1);
 		q_sigma = q_fit->GetParameter(2);
+
+		// represent Q
+		for (int i = 0; i < 3; ++i) {
+			// change positions
+			double ct0x[2], ct0y[2], ctafx, ctafy, cppacx, cppacy;
+			// change 10Be position
+			ct0x[0] = info.be_x[0] + 0.5;
+			ct0y[0] = info.be_y[0] + 0.5;
+			// change 4He position
+			ct0x[1] = info.he_x[0] + 0.5;
+			ct0y[1] = info.he_y[0] + 0.5;
+			// change 2H position
+			double ctaf_r =
+				102.5/16.0 * (info.d_x_strip + i*0.5) + 32.6;
+			double ctaf_phi =
+				-55.2/8.0 * (info.d_y_strip + 0.5)
+				+ tafd_phi_start[info.csi_index/2];
+			ctaf_phi *= TMath::DegToRad();
+			double mid_phi =
+				(tafd_phi_start[info.csi_index/2] - 27.6) * TMath::DegToRad();
+			ctafx = ctaf_r * cos(ctaf_phi) + 34.4*cos(mid_phi);
+			ctafy = ctaf_r * sin(ctaf_phi) + 34.4*sin(mid_phi);
+			// change 14C position
+			cppacx =
+				info.ppac_x[ppac_x_index] + ppac_correctx[ppac_x_index] + 0.5;
+			cppacy =
+				info.ppac_y[ppac_y_index] + ppac_correcty[ppac_y_index] + 0.5;
+
+			double d_kinetic = info.tafd_energy + pow(
+				(info.csi_channel - csi_param[info.csi_index][2])
+					/ csi_param[info.csi_index][0],
+				1.0 / csi_param[info.csi_index][1]
+			);
+
+			// reaction point from single PPAC track
+			double tx = DeutronRelativeApproximateTrack(
+				info.t0_energy[0], info.t0_energy[1], d_kinetic,
+				ppac_xz[ppac_x_index], ct0x[0], ct0x[1], ctafx, ctafy, cppacx
+			);
+			double ty = DeutronRelativeApproximateTrack(
+				info.t0_energy[0], info.t0_energy[1], d_kinetic,
+				ppac_yz[ppac_y_index], ct0y[0], ct0y[1], ctafy, ctafx, cppacy
+			);
+
+			// momentum vector of fragments
+			ROOT::Math::XYZVector fp[2];
+			for (size_t i = 0; i < 2; ++i) {
+				fp[i] = ROOT::Math::XYZVector(
+					ct0x[i] - tx,
+					ct0y[i] - ty,
+					100.0
+				);
+				// fragment mass
+				double mass = i == 0 ? be10_mass : he4_mass;
+				// fragment kinetic energy
+				double kinetic = info.t0_energy[i];
+				// fragment momentum value
+				double momentum = sqrt(
+					pow(kinetic, 2.0) + 2.0 * kinetic * mass
+				);
+				fp[i] = fp[i].Unit() * momentum;
+			}
+			// recoil 2H momentum vector
+			ROOT::Math::XYZVector rp(
+				ctafx - tx,
+				ctafy - ty,
+				135.0
+			);
+			// recoild 2H momentum value
+			double recoil_momentum = sqrt(
+				pow(d_kinetic, 2.0) + 2.0 * d_kinetic * h2_mass
+			);
+			rp = rp.Unit() * recoil_momentum;
+			// rebuild beam momentum vector
+			ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
+			// rebuild beam kinetic energy
+			double c_kinetic = sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
+			// Q value
+			represent_q[i] = info.t0_energy[0] + info.t0_energy[1]
+				+ d_kinetic - c_kinetic;
+		}
 
 		// fill tree
 		opt.Fill();
