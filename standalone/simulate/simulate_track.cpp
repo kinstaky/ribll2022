@@ -13,25 +13,9 @@
 
 #include "include/event/generate_event.h"
 #include "include/event/detect_event.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
-
-const double t0z[3] = {100.0, 111.76, 123.52};
-
-void SimpleFit(const double *x, double *y, const int n, double &k, double &b) {
-	double sumx = 0.0;
-	double sumy = 0.0;
-	double sumxy = 0.0;
-	double sumx2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		sumx += x[i];
-		sumy += y[i];
-		sumxy += x[i] * y[i];
-		sumx2 += x[i] * x[i];
-	}
-	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
-	b = (sumy - k*sumx) / double(n);
-}
 
 int main() {
 	// input generate file name
@@ -131,7 +115,11 @@ int main() {
 		// get entry
 		ipt->GetEntry(entry);
 
-		if (detect.valid != 7) continue;
+		if (detect.valid != 7) {
+			valid[0] = valid[1] = false;
+			opt.Fill();
+			continue;
+		}
 
 		for (int i = 0; i < 2; ++i) {
 			valid[i] = true;

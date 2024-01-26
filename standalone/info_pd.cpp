@@ -10,13 +10,54 @@
 #include <TGraph.h>
 #include <TMultiGraph.h>
 
+#include "include/event/pd_info_event.h"
 #include "include/event/channel_event.h"
 #include "include/event/ta_event.h"
 #include "include/event/t0_event.h"
 #include "include/event/particle_event.h"
 #include "include/event/dssd_event.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
+
+double PdProcess(
+	const PdInfoEvent &event,
+	double &c15_kinetic
+) {
+	// C14 momentum
+	double c14_momentum = MomentumFromKinetic(mass_14c, event.t0_energy);
+	// C14 momentum vector
+	ROOT::Math::XYZVector p_c14(
+		event.c_x[0] - event.tx,
+		event.c_y[0] - event.ty,
+		100.0
+	);
+	p_c14 = p_c14.Unit() * c14_momentum;
+
+	// 2H momentum
+	double d_momentum = MomentumFromKinetic(mass_2h, event.taf_energy);
+	// 2H momentum vector
+	ROOT::Math::XYZVector p_d(
+		event.d_x - event.tx,
+		event.d_y - event.ty,
+		135.0
+	);
+	p_d = p_d.Unit() * d_momentum;
+
+	// beam 14C momentum vector
+	ROOT::Math::XYZVector p_c15 = p_c14 + p_d;
+
+	// 15C momentum
+	double c15_momentum = p_c15.R();
+	// 15C kinetic energy
+	c15_kinetic =
+		sqrt(pow(c15_momentum, 2.0) + pow(mass_15c, 2.0)) - mass_15c;
+
+	// Q value
+	double q = event.t0_energy + event.taf_energy - c15_kinetic;
+
+	return q;
+}
 
 
 /// @brief search for index from binary flag
@@ -80,16 +121,6 @@ int EnergyTheta(
 }
 
 
-/// @brief get momentum from kinematic energy
-/// @param[in] mass mass of particle
-/// @param[in] kinematic kinematic energy of particle
-/// @returns momentum of particle
-///
-inline double MomentumFromKinematic(double mass, double kinematic) {
-	return sqrt((2.0 * mass + kinematic) * kinematic);
-}
-
-
 ///	@brief get cos(theta) from energy
 /// @param[in] beam_mass mass of beam
 /// @param[in] fragment1_mass mass of fragment1
@@ -109,11 +140,11 @@ double ThetaEnergy(
 ) {
 	double fragment2_kinematic = q + beam_kinematic - fragment1_kinematic;
 
-	double momentum_beam = MomentumFromKinematic(beam_mass, beam_kinematic);
+	double momentum_beam = MomentumFromKinetic(beam_mass, beam_kinematic);
 	double momentum_fragment1 =
-		MomentumFromKinematic(fragment1_mass, fragment1_kinematic);
+		MomentumFromKinetic(fragment1_mass, fragment1_kinematic);
 	double momentum_fragment2 =
-		MomentumFromKinematic(fragment2_mass, fragment2_kinematic);
+		MomentumFromKinetic(fragment2_mass, fragment2_kinematic);
 
 	double cos_theta =
 		(
@@ -125,7 +156,6 @@ double ThetaEnergy(
 
 	return cos_theta;
 }
-
 
 
 int main() {
@@ -150,132 +180,14 @@ int main() {
 	TMultiGraph total_mg;
 	// output tree
 	TTree opt("tree", "information of 15C pd reaction");
-	// output data
-	// indexes
-	int csi_index;
-	int layer;
-	// energy
-	double taf_energy;
-	double tafd_energy;
-	// double csi_energy;
-	// double t0_energy;
-	// double d1_energy;
-	// double d2_energy;
-	// channel
-	double csi_channel;
-	double d1_channel;
-	double d2_channel;
-	// double d1x_channel;
-	// double d1y_channel;
-	// double d2x_channel;
-	// double d2y_channel;
-	// time
-	double d1x_time;
-	double d1y_time;
-	double d2x_time;
-	double d2y_time;
-	double tafd_pi_time;
-	double tafd_r_time;
-	// position
-	double d1x;
-	double d1y;
-	double d2x;
-	double d2y;
-	// recoil position
-	double rx;
-	double ry;
-	// target position
-	double tx;
-	double ty;
-	// beam direction
-	double beam_px;
-	double beam_py;
-	double beam_pz;
-	// strips
-	// unsigned short d1x_strip;
-	// unsigned short d1y_strip;
-	// unsigned short d2x_strip;
-	// unsigned short d2y_strip;
-	unsigned short tafd_pi_strip;
-	unsigned short tafd_r_strip;
-	// bool d1x_merge;
-	// bool d1y_merge;
-	// bool d2x_merge;
-	// bool d2y_merge;
-	// bool tafd_r_merge;
-	// bool tafd_pi_merge;
-	unsigned short ppac_xflag;
-	unsigned short ppac_yflag;
-	double ppac_x[3];
-	double ppac_y[3];
-	// state
-	int state;
-	double q_value;
-	// theta
-	double theta;
-
+	// output event
+	PdInfoEvent pd_event;
 	// setup output branches
-	// indexes and layers
-	opt.Branch("csi_index", &csi_index, "ci/I");
-	opt.Branch("layer", layer, "layer/I");
-	// energy
-	opt.Branch("taf_energy", &taf_energy, "tafe/D");
-	opt.Branch("tafd_energy", &tafd_energy, "tafde/D");
-	// opt.Branch("csi_energy", &csi_energy, "csie/D");
-	// opt.Branch("t0_energy", &t0_energy, "t0e/D");
-	// opt.Branch("d1_energy", &d1_energy, "d1e/D");
-	// opt.Branch("d2_energy", &d2_energy, "d2e/D");
-	// channel
-	opt.Branch("csi_channel", &csi_channel, "csic/D");
-	opt.Branch("d1_channel", &d1_channel, "d1c/D");
-	opt.Branch("d2_channel", &d2_channel, "d2c/D");
-	// opt.Branch("d1_x_channel", &d1x_channel, "d1xc/D");
-	// opt.Branch("d1_y_channel", &d1y_channel, "d1yc/D");
-	// opt.Branch("d2_x_channel", &d2x_channel, "d2xc/D");
-	// opt.Branch("d2_y_channel", &d2y_channel, "d2yc/D");
-	// time
-	opt.Branch("d1_x_time", &d1x_time, "d1xt/D");
-	opt.Branch("d1_y_time", &d1y_time, "d1yt/D");
-	opt.Branch("d2_x_time", &d2x_time, "d2xt/D");
-	opt.Branch("d2_y_time", &d2y_time, "d2yt/D");
-	opt.Branch("tafd_pi_time", &tafd_pi_time, "tafdpt/D");
-	opt.Branch("tafd_r_time", &tafd_r_time, "tafdrt/D");
-	// position
-	opt.Branch("d1_x", &d1x, "d1x/D");
-	opt.Branch("d1_y", &d1y, "d1y/D");
-	opt.Branch("d2_x", &d2x, "d2x/D");
-	opt.Branch("d2_y", &d2y, "d2y/D");
-	opt.Branch("rx", &rx, "rx/D");
-	opt.Branch("ry", &ry, "ry/D");
-	opt.Branch("tx", &tx, "tx/D");
-	opt.Branch("ty", &ty, "ty/D");
-	opt.Branch("beam_px", &beam_px, "bpx/D");
-	opt.Branch("beam_py", &beam_py, "bpy/D");
-	opt.Branch("beam_pz", &beam_pz, "bpz/D");
-	// strips
-	// opt.Branch("d1x_strip", &d1x_strip, "d1xs/s");
-	// opt.Branch("d1y_strip", &d1y_strip, "d1ys/s");
-	// opt.Branch("d2x_strip", &d2x_strip, "d2xs/s");
-	// opt.Branch("d2y_strip", &d2y_strip, "d2ys/s");
-	opt.Branch("tafd_pi_strip", &tafd_pi_strip, "tafdps/s");
-	opt.Branch("tafd_r_strip", &tafd_r_strip, "tafdrs/s");
-	// opt.Branch("d1x_merge", &d1x_merge, "d1xm/O");
-	// opt.Branch("d1y_merge", &d1y_merge, "d1ym/O");
-	// opt.Branch("d2x_merge", &d2x_merge, "d2xm/O");
-	// opt.Branch("d2y_merge", &d2y_merge, "d2ym/O");
-	// opt.Branch("tafd_r_merge", &tafd_r_merge, "tafdrm/O");
-	// opt.Branch("tafd_pi_merge", &tafd_pi_merge, "tafdpm/O");
-	opt.Branch("ppac_xflag", &ppac_xflag, "pxflag/s");
-	opt.Branch("ppac_yflag", &ppac_yflag, "pyflag/s");
-	opt.Branch("ppac_x", ppac_x, "ppacx[3]/D");
-	opt.Branch("ppac_y", ppac_y, "ppacy[3]/D");
-	// state
-	opt.Branch("state", &state, "state/I");
-	opt.Branch("q", &q_value, "q/D");
-	// theta
-	opt.Branch("theta", &theta, "theta/D");
+	pd_event.SetupOutput(&opt);
 
-	for (unsigned int run = 421; run <= 452; ++run) {
+	for (unsigned int run = 428; run <= 452; ++run) {
+		if (run == 445) continue;
+
 		std::cout << "Processing run " << run << "\n";
 		// input file name
 		TString input_file_name = TString::Format(
@@ -302,11 +214,10 @@ int main() {
 		ipt->SetBranchAddress("q", &input_q);
 		ipt->SetBranchAddress("coincide", &coincide);
 
-
 		std::vector<long long> valid_entries;
 		std::vector<int> taf_indexes;
 		std::vector<int> t0_indexes;
-		std::vector<double> q_values;
+		// std::vector<double> q_values;
 
 		// loop to record information in channel
 		for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -315,12 +226,6 @@ int main() {
 			valid_entries.push_back(channel.entry);
 			taf_indexes.push_back(channel.taf_index);
 			t0_indexes.push_back(t0_index);
-			// double q = channel.parent_energy + 1.006
-			// 	- channel.daughter_energy[0] - channel.daughter_energy[1];
-			q_values.push_back(input_q);
-			// if (q > -3.0 && q < 2.5) states.push_back(0);
-			// else if (q > 3.0 && q < 9.0) states.push_back(1);
-			// else states.push_back(-1);
 		}
 		// close file
 		input_file.Close();
@@ -410,13 +315,13 @@ int main() {
 		);
 		// setup input branches
 		xppac.SetupInput(t0_tree, "xppac.");
-		t0_tree->SetBranchAddress("xppac.xflag", &ppac_xflag);
-		t0_tree->SetBranchAddress("xppac.yflag", &ppac_yflag);
+		t0_tree->SetBranchAddress("xppac.xflag", &pd_event.ppac_xflag);
+		t0_tree->SetBranchAddress("xppac.yflag", &pd_event.ppac_yflag);
 
 
 		// T0Dx normalize result friend
 		DssdFundamentalEvent norm_events[2];
-		// add normalize friend
+		// add normalize result friend
 		for (int i = 0; i < 2; ++i) {
 			t0_tree->AddFriend(
 				TString::Format("d%d=tree", i+1),
@@ -436,92 +341,116 @@ int main() {
 		for (size_t i = 0; i < valid_entries.size(); ++i) {
 			t0_tree->GetEntry(valid_entries[i]);
 
-			taf_energy = tafp[taf_indexes[i]].energy[0];
-			tafd_energy = taf[taf_indexes[i]].energy[0][0];
+			// TAFD energy
+			pd_event.tafd_energy = taf[taf_indexes[i]].energy[0][0];
+			// CsI index
 			if (taf[taf_indexes[i]].flag[0] == 0x3) {
-				csi_index = taf_indexes[i]*2;
+				pd_event.csi_index = taf_indexes[i]*2;
 			} else if (taf[taf_indexes[i]].flag[0] == 0x5) {
-				csi_index = taf_indexes[i]*2 + 1;
+				pd_event.csi_index = taf_indexes[i]*2 + 1;
 			} else {
-				csi_index = -1;
+				pd_event.csi_index = -1;
 			}
-			layer = 0;
+			// CsI channel
+			pd_event.csi_channel = taf[taf_indexes[i]].energy[0][1];
 
-			csi_channel = taf[taf_indexes[i]].energy[0][1];
-			d1_channel = t0.energy[t0_indexes[i]][0];
-			d2_channel = t0.energy[t0_indexes[i]][1];
+			// 14C channel
+			pd_event.c_channel[0] = t0.energy[t0_indexes[i]][0];
+			pd_event.c_channel[1] = t0.energy[t0_indexes[i]][1];
 
-			// taf_energy = tafd_energy + pow((csi_channel-200.0)/200.0, 1.0/0.97);
+			// calculate energy
+			// 14C kinetic energy
+			// T0D1 energy
+			pd_event.t0_energy =
+				t0_param[0][0] + t0_param[0][1] * pd_event.c_channel[0];
+			// T0D2 energy
+			pd_event.t0_energy +=
+				t0_param[1][0] + t0_param[1][1] * pd_event.c_channel[1];
 
-			int d1_front_index =
-				SearchIndex(0, t0.dssd_flag[t0_indexes[i]][0]);
-			int d1_back_index =
-				SearchIndex(1, t0.dssd_flag[t0_indexes[i]][0]);
-			int d2_front_index =
-				SearchIndex(0, t0.dssd_flag[t0_indexes[i]][1]);
-			int d2_back_index =
-				SearchIndex(1, t0.dssd_flag[t0_indexes[i]][1]);
+			// CsI calibration parameters
+			double a0 = csi_param[pd_event.csi_index][0];
+			double a1 = csi_param[pd_event.csi_index][1];
+			double a2 = csi_param[pd_event.csi_index][2];
+			// 2H kinetic energy
+			pd_event.taf_energy = pd_event.tafd_energy + pow(
+				(pd_event.csi_channel - a2) / a0,
+				1.0 / a1
+			);
 
-			d1x_time = norm_events[0].back_time[d1_back_index];
-			d1y_time = norm_events[0].front_time[d1_front_index];
-			d2x_time = norm_events[1].front_time[d2_front_index];
-			d2y_time = norm_events[1].back_time[d2_back_index];
+			// int d1_front_index =
+			// 	SearchIndex(0, t0.dssd_flag[t0_indexes[i]][0]);
+			// int d1_back_index =
+			// 	SearchIndex(1, t0.dssd_flag[t0_indexes[i]][0]);
+			// int d2_front_index =
+			// 	SearchIndex(0, t0.dssd_flag[t0_indexes[i]][1]);
+			// int d2_back_index =
+			// 	SearchIndex(1, t0.dssd_flag[t0_indexes[i]][1]);
 
-			tafd_pi_time = -1e5;
-			for (int j = 0; j < tafd[taf_indexes[i]].front_hit; ++j) {
-				if (
-					tafd[taf_indexes[i]].front_strip[j]
-					== taf[taf_indexes[i]].front_strip[0]
-				) {
-					tafd_pi_time = tafd[taf_indexes[i]].front_time[j];
-				}
+			// d1x_time = norm_events[0].back_time[d1_back_index];
+			// d1y_time = norm_events[0].front_time[d1_front_index];
+			// d2x_time = norm_events[1].front_time[d2_front_index];
+			// d2y_time = norm_events[1].back_time[d2_back_index];
+
+			// tafd_pi_time = -1e5;
+			// for (int j = 0; j < tafd[taf_indexes[i]].front_hit; ++j) {
+			// 	if (
+			// 		tafd[taf_indexes[i]].front_strip[j]
+			// 		== taf[taf_indexes[i]].front_strip[0]
+			// 	) {
+			// 		tafd_pi_time = tafd[taf_indexes[i]].front_time[j];
+			// 	}
+			// }
+			// tafd_r_time = -1e5;
+			// for (int j = 0; j < tafd[taf_indexes[i]].back_hit; ++j) {
+			// 	if (
+			// 		tafd[taf_indexes[i]].back_strip[j]
+			// 		== taf[taf_indexes[i]].back_strip[0]
+			// 	) {
+			// 		tafd_r_time = tafd[taf_indexes[i]].back_time[j];
+			// 	}
+			// }
+
+			pd_event.c_x[0] = t0.x[t0_indexes[i]][0];
+			pd_event.c_y[0] = t0.y[t0_indexes[i]][0];
+			pd_event.c_x[1] = t0.x[t0_indexes[i]][1];
+			pd_event.c_y[1] = t0.y[t0_indexes[i]][1];
+
+			pd_event.d_x = tafp[taf_indexes[i]].x[0];
+			pd_event.d_y = tafp[taf_indexes[i]].y[0];
+
+			// beam_px = xppac.px[3];
+			// beam_py = xppac.py[3];
+			// beam_pz = xppac.pz[3];
+
+			// tafd_pi_strip = taf[taf_indexes[i]].front_strip[0];
+			// tafd_r_strip = taf[taf_indexes[i]].back_strip[0];
+
+			for (int j = 0; j < 3; ++j) {
+				pd_event.ppac_x[j] = xppac.x[j] - ppac_correct[0][j];
+				pd_event.ppac_y[j] = xppac.y[j] - ppac_correct[1][j];
 			}
-			tafd_r_time = -1e5;
-			for (int j = 0; j < tafd[taf_indexes[i]].back_hit; ++j) {
-				if (
-					tafd[taf_indexes[i]].back_strip[j]
-					== taf[taf_indexes[i]].back_strip[0]
-				) {
-					tafd_r_time = tafd[taf_indexes[i]].back_time[j];
-				}
-			}
+			// track PPAC x direction
+			pd_event.ppac_x_track = TrackPpac(
+				pd_event.ppac_xflag, ppac_xz, pd_event.ppac_x,
+				pd_event.t0_energy, pd_event.taf_energy,
+				pd_event.c_x[0], pd_event.d_x, pd_event.d_y,
+				pd_event.tx
+			);
+			// track PPAC y direction
+			pd_event.ppac_y_track = TrackPpac(
+				pd_event.ppac_yflag, ppac_yz, pd_event.ppac_y,
+				pd_event.t0_energy, pd_event.taf_energy,
+				pd_event.c_y[0], pd_event.d_y, pd_event.d_x,
+				pd_event.ty
+			);
 
-			d1x = t0.x[t0_indexes[i]][0];
-			d1y = t0.y[t0_indexes[i]][0];
-			d2x = t0.x[t0_indexes[i]][1];
-			d2y = t0.y[t0_indexes[i]][1];
+			pd_event.q = PdProcess(pd_event, pd_event.c15_kinetic);
+			pd_event.c15_ex = 1.0064550 - pd_event.q;
 
-			rx = tafp[taf_indexes[i]].x[0];
-			ry = tafp[taf_indexes[i]].y[0];
-
-			tx = xppac.x[3];
-			ty = xppac.y[3];
-
-			beam_px = xppac.px[3];
-			beam_py = xppac.py[3];
-			beam_pz = xppac.pz[3];
-
-			tafd_pi_strip = taf[taf_indexes[i]].front_strip[0];
-			tafd_r_strip = taf[taf_indexes[i]].back_strip[0];
-
-			for (int i = 0; i < 3; ++i) {
-				ppac_x[i] = xppac.x[i];
-				ppac_y[i] = xppac.y[i];
-			}
-
-			q_value = q_values[i];
-
-			if (q_value < 3.5) state = 0;
-			else state = 1;
-
-			ROOT::Math::XYZVector p1(rx-tx, ry-ty, 135.0);
-			p1 = p1.Unit();
-			ROOT::Math::XYZVector p2(xppac.px[3], xppac.py[3], xppac.pz[3]);
-			p2 = p2.Unit();
-			theta = acos(p1.Dot(p2));
-			// fill energy-theta graph
-			energy_theta[csi_index].AddPoint(theta, taf_energy);
-			total_energy_theta.AddPoint(theta, taf_energy);
+			// theta = acos(p1.Dot(p2));
+			// // fill energy-theta graph
+			// energy_theta[csi_index].AddPoint(theta, taf_energy);
+			// total_energy_theta.AddPoint(theta, taf_energy);
 
 			opt.Fill();
 		}
@@ -529,11 +458,6 @@ int main() {
 	}
 
 
-	constexpr double u = 931.494;
-	// constexpr double mass_1h = u * 1.0072764520;
-	constexpr double mass_2h = u * 2.0135531980;
-	constexpr double mass_14c = u * 13.9999505089;
-	constexpr double mass_15c = u * 15.0073077289;
 	// // calculate theorical graph
 	// for (int i = 0; i < 2; ++i) {
 	// 	double q_value = i == 0 ? 1.0064550 : 1.0064550 - 6.0938;

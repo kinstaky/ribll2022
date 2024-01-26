@@ -11,24 +11,15 @@
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 
-#include "include/optimize_utilities.h"
 #include "include/event/threebody_info_event.h"
 #include "include/calculator/delta_energy_calculator.h"
+#include "include/ppac_track.h"
 
 #define THRES_OPT
 #define POS_OPT
 // #define PPAC_OPT
 
 using namespace ribll;
-
-double t0_param[6][2] = {
-	{0.0553516, 0.00532019},
-	{-0.12591, 0.00632308},
-	{0.552785, 0.00579009},
-	{0.837779, 0.00233567},
-	{-0.306592, 0.00221028},
-	{3.0818, 0.00235991}
-};
 
 
 double ThreeBodyProcess(
@@ -117,8 +108,8 @@ double ThreeBodyProcess(
 	}
 	// slope and intercept
 	double xk, yk, xb, yb;
-	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
@@ -233,8 +224,8 @@ double TwoBodyProcess(
 	}
 	// slope and intercept
 	double xk, yk, xb, yb;
-	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(

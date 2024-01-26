@@ -21,6 +21,10 @@ const std::map<int, int> group_map = {
 	{624, 90}
 };
 
+const std::map<int, long long> window_map = {
+	{451, 12'000'000'000}
+};
+
 int main(int argc, char **argv) {
 	if (argc != 2) {
 		PrintUsage(argv[0]);
@@ -36,9 +40,14 @@ int main(int argc, char **argv) {
 		group = search->second;
 	}
 
+	long long window = 10'000'000'000;
+	auto search_window = window_map.find(run);
+	if (search_window != window_map.end()) {
+		window = search_window->second;
+	}
+
 	Alignment align(
-		run, group, 10'000'000,
-		-10'000'000'000, 10'000'000'000
+		run, group, 10'000'000, -window, window
 	);
 	align.SetVerbose(false);
 	if (align.Align()) {

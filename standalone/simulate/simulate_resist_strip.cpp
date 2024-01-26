@@ -8,7 +8,7 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/detect_event.h"
-#include "include/simulate_defs.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
 
@@ -31,59 +31,6 @@ bool NextGroup(int *param) {
 		}
 	}
 	return true;
-}
-
-
-/// @brief single PPAC tracking, optimize deutron relative approximate method
-/// @param[in] be_kinetic kinetic energy of 10Be
-/// @param[in] he_kinetic kinetic energy of 4He
-/// @param[in] d_kinetic kinetic energy of 2H
-/// @param[in] ppac_z distance of PPAC from target
-/// @param[in] be_position 10Be position on T0
-/// @param[in] he_position 4He position on T0
-/// @param[in] d_position 2H position on TAFD
-/// @param[in] d_position_v 2H position on TAFD other direction
-/// @param[in] c_position beam position on PPAC
-/// @returns reaction point
-///
-double DeutronRelativeApproximateTrack(
-	double be_kinetic,
-	double he_kinetic,
-	double d_kinetic,
-	double ppac_z,
-	double be_position,
-	double he_position,
-	double d_position,
-	double d_position_v,
-	double c_position
-) {
-	// 10Be parameter
-	double a_be = sqrt(
-		(2.0 * be10_mass + be_kinetic) * be_kinetic
-	) / 100.0;
-	// 4He parameter
-	double a_he = sqrt(
-		(2.0 * he4_mass + he_kinetic) * he_kinetic
-	) / 100.0;
-	// 2H parameter
-	double a_d = sqrt(
-		(2.0 * h2_mass + d_kinetic) * d_kinetic
-	) / sqrt(
-		135.0 * 135.0
-		+ d_position * d_position
-		+ d_position_v * d_position_v
-	);
-	// 14C parameter
-	double a_c = -sqrt(
-		(2.0 * c14_mass + 386.0) * 386.0
-	) / ppac_z;
-	// calculate
-	double numerator = a_be * be_position;
-	numerator += a_he * he_position;
-	numerator += a_d * d_position;
-	numerator += a_c * c_position;
-	double denominator = a_be + a_he + a_d + a_c;
-	return numerator / denominator;
 }
 
 
@@ -158,7 +105,7 @@ int main() {
 				detect.t0z[i][0]
 			);
 			// fragment mass
-			double mass = i == 0 ? be10_mass : he4_mass;
+			double mass = i == 0 ? mass_10be : mass_4he;
 			// fragment kinetic energy
 			double kinetic = i == 0 ?
 				detect.be_kinetic : detect.he_kinetic;
@@ -176,13 +123,13 @@ int main() {
 		);
 		// recoild 2H momentum value
 		double recoil_momentum = sqrt(
-			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * h2_mass
+			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * mass_2h
 		);
 		rp = rp.Unit() * recoil_momentum;
 		// rebuild beam momentum vector
 		ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
 		// rebuild beam kinetic energy
-		double c_kinetic = sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
+		double c_kinetic = sqrt(bp.Dot(bp) + pow(mass_14c, 2.0)) - mass_14c;
 		// Q value
 		rebuild_q = detect.be_kinetic + detect.he_kinetic
 			+ detect.d_kinetic - c_kinetic;

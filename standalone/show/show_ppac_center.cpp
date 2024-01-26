@@ -17,33 +17,6 @@
 
 using namespace ribll;
 
-constexpr double d1z = 100.0;
-constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
-constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
-constexpr int change_run = 717;
-
-double SimpleFit(const double *x, const double *y, double &k, double &b) {
-	int n = 3;
-	double sumx = 0.0;
-	double sumy = 0.0;
-	double sumxy = 0.0;
-	double sumx2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		sumx += x[i];
-		sumy += y[i];
-		sumxy += x[i] * y[i];
-		sumx2 += x[i] * x[i];
-	}
-	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
-	b = (sumy - k*sumx) / double(n);
-	double chi2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		double t = y[i] - k*x[i] - b;
-		chi2 += t * t;
-	}
-	return chi2;
-}
-
 
 void FitAndFill(
 	const double *x,
@@ -92,7 +65,6 @@ void FitAndFill(
 double GausPol0(double *x, double *par) {
 	return par[3] + par[0]*exp((x[0]-par[1])*(x[0]-par[1])/2.0/par[2]/par[2]);
 }
-
 
 
 void PrintUsage(const char *name) {
@@ -220,11 +192,11 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 	// random number generator
 	TRandom3 generator(tree->GetEntries());
 
-	double using_xz[3] = {ppac_xz[0], ppac_xz[2], ppac_xz[3]};
-	double using_yz[3] = {ppac_yz[0], ppac_yz[2], ppac_yz[3]};
-	if (run >= change_run) {
-		using_xz[0] = ppac_xz[1];
-		using_yz[0] = ppac_yz[1];
+	double using_xz[3] = {all_ppac_xz[0], all_ppac_xz[2], all_ppac_xz[3]};
+	double using_yz[3] = {all_ppac_yz[0], all_ppac_yz[2], all_ppac_yz[3]};
+	if (run >= ppac_change_run) {
+		using_xz[0] = all_ppac_xz[1];
+		using_yz[0] = all_ppac_yz[1];
 	}
 
 	// total number of entries
@@ -249,8 +221,8 @@ int CalculateOffset(unsigned int run, const std::string &tag) {
 		double d1x = t0_event.x[0] + generator.Rndm() - 0.5;
 		double d1y = t0_event.y[0] + generator.Rndm() - 0.5;
 
-		FitAndFill(using_xz, xppac_event.x, d1z, d1x, hdx);
-		FitAndFill(using_yz, xppac_event.y, d1z, d1y, hdy);
+		FitAndFill(using_xz, xppac_event.x, t0z[0], d1x, hdx);
+		FitAndFill(using_yz, xppac_event.y, t0z[0], d1y, hdy);
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");

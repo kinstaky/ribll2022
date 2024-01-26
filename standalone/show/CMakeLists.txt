@@ -109,6 +109,12 @@ target_link_libraries(
 	show_ppac_effect PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
 )
 
+# show pd reaction single PPAC track
+add_executable(show_pd_single_ppac show_pd_single_ppac.cpp)
+target_link_libraries(
+	show_pd_single_ppac PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
+)
+
 # show time-energy
 add_executable(show_time_energy show_time_energy.cpp)
 target_link_libraries(show_time_energy PRIVATE detectors event ROOT::Hist)
@@ -140,3 +146,10 @@ target_link_libraries(show_d2_pixel PRIVATE event ROOT::Core ROOT::RIO ROOT::Gra
 # show resist strip
 add_executable(show_resist_strip show_resist_strip.cpp)
 target_link_libraries(show_resist_strip PRIVATE event ROOT::Graf)
+
+# show tafd deduce thickness
+add_executable(show_tafd_deduce_thick show_tafd_deduce_thickness.cpp)
+target_link_libraries(
+	show_tafd_deduce_thick PRIVATE
+	event range_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf
+)

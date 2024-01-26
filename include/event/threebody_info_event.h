@@ -28,9 +28,16 @@ public:
 	int csi_index;
 	// layers
 	int layer[2];
+	// TAF flag
+	//   0 - normal event with dE-E PID, particle stopped in CsI
+	//   1 - particle stopped in ADSSD
+	//   2 - particle stopped in CsI, but cut by CsI threshold
+	int taf_flag;
 	// energy
-	double tafd_energy;
 	double t0_energy[2];
+	double tafd_energy;
+	double csi_energy;
+	double taf_energy;
 	// channel
 	double csi_channel;
 	double be_channel[3];
@@ -49,6 +56,8 @@ public:
 	unsigned short ppac_xflag, ppac_yflag;
 	// PPAC position
 	double ppac_x[3], ppac_y[3];
+	// PPAC track number, index 0 for x, 1 for y
+	int ppac_track[2];
 	// dssd normalize result information
 	// dssd hit
 	int be_x_hit[3], be_y_hit[3];
@@ -66,6 +75,7 @@ public:
 	unsigned int he_x_strip[3][2], he_y_strip[3][2];
 	unsigned int d_x_strip, d_y_strip;
 	// state
+	double c14_kinetic;
 	double q;
 	// other information
 	bool hole[2];

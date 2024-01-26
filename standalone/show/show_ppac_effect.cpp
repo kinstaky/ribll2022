@@ -9,51 +9,9 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/threebody_info_event.h"
-#include "include/optimize_utilities.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
-
-constexpr double t0_param[6][2] = {
-	{0.0553516, 0.00532019},
-	{-0.12591, 0.00632308},
-	{0.552785, 0.00579009},
-	{0.837779, 0.00233567},
-	{-0.306592, 0.00221028},
-	{3.0818, 0.00235991}
-};
-
-constexpr double csi_param[12][3] = {
-	{216.579, 0.97, -23.4389},
-	{214.067, 0.96, -26.1516},
-	{200.308, 1.02, -155.26},
-	{276.858, 0.96, -468.231},
-	{233.155, 1.02, -211.293},
-	{327.988, 0.96, -988.938},
-	{318.893, 0.96, -758.227},
-	{269.045, 0.96, -222.745},
-	{291.919, 0.96, -346.013},
-	{241.453, 0.96, 100.75},
-	{268.52, 0.96, -196.279},
-	{234.844, 1.02, -188.712}
-};
-
-const double t0z[3] = {100.0, 111.76, 123.52};
-
-void SimpleFit(const double *x, const double *y, const int n, double &k, double &b) {
-	double sumx = 0.0;
-	double sumy = 0.0;
-	double sumxy = 0.0;
-	double sumx2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		sumx += x[i];
-		sumy += y[i];
-		sumxy += x[i] * y[i];
-		sumx2 += x[i] * x[i];
-	}
-	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
-	b = (sumy - k*sumx) / double(n);
-}
-
 
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
@@ -178,7 +136,7 @@ double ThreeBodyProcess(
 /// @param[in] c_position beam position on PPAC
 /// @returns reaction point
 ///
-double AppproximateTrack(
+double ApproximateTrack(
 	double be_kinetic,
 	double he_kinetic,
 	double d_kinetic,
@@ -217,7 +175,7 @@ double AppproximateTrack(
 /// @param[in] c_position beam position on PPAC
 /// @returns reaction point
 ///
-double OptimizeAppproximateTrack(
+double OptimizeApproximateTrack(
 	double *param,
 	double be_kinetic,
 	double he_kinetic,
@@ -292,59 +250,6 @@ double DeutronApproximateTrack(
 }
 
 
-/// @brief single PPAC tracking, optimize deutron relative approximate method
-/// @param[in] be_kinetic kinetic energy of 10Be
-/// @param[in] he_kinetic kinetic energy of 4He
-/// @param[in] d_kinetic kinetic energy of 2H
-/// @param[in] ppac_z distance of PPAC from target
-/// @param[in] be_position 10Be position on T0
-/// @param[in] he_position 4He position on T0
-/// @param[in] d_position 2H position on TAFD
-/// @param[in] d_position_v 2H position on TAFD other direction
-/// @param[in] c_position beam position on PPAC
-/// @returns reaction point
-///
-double DeutronRelativeApproximateTrack(
-	double be_kinetic,
-	double he_kinetic,
-	double d_kinetic,
-	double ppac_z,
-	double be_position,
-	double he_position,
-	double d_position,
-	double d_position_v,
-	double c_position
-) {
-	// 10Be parameter
-	double a_be = sqrt(
-		(2.0 * mass_10be + be_kinetic) * be_kinetic
-	) / 100.0;
-	// 4He parameter
-	double a_he = sqrt(
-		(2.0 * mass_4he + he_kinetic) * he_kinetic
-	) / 100.0;
-	// 2H parameter
-	double a_d = sqrt(
-		(2.0 * mass_2h + d_kinetic) * d_kinetic
-	) / sqrt(
-		135.0 * 135.0
-		+ d_position * d_position
-		+ d_position_v * d_position_v
-	);
-	// 14C parameter
-	double a_c = -sqrt(
-		(2.0 * mass_14c + 385.0) * 385.0
-	) / ppac_z;
-	// calculate
-	double numerator = a_be * be_position;
-	numerator += a_he * he_position;
-	numerator += a_d * d_position;
-	numerator += a_c * c_position;
-	double denominator = a_be + a_he + a_d + a_c;
-	return numerator / denominator;
-}
-
-
 /// @brief single PPAC approximate tracking with deutron optimized
 ///		and relative effect in iteration mode
 /// @param[in] be_kinetic kinetic energy of 10Be
@@ -364,7 +269,7 @@ double DeutronRelativeApproximateTrack(
 /// @param[out] spty reaction point y
 /// @param[out] iteration iteration times
 ///
-void AppproximateTrackIteration(
+void ApproximateTrackIteration(
 	double be_kinetic,
 	double he_kinetic,
 	double d_kinetic,
@@ -660,8 +565,8 @@ int main() {
 		// slope and intercept
 		double xk, yk;
 		// fit and get reaction point
-		TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, mptx);
-		TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, mpty);
+		TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, mptx);
+		TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, mpty);
 		q_ppac = ThreeBodyProcess(
 			event, mptx, mpty,
 			be_kinetic, he_kinetic, d_kinetic, c_kinetic
@@ -699,11 +604,11 @@ int main() {
 			}
 			spt_flag |= flag;
 			// apprximate method
-			sptax[i] = AppproximateTrack(
+			sptax[i] = ApproximateTrack(
 				be_kinetic, he_kinetic, d_kinetic, ppac_xz[i],
 				event.be_x[0], event.he_x[0], event.d_x, ppac_cx[i]
 			);
-			sptay[i] = AppproximateTrack(
+			sptay[i] = ApproximateTrack(
 				be_kinetic, he_kinetic, d_kinetic, ppac_yz[i],
 				event.be_y[0], event.he_y[0], event.d_y, ppac_cy[i]
 			);
@@ -714,12 +619,12 @@ int main() {
 			hist_q_spta[i]->Fill(q_spta[i]);
 
 			// optimized approximate method
-			sptaox[i] = OptimizeAppproximateTrack(
+			sptaox[i] = OptimizeApproximateTrack(
 				opt_approx_params[2*i],
 				be_kinetic, he_kinetic, d_kinetic,
 				event.be_x[0], event.he_x[0], event.d_x, ppac_cx[i]
 			);
-			sptaoy[i] = OptimizeAppproximateTrack(
+			sptaoy[i] = OptimizeApproximateTrack(
 				opt_approx_params[2*i+1],
 				be_kinetic, he_kinetic, d_kinetic,
 				event.be_y[0], event.he_y[0], event.d_y, ppac_cy[i]
@@ -760,7 +665,7 @@ int main() {
 			);
 
 			// apprximate iteration method
-			AppproximateTrackIteration(
+			ApproximateTrackIteration(
 				be_kinetic, he_kinetic, d_kinetic,
 				ppac_xz[i], ppac_yz[i],
 				event.be_x[0], event.be_y[0],

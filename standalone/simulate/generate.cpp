@@ -7,7 +7,6 @@
 #include <TString.h>
 #include <TTree.h>
 
-#include "include/simulate_defs.h"
 #include "include/event/generate_event.h"
 #include "include/calculator/target_energy_calculator.h"
 
@@ -262,9 +261,9 @@ int main() {
 		);
 	}
 
-	constexpr double beam_mass = c14_mass;
-	constexpr double target_mass = h2_mass;
-	constexpr double fragment2_mass = he4_mass;
+	constexpr double beam_mass = mass_14c;
+	constexpr double target_mass = mass_2h;
+	constexpr double fragment2_mass = mass_4he;
 	double parent_energy, recoil_energy;
 	double parent_angle, recoil_angle;
 	double fragment1_energy, fragment2_energy;
@@ -329,7 +328,7 @@ int main() {
 			event.fragment_excited_energy = 3.368;
 			event.fragment_state = 1;
 		}
-		double fragment1_mass = be10_mass + event.fragment_excited_energy;
+		double fragment1_mass = mass_10be + event.fragment_excited_energy;
 		// get breakup angle theta
 		double breakup_angle = dist_breakup_angle.GetRandom();
 		// get breakup angle phi

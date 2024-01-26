@@ -11,10 +11,9 @@
 #include "include/event/ppac_event.h"
 #include "include/event/tof_event.h"
 #include "include/event/particle_event.h"
+#include "include/ppac_track.h"
 
 namespace ribll {
-
-constexpr unsigned int kChangePpacRun = 717;
 
 constexpr double run_correct[][3] = {
 	// run == 643
@@ -907,29 +906,6 @@ double VmePositionY(double time, int index) {
 }
 
 
-double SimpleFit(const double *x, double *y, double &k, double &b) {
-	int n = 3;
-	double sumx = 0.0;
-	double sumy = 0.0;
-	double sumxy = 0.0;
-	double sumx2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		sumx += x[i];
-		sumy += y[i];
-		sumxy += x[i] * y[i];
-		sumx2 += x[i] * x[i];
-	}
-	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
-	b = (sumy - k*sumx) / double(n);
-	double chi2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		double t = y[i] - k*x[i] - b;
-		chi2 += t * t;
-	}
-	return chi2;
-}
-
-
 void AddTrace(TH2F *h, double k, double b, int min, int max) {
 	for (int i = min; i < max; ++i) {
 		h->Fill(i, double(i)*k+b);
@@ -937,8 +913,6 @@ void AddTrace(TH2F *h, double k, double b, int min, int max) {
 	return;
 }
 
-constexpr double ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
-constexpr double ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
 
 int Ppac::Track() {
 	bool vppac = name_[0] == 'v';
@@ -1001,11 +975,11 @@ int Ppac::Track() {
 	opt.Branch("yflag", &yflag, "yflag/s");
 
 
-	double xz[3]{ppac_xz[0], ppac_xz[2], ppac_xz[3]};
-	double yz[3]{ppac_yz[0], ppac_yz[2], ppac_yz[3]};
-	if (run_ >= kChangePpacRun) {
-		xz[0] = ppac_xz[1];
-		yz[0] = ppac_yz[1];
+	double xz[3]{all_ppac_xz[0], all_ppac_xz[2], all_ppac_xz[3]};
+	double yz[3]{all_ppac_yz[0], all_ppac_yz[2], all_ppac_yz[3]};
+	if (run_ >= ppac_change_run) {
+		xz[0] = all_ppac_xz[1];
+		yz[0] = all_ppac_yz[1];
 	}
 
 	double normalize_parameters[6];
@@ -1087,7 +1061,7 @@ int Ppac::Track() {
 				/ (xz[x_index[1]] - xz[x_index[0]]);
 			xb = x_position[0] - xk * xz[x_index[0]];
 		} else if (xhit == 3) {
-			double c2nx = SimpleFit(xz, x_position, xk, xb);
+			double c2nx = SimpleFit(xz, x_position, 3, xk, xb);
 			hc2nx.Fill(c2nx);
 			hrdx.Fill(
 				(x_position[2]-x_position[0]) / (x_position[1]-x_position[0])
@@ -1099,7 +1073,7 @@ int Ppac::Track() {
 				/ (yz[y_index[1]] - yz[y_index[0]]);
 			yb = y_position[0] - yk * yz[y_index[0]];
 		} else if (yhit == 3) {
-			double c2ny = SimpleFit(yz, y_position, yk, yb);
+			double c2ny = SimpleFit(yz, y_position, 3, yk, yb);
 			hc2ny.Fill(c2ny);
 			hrdy.Fill(
 				(y_position[2]-y_position[0]) / (y_position[1]-y_position[0])

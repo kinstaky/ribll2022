@@ -45,9 +45,12 @@ public:
 
 class C14ToBe10He4ThreeBodyChannel : public Channel {
 public:
-	C14ToBe10He4ThreeBodyChannel(unsigned int run);
+	C14ToBe10He4ThreeBodyChannel(unsigned int run, unsigned short recoil_mass = 2);
 
 	virtual int Coincide();
+
+private:
+	unsigned short recoil_mass_;
 };
 
 

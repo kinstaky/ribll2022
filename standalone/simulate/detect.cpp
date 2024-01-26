@@ -11,7 +11,6 @@
 #include <TTree.h>
 #include <Math/Vector3D.h>
 
-#include "include/simulate_defs.h"
 #include "include/event/generate_event.h"
 #include "include/event/detect_event.h"
 #include "include/calculator/range_energy_calculator.h"
@@ -306,7 +305,7 @@ int main() {
 			event.rr > 68.0 && event.rr < 170.5
 			&& effective_taf_phi > 2.4 && effective_taf_phi < 57.6
 			&& detect.taf_layer == 1
-			&& detect.taf_lost_energy[1] > 6
+			&& detect.taf_lost_energy[1] > 6.0
 		) {
 			detect.valid |= 0x1;
 		}
@@ -378,7 +377,7 @@ int main() {
 				detect.t0y[i][0] - detect.ty,
 				detect.t0z[i][0]
 			);
-			double mass = i == 0 ? be10_mass : he4_mass;
+			double mass = i == 0 ? mass_10be : mass_4he;
 			double kinetic = i == 0 ?
 				detect.be_kinetic : detect.he_kinetic;
 			double momentum = sqrt(
@@ -387,7 +386,7 @@ int main() {
 			fp[i] = fp[i].Unit() * momentum;
 		}
 		double recoil_momentum = sqrt(
-			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * h2_mass
+			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * mass_2h
 		);
 		ROOT::Math::XYZVector rp(
 			detect.tafx - detect.tx,
@@ -396,7 +395,7 @@ int main() {
 		);
 		rp = rp.Unit() * recoil_momentum;
 		ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
-		detect.c_kinetic = sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
+		detect.c_kinetic = sqrt(bp.Dot(bp) + pow(mass_14c, 2.0)) - mass_14c;
 		// Q value
 		detect.q = detect.be_kinetic + detect.he_kinetic
 			+ detect.d_kinetic - detect.c_kinetic;
@@ -421,14 +420,14 @@ int main() {
 		double c_momentum = cbp.R();
 		// excited 14C total energy
 		double c_energy =
-			(detect.be_kinetic + be10_mass + rebuild_be_excited)
-			+ (detect.he_kinetic + he4_mass);
+			(detect.be_kinetic + mass_10be + rebuild_be_excited)
+			+ (detect.he_kinetic + mass_4he);
 		// excited 14C mass
 		double excited_c_mass = sqrt(
 			pow(c_energy, 2.0) - pow(c_momentum, 2.0)
 		);
 		// excited energy of 14C
-		double excited_14c = excited_c_mass - c14_mass;
+		double excited_14c = excited_c_mass - mass_14c;
 		if (detect.valid == 7 && rebuild_state != -1) {
 			hist_energy_res.Fill(excited_14c - event.beam_excited_energy);
 		}

@@ -4,7 +4,7 @@ find_package(Ceres REQUIRED PATHS /data/d1/pwl/ceres-solver/)
 # include directory
 set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
-add_executable(threebody_opt threebody_optimize.cpp ${PROJECT_INCLUDE_DIR}/optimize_utilities.h)
+add_executable(threebody_opt threebody_optimize.cpp)
 target_include_directories(
 	threebody_opt PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
 )
@@ -13,7 +13,7 @@ target_link_libraries(
 	event delta_energy_calculator Ceres::ceres
 )
 
-add_executable(pd_group pd_group.cpp ${PROJECT_INCLUDE_DIR}/optimize_utilities.h)
+add_executable(pd_group pd_group.cpp)
 target_include_directories(
 	pd_group PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
 )
@@ -21,7 +21,7 @@ target_link_libraries(
 	pd_group PRIVATE Ceres::ceres ROOT::Core ROOT::RIO ROOT::Tree ROOT::Graf
 )
 
-add_executable(threebody_group threebody_group.cpp ${PROJECT_INCLUDE_DIR}/optimize_utilities.h)
+add_executable(threebody_group threebody_group.cpp)
 target_include_directories(
 	threebody_group PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
 )
@@ -31,7 +31,7 @@ target_link_libraries(
 
 add_executable(single_ppac_track_parameter single_ppac_track_parameter.cpp)
 target_link_libraries(
-	single_ppac_track_parameter PRIVATE Ceres::ceres event ROOT::Graf 
+	single_ppac_track_parameter PRIVATE Ceres::ceres event ROOT::Graf
 )
 
 # ppac_group

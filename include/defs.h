@@ -2,6 +2,7 @@
 #define __GLOBAL_DEF_H__
 
 #include <vector>
+#include <cmath>
 
 namespace ribll {
 
@@ -58,28 +59,90 @@ const int kScalerPeriod = 200;
 //-----------------------------------------------------------------------------
 //								vme module config
 //-----------------------------------------------------------------------------
-const unsigned long long tab_num = 6;
-const unsigned long long tab_front_module[tab_num] = {0, 3, 3, 2, 1, 0};
-const unsigned long long tab_front_channel[tab_num] = {16, 0, 16, 16, 0, 0};
-const unsigned long long tab_front_time_channel[tab_num] = {0, 80, 64, 48, 32, 16};
-const unsigned long long tab_back_module[tab_num] = {1, 4, 4, 2, 2, 1};
-const unsigned long long tab_back_channel[tab_num] = {24, 8, 0, 0, 8, 16};
+const unsigned int tab_num = 6;
+const unsigned int tab_front_module[tab_num] = {0, 3, 3, 2, 1, 0};
+const unsigned int tab_front_channel[tab_num] = {16, 0, 16, 16, 0, 0};
+const unsigned int tab_front_time_channel[tab_num] = {0, 80, 64, 48, 32, 16};
+const unsigned int tab_back_module[tab_num] = {1, 4, 4, 2, 2, 1};
+const unsigned int tab_back_channel[tab_num] = {24, 8, 0, 0, 8, 16};
 
-const unsigned long long vtaf_num = 2;
-const unsigned long long vtaf_front_module[vtaf_num] = {0, 0};
-const unsigned long long vtaf_front_channel[vtaf_num] = {16, 0};
-const unsigned long long vtaf_back_module[vtaf_num] = {1, 1};
-const unsigned long long vtaf_back_channel[vtaf_num] = {8, 0};
+const unsigned int vtaf_num = 2;
+const unsigned int vtaf_front_module[vtaf_num] = {0, 0};
+const unsigned int vtaf_front_channel[vtaf_num] = {16, 0};
+const unsigned int vtaf_back_module[vtaf_num] = {1, 1};
+const unsigned int vtaf_back_channel[vtaf_num] = {8, 0};
 
 //-----------------------------------------------------------------------------
 //								detector config
 //-----------------------------------------------------------------------------
-const unsigned long long ppac_num = 3;
 
-const std::vector<double> t0_thickness{
+const std::vector<double> t0_thickness {
 	1010.0, 1504.0, 1501.0, 1534.0, 1532.0, 1540.0
 };
 
+constexpr double t0z[3] = {100.0, 111.76, 123.52};
+
+constexpr unsigned int ppac_num = 3;
+
+
+constexpr double ppac_xz[ppac_num] = {-695.2, -454.2, -275.2};
+constexpr double ppac_yz[ppac_num] = {-689.2, -448.2, -269.2};
+constexpr double all_ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
+constexpr double all_ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
+constexpr int ppac_change_run = 717;
+
+//-----------------------------------------------------------------------------
+//								calibration parameters
+//-----------------------------------------------------------------------------
+
+constexpr double t0_param[6][2] = {
+	{0.0553516, 0.00532019},
+	{-0.12591, 0.00632308},
+	{0.552785, 0.00579009},
+	{0.837779, 0.00233567},
+	{-0.306592, 0.00221028},
+	{3.0818, 0.00235991}
+};
+
+constexpr double csi_param[12][3] = {
+	{216.579, 0.97, -23.4389},
+	{214.067, 0.96, -26.1516},
+	{200.308, 1.02, -155.26},
+	{276.858, 0.96, -468.231},
+	{233.155, 1.02, -211.293},
+	{327.988, 0.96, -988.938},
+	{318.893, 0.96, -758.227},
+	{269.045, 0.96, -222.745},
+	{291.919, 0.96, -346.013},
+	{241.453, 0.96, 100.75},
+	{268.52, 0.96, -196.279},
+	{234.844, 1.02, -188.712}
+};
+
+//-----------------------------------------------------------------------------
+//								physical constants
+//-----------------------------------------------------------------------------
+constexpr double pi = 3.14159265359;
+
+constexpr double u = 931.494;
+constexpr double mass_1h = u * 1.0072764520;
+constexpr double mass_2h = u * 2.0135531980;
+constexpr double mass_4he = u * 4.0015060943;
+constexpr double mass_10be = u * 10.0113403769;
+constexpr double mass_14c = u * 13.9999505089;
+constexpr double mass_15c = u * 15.0073077289;
+
+
+/// @brief get momentum from kinematic energy
+/// @param[in] mass mass of particle
+/// @param[in] kinematic kinematic energy of particle
+/// @returns momentum of particle
+///
+inline double MomentumFromKinetic(double mass, double kinematic) {
+	return sqrt((2.0 * mass + kinematic) * kinematic);
 }
+
+
+}	// ribll
 
 #endif 		// __GLOBAL_DEF_H__

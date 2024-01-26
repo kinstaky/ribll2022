@@ -707,8 +707,12 @@ int C14ToBe10He4TwoBodyChannel::Coincide() {
 // 							C14ToBe10He4ThreeBodyChannel
 //-----------------------------------------------------------------------------
 
-C14ToBe10He4ThreeBodyChannel::C14ToBe10He4ThreeBodyChannel(unsigned int run)
-: Channel(run) {
+C14ToBe10He4ThreeBodyChannel::C14ToBe10He4ThreeBodyChannel(
+	unsigned int run,
+	unsigned short recoil_mass
+)
+: Channel(run)
+, recoil_mass_(recoil_mass) {
 }
 
 
@@ -791,17 +795,16 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%sC14-10Be-4He-2H-%04u.root",
+		"%s%sC14-10Be-4He-%dH-%04u.root",
 		kGenerateDataPath,
 		kChannelDir,
+		recoil_mass_,
 		run_
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// output tree
 	TTree opt("tree", "channel");
-	// output fake tree
-	TTree fake_tree("ftree", "channel with fake data");
 	// output channel event
 	ChannelEvent channel;
 	int t0_index[8];
@@ -821,16 +824,12 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	opt.Branch("ppac_xhit", &xhit, "pxhit/I");
 	opt.Branch("ppac_yhit", &yhit, "pyhit/I");
 	opt.Branch("xppac_num", &xnum, "xnum/I");
-	// setup output branches for fake tree
-	channel.SetupOutput(&fake_tree);
-	fake_tree.Branch("t0_index", t0_index, "t0_index[num]/I");
-	fake_tree.Branch("q", &q_value, "q/D");
-	fake_tree.Branch("csi_index", &csi_index, "ci/I");
 
 	// total valid events
 	long long total = 0;
 	long long conflict_taf = 0;
 	long long conflict_t0 = 0;
+	long long possible_2h = 0;
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -849,11 +848,12 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		// get event
 		ipt->GetEntry(entry);
 
-		// check T0 event
+		// check T0 and find 10Be + 4He
 		int t0_status = 0;
 		size_t index[4];
 		bool t0_valid = true;
 		for (unsigned short i = 0; i < t0.num; ++i) {
+			// ignore bad strips
 			if (hole[i]) continue;
 			if (t0.charge[i] == 4 && t0.mass[i] == 10) {
 				// find 10Be
@@ -876,43 +876,43 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		}
 		if (!t0_valid && t0_status == 0x3) ++conflict_t0;
 		if (!t0_valid || t0_status != 0x3) continue;
-		// check TAF
-		int taf_index = -1;
+
+		// check TAF and find 2H
+		channel.taf_index = -1;
 		int valid = 0;
+		// loop TAFs and search 2H with dE-E PID
 		for (int i = 0; i < 6; ++i) {
 			if (
 				taf[i].num == 1
 				&& taf[i].charge[0] == 1
-				&& (
-					taf[i].mass[0] == 2
-					// particle stops in ADSSD
-					// || taf[i].mass[0] == 0
-				)
+				&& taf[i].mass[0] == recoil_mass_
 				&& taf[i].energy[0] > -9e4
 			) {
 				++valid;
-				taf_index = i;
+				channel.taf_index = i;
 			}
+		}
+		if (valid == 0) {
+			// loop TAFs again if not found, try to find 2H stopped in TAFD
+			for (int i = 0; i < 6; ++i) {
+				// charge==201 means stopped in ADSSD
+				if (
+					taf[i].num == 1
+					&& taf[i].charge[0] == 201
+					&& taf[i].energy[0] > -9e4
+				) {
+					++valid;
+				}
+			}
+			if (valid > 0) ++possible_2h;
 		}
 		// jump events without 2H
 		if (valid == 0) continue;
 		// jump events with more than one 2H
-		if (valid > 1) {
+		if (channel.taf_index > 0 && valid > 1) {
 			++conflict_taf;
 			continue;
 		}
-
-		// xnum = xppac.num;
-		// xhit = yhit = 0;
-		// for (int i = 0; i < 3; ++i) {
-		// 	int tmp_flag = 1 << i;
-		// 	if ((xppac_xflag & tmp_flag) == tmp_flag) ++xhit;
-		// 	if ((xppac_yflag & tmp_flag) == tmp_flag) ++yhit;
-		// }
-		// channel.num = 2;
-		// channel.recoil = 1;
-		// opt.Fill();
-		// continue;
 
 		// reaction point
 		double tx, ty, tz;
@@ -946,6 +946,21 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		tx = xppac.x[3];
 		ty = xppac.y[3];
 		tz = xppac.z[3];
+
+
+		// fill extra information
+		channel.entry = entry;
+		t0_index[0] = t0.index[index[0]];
+		t0_index[1] = t0.index[index[1]];
+		csi_index = channel.taf_index < 0 ?
+			-1 : channel.taf_index * 2 + sep_csi_index[channel.taf_index];
+
+		// only found possible stopped 2H
+		if (channel.taf_index < 0) {
+			opt.Fill();
+			continue;
+		}
+
 
 		// fill channel particle number
 		channel.num = 2;
@@ -983,9 +998,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		// fill particles from TAF
 		channel.recoil = 1;
 		channel.recoil_charge = 1;
-		channel.recoil_mass = 2;
-		channel.recoil_energy = taf[taf_index].energy[0];
-		channel.recoil_time = taf[taf_index].time[0];
+		channel.recoil_mass = recoil_mass_;
+		channel.recoil_energy = taf[channel.taf_index].energy[0];
+		channel.recoil_time = taf[channel.taf_index].time[0];
 		// calculate momentum
 		double recoil_momentum = MomentumFromEnergy(
 			channel.recoil_energy,
@@ -994,9 +1009,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		);
 		// recoil p
 		ROOT::Math::XYZVector rp(
-			taf[taf_index].x[0] - tx,
-			taf[taf_index].y[0] - ty,
-			taf[taf_index].z[0] - tz
+			taf[channel.taf_index].x[0] - tx,
+			taf[channel.taf_index].y[0] - ty,
+			taf[channel.taf_index].z[0] - tz
 		);
 		rp = rp.Unit() * recoil_momentum;
 		channel.recoil_px = rp.X();
@@ -1045,73 +1060,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.parent_theta = pp.Theta();
 		channel.parent_phi = pp.Phi();
 
-		// entry
-		channel.entry = entry;
-		// taf index
-		channel.taf_index = taf_index;
-		// csi index
-		csi_index = taf_index * 2 + sep_csi_index[taf_index];
-		// t0 index
-		t0_index[0] = t0.index[index[0]];
-		t0_index[1] = t0.index[index[1]];
-
 		++total;
 		opt.Fill();
-
-		// rebuild fake Q value
-		int rc = 12;
-		int pc = 12;
-		double taf_ring_width = (170.5 - 68.0) / 16.0;
-		double taf_phi_width = 55.2 / 8.0;
-		double tafr = sqrt(
-			pow(taf[taf_index].x[0], 2.0) + pow(taf[taf_index].y[0], 2.0)
-		);
-		double taf_phi = atan(taf[taf_index].y[0] / taf[taf_index].x[0]);
-		if (taf[taf_index].x[0] < 0) {
-			taf_phi = taf[taf_index].y[0] > 0 ?
-				taf_phi + 3.1415926 : taf_phi - 3.1415926;
-		}
-		for (int i = 0; i <= rc; ++i) {
-			double fake_tafr = tafr + (i - rc/2) / double(rc) * taf_ring_width;
-			for (int j = 0; j <= pc; ++j) {
-				double fake_taf_phi = taf_phi
-					+ (j - pc/2) / double(pc) * taf_phi_width / 180.0 * 3.1415926;
-				double fake_tafx = fake_tafr * cos(fake_taf_phi);
-				double fake_tafy = fake_tafr * sin(fake_taf_phi);
-				// recoil p
-				ROOT::Math::XYZVector fake_rp(
-					fake_tafx - xppac.x[3],
-					fake_tafy - xppac.y[3],
-					taf[taf_index].z[0] - xppac.z[3]
-				);
-				fake_rp = fake_rp.Unit() * recoil_momentum;
-				channel.recoil_px = fake_rp.X();
-				channel.recoil_py = fake_rp.Y();
-				channel.recoil_pz = fake_rp.Z();
-				channel.recoil_r = fake_rp.R();
-				channel.recoil_theta = fake_rp.Theta();
-				channel.recoil_phi = fake_rp.Phi();
-
-				// parent p
-				ROOT::Math::XYZVector fake_pp = p[0] + p[1] + fake_rp;
-				channel.parent_energy = EnergyFromMomentum(
-					fake_pp.R(), channel.parent_charge, channel.parent_mass
-				);
-				q_value = channel.daughter_energy[0]
-					+ channel.daughter_energy[1]
-					+ channel.recoil_energy
-					- channel.parent_energy;
-
-				channel.parent_px = fake_pp.X();
-				channel.parent_py = fake_pp.Y();
-				channel.parent_pz = fake_pp.Z();
-				channel.parent_r = fake_pp.R();
-				channel.parent_theta = fake_pp.Theta();
-				channel.parent_phi = fake_pp.Phi();
-
-				fake_tree.Fill();
-			}
-		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -1119,6 +1069,8 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	std::cout << "Total valid event is " << total << "\n"
 		<< "Conflict TAF event " << conflict_taf << "\n"
 		<< "Conflcit T0 event " << conflict_t0 << "\n";
+
+	std::cout << "Possible 2H " << possible_2h << "\n";
 
 	// save trees
 	opt.Write();
@@ -1284,11 +1236,11 @@ int C15pdChannel::Coincide() {
 			continue;
 		}
 		// check PPAC tracking
-		if (xppac.num != 4) continue;
+		// if (xppac.num != 4) continue;
 		// if (pow(xppac.x[3]+3.3, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
 		// 	continue;
 		// }
-		if (pow(xppac.x[3]+3.0, 2.0) + pow(xppac.y[3]-1.0, 2.0) > 225.0) continue;
+		// if (pow(xppac.x[3]+3.0, 2.0) + pow(xppac.y[3]-1.0, 2.0) > 225.0) continue;
 
 		// fill channel particle number
 		channel.num = 2;

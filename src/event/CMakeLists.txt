@@ -20,6 +20,7 @@ set(
 	${EVENT_INCLUDE_DIR}/generate_event.h
 	${EVENT_INCLUDE_DIR}/detect_event.h
 	${EVENT_INCLUDE_DIR}/filter_event.h
+	${EVENT_INCLUDE_DIR}/pd_info_event.h
 	${EVENT_INCLUDE_DIR}/threebody_info_event.h
 )
 
@@ -39,6 +40,7 @@ set(
 	generate_event.cpp
 	detect_event.cpp
 	filter_event.cpp
+	pd_info_event.cpp
 	threebody_info_event.cpp
 )
 

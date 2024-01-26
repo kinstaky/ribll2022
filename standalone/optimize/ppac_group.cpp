@@ -7,33 +7,9 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/threebody_info_event.h"
-#include "include/optimize_utilities.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
-
-constexpr double t0_param[6][2] = {
-	{0.0553516, 0.00532019},
-	{-0.12591, 0.00632308},
-	{0.552785, 0.00579009},
-	{0.837779, 0.00233567},
-	{-0.306592, 0.00221028},
-	{3.0818, 0.00235991}
-};
-
-constexpr double csi_param[12][3] = {
-	{216.579, 0.97, -23.4389},
-	{214.067, 0.96, -26.1516},
-	{200.308, 1.02, -155.26},
-	{276.858, 0.96, -468.231},
-	{233.155, 1.02, -211.293},
-	{327.988, 0.96, -988.938},
-	{318.893, 0.96, -758.227},
-	{269.045, 0.96, -222.745},
-	{291.919, 0.96, -346.013},
-	{241.453, 0.96, 100.75},
-	{268.52, 0.96, -196.279},
-	{234.844, 1.02, -188.712}
-};
 
 
 double ThreeBodyProcess(
@@ -112,8 +88,8 @@ double ThreeBodyProcess(
 	}
 	// slope and intercept
 	double xk, yk, xb, yb;
-	TrackPpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackPpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);

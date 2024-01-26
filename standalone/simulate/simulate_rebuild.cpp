@@ -6,7 +6,6 @@
 #include <TTree.h>
 #include <Math/Vector3D.h>
 
-#include "include/simulate_defs.h"
 #include "include/event/detect_event.h"
 
 using namespace ribll;
@@ -173,7 +172,7 @@ int main(int argc, char **argv) {
 				detect.t0z[i][0]
 			);
 			// fragment mass
-			double mass = i == 0 ? be10_mass : he4_mass;
+			double mass = i == 0 ? mass_10be : mass_4he;
 			// fragment kinetic energy
 			double kinetic = i == 0 ?
 				detect.be_kinetic : detect.he_kinetic;
@@ -191,13 +190,13 @@ int main(int argc, char **argv) {
 		);
 		// recoild 2H momentum value
 		double recoil_momentum = sqrt(
-			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * h2_mass
+			pow(detect.d_kinetic, 2.0) + 2.0 * detect.d_kinetic * mass_2h
 		);
 		rp = rp.Unit() * recoil_momentum;
 		// rebuild beam momentum vector
 		ROOT::Math::XYZVector bp = fp[0] + fp[1] + rp;
 		// rebuild beam kinetic energy
-		detect.c_kinetic = sqrt(bp.Dot(bp) + pow(c14_mass, 2.0)) - c14_mass;
+		detect.c_kinetic = sqrt(bp.Dot(bp) + pow(mass_14c, 2.0)) - mass_14c;
 		// Q value
 		rebuild_q = detect.be_kinetic + detect.he_kinetic
 			+ detect.d_kinetic - detect.c_kinetic;
@@ -222,14 +221,14 @@ int main(int argc, char **argv) {
 		double c_momentum = cbp.R();
 		// excited 14C total energy
 		double c_energy =
-			(detect.be_kinetic + be10_mass + rebuild_be_excited)
-			+ (detect.he_kinetic + he4_mass);
+			(detect.be_kinetic + mass_10be + rebuild_be_excited)
+			+ (detect.he_kinetic + mass_4he);
 		// excited 14C mass
 		double excited_c_mass = sqrt(
 			pow(c_energy, 2.0) - pow(c_momentum, 2.0)
 		);
 		// excited energy of 14C
-		c_excited = excited_c_mass - c14_mass;
+		c_excited = excited_c_mass - mass_14c;
 
 		// fill histpogram
 		if (detect.valid == 7) hist_q.Fill(rebuild_q);

@@ -10,82 +10,10 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/threebody_info_event.h"
-#include "include/optimize_utilities.h"
+#include "include/ppac_track.h"
 
 
 using namespace ribll;
-
-// double t0_param[6][2] = {
-// 	0.668185, 0.00532703,
-// 	-1.55102, 0.00624239,
-// 	-11.0104, 0.00753879,
-// 	-17.9571, 0.00341486,
-// 	-27.1883, 0.00407052,
-// 	-42.8738, 0.00430493
-// };
-
-double t0_param[6][2] = {
-	{0.0553516, 0.00532019},
-	{-0.12591, 0.00632308},
-	{0.552785, 0.00579009},
-	{0.837779, 0.00233567},
-	{-0.306592, 0.00221028},
-	{3.0818, 0.00235991}
-};
-
-
-double ppac_correct[2][3] = {
-	{0, 2.23, 3.4},
-	{0, -0.84, -1.78}
-};
-
-
-// double csi_param[12][3] = {
-// 	{123.941, 1.0962, 397.026},
-// 	{244.067, 0.926528, -283.163},
-// 	{554.833, 0.771826, -1224.23},
-// 	{159.841, 1.08703, 122.915},
-// 	{206.051, 1.04658, -183.394},
-// 	{124.698, 1.17357, 370.916},
-// 	{331.666, 0.935188, -1026.46},
-// 	{335.989, 0.893188, -321.06},
-// 	{426.265, 0.870843, -848.672},
-// 	{333.405, 0.888081, -524.698},
-// 	{243.491, 0.983349, -179.367},
-// 	{132.49, 1.15958, 78.8477}
-// };
-
-// double csi_param[12][3] = {
-// 	{245.278, 0.945929, -230.988},
-// 	{236.876, 0.946186, -277.531},
-// 	{646.048, 0.755082, -1834.6},
-// 	{219.845, 1.01966, -291.14},
-// 	{346.592, 0.931183, -843.328},
-// 	{155.096, 1.14706, -161.708},
-// 	{593.534, 0.816273, -1837.39},
-// 	{397.154, 0.869776, -744.446},
-// 	{602.623, 0.808347, -1741.13},
-// 	{406.525, 0.84879, -610.244},
-// 	{273.668, 0.967122, -461.028},
-// 	{188.415, 1.08716, -265.075}
-// };
-
-
-double csi_param[12][3] = {
-	{273.278, 0.9159, -350.988},
-	{280.876, 0.8937, -584.531},
-	{386.048, 0.8575, -616.000},
-	{319.845, 0.9122, -368.000},
-	{346.592, 0.9312, -843.328},
-	{319.096, 0.9146, -377.708},
-	{289.534, 0.9638, -516.000},
-	{381.000, 0.8550, -632.000},
-	{510.623, 0.8433, -916.000},
-	{386.525, 0.8638, -610.244},
-	{285.668, 0.9571, -413.028},
-	{300.415, 0.9672, -165.075}
-};
-
 
 // double pos_param[6][2] = {
 // 	{-3.00068, -0.0174848},
@@ -113,122 +41,6 @@ double pos_param[6][2] = {
 // 	{0.692692, -3.47688},
 // 	{-0.95645, 2.10895}
 // };
-
-
-
-/// @brief single PPAC tracking, optimize deutron relative approximate method
-/// @param[in] be_kinetic kinematic energy of 10Be
-/// @param[in] he_kinetic kinematic energy of 4He
-/// @param[in] d_kinetic kinematic energy of 2H
-/// @param[in] ppac_z distance of PPAC from target
-/// @param[in] be_position 10Be position on T0
-/// @param[in] he_position 4He position on T0
-/// @param[in] d_position 2H position on TAFD
-/// @param[in] d_position_v 2H position on TAFD other direction
-/// @param[in] c_position beam position on PPAC
-/// @returns reaction point
-///
-double DeutronRelativeApproximateTrack(
-	double be_kinetic,
-	double he_kinetic,
-	double d_kinetic,
-	double ppac_z,
-	double be_position,
-	double he_position,
-	double d_position,
-	double d_position_v,
-	double c_position
-) {
-	// 10Be parameter
-	double a_be = sqrt(
-		(2.0 * mass_10be + be_kinetic) * be_kinetic
-	) / 100.0;
-	// 4He parameter
-	double a_he = sqrt(
-		(2.0 * mass_4he + he_kinetic) * he_kinetic
-	) / 100.0;
-	// 2H parameter
-	double a_d = sqrt(
-		(2.0 * mass_2h + d_kinetic) * d_kinetic
-	) / sqrt(
-		135.0 * 135.0
-		+ d_position * d_position
-		+ d_position_v * d_position_v
-	);
-	// 14C parameter
-	double a_c = -sqrt(
-		(2.0 * mass_14c + 385.0) * 385.0
-	) / ppac_z;
-	// calculate
-	double numerator = a_be * be_position;
-	numerator += a_he * he_position;
-	numerator += a_d * d_position;
-	numerator += a_c * c_position;
-	double denominator = a_be + a_he + a_d + a_c;
-	return numerator / denominator;
-}
-
-
-/// @brief Track PPAC points and get the line
-/// @param[in] flag point valid flag
-/// @param[in] x point x position (actually is z)
-/// @param[in] y point y position (actually is x or y)
-/// @param[in] be_kinetic kinematic energy of 10Be
-/// @param[in] he_kinetic kinematic energy of 4He
-/// @param[in] d_kinetic kinematic energy of 2H
-/// @param[in] ppac_z distance of PPAC from target
-/// @param[in] be_position 10Be position on T0
-/// @param[in] he_position 4He position on T0
-/// @param[in] d_position 2H position on TAFD
-/// @param[in] d_position_v 2H position on TAFD other direction
-/// @returns reaction point
-///
-double TrackPpac(
-	unsigned short flag,
-	const double *x,
-	const double *y,
-	double be_kinetic,
-	double he_kinetic,
-	double d_kinetic,
-	double be_position,
-	double he_position,
-	double d_position,
-	double d_position_v
-) {
-	// beam slope and reaction point
-	double k, b;
-	b = -1e5;
-	if (flag == 0x1) {
-		b = DeutronRelativeApproximateTrack(
-			be_kinetic, he_kinetic, d_kinetic, x[0],
-			be_position, he_position, d_position, d_position_v, y[0]
-		);
-	} else if (flag == 0x2) {
-		b = DeutronRelativeApproximateTrack(
-			be_kinetic, he_kinetic, d_kinetic, x[1],
-			be_position, he_position, d_position, d_position_v, y[1]
-		);
-	} else if (flag == 0x4) {
-		b = DeutronRelativeApproximateTrack(
-			be_kinetic, he_kinetic, d_kinetic, x[2],
-			be_position, he_position, d_position, d_position_v, y[2]
-		);
-	} else if (flag == 0x3) {
-		k = (y[0] - y[1]) / (x[0] - x[1]);
-		b = y[0] - k * x[0];
-	} else if (flag == 0x5) {
-		k = (y[0] - y[2]) / (x[0] - x[2]);
-		b = y[0] - k * x[0];
-	} else if (flag == 0x6) {
-		k = (y[1] - y[2]) / (x[1] - x[2]);
-		b = y[1] - k * x[1];
-	} else if (flag == 0x7) {
-		SimpleFit(x, y, k, b);
-	} else {
-		std::cerr << "Error: Unknown flag " << flag << "\n";
-	}
-	return b;
-}
 
 
 /// @brief rebuild threebody reaction process
@@ -307,15 +119,17 @@ double ThreeBodyProcess(
 		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
 		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
 	}
-	tx = TrackPpac(
+	TrackPpac(
 		event.ppac_xflag, ppac_xz, ppac_cx,
 		be_kinetic, he_kinetic, d_kinetic,
-		event.be_x[0], event.he_x[0], event.d_x, event.d_y
+		event.be_x[0], event.he_x[0], event.d_x, event.d_y,
+		tx
 	);
-	ty = TrackPpac(
+	TrackPpac(
 		event.ppac_yflag, ppac_yz, ppac_cy,
 		be_kinetic, he_kinetic, d_kinetic,
-		event.be_y[0], event.he_y[0], event.d_y, event.d_x
+		event.be_y[0], event.he_y[0], event.d_y, event.d_x,
+		ty
 	);
 
 	// 10Be momentum

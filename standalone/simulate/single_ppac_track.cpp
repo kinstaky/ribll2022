@@ -8,27 +8,11 @@
 #include <TString.h>
 #include <Math/Vector3D.h>
 
-#include "include/simulate_defs.h"
+#include "include/ppac_track.h"
 #include "include/event/generate_event.h"
 #include "include/event/detect_event.h"
 
 using namespace ribll;
-
-void SimpleFit(const double *x, double *y, double &k, double &b) {
-	int n = 3;
-	double sumx = 0.0;
-	double sumy = 0.0;
-	double sumxy = 0.0;
-	double sumx2 = 0.0;
-	for (int i = 0; i < n; ++i) {
-		sumx += x[i];
-		sumy += y[i];
-		sumxy += x[i] * y[i];
-		sumx2 += x[i] * x[i];
-	}
-	k = (sumxy - sumx*sumy/double(n)) / (sumx2 - sumx*sumx/double(n));
-	b = (sumy - k*sumx) / double(n);
-}
 
 
 void PrintUsage(const char *name) {
@@ -182,15 +166,15 @@ void AppproximateTrackDeutronRelative(
 		// x direction
 		// 10Be parameter
 		double a_be = sqrt(
-			(2.0 * be10_mass + detect.be_kinetic) * detect.be_kinetic
+			(2.0 * mass_10be + detect.be_kinetic) * detect.be_kinetic
 		) / 100.0;
 		// 4He x parameter
 		double a_he = sqrt(
-			(2.0 * he4_mass + detect.he_kinetic) * detect.he_kinetic
+			(2.0 * mass_4he + detect.he_kinetic) * detect.he_kinetic
 		) / 100.0;
 		// 2H x parameter
 		double a_d = sqrt(
-			(2.0 * h2_mass + detect.d_kinetic) * detect.d_kinetic
+			(2.0 * mass_2h + detect.d_kinetic) * detect.d_kinetic
 		) / sqrt(
 			135.0 * 135.0
 			+ detect.tafx * detect.tafx
@@ -198,7 +182,7 @@ void AppproximateTrackDeutronRelative(
 		);
 		// 14C x parameter
 		double a_c_x = -sqrt(
-			(2.0 * c14_mass + 385.0) * 385.0
+			(2.0 * mass_14c + 385.0) * 385.0
 		) / ppac_xz[i];
 		// calculate
 		double numerator_x = a_be * detect.t0x[0][0];
@@ -211,7 +195,7 @@ void AppproximateTrackDeutronRelative(
 		// y direction
 		// 14C y parameter
 		double a_c_y = -sqrt(
-			(2.0 * c14_mass + 385.0) * 385.0
+			(2.0 * mass_14c + 385.0) * 385.0
 		) / ppac_yz[i];
 		// calculate
 		double numerator_y = a_be * detect.t0y[0][0];
@@ -243,15 +227,15 @@ void AppproximateTrackIteration(
 		// x direction
 		// 10Be parameter
 		double a_be = sqrt(
-			(2.0 * be10_mass + detect.be_kinetic) * detect.be_kinetic
+			(2.0 * mass_10be + detect.be_kinetic) * detect.be_kinetic
 		) / 100.0;
 		// 4He x parameter
 		double a_he = sqrt(
-			(2.0 * he4_mass + detect.he_kinetic) * detect.he_kinetic
+			(2.0 * mass_4he + detect.he_kinetic) * detect.he_kinetic
 		) / 100.0;
 		// 2H x parameter
 		double a_d = sqrt(
-			(2.0 * h2_mass + detect.d_kinetic) * detect.d_kinetic
+			(2.0 * mass_2h + detect.d_kinetic) * detect.d_kinetic
 		) / sqrt(
 			135.0 * 135.0
 			+ detect.tafx * detect.tafx
@@ -259,7 +243,7 @@ void AppproximateTrackIteration(
 		);
 		// 14C x parameter
 		double a_c_x = -sqrt(
-			(2.0 * c14_mass + ck) * ck
+			(2.0 * mass_14c + ck) * ck
 		) / ppac_xz[i];
 		// calculate
 		double numerator_x = a_be * detect.t0x[0][0];
@@ -272,7 +256,7 @@ void AppproximateTrackIteration(
 		// y direction
 		// 14C y parameter
 		double a_c_y = -sqrt(
-			(2.0 * c14_mass + ck) * ck
+			(2.0 * mass_14c + ck) * ck
 		) / ppac_yz[i];
 		// calculate
 		double numerator_y = a_be * detect.t0y[0][0];
@@ -291,7 +275,7 @@ void AppproximateTrackIteration(
 			// x direction
 			// 10Be parameter
 			double a_be = sqrt(
-				(2.0 * be10_mass + detect.be_kinetic) * detect.be_kinetic
+				(2.0 * mass_10be + detect.be_kinetic) * detect.be_kinetic
 			) / sqrt(
 				100.0 * 100.0
 				+ pow(detect.t0x[0][0] - sptx[i], 2.0)
@@ -299,7 +283,7 @@ void AppproximateTrackIteration(
 			);
 			// 4He x parameter
 			double a_he = sqrt(
-				(2.0 * he4_mass + detect.he_kinetic) * detect.he_kinetic
+				(2.0 * mass_4he + detect.he_kinetic) * detect.he_kinetic
 			) / sqrt(
 				100.0 * 100.0
 				+ pow(detect.t0x[1][0] - sptx[i], 2.0)
@@ -307,7 +291,7 @@ void AppproximateTrackIteration(
 			);
 			// 2H x parameter
 			double a_d = sqrt(
-				(2.0 * h2_mass + detect.d_kinetic) * detect.d_kinetic
+				(2.0 * mass_2h + detect.d_kinetic) * detect.d_kinetic
 			) / sqrt(
 				135.0 * 135.0
 				+ pow(detect.tafx - sptx[i], 2.0)
@@ -315,7 +299,7 @@ void AppproximateTrackIteration(
 			);
 			// 14C x parameter
 			double a_c_x = sqrt(
-				(2.0 * c14_mass + ck) * ck
+				(2.0 * mass_14c + ck) * ck
 			) / sqrt(
 				ppac_xz[i] * ppac_xz[i]
 				+ pow(detect.ppacx[i] - sptx[i], 2.0)
@@ -332,7 +316,7 @@ void AppproximateTrackIteration(
 			// y direction
 			// 14C y parameter
 			double a_c_y = sqrt(
-				(2.0 * c14_mass + ck) * ck
+				(2.0 * mass_14c + ck) * ck
 			) / sqrt(
 				ppac_yz[i] * ppac_yz[i]
 				+ pow(detect.ppacx[i] - sptx[i], 2.0)
@@ -564,8 +548,8 @@ int main(int argc, char **argv) {
 		// PPAC beam parameters
 		double xk, xb, yk, yb;
 		// fit and get direction parameters
-		SimpleFit(ppac_xz, detect.ppacx, xk, xb);
-		SimpleFit(ppac_yz, detect.ppacy, yk, yb);
+		SimpleFit(ppac_xz, detect.ppacx, 3, xk, xb);
+		SimpleFit(ppac_yz, detect.ppacy, 3, yk, yb);
 		// beam direction momentum
 		ROOT::Math::XYZVector dir(xk, yk, 1.0);
 		dir = dir.Unit();

@@ -15,8 +15,8 @@
 #include <ceres/ceres.h>
 #include <glog/logging.h>
 
-#include "include/optimize_utilities.h"
 #include "include/defs.h"
+#include "include/ppac_track.h"
 
 using namespace ribll;
 
@@ -143,8 +143,8 @@ public:
 
 		// calculate the reaction point
 		double xk, yk, xb, yb;
-		TrackPpac(xflag_, ppac_xz, ppac_cx, xk, xb);
-		TrackPpac(yflag_, ppac_yz, ppac_cy, yk, yb);
+		TrackMultiplePpac(xflag_, ppac_xz, ppac_cx, xk, xb);
+		TrackMultiplePpac(yflag_, ppac_yz, ppac_cy, yk, yb);
 
 		// fragment1 direction
 		double p1x = tafx_ - xb;
@@ -417,8 +417,8 @@ int main(int, char **argv) {
 		}
 		// calcuate target point from PPAC
 		double xk, yk, xb, yb;
-		TrackPpac(ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-		TrackPpac(ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+		TrackMultiplePpac(ppac_xflag, ppac_xz, ppac_cx, xk, xb);
+		TrackMultiplePpac(ppac_yflag, ppac_yz, ppac_cy, yk, yb);
 		tx = xb;
 		ty = yb;
 

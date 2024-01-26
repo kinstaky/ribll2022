@@ -18,7 +18,8 @@ void PrintUsage(const char *name) {
 		"                      5 -- 14C+1H->10Be+4He+1H 3body\n"
 		"                      6 -- 14C->4He+4He+6He\n"
 		"Options:\n"
-		"  -h                Print this help information.\n";
+		"  -h                Print this help information.\n"
+		"  -r mass           Set recoil mass to choose from 1H, 2H or 3H.\n";
 }
 
 
@@ -26,6 +27,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argc number of arguments
 /// @param[in] argv arguments
 /// @param[out] help need help
+/// @param[out] recoil_mass set recoil mass
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -33,10 +35,12 @@ void PrintUsage(const char *name) {
 int ParseArguments(
 	int argc,
 	char **argv,
-	bool &help
+	bool &help,
+	int &recoil_mass
 ) {
 	// initialize
 	help = false;
+	recoil_mass = 0;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -47,6 +51,12 @@ int ParseArguments(
 		if (argv[result][1] == 'h') {
 			help = true;
 			return result;
+		} else if (argv[result][1] == 'r') {
+			// option of recoil mass
+			// get mass in next argument
+			++result;
+			if (result == argc) return -argc;
+			recoil_mass = atoi(argv[result]);
 		} else {
 			return -result;
 		}
@@ -62,8 +72,10 @@ int main(int argc, char **argv) {
 	}
 	// help flag
 	bool help = false;
+	// recoil mass flag
+	int recoil_mass = 0;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help);
+	int pos_start = ParseArguments(argc, argv, help, recoil_mass);
 	// need help
 	if (help) {
 		PrintUsage(argv[0]);
@@ -116,7 +128,15 @@ int main(int argc, char **argv) {
 		channel = std::make_unique<C14ToBe10He4TwoBodyChannel>(run);
 	} else if (condition == 3) {
 		// 14C+2H->10Be+4He+2H 3body
-		channel = std::make_unique<C14ToBe10He4ThreeBodyChannel>(run);
+		if (recoil_mass == 0) {
+			// default
+			channel = std::make_unique<C14ToBe10He4ThreeBodyChannel>(run);
+		} else {
+			// use set recoil mass
+			channel = std::make_unique<C14ToBe10He4ThreeBodyChannel>(
+				run, recoil_mass
+			);
+		}
 	} else if (condition == 4) {
 		// 15C+1H->14C+2H pd reaction
 		channel = std::make_unique<C15pdChannel>(run);
