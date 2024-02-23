@@ -83,13 +83,13 @@ double ThreeBodyProcess(
 	// calculate reaction point
 	double ppac_cx[3], ppac_cy[3];
 	for (int i = 0; i < 3; ++i) {
-		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
-		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
+		ppac_cx[i] = event.xppac_x[i] - ppac_correct[0][i];
+		ppac_cy[i] = event.xppac_y[i] - ppac_correct[1][i];
 	}
 	// slope and intercept
 	double xk, yk, xb, yb;
-	TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	TrackMultiplePpac(event.xppac_xflag, ppac_xz, ppac_cx, xk, xb);
+	TrackMultiplePpac(event.xppac_yflag, ppac_yz, ppac_cy, yk, yb);
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);

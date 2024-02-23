@@ -330,19 +330,19 @@ int InverseTrackInfo() {
 
 		// correct PPAC
 		for (int i = 0; i < 3; ++i) {
-			info.ppac_x[i] -= ppac_correct[0][i];
-			info.ppac_y[i] -= ppac_correct[1][i];
+			info.xppac_x[i] -= ppac_correct[0][i];
+			info.xppac_y[i] -= ppac_correct[1][i];
 		}
 
 		double xk, xb, yk, yb;
 		if (TrackMultiplePpac(
-			info.ppac_xflag, using_xz, info.ppac_x, xk, xb
+			info.xppac_xflag, using_xz, info.xppac_x, xk, xb
 		)) {
 			std::cerr << "Error: TrackMultiplePpac failed.\n";
 			return -1;
 		}
 		if (TrackMultiplePpac(
-			info.ppac_yflag, using_yz, info.ppac_y, yk, yb
+			info.xppac_yflag, using_yz, info.xppac_y, yk, yb
 		)) {
 			std::cerr << "Error: TrackMultiplePpac failed.\n";
 			return -1;

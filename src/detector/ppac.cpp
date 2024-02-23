@@ -134,7 +134,7 @@ int Ppac::GetSumRange(
 	TTree *ipt,
 	double *range
 ) {
-	if (tag_.empty()) {
+	if (tag_.empty() || tag_.substr(0, 3) == "sim") {
 		// 1D histogram of sum of time to find the range in large range
 		std::vector<TH1F> large_sum_time;
 		for (int i = 0; i < 18; ++i) {
@@ -250,6 +250,8 @@ int Ppac::GetSumRange(
 			double sigma = fit.GetParameter(2);
 			range[i*2] = mean - sigma * 3.0;
 			range[i*2+1] = mean + sigma * 3.0;
+			std::cout << "xy"[i%2] << i/6 << "a" << (i%6)/2 << ": "
+				<< mean << ", " << sigma << "\n";
 		}
 		// save histograms
 		for (TH1F &hist : sum_time) {
@@ -376,6 +378,7 @@ int Ppac::GetVmeSumRange(
 		range[i*2] = mean - sigma * 3.0;
 		range[i*2+1] = mean + sigma * 3.0;
 		centers[i] = mean;
+		std::cout << "xy"[i%2] << i/2 << ": " << mean << ", " << sigma << "\n";
 	}
 	// save histograms
 	for (TH1F &hist : sum_time) {
@@ -893,16 +896,15 @@ double PositionYFromXIA(unsigned int run, double time, size_t index) {
 	return result;
 }
 
+constexpr double vme_correct_x[3] = {-0.25, 1.5, 0.25};
+constexpr double vme_correct_y[3] = {-0.75, 0.0, -0.75};
 
-double VmePositionX(double time, int index) {
-	double vme_correct_x[3] = {-0.25, 1.5, 0.25};
-	return (time - vme_correct_x[index]) / 4.0;
+inline double VmePositionX(double time, int index) {
+	return round((time - vme_correct_x[index]) / 4.0);
 }
 
-
-double VmePositionY(double time, int index) {
-	double vme_correct_y[3] = {-0.75, 0.0, -0.75};
-	return (time - vme_correct_y[index]) / -4.0;
+inline double VmePositionY(double time, int index) {
+	return round((time - vme_correct_y[index]) / -4.0);
 }
 
 
@@ -1028,24 +1030,18 @@ int Ppac::Track() {
 		// check flag and fill hit and position
 		for (size_t i = 0; i < 3; ++i) {
 			if ((merge.xflag & (1 << i)) != 0) {
-				if (vppac) {
-					x_position[xhit] = VmePositionX(merge.x[i], i);
-				} else {
-					merge.x[i] += normalize_parameters[i];
-					x_position[xhit] = VmePositionX(merge.x[i], i);
-					// x_position[xhit] = PositionXFromXIA(run_, merge.x[i], i);
-				}
+				x_position[xhit] = VmePositionX(
+					merge.x[i] + (vppac ? 0.0 : normalize_parameters[i]),
+					i
+				);
 				x_index[xhit] = i;
 				++xhit;
 			}
 			if ((merge.yflag & (1 << i)) != 0) {
-				if (vppac) {
-					y_position[yhit] = VmePositionY(merge.y[i], i);
-				} else {
-					merge.y[i] += normalize_parameters[i+3];
-					y_position[yhit] = VmePositionY(merge.y[i], i);
-					// y_position[yhit] = PositionYFromXIA(run_, merge.y[i], i);
-				}
+				y_position[yhit] = VmePositionY(
+					merge.y[i] + (vppac ? 0.0 : normalize_parameters[i+3]),
+					i
+				);
 				y_index[yhit] = i;
 				++yhit;
 			}
@@ -1092,8 +1088,14 @@ int Ppac::Track() {
 		particle.num = 3;
 		for (size_t i = 0; i < 3; ++i) {
 			particle.time[i] = merge.time[i];
-			particle.x[i] = PositionXFromXIA(run_, merge.x[i], i);
-			particle.y[i] = PositionYFromXIA(run_, merge.y[i], i);
+			particle.x[i] = VmePositionX(
+				merge.x[i] + (vppac ? 0.0 : normalize_parameters[i]),
+				i
+			);
+			particle.y[i] = VmePositionY(
+				merge.y[i] + (vppac ? 0.0 : normalize_parameters[i+3]),
+				i
+			);
 		}
 		xflag = merge.xflag;
 		yflag = merge.yflag;

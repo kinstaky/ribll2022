@@ -22,6 +22,9 @@ constexpr double tafd_phi_start[6] = {
 };
 
 
+constexpr double theory_q[4] = {-12.0, -15.5, -18.0, -19.5};
+
+
 bool NextGroup(int *param) {
 	param[0]++;
 	for (int i = 0; i < strips; ++i) {
@@ -67,21 +70,47 @@ int main() {
 	// output data
 	bool valid;
 	double q_mean, q_sigma;
-	double represent_q[3];
+	double represent_q[4];
+	// represent state, the last index is the state of closest one
+	int represent_state[4];
+	// Q difference with theory, the last index is the closest one
+	double q_diff[4];
+	// the most same state
+	int most_same_state;
+
 	// setup output branches
 	opt.Branch("vaild", &valid, "valid/O");
 	opt.Branch("q_mean", &q_mean, "qmean/D");
 	opt.Branch("q_sigma", &q_sigma, "qsigma/D");
-	opt.Branch("represent_q", represent_q, "rq[3]/D");
+	opt.Branch("represent_q", represent_q, "rq[4]/D");
+	opt.Branch("represent_state", represent_state, "rs[4]/I");
+	opt.Branch("q_diff", q_diff, "qdiff[4]/D");
+	opt.Branch("same_state", &most_same_state, "ss/I");
 
 	// parameters
 	int strip_params[strips];
 
+	// statistics
+	int total_events = 0;
+	int same_state_num[3];
+	for (int i = 0; i < 3; ++i) same_state_num[i] = 0;
+
 	// total number of entries
 	long long entries = ipt->GetEntries();
+	// 1/100 of entries, for showing process
+	long long entry100 = entries / 100 + 1;
+	// show start
+	printf("Looping   0%%");
+	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		// get data
 		ipt->GetEntry(entry);
-		// std::cout << "entry: " << entry << "\n";
 
 		// add histograms
 		hist_q.emplace_back(
@@ -93,8 +122,15 @@ int main() {
 			100, 350, 400
 		);
 
+		// check TAF
+		if (info.taf_flag != 0) {
+			valid = false;
+			opt.Fill();
+			continue;
+		}
+
 		// check PPAC
-		if (info.ppac_xflag == 0 || info.ppac_yflag == 0) {
+		if (info.xppac_xflag == 0 || info.xppac_yflag == 0) {
 			valid = false;
 			opt.Fill();
 			continue;
@@ -103,10 +139,10 @@ int main() {
 		int ppac_x_index = 0;
 		int ppac_y_index = 0;
 		for (; ppac_x_index < 3; ++ppac_x_index) {
-			if ((info.ppac_xflag & (1 << ppac_x_index)) != 0) break;
+			if ((info.xppac_xflag & (1 << ppac_x_index)) != 0) break;
 		}
 		for (; ppac_y_index < 3; ++ppac_y_index) {
-			if ((info.ppac_yflag & (1 << ppac_y_index)) != 0) break;
+			if ((info.xppac_yflag & (1 << ppac_y_index)) != 0) break;
 		}
 
 		// initialize parameters
@@ -133,10 +169,10 @@ int main() {
 			ctafx = ctaf_r * cos(ctaf_phi) + 34.4*cos(mid_phi);
 			ctafy = ctaf_r * sin(ctaf_phi) + 34.4*sin(mid_phi);
 			// change 14C position
-			cppacx = info.ppac_x[ppac_x_index]
+			cppacx = info.xppac_x[ppac_x_index]
 				+ ppac_correct[0][ppac_x_index]
 				+ (strip_params[3]-1)*0.5;
-			cppacy = info.ppac_y[ppac_y_index]
+			cppacy = info.xppac_y[ppac_y_index]
 				+ ppac_correct[1][ppac_y_index]
 				+ (strip_params[7]-1)*0.5;
 
@@ -198,7 +234,6 @@ int main() {
 
 		} while (NextGroup(strip_params));
 
-
 		// fit Q value histogram
 		TF1 *q_fit = new TF1(
 			TString::Format("qf%lld", entry), "gaus", -40, 10
@@ -236,9 +271,9 @@ int main() {
 			ctafy = ctaf_r * sin(ctaf_phi) + 34.4*sin(mid_phi);
 			// change 14C position
 			cppacx =
-				info.ppac_x[ppac_x_index] + ppac_correct[0][ppac_x_index] + 0.5;
+				info.xppac_x[ppac_x_index] + ppac_correct[0][ppac_x_index] + 0.5;
 			cppacy =
-				info.ppac_y[ppac_y_index] + ppac_correct[1][ppac_y_index] + 0.5;
+				info.xppac_y[ppac_y_index] + ppac_correct[1][ppac_y_index] + 0.5;
 
 			double d_kinetic = info.tafd_energy + pow(
 				(info.csi_channel - csi_param[info.csi_index][2])
@@ -294,9 +329,65 @@ int main() {
 				+ d_kinetic - c_kinetic;
 		}
 
+		// find the state of represent Q, reference closest Q value
+		for (int i = 0; i < 3; ++i) {
+			q_diff[i] = represent_q[i] - theory_q[0];
+			represent_state[i] = 0;
+			for (int j = 1; j < 4; ++j) {
+				double diff = represent_q[i] - theory_q[j];
+				if (fabs(diff) < fabs(q_diff[i])) {
+					q_diff[i] = diff;
+					represent_state[i] = j;
+				}
+			}
+		}
+		// search closest state
+		represent_q[3] = represent_q[0];
+		represent_state[3] = represent_state[0];
+		q_diff[3] = q_diff[0];
+		if (q_diff[1] < q_diff[3]) {
+			q_diff[3] = q_diff[1];
+			represent_q[3] = represent_q[1];
+			represent_state[3] = represent_state[1];
+		}
+		if (q_diff[2] < q_diff[3]) {
+			q_diff[3] = q_diff[2];
+			represent_q[3] = represent_q[2];
+			represent_state[3] = represent_state[2];
+		}
+
+		// represent Q in same state
+		int same_num = 0;
+		if (represent_state[0] == represent_state[1]) {
+			++same_num;
+			most_same_state = represent_state[0];
+		}
+		if (represent_state[0] == represent_state[2]) {
+			++same_num;
+			most_same_state = represent_state[0];
+		}
+		if (represent_state[1] == represent_state[2]) {
+			++same_num;
+			most_same_state = represent_state[1];
+		}
+		if (same_num == 0) ++same_state_num[0];
+		else if (same_num == 1) ++same_state_num[1];
+		else if (same_num == 3) ++same_state_num[2];
+		++total_events;
+		// search for the most same state
+		if (same_num == 0) {
+			most_same_state = -1;
+		}
 		// fill tree
 		opt.Fill();
 	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+
+	std::cout << "total events " << total_events << "\n"
+		<< "0 same state " << same_state_num[0] << "\n"
+		<< "2 same state " << same_state_num[1] << "\n"
+		<< "3 same state " << same_state_num[2] << "\n";
 
 	// save histograms
 	for (auto &hist : hist_q) hist.Write();

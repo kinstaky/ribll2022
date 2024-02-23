@@ -48,15 +48,19 @@ int FillResult(
 
 /// @brief rebuild threebody reaction process
 /// @param[inout] event input event
+/// @param[in] vppac use VPPAC to calculate
 /// @returns Q value
 ///
-double ThreeBodyProcess(ThreeBodyInfoEvent &event) {
+double ThreeBodyProcess(ThreeBodyInfoEvent &event, bool vppac = false) {
+	double tx = vppac ? event.vptx : event.xptx;
+	double ty = vppac ? event.vpty : event.xpty;
+
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(mass_10be, event.t0_energy[0]);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.be_x[0] - event.tx,
-		event.be_y[0] - event.ty,
+		event.be_x[0] - tx,
+		event.be_y[0] - ty,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
@@ -65,8 +69,8 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event) {
 	double he_momentum = MomentumFromKinetic(mass_4he, event.t0_energy[1]);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.he_x[0] - event.tx,
-		event.he_y[0] - event.ty,
+		event.he_x[0] - tx,
+		event.he_y[0] - ty,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -75,8 +79,8 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event) {
 	double d_momentum = MomentumFromKinetic(mass_2h, event.taf_energy);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
-		event.d_x - event.tx,
-		event.d_y - event.ty,
+		event.d_x - tx,
+		event.d_y - ty,
 		135.0
 	);
 	p_d = p_d.Unit() * d_momentum;
@@ -121,11 +125,10 @@ int main(int argc, char **argv) {
 	TTree opt("tree", "information of three body");
 	// output data
 	ThreeBodyInfoEvent event;
-	// int vppac_num, xppac_num;
-	int xppac_num;
+	int vppac_num, xppac_num;
 	// setup output branches
 	event.SetupOutput(&opt);
-	// opt.Branch("vnum", &vppac_num, "vnum/I");
+	opt.Branch("vnum", &vppac_num, "vnum/I");
 	opt.Branch("xnum", &xppac_num, "xnum/I");
 
 	// possible 2H stopped in ADSSD
@@ -271,16 +274,16 @@ int main(int argc, char **argv) {
 				run
 			)
 		);
-		// // add vppac as friend
-		// t0_tree->AddFriend(
-		// 	"vppac=tree",
-		// 	TString::Format(
-		// 		"%s%svppac-particle-ta-%04u.root",
-		// 		kGenerateDataPath,
-		// 		kParticleDir,
-		// 		run
-		// 	)
-		// );
+		// add vppac as friend
+		t0_tree->AddFriend(
+			"vppac=tree",
+			TString::Format(
+				"%s%svppac-particle-ta-%04u.root",
+				kGenerateDataPath,
+				kParticleDir,
+				run
+			)
+		);
 		// input events
 		// T0 telescope event
 		T0Event t0;
@@ -294,8 +297,7 @@ int main(int argc, char **argv) {
 		// XPPAC events
 		ParticleEvent xppac;
 		// VPPAC events
-		// ParticleEvent vppac;
-		// unsigned short vppac_xflag, vppac_yflag;
+		ParticleEvent vppac;
 
 		// setup input branches
 		t0.SetupInput(t0_tree);
@@ -314,11 +316,11 @@ int main(int argc, char **argv) {
 			tafd[i].SetupInput(t0_tree, TString::Format("tafd%d.", i).Data());
 		}
 		xppac.SetupInput(t0_tree, "xppac.");
-		t0_tree->SetBranchAddress("xppac.xflag", &event.ppac_xflag);
-		t0_tree->SetBranchAddress("xppac.yflag", &event.ppac_yflag);
-		// vppac.SetupInput(t0_tree, "vppac.");
-		// t0_tree->SetBranchAddress("vppac.xflag", &vppac_xflag);
-		// t0_tree->SetBranchAddress("vppac.yflag", &vppac_yflag);
+		t0_tree->SetBranchAddress("xppac.xflag", &event.xppac_xflag);
+		t0_tree->SetBranchAddress("xppac.yflag", &event.xppac_yflag);
+		vppac.SetupInput(t0_tree, "vppac.");
+		t0_tree->SetBranchAddress("vppac.xflag", &event.vppac_xflag);
+		t0_tree->SetBranchAddress("vppac.yflag", &event.vppac_yflag);
 
 		for (size_t i = 0; i < valid_entries.size(); ++i) {
 			t0_tree->GetEntry(valid_entries[i]);
@@ -545,6 +547,7 @@ int main(int argc, char **argv) {
 			int possible_2H = 0;
 			if (taf_indexes[i] == -1) {
 				event.taf_flag = 1;
+				event.csi_index = -1;
 				// loop to search for possible 2H
 				for (int j = 0; j < 6; ++j) {
 					if (taf[j].num == 1 && taf[j].flag[0] == 0x1) {
@@ -621,40 +624,55 @@ int main(int argc, char **argv) {
 			event.d_y_strip = tafd[taf_indexes[i]].back_strip[0];
 
 			// PPAC
-			// vppac_num = vppac.num;
+			vppac_num = vppac.num;
 			xppac_num = xppac.num;
-			event.ppac_flag = ppac_flags[i];
-			for (int j = 0; j < 3; ++j) {
-				event.ppac_x[j] = xppac.x[j] - ppac_correct[0][j];
-				event.ppac_y[j] = xppac.y[j] - ppac_correct[1][j];
-			}
-			// } else if (ppac_flags[i] == 1) {
-				// event.tx = vppac.x[3];
-			// 	event.ty = vppac.y[3];
-			// 	for (int j = 0; j < 3; ++j) {
-			// 		event.ppac_x[j] = vppac.x[j];
-			// 		event.ppac_y[j] = vppac.y[j];
-			// 	}
-			// 	event.ppac_xflag = vppac_xflag;
-			// 	event.ppac_yflag = vppac_yflag;
-			// }
-			// PPAC x track
-			event.ppac_track[0] = TrackPpac(
-				event.ppac_xflag, ppac_xz, event.ppac_x,
-				event.t0_energy[0], event.t0_energy[1], event.taf_energy,
-				event.be_x[0], event.he_x[0], event.d_x, event.d_y,
-				event.tx
-			);
-			// PPAC y track
-			event.ppac_track[1] = TrackPpac(
-				event.ppac_yflag, ppac_yz, event.ppac_y,
-				event.t0_energy[0], event.t0_energy[1], event.taf_energy,
-				event.be_y[0], event.he_y[0], event.d_y, event.d_x,
-				event.ty
-			);
+			event.ppac_flag = 0;
+			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
+				event.ppac_flag |= 1;
+				for (int j = 0; j < 3; ++j) {
+					event.xppac_x[j] = xppac.x[j] - ppac_correct[0][j];
+					event.xppac_y[j] = xppac.y[j] - ppac_correct[1][j];
+				}
+				// PPAC x track
+				event.xppac_track[0] = TrackPpac(
+					event.xppac_xflag, ppac_xz, event.xppac_x,
+					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
+					event.be_x[0], event.he_x[0], event.d_x, event.d_y,
+					event.xptx
+				);
+				// PPAC y track
+				event.xppac_track[1] = TrackPpac(
+					event.xppac_yflag, ppac_yz, event.xppac_y,
+					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
+					event.be_y[0], event.he_y[0], event.d_y, event.d_x,
+					event.xpty
+				);
 
+			}
+			if (event.vppac_xflag != 0 && event.vppac_yflag != 0) {
+				event.ppac_flag |= 2;
+				for (int j = 0; j < 3; ++j) {
+					event.vppac_x[j] = vppac.x[j] - ppac_correct[0][j];
+					event.vppac_y[j] = vppac.y[j] - ppac_correct[1][j];
+				}
+				// PPAC x track
+				event.vppac_track[0] = TrackPpac(
+					event.vppac_xflag, ppac_xz, event.vppac_x,
+					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
+					event.be_x[0], event.he_x[0], event.d_x, event.d_y,
+					event.vptx
+				);
+				// PPAC y track
+				event.vppac_track[1] = TrackPpac(
+					event.vppac_yflag, ppac_yz, event.vppac_y,
+					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
+					event.be_y[0], event.he_y[0], event.d_y, event.d_x,
+					event.vpty
+				);
+			}
 			// Q
 			event.q = ThreeBodyProcess(event);
+			event.vq = ThreeBodyProcess(event, true);
 
 			// hole
 			event.hole[0] = t0.hole[be10_indexes[i]];

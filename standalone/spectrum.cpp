@@ -116,17 +116,17 @@ double ThreeBodyProcess(
 	// calculate reaction point
 	double ppac_cx[3], ppac_cy[3];
 	for (int i = 0; i < 3; ++i) {
-		ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
-		ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
+		ppac_cx[i] = event.xppac_x[i] - ppac_correct[0][i];
+		ppac_cy[i] = event.xppac_y[i] - ppac_correct[1][i];
 	}
 	TrackPpac(
-		event.ppac_xflag, ppac_xz, ppac_cx,
+		event.xppac_xflag, ppac_xz, ppac_cx,
 		be_kinetic, he_kinetic, d_kinetic,
 		event.be_x[0], event.he_x[0], event.d_x, event.d_y,
 		tx
 	);
 	TrackPpac(
-		event.ppac_yflag, ppac_yz, ppac_cy,
+		event.xppac_yflag, ppac_yz, ppac_cy,
 		be_kinetic, he_kinetic, d_kinetic,
 		event.be_y[0], event.he_y[0], event.d_y, event.d_x,
 		ty
@@ -370,7 +370,7 @@ int main() {
 
 		// check PPAC flags
 		ppac_valid = true;
-		if (event.ppac_xflag == 0 || event.ppac_yflag == 0) {
+		if (event.xppac_xflag == 0 || event.xppac_yflag == 0) {
 			ppac_valid = false;
 			opt.Fill();
 			continue;

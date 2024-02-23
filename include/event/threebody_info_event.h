@@ -48,16 +48,24 @@ public:
 	double he_x[3], he_y[3];
 	// recoil position
 	double d_x, d_y;
-	// target position
-	double tx, ty;
+	// target position from XIA PPAC
+	double xptx, xpty;
+	// target position from VME PPAC
+	double vptx, vpty;
 	// PPAC flag, 0-XPPAC, 1-VPPAC
 	int ppac_flag;
-	// PPAC x,y flag
-	unsigned short ppac_xflag, ppac_yflag;
-	// PPAC position
-	double ppac_x[3], ppac_y[3];
-	// PPAC track number, index 0 for x, 1 for y
-	int ppac_track[2];
+	// XIA PPAC x,y flag
+	unsigned short xppac_xflag, xppac_yflag;
+	// VME PPAC x,y flag
+	unsigned short vppac_xflag, vppac_yflag;
+	// XIA PPAC position
+	double xppac_x[3], xppac_y[3];
+	// VME PPAC position
+	double vppac_x[3], vppac_y[3];
+	// XIA PPAC track number, index 0 for x, 1 for y
+	int xppac_track[2];
+	// VME PPAC track number, index 0 for x, 1 for y
+	int vppac_track[2];
 	// dssd normalize result information
 	// dssd hit
 	int be_x_hit[3], be_y_hit[3];
@@ -76,7 +84,8 @@ public:
 	unsigned int d_x_strip, d_y_strip;
 	// state
 	double c14_kinetic;
-	double q;
+	// Q from XIA PPAC reaction point or VME PPAC reaction point
+	double q, vq;
 	// other information
 	bool hole[2];
 	// run

@@ -31,3 +31,11 @@ target_link_libraries(sim_resist_strip PRIVATE event ROOT::Graf)
 add_executable(live_time live_time.cpp)
 target_include_directories(live_time PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(live_time PRIVATE ROOT::Core ROOT::RIO ROOT::Graf)
+
+# VME TOF detect
+add_executable(vtof_detect vtof_detect.cpp)
+target_link_libraries(vtof_detect PRIVATE event)
+
+# PPAC detect
+add_executable(ppac_detect ppac_detect.cpp)
+target_link_libraries(ppac_detect PRIVATE event)

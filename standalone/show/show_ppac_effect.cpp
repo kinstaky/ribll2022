@@ -559,14 +559,14 @@ int main() {
 		double ppac_cx[3], ppac_cy[3];
 		// correct PPAC
 		for (int i = 0; i < 3; ++i) {
-			ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
-			ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
+			ppac_cx[i] = event.xppac_x[i] - ppac_correct[0][i];
+			ppac_cy[i] = event.xppac_y[i] - ppac_correct[1][i];
 		}
 		// slope and intercept
 		double xk, yk;
 		// fit and get reaction point
-		TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, mptx);
-		TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, mpty);
+		TrackMultiplePpac(event.xppac_xflag, ppac_xz, ppac_cx, xk, mptx);
+		TrackMultiplePpac(event.xppac_yflag, ppac_yz, ppac_cy, yk, mpty);
 		q_ppac = ThreeBodyProcess(
 			event, mptx, mpty,
 			be_kinetic, he_kinetic, d_kinetic, c_kinetic
@@ -599,7 +599,7 @@ int main() {
 		spt_flag = 0;
 		for (int i = 0; i < 3; ++i) {
 			unsigned short flag = 1 << i;
-			if ((event.ppac_xflag & event.ppac_yflag & flag) != flag) {
+			if ((event.xppac_xflag & event.xppac_yflag & flag) != flag) {
 				continue;
 			}
 			spt_flag |= flag;
@@ -671,7 +671,7 @@ int main() {
 				event.be_x[0], event.be_y[0],
 				event.he_x[0], event.he_y[0],
 				event.d_x, event.d_y,
-				event.ppac_x[i], event.ppac_y[i],
+				event.xppac_x[i], event.xppac_y[i],
 				sptaix[i], sptaiy[i], iteration[i]
 			);
 			q_sptai[i] = ThreeBodyProcess(
