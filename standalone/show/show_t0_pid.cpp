@@ -146,122 +146,85 @@ int main(int argc, char **argv) {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%st0-pid-%s%s%04u-%04u.root",
+		"%s%st0-pid-%s%s%s%04u-%04u.root",
 		kGenerateDataPath,
 		kShowDir,
 		tag.empty() ? "" : (tag+"-").c_str(),
 		hole ? "hole-" : "",
+		two ? "two-" : "",
 		run,
 		end_run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// 2D histogram of d1d2 pid
-	// TH2F d1d2_pid(
-	// 	"d1d2", "d1d2 #DeltaE-E pid",
-	// 	2500, 0, 50000, 3000, 0, 60000
-	// );
 	TH2F d1d2_pid(
 		"d1d2", "d1d2 #DeltaE-E pid",
-		2500, 0, 250, 3000, 0, 300
+		2500, 0, calibration ? 250 : 50000,
+		3000, 0, calibration ? 300 : 60000
 	);
 
 	// 2D histogram of d1d2 pid (stop in d2)
 	TH2F d1d2_pid_stop(
 		"d1d2s", "d1d2 #DeltaE-E pid",
-		2500, 0, 50000, 3000, 0, 60000
+		2500, 0, calibration ? 250 : 50000,
+		3000, 0, calibration ? 300 : 60000
 	);
 	// 2D histogram of d2d3 pid
 	TH2F d2d3_pid(
 		"d2d3", "d2d3 #DeltaE-E pid",
-		1750, 0, 175, 2000, 0, 200
+		1750, 0, calibration ? 175 : 35000,
+		2000, 0, calibration ? 200 : 40000
 	);
 	// 2D histogram of d2d3 pid stop in d3
 	TH2F d2d3_pid_stop(
 		"d2d3s", "d2d3 #DeltaE-E pid",
-		1750, 0, 35000, 2000, 0, 40000
+		1750, 0, calibration ? 175 : 35000,
+		2000, 0, calibration ? 200 : 40000
 	);
 	// 2D histogram of d3s1
 	TH2D d3s1_pid(
 		"d3s1", "d3s1 #DeltaE-E pid",
-		3000, 0, 60000, 1750, 0, 35000
+		3000, 0, calibration ? 300 : 60000,
+		1750, 0, calibration ? 175 : 35000
 	);
 	// 2D histogram of d3s1 stop in s1
 	TH2D d3s1_pid_stop(
 		"d3s1s", "d3s1 #DeltaE-E pid",
-		3000, 0, 60000, 1750, 0, 35000
+		3000, 0, calibration ? 300 : 60000,
+		1750, 0, calibration ? 175 : 35000
 	);
 	// 2D histogram of s1s2
 	TH2D s1s2_pid(
 		"s1s2", "s1s2 #DeltaE-E pid",
-		2000, 0, 40000, 3000, 0, 60000
+		2000, 0, calibration ? 200 : 40000,
+		3000, 0, calibration ? 300 : 60000
 	);
 	// 2D histogram of s1s2 stop in s2
 	TH2D s1s2_pid_stop(
 		"s1s2s", "s1s2 #DeltaE-E pid",
-		2000, 0, 40000, 3000, 0, 60000
+		2000, 0, calibration ? 200 : 40000,
+		3000, 0, calibration ? 300 : 60000
 	);
 	// 2D histogram of s2s3
 	TH2D s2s3_pid(
 		"s2s3", "s2s3 #DeltaE-E pid",
-		2000, 0, 40000, 2000, 0, 40000
+		2000, 0, calibration ? 200 : 40000,
+		2000, 0, calibration ? 200 : 40000
 	);
 	// 2D histogram of d1d3 pid
 	TH2F d1d3_pid(
 		"d1d3", "d1d3 #DeltaE-E pid",
-		1750, 0, 35000, 750, 0, 15000
+		1750, 0, calibration ? 175 : 35000,
+		750, 0, calibration ? 75 : 15000
 	);
 	// 2D histogram of d1d3 pid (stop in d3)
 	TH2F d1d3_pid_stop(
 		"d1d3s", "d1d3 #DeltaE-E pid",
-		1750, 0, 35000, 750, 0, 15000
+		1750, 0, calibration ? 175 : 35000,
+		750, 0, calibration ? 75 : 15000
 	);
 
-	// 2D histogram of d1d2 pid
-	TH2F d1d2_cali_pid(
-		"d1d2c", "d1d2 #DeltaE-E pid",
-		2500, 0, 250, 3000, 0, 300
-	);
-
-
-	double t0_param[6][2] = {
-		{0.0553516, 0.00532019},
-		{-0.12591, 0.00632308},
-		{0.552785, 0.00579009},
-		{0.837779, 0.00233567},
-		{-0.306592, 0.00221028},
-		{3.0818, 0.00235991}
-	};
-
-	// double cali_param[6][2];
-	// for (size_t i = 0; i < 6; ++i) {
-	// 	cali_param[i][0] = 0.0;
-	// 	cali_param[i][1] = 1.0;
-	// }
-	// if (calibration) {
-	// 	// parameters file
-	// 	std::ifstream fin(TString::Format(
-	// 		"%s%s%s-calibration-param%s-%04u.txt",
-	// 		kGenerateDataPath,
-	// 		kCalibrationDir,
-	// 		name_.c_str(),
-	// 		tag_.empty() ? "" : ("-"+tag_).c_str(),
-	// 		run_
-	// 	).Data());
-	// 	// check file
-	// 	if (!fin.good()) {
-	// 		std::cerr << "Error: Read calibrate parameters from "
-	// 			<< file_name << " failed.\n";
-	// 		return -1;
-	// 	}
-	// 	// read parameters
-	// 	for (size_t i = 0; i < Layers(); ++i) {
-	// 		fin >> cali_params_[i*2] >> cali_params_[i*2+1];
-	// 	}
-	// 	// close file
-	// 	fin.close();
-	// 	return 0;
-	// }
 
 	// total number of entries
 	long long entries = chain.GetEntries();
@@ -279,16 +242,21 @@ int main(int argc, char **argv) {
 		}
 		// get event
 		chain.GetEntry(entry);
-		for (int i = 0; i < t0_event.num; ++i) {
-			for (int j = 0; j < 3; ++j) {
-				t0_event.energy[i][j] = t0_param[j][0] + t0_param[j][1] * t0_event.energy[i][j];
+
+		if (calibration) {
+			for (int i = 0; i < t0_event.num; ++i) {
+				for (int j = 0; j < 3; ++j) {
+					t0_event.energy[i][j] =
+						t0_param[j][0]
+						+ t0_param[j][1] * t0_event.energy[i][j];
+				}
 			}
 		}
 
 		if (two && t0_event.num != 2) continue;
 		for (int i = 0; i < t0_event.num; ++i) {
 			if (hole && !t0_event.hole[i]) continue;
-			else if (t0_event.hole[i]) continue;
+			if (!hole && t0_event.hole[i]) continue;
 			if (t0_event.flag[i] == 0x3) {
 				d1d2_pid.Fill(
 					t0_event.energy[i][1], t0_event.energy[i][0]
@@ -296,17 +264,9 @@ int main(int argc, char **argv) {
 				d1d2_pid_stop.Fill(
 					t0_event.energy[i][1], t0_event.energy[i][0]
 				);
-				d1d2_cali_pid.Fill(
-					t0_param[1][0] + t0_param[1][1] * t0_event.energy[i][1],
-					t0_param[0][0] + t0_param[0][1] * t0_event.energy[i][0]
-				);
 			} else if (t0_event.flag[i] == 0x7) {
 				d1d2_pid.Fill(t0_event.energy[i][1], t0_event.energy[i][0]);
 				d2d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][1]);
-				d1d2_cali_pid.Fill(
-					t0_param[1][0] + t0_param[1][1] * t0_event.energy[i][1],
-					t0_param[0][0] + t0_param[0][1] * t0_event.energy[i][0]
-				);
 				// d1d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][0]);
 				if (t0_event.ssd_flag == 0x0) {
 					d2d3_pid_stop.Fill(
@@ -383,7 +343,6 @@ int main(int argc, char **argv) {
 	s2s3_pid.Write();
 	d1d3_pid.Write();
 	d1d3_pid_stop.Write();
-	d1d2_cali_pid.Write();
 	// close files
 	opf.Close();
 	return 0;

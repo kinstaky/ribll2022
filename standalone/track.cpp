@@ -8,7 +8,7 @@
 using namespace ribll;
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options] run telescope [tolerance]\n"
+	std::cout << "Usage: " << name << " [options] run telescope\n"
 		"  run               Set run number.\n"
 		"  telescope         Set telescope name.\n"
 		"Options:\n"
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (pos_start + 1 >= argc) {
-		// positional arguments less than 3
+		// positional arguments less than 2
 		std::cerr << "Error: Miss telescope argument.\n";
 		PrintUsage(argv[0]);
 		return -1;

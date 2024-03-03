@@ -253,7 +253,7 @@ void DssdMergeEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"hit").c_str(), &hit);
 	tree->SetBranchAddress((prefix+"case").c_str(), &case_tag);
 	tree->SetBranchAddress((prefix+"flag").c_str(), flag);
-	// tree->SetBranchAddress((prefix+"merge_tag").c_str(), merge_tag);
+	tree->SetBranchAddress((prefix+"merge_tag").c_str(), merge_tag);
 	tree->SetBranchAddress((prefix+"x").c_str(), x);
 	tree->SetBranchAddress((prefix+"y").c_str(), y);
 	tree->SetBranchAddress((prefix+"z").c_str(), z);

@@ -1505,6 +1505,10 @@ void SwapMergeEvent(DssdMergeEvent &merge, size_t i, size_t j) {
 	unsigned int tf = merge.flag[i];
 	merge.flag[i] = merge.flag[j];
 	merge.flag[j] = tf;
+	// swap merge flag
+	unsigned short tmf = merge.merge_tag[i];
+	merge.merge_tag[i] = merge.merge_tag[j];
+	merge.merge_tag[j] = tmf;
 	// swap energy
 	double tmp = merge.energy[i];
 	merge.energy[i] = merge.energy[j];
@@ -1927,19 +1931,6 @@ int Dssd::Merge(double energy_diff) {
 	);
 	// output file
 	TFile opf(merge_file_name, "recreate");
-	// // difference of front and back side energy
-	// TH1F hde[]{
-	// 	TH1F("hde11", "fe[0]-be[0]", 400, -2000, 2000),
-	// 	TH1F("hde12a", "fe[0]+fe[1]-be[0]", 400, -2000, 2000),
-	// 	TH1F("hde12b", "fe[0]-be[0]", 400, -2000, 2000),
-	// 	TH1F("hde21a", "fe[0]-be[0]-be[1]", 400, -2000, 2000),
-	// 	TH1F("hde21b", "fe[0]-be[0]", 400, -2000, 2000),
-	// 	TH1F("hde22a", "fe[a]-be[a]", 400, -2000, 2000),
-	// 	TH1F("hde22b", "fe-be", 400, -2000, 2000),
-	// 	TH1F("hde32a", "fe[a]-be[a], fe[b]-be[b]-be[c]", 400, -2000, 2000),
-	// 	TH1F("hde23a", "fe[a]-be[a], fe[b]+fe[c]-be[b]", 400, -2000, 2000),
-	// 	TH1F("hde33a", "fe[a]-be[a]", 400, -2000, 2000)
-	// };
 	// output tree
 	TTree opt("tree", "tree of merged events");
 	// output event
@@ -2001,123 +1992,6 @@ int Dssd::Merge(double energy_diff) {
 	// save and show statistics
 	statistics.Write();
 	statistics.Print();
-
-
-	// // summary statistics
-	// MergeStatistics statistics(run_, name_, tag_);
-	// // statistics for each case
-	// MergeCaseStatistics case_statistics[]{
-	// 	MergeCaseStatistics(run_, name_, tag_, "f1b1", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f1b2", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f1b2", 1, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f2b1", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f2b1", 1, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f2b2", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f2b2", 1, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f2b3", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f3b2", 0, energy_diff),
-	// 	MergeCaseStatistics(run_, name_, tag_, "f3b3", 0, energy_diff)
-	// };
-	// // function pointer to function that merge differenct case events
-	// void(*MergeFunction[])(
-	// 	const DssdFundamentalEvent&,
-	// 	DssdMergeEvent&,
-	// 	double,
-	// 	TH1F*,
-	// 	MergeCaseStatistics*
-	// ) = {
-	// 	Merge11Event,
-	// 	Merge12Event, Merge21Event,
-	// 	Merge22Event,
-	// 	Merge23Event, Merge32Event,
-	// 	Merge33Event
-	// };
-	// // start index of different cases in hde and statistics
-	// int case_index[]{0, 1, 3, 5, 7, 8, 9};
-
-	// // read time cuts
-	// if (ReadTimeCuts()) {
-	// 	std::cerr << "Error: Read time cuts failed.\n";
-	// 	return -1;
-	// }
-
-	// // total number of entries
-	// long long entries = ipt->GetEntries();
-	// // 1/100 of entries
-	// long long entry100 = entries / 100;
-	// // show start
-	// printf("Writing merged events   0%%");
-	// fflush(stdout);
-	// // loop over events
-	// for (long long entry = 0; entry < entries; ++entry) {
-	// 	// show process
-	// 	if (entry % entry100 == 0) {
-	// 		printf("\b\b\b\b%3lld%%", entry / entry100);
-	// 		fflush(stdout);
-	// 	}
-
-	// 	ipt->GetEntry(entry);
-	// 	// initialize
-	// 	merge_event.hit = 0;
-
-	// 	if (fhit > 0 && bhit > 0) ++statistics.total;
-	// 	// A trick to get case number by fhit and bhit.
-	// 	// This only works with following cases with hits:
-	// 	// 0. f1-b1; 1. f1-b2; 2. f2-b1; 3. f2-b2
-	// 	// 4. f2-b3; 5. f3-b2; 6. f3-b3
-	// 	int case_num = 2*fhit  + bhit - 3;
-	// 	// check case is in the 7 cases memtioned
-	// 	if (case_num < 0 || case_num >= 7 || abs(fhit-bhit) > 1) {
-	// 		opt.Fill();
-	// 		continue;
-	// 	}
-	// 	// call merge function to fill merge_event
-	// 	MergeFunction[case_num](
-	// 		fundamental_event,
-	// 		merge_event,
-	// 		energy_diff,
-	// 		hde + case_index[case_num],
-	// 		case_statistics + case_index[case_num]
-	// 	);
-	// 	for (unsigned short i = 0; i < merge_event.hit; ++i) {
-	// 		auto position =
-	// 			CalculatePosition(merge_event.x[i], merge_event.y[i]);
-	// 		merge_event.x[i] = position.X();
-	// 		merge_event.y[i] = position.Y();
-	// 		merge_event.z[i] = position.Z();
-	// 	}
-	// 	SortMergeEvent(merge_event);
-	// 	opt.Fill();
-	// }
-	// // show finish
-	// printf("\b\b\b\b100%%\n");
-
-	// // save and close files
-	// for (auto &hist : hde) hist.Write();
-	// opt.Write();
-	// opf.Close();
-	// ipf.Close();
-
-	// // summarize one hit merged events
-	// for (size_t i = 0; i < 5; ++i) {
-	// 	statistics.one_hit += case_statistics[i].merged;
-	// }
-	// statistics.one_hit += case_statistics[6].merged;
-	// // summarize two hit merged events
-	// statistics.two_hit += case_statistics[5].merged;
-	// statistics.two_hit += case_statistics[7].merged;
-	// statistics.two_hit += case_statistics[8].merged;
-	// // summarize three hit merged events
-	// statistics.three_hit += case_statistics[9].merged;
-	// statistics.merged =
-	// 	statistics.one_hit + statistics.two_hit + statistics.three_hit;
-	// // save and show statistics
-	// for (auto &s : case_statistics) {
-	// 	s.Write();
-	// 	s.Print();
-	// }
-	// statistics.Write();
-	// statistics.Print();
 
 	return 0;
 }

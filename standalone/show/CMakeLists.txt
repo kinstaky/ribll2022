@@ -87,7 +87,6 @@ target_link_libraries(show_t0_pid PRIVATE event ROOT::Hist)
 add_executable(show_taf_pid show_taf_pid.cpp)
 target_link_libraries(show_taf_pid PRIVATE event ROOT::Hist)
 
-
 # show PPAC center
 add_executable(show_ppac_center show_ppac_center.cpp)
 target_link_libraries(
@@ -152,4 +151,11 @@ add_executable(show_tafd_deduce_thick show_tafd_deduce_thickness.cpp)
 target_link_libraries(
 	show_tafd_deduce_thick PRIVATE
 	event range_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf
+)
+
+# show merge counts
+add_executable(show_merge_counts show_merge_counts.cpp)
+target_link_libraries(
+	show_merge_counts PRIVATE
+	event ROOT::Core ROOT::RIO ROOT::Graf
 )
