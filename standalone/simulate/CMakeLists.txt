@@ -43,3 +43,7 @@ target_link_libraries(ppac_detect PRIVATE event)
 # T0 detect
 add_executable(t0_detect t0_detect.cpp)
 target_link_libraries(t0_detect PRIVATE event range_energy_calculator)
+
+# TAF detect
+add_executable(taf_detect taf_detect.cpp)
+target_link_libraries(taf_detect PRIVATE event range_energy_calculator)

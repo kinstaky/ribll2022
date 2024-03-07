@@ -709,10 +709,12 @@ int C14ToBe10He4TwoBodyChannel::Coincide() {
 
 C14ToBe10He4ThreeBodyChannel::C14ToBe10He4ThreeBodyChannel(
 	unsigned int run,
-	unsigned short recoil_mass
+	unsigned short recoil_mass,
+	bool simulate
 )
 : Channel(run)
-, recoil_mass_(recoil_mass) {
+, recoil_mass_(recoil_mass)
+, simulate_(simulate) {
 }
 
 
@@ -720,9 +722,10 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(
-		"%s%st0-particle-ta-%04d.root",
+		"%s%st0-particle-%sta-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
+		simulate_ ? "sim-" : "",
 		run_
 	);
 	// t0 particle file
@@ -739,26 +742,29 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		ipt->AddFriend(
 			TString::Format("taf%d=tree", i),
 			TString::Format(
-				"%s%staf%d-particle-ta-%04d.root",
+				"%s%staf%d-particle-%sta-%04d.root",
 				kGenerateDataPath,
 				kParticleDir,
 				i,
+				simulate_ ? "sim-" : "",
 				run_
 			)
 		);
 	}
 	// add XIA PPAC friend
 	ipt->AddFriend("xppac=tree", TString::Format(
-		"%s%sxppac-particle-ta-%04d.root",
+		"%s%sxppac-particle-%sta-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
+		simulate_ ? "sim-" : "",
 		run_
 	));
 	// add VME PPAC friend
 	ipt->AddFriend("vppac=tree", TString::Format(
-		"%s%svppac-particle-ta-%04d.root",
+		"%s%svppac-particle-%sta-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
+		simulate_ ? "sim-" : "",
 		run_
 	));
 	// input T0 particle events
@@ -795,10 +801,11 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%sC14-10Be-4He-%dH-%04u.root",
+		"%s%sC14-10Be-4He-%dH-%s%04u.root",
 		kGenerateDataPath,
 		kChannelDir,
 		recoil_mass_,
+		simulate_ ? "sim-" : "",
 		run_
 	);
 	// output file
@@ -875,8 +882,13 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 			}
 		}
 		if (!t0_valid && t0_status == 0x3) ++conflict_t0;
-		if (!t0_valid || t0_status != 0x3) continue;
-
+		if (!t0_valid || t0_status != 0x3) {
+			if (simulate_) {
+				channel.taf_index = -1;
+				opt.Fill();
+			}
+			continue;
+		}
 		// check TAF and find 2H
 		channel.taf_index = -1;
 		int valid = 0;
@@ -892,57 +904,43 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 				channel.taf_index = i;
 			}
 		}
-		if (valid == 0) {
-			// loop TAFs again if not found, try to find 2H stopped in TAFD
-			for (int i = 0; i < 6; ++i) {
-				// charge==201 means stopped in ADSSD
-				if (
-					taf[i].num == 1
-					&& taf[i].charge[0] == 201
-					&& taf[i].energy[0] > -9e4
-				) {
-					++valid;
-				}
-			}
-			if (valid > 0) ++possible_2h;
-		}
+		// if (valid == 0) {
+		// 	// loop TAFs again if not found, try to find 2H stopped in TAFD
+		// 	for (int i = 0; i < 6; ++i) {
+		// 		// charge==201 means stopped in ADSSD
+		// 		if (
+		// 			taf[i].num == 1
+		// 			&& taf[i].charge[0] == 201
+		// 			&& taf[i].energy[0] > -9e4
+		// 		) {
+		// 			++valid;
+		// 		}
+		// 	}
+		// 	if (valid > 0) ++possible_2h;
+		// }
 		// jump events without 2H
-		if (valid == 0) continue;
+		if (valid == 0) {
+			if (simulate_) {
+				channel.taf_index = -1;
+				opt.Fill();
+			}
+			continue;
+		}
 		// jump events with more than one 2H
 		if (channel.taf_index > 0 && valid > 1) {
 			++conflict_taf;
+			if (simulate_) {
+				channel.taf_index = -1;
+				opt.Fill();
+			}
 			continue;
 		}
 
 		// reaction point
 		double tx, ty, tz;
 		tx = ty = tz = 0.0;
-		// check PPAC tracking
-		// if (vppac.num == 4) {
-		// 	ppac_flag = 1;
-		// 	// if (pow(vppac.x[3]+4.0, 2.0)+pow(vppac.y[3]-1.0, 2.0) > 225.0) {
-		// 	// 	continue;
-		// 	// }
-		// 	tx = vppac.x[3];
-		// 	ty = vppac.y[3];
-		// 	tz = vppac.z[3];
-		// } else if (xppac.num == 4) {
-		// 	ppac_flag = 0;
-		// 	// if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
-		// 	// 	continue;
-		// 	// }
-		// 	tx = xppac.x[3];
-		// 	ty = xppac.y[3];
-		// 	tz = xppac.z[3];
-		// } else {
-		// 	continue;
-		// }
-
-		// if (xppac.num != 4) continue;
-		// if (pow(xppac.x[3]+4.0, 2.0)+pow(xppac.y[3]-1.0, 2.0) > 225.0) {
-		// 	continue;
-		// }
 		ppac_flag = 0;
+		xnum = xppac.num;
 		tx = xppac.x[3];
 		ty = xppac.y[3];
 		tz = xppac.z[3];

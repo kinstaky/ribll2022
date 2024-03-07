@@ -167,6 +167,16 @@ int main(int argc, char **argv) {
 		"pidgb", "TAFD-CsI(Tl)-B #DeltaE-E pid #theta>0.8",
 		3000, 0, 30000, 2000, 0, 20.0
 	);
+	// 2D dE-E PID histogram of CsI A
+	TH2F pid_a(
+		"pida", "TAFD-CsI(Tl)-A #DeltaE-E pid",
+		3000, 0, 30000, 2000, 0, 20.0
+	);
+	// 2D dE-E PID histogram of CsI B
+	TH2F pid_b(
+		"pidb", "TAFD-CsI(Tl)-B #DeltaE-E pid",
+		3000, 0, 30000, 2000, 0, 20.0
+	);
 	// 2D dE-E PID histogram of CsI A with thick correctness
 	TH2F pid_a_thick(
 		"pidat", "TAFD-CsI(Tl)-A #DeltaE-E pid thick correctness",
@@ -220,7 +230,9 @@ int main(int argc, char **argv) {
 				pid_g8_a.Fill(e, de);
 				pid_g8_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 			}
-			pid_a_thick.Fill(e+(de-cde)*150.0, cde);
+			pid_a.Fill(e, de);
+			// pid_a_thick.Fill(e+(de-cde)*150.0, cde);
+			pid_a_thick.Fill(e, cde);
 			pid_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 		} else if (ta_event.flag[0] == 0x5) {
 			if (ta_event.theta[0] < 0.8) {
@@ -230,7 +242,9 @@ int main(int argc, char **argv) {
 				pid_g8.Fill(e, de);
 				pid_g8_b.Fill(e, de);
 			}
-			pid_b_thick.Fill(e+(de-cde)*150.0, cde);
+			pid_b.Fill(e, de);
+			// pid_b_thick.Fill(e+(de-cde)*150.0, cde);
+			pid_b_thick.Fill(e, cde);
 		}
 	}
 	// show finish
@@ -244,6 +258,8 @@ int main(int argc, char **argv) {
 	pid_g8_a.Write();
 	pid_l8_b.Write();
 	pid_g8_b.Write();
+	pid_a.Write();
+	pid_b.Write();
 	pid_a_thick.Write();
 	pid_b_thick.Write();
 	pid_a_calibrated.Write();

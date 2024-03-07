@@ -102,22 +102,103 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event, bool vppac = false) {
 }
 
 
+void PrintUsage(const char *name) {
+	std::cout << "Usage: " << name << " [options]\n"
+		"  run               Set run number.\n"
+		"Options:\n"
+		"  -h                Print this help information.\n"
+		"  -r recoil_mass    Set recoil particle mass number.\n"
+		"  -s                Use simulated data.\n";
+}
+
+
+/// @brief parse arguments
+/// @param[in] argc number of arguments
+/// @param[in] argv arguments
+/// @param[out] help need help
+/// @param[out] recoil_mass recoil particle mass number
+/// @param[out] sim use simulated data
+/// @returns start index of positional arguments if succes, if failed returns
+///		-argc (negative argc) for miss argument behind option,
+/// 	or -index (negative index) for invalid arguemnt
+///
+int ParseArguments(
+	int argc,
+	char **argv,
+	bool &help,
+	int &recoil_mass,
+	bool &sim
+) {
+	// initialize
+	help = false;
+	recoil_mass = 2;
+	sim = false;
+	// start index of positional arugments
+	int result = 0;
+	for (result = 1; result < argc; ++result) {
+		// assumed that all options have read
+		if (argv[result][0] != '-') break;
+		// short option contains only one letter
+		if (argv[result][2] != 0) return -result;
+		if (argv[result][1] == 'h') {
+			help = true;
+			return result;
+		} else if (argv[result][1] == 'r') {
+			// option of recoil mass number
+			// get mass number in next argument
+			++result;
+			// miss arguemnt behind option
+			if (result == argc) return -argc;
+			recoil_mass = atoi(argv[result]);
+		} else if (argv[result][1] == 's') {
+			sim = true;
+		} else {
+			return -result;
+		}
+	}
+	return result;
+}
+
 int main(int argc, char **argv) {
+	// help flag
+	bool help = false;
 	// recoil particle mass number
 	int recoil_mass = 2;
-	if (argc > 1) {
-		recoil_mass = atoi(argv[1]);
+	// use simulated data
+	bool sim = false;
+	// parse arguments and get start index of positional arguments
+	int pos_start = ParseArguments(argc, argv, help, recoil_mass, sim);
+
+	// need help
+	if (help) {
+		PrintUsage(argv[0]);
+		return 0;
 	}
-	if (recoil_mass <= 0 || recoil_mass > 3) {
-		std::cerr << "Error: Invalid recoil particle mass " << recoil_mass << "\n";
+
+	if (pos_start < 0) {
+		if (-pos_start < argc) {
+			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
+		} else {
+			std::cerr << "Error: Option need parameter.\n";
+		}
+		PrintUsage(argv[0]);
 		return -1;
 	}
 
+	if (recoil_mass <= 0 || recoil_mass > 3) {
+		std::cerr << "Error: Invalid recoil particle mass "
+			<< recoil_mass << "\n";
+		return -1;
+	}
+
+	std::string tag = sim ? "sim-ta" : "ta";
+
 	// output file name
 	TString output_file_name = TString::Format(
-		"%sinfo/threebody%s.root",
+		"%sinfo/threebody%s%s.root",
 		kGenerateDataPath,
-		argc == 1 ? "" : TString::Format("-%dH", recoil_mass).Data()
+		argc == 1 ? "" : TString::Format("-%dH", recoil_mass).Data(),
+		sim ? "-sim" : ""
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -141,16 +222,21 @@ int main(int argc, char **argv) {
 
 	elc::CsiEnergyCalculator calculator("2H");
 
-	for (unsigned int run = 618; run <= 716; ++run) {
+	for (
+		unsigned int run = sim ? 0 : 618;
+		run <= (sim ? 0 : 716);
+		++run
+	) {
 		if (run == 628) continue;
 		if (run > 652 && run < 675) continue;
 		std::cout << "Processing run " << run << "\n";
 		// input file name
 		TString channel_file_name = TString::Format(
-			"%s%sC14-10Be-4He-%dH-%04d.root",
+			"%s%sC14-10Be-4He-%dH-%s%04d.root",
 			kGenerateDataPath,
 			kChannelDir,
 			recoil_mass,
+			sim ? "sim-" : "",
 			run
 		);
 		// input file
@@ -193,9 +279,10 @@ int main(int argc, char **argv) {
 
 		// open telescope file to get more information
 		TString t0_tele_file_name = TString::Format(
-			"%s%st0-telescope-ta-%04u.root",
+			"%s%st0-telescope-%s-%04u.root",
 			kGenerateDataPath,
 			kTelescopeDir,
+			tag.c_str(),
 			run
 		);
 		// t0 file
@@ -213,31 +300,35 @@ int main(int argc, char **argv) {
 		if (!identify || !(identify->at(0))) {
 			// add T0 particle identify file
 			t0_tree->AddFriend("pid=tree", TString::Format(
-				"%s%st0-particle-type-ta-%04u.root",
+				"%s%st0-particle-type-%s-%04u.root",
 				kGenerateDataPath,
 				kParticleIdentifyDir,
+				tag.c_str(),
 				run
 			));
 		}
 		// add T0D1 normalize result friend
 		t0_tree->AddFriend("t0d1=tree", TString::Format(
-			"%s%st0d1-result-ta-%04u.root",
+			"%s%st0d1-result-%s-%04u.root",
 			kGenerateDataPath,
 			kNormalizeDir,
+			tag.c_str(),
 			run
 		));
 		// add T0D2 normalize result friend
 		t0_tree->AddFriend("t0d2=tree", TString::Format(
-			"%s%st0d2-result-ta-%04u.root",
+			"%s%st0d2-result-%s-%04u.root",
 			kGenerateDataPath,
 			kNormalizeDir,
+			tag.c_str(),
 			run
 		));
 		// add T0D3 normalize result friend
 		t0_tree->AddFriend("t0d3=tree", TString::Format(
-			"%s%st0d3-result-ta-%04u.root",
+			"%s%st0d3-result-%s-%04u.root",
 			kGenerateDataPath,
 			kNormalizeDir,
+			tag.c_str(),
 			run
 		));
 		for (int i = 0; i < 6; ++i) {
@@ -245,14 +336,16 @@ int main(int argc, char **argv) {
 			t0_tree->AddFriend(
 				TString::Format("taf%d=tree", i),
 				TString::Format(
-					"%s%staf%d-telescope-ta-%04u.root",
+					"%s%staf%d-telescope-%s-%04u.root",
 					kGenerateDataPath,
 					kTelescopeDir,
 					i,
+					tag.c_str(),
 					run
 				)
 			);
 			// add TAF ADSSD fundamental tree as friend
+			if (sim) continue;
 			t0_tree->AddFriend(
 				TString::Format("tafd%d=tree", i),
 				TString::Format(
@@ -268,9 +361,10 @@ int main(int argc, char **argv) {
 		t0_tree->AddFriend(
 			"xppac=tree",
 			TString::Format(
-				"%s%sxppac-particle-ta-%04u.root",
+				"%s%sxppac-particle-%s-%04u.root",
 				kGenerateDataPath,
 				kParticleDir,
+				tag.c_str(),
 				run
 			)
 		);
@@ -278,9 +372,10 @@ int main(int argc, char **argv) {
 		t0_tree->AddFriend(
 			"vppac=tree",
 			TString::Format(
-				"%s%svppac-particle-ta-%04u.root",
+				"%s%svppac-particle-%s-%04u.root",
 				kGenerateDataPath,
 				kParticleDir,
+				tag.c_str(),
 				run
 			)
 		);
@@ -313,6 +408,7 @@ int main(int argc, char **argv) {
 		dssd_result[2].SetupInput(t0_tree, "t0d3.");
 		for (int i = 0; i < 6; ++i) {
 			taf[i].SetupInput(t0_tree, TString::Format("taf%d.", i).Data());
+			if (sim) continue;
 			tafd[i].SetupInput(t0_tree, TString::Format("tafd%d.", i).Data());
 		}
 		xppac.SetupInput(t0_tree, "xppac.");
@@ -322,8 +418,29 @@ int main(int argc, char **argv) {
 		t0_tree->SetBranchAddress("vppac.xflag", &event.vppac_xflag);
 		t0_tree->SetBranchAddress("vppac.yflag", &event.vppac_yflag);
 
+		// total number of entries in this run
+		size_t entries = valid_entries.size();
+		// 1/100 of entries, for showing process
+		size_t entry100 = entries / 100 + 1;
+		// show start with simulated data
+		if (sim) {
+			printf("Collecting information   0%%");
+			fflush(stdout);
+		}
 		for (size_t i = 0; i < valid_entries.size(); ++i) {
+			// show process
+			if (sim && i % entry100 == 0) {
+				printf("\b\b\b\b%3ld%%", i / entry100);
+				fflush(stdout);
+			}
+
 			t0_tree->GetEntry(valid_entries[i]);
+
+			if (taf_indexes[i] == -1) {
+				event.taf_flag = 3;
+				opt.Fill();
+				continue;
+			}
 
 			// T0
 			// T0 layer
@@ -630,8 +747,12 @@ int main(int argc, char **argv) {
 			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
 				event.ppac_flag |= 1;
 				for (int j = 0; j < 3; ++j) {
-					event.xppac_x[j] = xppac.x[j] - ppac_correct[0][j];
-					event.xppac_y[j] = xppac.y[j] - ppac_correct[1][j];
+					event.xppac_x[j] = xppac.x[j];
+					event.xppac_y[j] = xppac.y[j];
+					if (!sim) {
+						event.xppac_x[j] -= ppac_correct[0][j];
+						event.xppac_y[j] -= ppac_correct[1][j];
+					}
 				}
 				// PPAC x track
 				event.xppac_track[0] = TrackPpac(
@@ -652,8 +773,12 @@ int main(int argc, char **argv) {
 			if (event.vppac_xflag != 0 && event.vppac_yflag != 0) {
 				event.ppac_flag |= 2;
 				for (int j = 0; j < 3; ++j) {
-					event.vppac_x[j] = vppac.x[j] - ppac_correct[0][j];
-					event.vppac_y[j] = vppac.y[j] - ppac_correct[1][j];
+					event.vppac_x[j] = vppac.x[j];
+					event.vppac_y[j] = vppac.y[j];
+					if (!sim) {
+						event.vppac_x[j] -= ppac_correct[0][j];
+						event.vppac_y[j] -= ppac_correct[1][j];
+					}
 				}
 				// PPAC x track
 				event.vppac_track[0] = TrackPpac(
@@ -688,11 +813,13 @@ int main(int argc, char **argv) {
 		}
 		t0_tele_file.Close();
 	}
+	// show finish
+	if (sim) printf("\b\b\b\b100%%\n");
 
 	// show possible 2H statistics
 	std::cout << "Possible 2H events total " << total_possible_2H << "\n";
 	for (int i = 0; i < 4; ++i) {
-		std::cout << "With TAF " << i+1 << ": " << possible_2H_num[i] << "\n"; 
+		std::cout << "With TAF " << i+1 << ": " << possible_2H_num[i] << "\n";
 	}
 
 	opf.cd();

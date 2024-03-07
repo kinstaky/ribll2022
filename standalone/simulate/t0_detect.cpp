@@ -143,7 +143,7 @@ int main() {
 	double t0_back_channel[2][3];
 	double t0_ssd_energy[2][3];
 	double t0_ssd_channel[2][3];
-	double t0_layer[2];
+	int t0_layer[2];
 
 	// initialize useless variables
 	for (int i = 0; i < 3; ++i) {
@@ -294,7 +294,7 @@ int main() {
 
 
 			// T0D2, D3 position
-			for (size_t j = 1; j < 3; ++j) {
+			for (int j = 1; j < 3; ++j) {
 				// check layer
 				if (t0_layer[i] < j) break;
 				// get position

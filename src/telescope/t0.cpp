@@ -634,10 +634,18 @@ void BuildSlice(
 
 
 struct SliceNode {
+	// layer 0-T0D2, 1-T0D3, 2-T0S1, 3-T0S2, 4-T0S3, 5-CsI
 	int layer;
+	// index in slices
 	int index;
+	// parent node, 0 for root
 	int parent;
+	// flag of merge event, includes all layers' information
+	// prevent to use events repeatedly
 	unsigned int flag;
+	// particle type get from cut, mass*10+charge, e.g. 4He is 42, 10Be is 104
+	int type;
+	// true if it's last layer is in tail
 	bool leaf;
 };
 
@@ -648,7 +656,7 @@ void BuildSliceTree(
 ) {
 	nodes.clear();
 	// fill root node
-	nodes.push_back(SliceNode{-1, -1, 0, 0, false});
+	nodes.push_back(SliceNode{-1, -1, 0, 0, 0, false});
 	// start index of each layer in nodes
 	int start[6] = {
 		1, 1, 1, 1, 1, 1
@@ -663,9 +671,11 @@ void BuildSliceTree(
 		unsigned int flag = 0x1 << slices[0][i].index[0];
 		// T0D2 flag, with offset 8
 		flag |= 0x100 << slices[0][i].index[1];
+		// particle type
+		int type = slices[0][i].mass * 10 + slices[0][i].charge;
 		// insert new node
 		nodes.push_back(SliceNode{
-			0, i, 0, flag, !(slices[0][i].tail)
+			0, i, 0, flag, type, !(slices[0][i].tail)
 		});
 		// increase start index
 		++start[1];
@@ -690,15 +700,18 @@ void BuildSliceTree(
 					);
 					// or with the previous layers
 					flag |= node.flag;
+					// particle type
+					int type =
+						last_layer_slice.mass*10 + last_layer_slice.charge;
 					if (layer == 4 && current_layer_slice.tail) {
 						// insert node that stop in CsI
 						nodes.push_back(SliceNode{
-							5, i, j, flag, true
+							5, i, j, flag, type, true
 						});
 					} else {
 						// insert new node
 						nodes.push_back(SliceNode{
-							layer, i, j, flag, !(current_layer_slice.tail)
+							layer, i, j, flag, type, !(current_layer_slice.tail)
 						});
 					}
 					// increase start index
@@ -768,7 +781,7 @@ void PickSliceGroup(
 	// tail index to add more leaves, exclusive
 	int tail = groups.size();
 	// combine the leaves into groups
-	// if start is larget than or equal to tail, no new node has been add
+	// if start is larger than or equal to tail, no new node has been add
 	// to the groups, so, terminate the loop
 	while (start < tail) {
 		for (int i = start; i < tail; ++i) {
@@ -783,21 +796,56 @@ void PickSliceGroup(
 		tail = groups.size();
 	}
 
-	// search for the group with maximum count
-	// max count
-	int max_count = 0;
-	// index with maximum count
-	int max_index = 0;
-	// loop to search
-	for (int i = 0; i < int(groups.size()); ++i) {
-		if (groups[i].count > max_count) {
-			max_count = groups[i].count;
-			max_index = i;
+	// // search for the group with maximum count
+	// // max count
+	// int max_count = 0;
+	// // index with maximum count
+	// int max_index = 0;
+	// // loop to search
+	// for (int i = 0; i < int(groups.size()); ++i) {
+	// 	if (groups[i].count > max_count) {
+	// 		max_count = groups[i].count;
+	// 		max_index = i;
+	// 	}
+	// }
+
+	bool behe_found = false;
+	int max_slice = 0;
+	int found_index = 0;
+	for (int i = 1; i < int(groups.size()); ++i) {
+		int behe_flag = 0;
+		int slice_num = 0;
+		for (auto g = groups[i]; g.index != -1; g = groups[g.prev]) {
+			const auto &leave = leaves[g.index];
+			if (leave.type == 104) behe_flag |= 1;
+			else if (leave.type == 42) behe_flag |= 2;
+			slice_num += leave.layer+1;
+// std::cout << "-----------------------------"
+// 	<< "group " << i << ": " << g.index << ", prev " << g.prev << "\n"
+// 	<< "type " << leave.type << ", flag " << behe_flag << "\n"
+// 	<< "slice number " << slice_num << "\n";
 		}
+		if (behe_flag == 3) {
+			if (!behe_found) {
+				behe_found = true;
+				max_slice = slice_num;
+				found_index = i;
+			} else if (slice_num > max_slice) {
+				max_slice = slice_num;
+				found_index = i;
+			}
+		} else {
+			if (!behe_found && slice_num > max_slice) {
+				max_slice = slice_num;
+				found_index = i;
+			}
+		}
+// std::cout << "found index " << found_index << ", behe " << (behe_found ? "Y" : "N")
+// 	<< ", max slice " << max_slice << "\n";
 	}
 
 	group.clear();
-	for (int i = max_index; i != 0; i = groups[i].prev) {
+	for (int i = found_index; i != 0; i = groups[i].prev) {
 		group.push_back(leaves[groups[i].index]);
 	}
 }
@@ -1003,6 +1051,7 @@ int T0::SliceTrack() {
 		}
 		// get event
 		ipt->GetEntry(entry);
+// std::cout << "============= entry " << entry << " ==============\n";
 
 		// slices
 		std::vector<Slice> slices[5];

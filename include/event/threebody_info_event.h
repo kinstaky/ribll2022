@@ -52,7 +52,7 @@ public:
 	double xptx, xpty;
 	// target position from VME PPAC
 	double vptx, vpty;
-	// PPAC flag, 0-XPPAC, 1-VPPAC
+	// PPAC flag, XPPAC-bit_0, VPPAC-bit_1
 	int ppac_flag;
 	// XIA PPAC x,y flag
 	unsigned short xppac_xflag, xppac_yflag;

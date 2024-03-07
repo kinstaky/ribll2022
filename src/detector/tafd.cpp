@@ -192,7 +192,7 @@ int Tafd::Calibrate() {
 		"%s%s%s-alpha-calibration-%04u.root",
 		kGenerateDataPath,
 		kCalibrationDir,
-		(name_.substr(0, 3) + "d" + name_[3]).c_str(),
+		name_.c_str(),
 		alpha_calibration_run[index_]
 	);
 	// output file
