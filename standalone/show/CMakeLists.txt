@@ -159,3 +159,10 @@ target_link_libraries(
 	show_merge_counts PRIVATE
 	event ROOT::Core ROOT::RIO ROOT::Graf
 )
+
+# show t0 rebuild rate
+add_executable(show_t0_rebuild_rate show_t0_rebuild_rate.cpp)
+target_link_libraries(
+	show_t0_rebuild_rate PRIVATE
+	event event ROOT::Core ROOT::Graf
+)

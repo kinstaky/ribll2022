@@ -881,14 +881,6 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 				}
 			}
 		}
-		if (!t0_valid && t0_status == 0x3) ++conflict_t0;
-		if (!t0_valid || t0_status != 0x3) {
-			if (simulate_) {
-				channel.taf_index = -1;
-				opt.Fill();
-			}
-			continue;
-		}
 		// check TAF and find 2H
 		channel.taf_index = -1;
 		int valid = 0;
@@ -918,10 +910,24 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		// 	}
 		// 	if (valid > 0) ++possible_2h;
 		// }
+
+		// check valid
+		if (!t0_valid && t0_status == 0x3) ++conflict_t0;
+		if (!t0_valid || t0_status != 0x3) {
+			if (simulate_) {
+				if (valid == 0) {
+					channel.taf_index = -6;
+				} else {
+					channel.taf_index = -2;
+				}
+				opt.Fill();
+			}
+			continue;
+		}
 		// jump events without 2H
 		if (valid == 0) {
 			if (simulate_) {
-				channel.taf_index = -1;
+				channel.taf_index = -4;
 				opt.Fill();
 			}
 			continue;

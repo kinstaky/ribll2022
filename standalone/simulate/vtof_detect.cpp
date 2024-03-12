@@ -11,10 +11,19 @@ using namespace ribll;
 
 constexpr double vtof_time[2] = {-522.0, -462.0};
 
-int main() {
+int main(int argc, char **argv) {
+	int run = 0;
+	if (argc > 1) {
+		run = atoi(argv[1]);
+	}
+	if (run < 0 || run > 1) {
+		std::cout << "Usage: " << argv[0] << "[run]\n"
+			<< "  run        run number, default is 0\n";
+	}
+
 	// input generate file name
 	TString input_file_name = TString::Format(
-		"%s%sgenerate.root", kGenerateDataPath, kSimulateDir
+		"%s%sgenerate-%04d.root", kGenerateDataPath, kSimulateDir, run
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -32,9 +41,10 @@ int main() {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%svtof-fundamental-sim-ta-0000.root",
+		"%s%svtof-fundamental-sim-ta-%04d.root",
 		kGenerateDataPath,
-		kFundamentalDir
+		kFundamentalDir,
+		run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");

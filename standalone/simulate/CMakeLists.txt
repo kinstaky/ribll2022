@@ -47,3 +47,7 @@ target_link_libraries(t0_detect PRIVATE event range_energy_calculator)
 # TAF detect
 add_executable(taf_detect taf_detect.cpp)
 target_link_libraries(taf_detect PRIVATE event range_energy_calculator)
+
+# efficiency
+add_executable(efficiency efficiency.cpp)
+target_link_libraries(efficiency PRIVATE event ROOT::Core ROOT::Graf)

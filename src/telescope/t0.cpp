@@ -625,7 +625,7 @@ void BuildSlice(
 	std::vector<Slice> &s1s2_slice,
 	std::vector<Slice> &s2s3_slice
 ) {
-	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 3.0, d1d2_slices);
+	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 4.0, d1d2_slices);
 	BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, d2d3_slices);
 	BuildDssdSsdSlice(d3, s1, d3s1_cuts, d3s1_tail_cuts, d3s1_slices);
 	BuildSsdSlice(s1, s2, s1s2_cuts, s1s2_tail_cuts, s1s2_slice);
@@ -645,7 +645,7 @@ struct SliceNode {
 	unsigned int flag;
 	// particle type get from cut, mass*10+charge, e.g. 4He is 42, 10Be is 104
 	int type;
-	// true if it's last layer is in tail
+	// true if it's last layer is not in tail
 	bool leaf;
 };
 
@@ -701,8 +701,8 @@ void BuildSliceTree(
 					// or with the previous layers
 					flag |= node.flag;
 					// particle type
-					int type =
-						last_layer_slice.mass*10 + last_layer_slice.charge;
+					int type = current_layer_slice.mass*10
+						+ current_layer_slice.charge;
 					if (layer == 4 && current_layer_slice.tail) {
 						// insert node that stop in CsI
 						nodes.push_back(SliceNode{
@@ -800,12 +800,12 @@ void PickSliceGroup(
 	// // max count
 	// int max_count = 0;
 	// // index with maximum count
-	// int max_index = 0;
+	// int found_index = 0;
 	// // loop to search
 	// for (int i = 0; i < int(groups.size()); ++i) {
 	// 	if (groups[i].count > max_count) {
 	// 		max_count = groups[i].count;
-	// 		max_index = i;
+	// 		found_index = i;
 	// 	}
 	// }
 
@@ -820,7 +820,7 @@ void PickSliceGroup(
 			if (leave.type == 104) behe_flag |= 1;
 			else if (leave.type == 42) behe_flag |= 2;
 			slice_num += leave.layer+1;
-// std::cout << "-----------------------------"
+// std::cout << "-----------------------------\n"
 // 	<< "group " << i << ": " << g.index << ", prev " << g.prev << "\n"
 // 	<< "type " << leave.type << ", flag " << behe_flag << "\n"
 // 	<< "slice number " << slice_num << "\n";
@@ -1035,6 +1035,10 @@ int T0::SliceTrack() {
 	s2s3_tails.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
 	s2s3_tails.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
 
+	// long long test_entries[] = {
+	// 	276, 360, 678, 815, 931, 989
+	// };
+
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1044,6 +1048,7 @@ int T0::SliceTrack() {
 	printf("Tracking t0   0%%");
 	fflush(stdout);
 	for (long long entry = 0; entry < entries; ++entry) {
+	// for (long long entry : test_entries) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -1073,18 +1078,7 @@ int T0::SliceTrack() {
 		BuildSliceTree(slices, nodes);
 		PickSliceGroup(nodes, group);
 
-// if (t0_event.num == 2) continue;
-// if (
-// 	t0_event.num == 3
-// 	&& (
-// 		(t0_event.mass[0]==10 && t0_event.mass[1]==4)
-// 		|| (t0_event.mass[0]==10 && t0_event.mass[2]==4)
-// 		|| (t0_event.mass[1]==10 && t0_event.mass[0]==4)
-// 		|| (t0_event.mass[1]==10 && t0_event.mass[2]==4)
-// 		|| (t0_event.mass[2]==10 && t0_event.mass[1]==4)
-// 		|| (t0_event.mass[2]==10 && t0_event.mass[0]==4)
-// 	)
-// ) continue;
+
 // std::cout << "-------------------------\nEntry: " << entry << "\n";
 // std::cout << "Slices:\n";
 // for (int i = 0; i < 5; ++i) {
@@ -1099,13 +1093,15 @@ int T0::SliceTrack() {
 // for (const auto &node : nodes) {
 // 	std::cout << "layer " << node.layer << ", index = " << node.index
 // 		<< ", parent " << node.parent << ", flag = " << std::hex << node.flag
-// 		<< std::dec << ", leaf = " << node.leaf << "\n";
+// 		<< std::dec << ", type = " << node.type << ", leaf = "
+// 		<< node.leaf << "\n";
 // }
 // std::cout << "Slice group:\n";
 // for (const auto &node : group) {
 // 	std::cout << "layer " << node.layer << ", index = " << node.index
 // 		<< ", parent " << node.parent << ", flag = " << std::hex << node.flag
-// 		<< std::dec << ", leaf = " << node.leaf << "\n";
+// 		<< std::dec << ", type = " << node.type << ", leaf = "
+// 		<< node.leaf << "\n";
 // }
 
 		// fill output event
@@ -2141,9 +2137,13 @@ int T0::Rebuild() {
 	// output particle event
 	ParticleEvent particle_event;
 	bool hole[8];
+	bool has_4he;
+	bool has_10be;
 	// setup output branches
 	particle_event.SetupOutput(&opt);
 	opt.Branch("hole", hole, "hole[num]/O");
+	opt.Branch("has_4he", &has_4he, "he/O");
+	opt.Branch("has_10be", &has_10be, "be/O");
 
 	// read calibrate parameters
 	if (ReadCalibrateParameters() && ReadCalibrateParameters(9999)) {
@@ -2175,6 +2175,9 @@ int T0::Rebuild() {
 		ipt->GetEntry(entry);
 		// initialize particle event
 		particle_event.num = 0;
+		has_4he = false;
+		has_10be = false;
+
 		for (int i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
@@ -2185,8 +2188,9 @@ int T0::Rebuild() {
 			// fill mass number
 			particle_event.mass[particle_event.num] = type_event.mass[i];
 
-			double energy =
-				TotalEnergy(t0_event, type_event, i, csi_calculator, delta_10Be_calculator);
+			double energy = TotalEnergy(
+				t0_event, type_event, i, csi_calculator, delta_10Be_calculator
+			);
 			// fill energy
 			particle_event.energy[particle_event.num] = energy;
 			particle_event.time[particle_event.num] = t0_event.time[i][0];
@@ -2206,7 +2210,15 @@ int T0::Rebuild() {
 			particle_event.index[particle_event.num] = i;
 			hole[particle_event.num] = t0_event.hole[i];
 			++particle_event.num;
+
+			if (type_event.charge[i] == 2 && type_event.mass[i] == 4) {
+				has_4he = true;
+			}
+			if (type_event.charge[i] == 4 && type_event.mass[i] == 10) {
+				has_10be = true;
+			}
 		}
+
 		opt.Fill();
 	}
 	// show finish

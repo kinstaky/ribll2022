@@ -37,24 +37,88 @@ constexpr double xia_anode_mean[3] = {-482.5, -482.8, -468.6};
 constexpr double xia_anode_sigma[3] = {0.43, 0.44, 0.44};
 
 
+void PrintUsage(const char *name) {
+	std::cout << "Usage: " << name << " [options] [run]\n"
+		<< "Options:\n"
+		<< "  -h        Print this help and exit.\n"
+		<< "  -v        VME PPAC detect, default is XIA PPAC.\n"
+		<< "  run       run number, default is 0.\n";
+}
+
+
+/// @brief parse arguments
+/// @param[in] argc number of arguments
+/// @param[in] argv arguments
+/// @param[out] help need help
+/// @param[out] vppac VME PPAC flag
+/// @returns start index of positional arguments if succes, if failed returns
+///		-argc (negative argc) for miss argument behind option,
+/// 	or -index (negative index) for invalid arguemnt
+///
+int ParseArguments(
+	int argc,
+	char **argv,
+	bool &help,
+	bool &vppac
+) {
+	// initialize
+	help = false;
+	vppac = false;
+	// start index of positional arugments
+	int result = 0;
+	for (result = 1; result < argc; ++result) {
+		// assumed that all options have read
+		if (argv[result][0] != '-') break;
+		// short option contains only one letter
+		if (argv[result][2] != 0) return -result;
+		if (argv[result][1] == 'h') {
+			help = true;
+			return result;
+		} else if (argv[result][1] == 'v') {
+			vppac = true;
+		} else {
+			return -result;
+		}
+	}
+	return result;
+}
+
 int main(int argc, char **argv) {
+	// help flag
+	bool help = false;
+	// VME PPAC flag
 	bool vppac = false;
-	if (argc == 1) {
-		vppac = false;
-	} else if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
-		vppac = true;
-	} else {
-		std::cout << "Usage: " << argv[0] << " [options]\n"
-			<< "Options:\n"
-			<< "  -v        VME PPAC detect, default is XIA PPAC.\n";
+	// parse arguments and get start index of positional arguments
+	int pos_start = ParseArguments(argc, argv, help, vppac);
+
+	// need help
+	if (help) {
+		PrintUsage(argv[0]);
+		return 0;
+	}
+
+	if (pos_start < 0) {
+		if (-pos_start < argc) {
+			std::cerr << "Error: Invaild option " << argv[-pos_start] << ".\n";
+		} else {
+			std::cerr << "Error: Option need parameter.\n";
+		}
+		PrintUsage(argv[0]);
 		return -1;
 	}
 
+	int run = 0;
+	if (pos_start < argc) {
+		run = atoi(argv[pos_start]);
+	}
+
+
 	// input generate data file name
 	TString generate_file_name = TString::Format(
-		"%s%sgenerate.root",
+		"%s%sgenerate-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// generate data file
 	TFile generate_file(generate_file_name, "read");
@@ -75,9 +139,10 @@ int main(int argc, char **argv) {
 	if (vppac) {
 		// VME TOF file name
 		TString vtof_file_name = TString::Format(
-			"%s%svtof-fundamental-sim-ta-0000.root",
+			"%s%svtof-fundamental-sim-ta-%04d.root",
 			kGenerateDataPath,
-			kFundamentalDir
+			kFundamentalDir,
+			run
 		);
 		// add friend
 		generate_tree->AddFriend("vtof=tree", vtof_file_name);
@@ -87,10 +152,11 @@ int main(int argc, char **argv) {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%s%cppac-fundamental-sim-ta-0000.root",
+		"%s%s%cppac-fundamental-sim-ta-%04d.root",
 		kGenerateDataPath,
 		kFundamentalDir,
-		vppac ? 'v' : 'x'
+		vppac ? 'v' : 'x',
+		run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");

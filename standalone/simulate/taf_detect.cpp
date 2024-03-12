@@ -37,12 +37,22 @@ constexpr double csi_threshold[12] = {
 	1100.0, 1200.0
 };
 
-int main() {
+int main(int argc, char **argv) {
+	int run = 0;
+	if (argc > 1) {
+		run = atoi(argv[1]);
+	}
+	if (run < 0 || run > 1) {
+		std::cout << "Usage: " << argv[0] << "[run]\n"
+			<< "  run        run number, default is 0\n";
+	}
+
 	// input generate data file name
 	TString generate_file_name = TString::Format(
-		"%s%sgenerate.root",
+		"%s%sgenerate-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// generate data file
 	TFile generate_file(generate_file_name, "read");
@@ -62,10 +72,11 @@ int main() {
 	TString tafd_file_names[6];
 	for (int i = 0; i < 6; ++i) {
 	 	tafd_file_names[i].Form(
-			"%s%stafd%d-merge-sim-ta-0000.root",
+			"%s%stafd%d-merge-sim-ta-%04d.root",
 			kGenerateDataPath,
 			kMergeDir,
-			i
+			i,
+			run
 		);
 	}
 	// output TAFD files
@@ -88,9 +99,10 @@ int main() {
 
 	// output TAFCsI file name
 	TString csi_file_name = TString::Format(
-		"%s%stafcsi-fundamental-sim-ta-0000.root",
+		"%s%stafcsi-fundamental-sim-ta-%04d.root",
 		kGenerateDataPath,
-		kFundamentalDir
+		kFundamentalDir,
+		run
 	);
 	// output TAFCsI file
 	TFile csi_file(csi_file_name, "recreate");

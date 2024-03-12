@@ -695,6 +695,14 @@ int Dssd::NormalizeResult(int iteration) {
 			}
 			event.Sort();
 
+			// energy cut
+			// for (int i = event.front_hit-1; i >= 0; --i) {
+			// 	if (event.front_energy[i] < 1200.0) --event.front_hit;
+			// }
+			// for (int i = event.back_hit-1; i >= 0; --i) {
+			// 	if (event.back_energy[i] < 1200.0) --event.back_hit;
+			// }
+
 			if (event.front_hit == 1 && event.back_hit == 1) {
 				double fe = event.front_energy[0];
 				double be = event.back_energy[0];

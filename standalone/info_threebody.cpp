@@ -222,6 +222,14 @@ int main(int argc, char **argv) {
 
 	elc::CsiEnergyCalculator calculator("2H");
 
+	// statistics for calculating efficiency
+	size_t t0_valid_count = 0;
+	size_t taf_valid_count = 0;
+	size_t ppac_valid_count = 0;
+	size_t valid_count = 0;
+	size_t total_count = 0;
+
+
 	for (
 		unsigned int run = sim ? 0 : 618;
 		run <= (sim ? 0 : 716);
@@ -418,8 +426,10 @@ int main(int argc, char **argv) {
 		t0_tree->SetBranchAddress("vppac.xflag", &event.vppac_xflag);
 		t0_tree->SetBranchAddress("vppac.yflag", &event.vppac_yflag);
 
+
 		// total number of entries in this run
 		size_t entries = valid_entries.size();
+		total_count += entries;
 		// 1/100 of entries, for showing process
 		size_t entry100 = entries / 100 + 1;
 		// show start with simulated data
@@ -436,10 +446,32 @@ int main(int argc, char **argv) {
 
 			t0_tree->GetEntry(valid_entries[i]);
 
+			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
+				++ppac_valid_count;
+			}
 			if (taf_indexes[i] == -1) {
 				event.taf_flag = 3;
 				opt.Fill();
 				continue;
+			} else if (taf_indexes[i] == -2) {
+				event.taf_flag = 4;
+				++taf_valid_count;
+				opt.Fill();
+				continue;
+			} else if (taf_indexes[i] == -4) {
+				event.taf_flag = 4;
+				++t0_valid_count;
+				opt.Fill();
+				continue;
+			} else if (taf_indexes[i] == -6) {
+				event.taf_flag = 4;
+				opt.Fill();
+				continue;
+			}
+			++t0_valid_count;
+			++taf_valid_count;
+			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
+				++valid_count;
 			}
 
 			// T0
@@ -795,6 +827,7 @@ int main(int argc, char **argv) {
 					event.vpty
 				);
 			}
+
 			// Q
 			event.q = ThreeBodyProcess(event);
 			event.vq = ThreeBodyProcess(event, true);
@@ -815,12 +848,24 @@ int main(int argc, char **argv) {
 	}
 	// show finish
 	if (sim) printf("\b\b\b\b100%%\n");
-
-	// show possible 2H statistics
-	std::cout << "Possible 2H events total " << total_possible_2H << "\n";
-	for (int i = 0; i < 4; ++i) {
-		std::cout << "With TAF " << i+1 << ": " << possible_2H_num[i] << "\n";
+	if (sim) {
+		// show efficiency
+		std::cout << "Total efficiency: " << valid_count << " / " << total_count
+			<< "  " << double(valid_count) / double(total_count) << "\n"
+			<< "T0 efficency: " << t0_valid_count << " / " << total_count
+			<< "  " << double(t0_valid_count) / double(total_count) << "\n"
+			<< "TAF efficiency " << taf_valid_count << " / " << total_count
+			<< "  " << double(taf_valid_count) / double(total_count) << "\n"
+			<< "XPPAC efficiency: " << ppac_valid_count << " / " << total_count
+			<< "  " << double(ppac_valid_count) / double(total_count) << "\n";
+	} else {
+		// show possible 2H statistics
+		std::cout << "Possible 2H events total " << total_possible_2H << "\n";
+		for (int i = 0; i < 4; ++i) {
+			std::cout << "With TAF " << i+1 << ": " << possible_2H_num[i] << "\n";
+		}
 	}
+
 
 	opf.cd();
 	// save trees

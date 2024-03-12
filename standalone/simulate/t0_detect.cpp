@@ -29,14 +29,27 @@ constexpr double t0_center[3][2] = {
 constexpr double t0_energy_threshold[6] = {
 	1000.0, 1000.0, 1000.0, 2000.0, 500.0, 800.0
 };
+// T0 corrected thickness
+constexpr double thickness[6] = {
+	1010.0, 1504.0, 1501.0, 1480.0, 1500.0, 1650.0
+};
 
+int main(int argc, char **argv) {
+	int run = 0;
+	if (argc > 1) {
+		run = atoi(argv[1]);
+	}
+	if (run < 0 || run > 1) {
+		std::cout << "Usage: " << argv[0] << "[run]\n"
+			<< "  run        run number, default is 0\n";
+	}
 
-int main() {
 	// input generate data file name
 	TString generate_file_name = TString::Format(
-		"%s%sgenerate.root",
+		"%s%sgenerate-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// generate data file
 	TFile generate_file(generate_file_name, "read");
@@ -56,10 +69,11 @@ int main() {
 	TString dssd_file_names[3];
 	for (int i = 0; i < 3; ++i) {
 	 	dssd_file_names[i].Form(
-			"%s%st0d%d-result-sim-ta-0000.root",
+			"%s%st0d%d-result-sim-ta-%04d.root",
 			kGenerateDataPath,
 			kNormalizeDir,
-			i+1
+			i+1,
+			run
 		);
 	}
 	// output DSSD file
@@ -84,10 +98,11 @@ int main() {
 	TString ssd_file_names[3];
 	for (int i = 0; i < 3; ++i) {
 		ssd_file_names[i].Form(
-			"%s%st0s%d-fundamental-sim-ta-0000.root",
+			"%s%st0s%d-fundamental-sim-ta-%04d.root",
 			kGenerateDataPath,
 			kFundamentalDir,
-			i+1
+			i+1,
+			run
 		);
 	}
 	// output SSD file
@@ -111,7 +126,8 @@ int main() {
 	// output detect file for monitoring
 	// output detect file name
 	TString detect_file_name = TString::Format(
-		"%s%st0-detect.root", kGenerateDataPath, kSimulateDir
+		"%s%st0-detect-%04d.root",
+		kGenerateDataPath, kSimulateDir, run
 	);
 	// output file
 	TFile detect_file(detect_file_name, "recreate");
@@ -124,6 +140,60 @@ int main() {
 			1000, -1000, 1000
 		);
 	}
+	// T0 detect tree
+	TTree opt("tree", "T0 detect information");
+	// output position DSSD flag
+	// -4: 1 particle, cut by energy threshold
+	// -3: 2 particle, cut by energy threshold
+	// -2: out of range
+	// -1: cannot reach this layer
+	// 0: nothing, invalid
+	// 1: 1 particle
+	// 2: 2 seperated strip in both sides
+	// 3: 2 seperated strip in front side, 2 adjacent strips in back side
+	// 4: 2 seperated strip in front side, 1 same strip in back side
+	// 5: 2 adjacent strips in front side, 2 seperated strip in back side
+	// 6: 2 adjacent strips in both sides
+	// 7: 2 adjacent strips in front side, 1 same strip in back side
+	// 8: 1 same strip in front side, 2 seperated strip in back side
+	// 9: 1 same strip in front side, 2 adjacent strips in back side
+	// 10: 1 same strip in both sides
+	int dssd_flag[3];
+
+	// output position T0 flag
+	// 0: impossible t0 rebuild
+	// 1: only 2 strips events
+	// 2: 2 strips events, includes adjacent strips
+	// 3: includes 1 strip in one side, 2 seperated strip in the other side
+	// 4: includes 1 strip in one side, 2 adjacent strips in the other side
+	// 5: includes 1 strip in both side
+	int t0_flag;
+
+	// times cut by energy threshold
+	int cut_time;
+	// stopped layer: 0-T0D1, 1-T0D2, 2-T0D3, 3-T0S1, 4-T0S2, 5-T0S3, 6-T0CsI
+	int t0_layer[2];
+	double t0_lost_energy[2][7];
+	double t0_front_energy[2][3];
+	double t0_back_energy[2][3];
+	double t0_front_channel[2][3];
+	double t0_back_channel[2][3];
+	double t0_ssd_energy[2][3];
+	double t0_ssd_channel[2][3];
+
+	// setup output branches
+	opt.Branch("dssd_flag", dssd_flag, "df[3]/I");
+	opt.Branch("t0_flag", &t0_flag, "tf/I");
+	opt.Branch("cut_time", &cut_time, "ct/I");
+	opt.Branch("layer", t0_layer, "layer[2]/I");
+	opt.Branch("lost_energy", t0_lost_energy, "le[2][7]/D");
+	opt.Branch("front_energy", t0_front_energy, "fe[2][3]/D");
+	opt.Branch("back_energy", t0_back_energy, "be[2][3]/D");
+	opt.Branch("front_channel", t0_front_channel, "fc[2][3]/D");
+	opt.Branch("back_channel", t0_back_channel, "bc[2][3]/D");
+	opt.Branch("ssd_energy", t0_ssd_energy, "se[2][3]/D");
+	opt.Branch("ssd_channel", t0_ssd_channel, "sc[2][3]/D");
+
 
 	// initialize random number generator
 	TRandom3 generator(0);
@@ -135,15 +205,38 @@ int main() {
 		&be10_calculator, &he4_calculator
 	};
 
-	// temporary variables
-	double t0_lost_energy[2][7];
-	double t0_front_energy[2][3];
-	double t0_back_energy[2][3];
-	double t0_front_channel[2][3];
-	double t0_back_channel[2][3];
-	double t0_ssd_energy[2][3];
-	double t0_ssd_channel[2][3];
-	int t0_layer[2];
+	// statistics
+	// total counts
+	int total_count[3] = {0, 0, 0};
+	// out of range counts
+	int out_of_range_count[3] = {0, 0, 0};
+	// cut by energy threshold counts
+	int p1_under_threshold_count[3] = {0, 0, 0};
+	int p2_under_threshold_count[3] = {0, 0, 0};
+	// invalid counts, should be zero
+	int invalid_count[3] = {0, 0, 0};
+	// different kinds strip distribution counts
+	int valid_counts[3][10];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 10; ++j) valid_counts[i][j] = 0;
+	}
+	// total valid counts for T0
+	int t0_total_count = 0;
+	// only 2 strip events in T0
+	int t0_only_two_count = 0;
+	// 2 strip events includes adjacent strips in both sides
+	int t0_both_adjdacent_count = 0;
+	// includes 1-2 events, flag 4 and 8 events
+	// 1 same strip in one side, 2 seperated strips in the other side
+	int t0_one_two_count = 0;
+	// includes 1-2a events, flag 7 and 9 events
+	// 1 same strip in one side, 2 adjacent strip2 in the other side
+	int t0_one_adjacent_count = 0;
+	// includes 1-1 events, flag 10 events
+	// 1 strip in both sides
+	int t0_both_one_count = 0;
+
+
 
 	// initialize useless variables
 	for (int i = 0; i < 3; ++i) {
@@ -183,6 +276,9 @@ int main() {
 			ssd_events[i].time = -1e5;
 			ssd_events[i].energy = 0.0;
 		}
+		for (int i = 0; i < 3; ++i) dssd_flag[i] = 0;
+		t0_flag = 0;
+		cut_time = 0;
 
 		// calculate t0 energy
 		double range[2];
@@ -195,7 +291,7 @@ int main() {
 			residual_energy[i] = event.fragment_kinetic[i];
 
 			for (size_t j = 0; j < 6; ++j) {
-				double thick = t0_thickness[j] / cos(event.fragment_theta[i]);
+				double thick = thickness[j] / cos(event.fragment_theta[i]);
 				if (range[i] < thick) {
 					t0_layer[i] = j;
 					t0_lost_energy[i][j] = residual_energy[i];
@@ -212,6 +308,19 @@ int main() {
 				}
 			}
 		}
+
+		// check layers
+		int stop_t0d2 = 0;
+		if (t0_layer[0] > 0) ++stop_t0d2;
+		if (t0_layer[1] > 0) ++stop_t0d2;
+		if (stop_t0d2 == 0) dssd_flag[1] = -1;
+		else if (stop_t0d2 == 1) dssd_flag[1] = 1;
+
+		int stop_t0d3 = 0;
+		if (t0_layer[0] > 1) ++stop_t0d3;
+		if (t0_layer[1] > 1) ++stop_t0d3;
+		if (stop_t0d3 == 0) dssd_flag[2] = -1;
+		else if (stop_t0d3 == 1) dssd_flag[2] = 1;
 
 		// simulate detected energy
 		for (int i = 0; i < 2; ++i) {
@@ -290,6 +399,8 @@ int main() {
 					dssd_events[0].back_energy[j] = t0_back_channel[i][0];
 					++j;
 				}
+			} else {
+				dssd_flag[0] = -2;
 			}
 
 
@@ -303,8 +414,10 @@ int main() {
 				double x = r * cos(event.fragment_phi[i]) + event.target_x;
 				double y = r * sin(event.fragment_phi[i]) + event.target_y;
 				// check range
-				if (x <= -32.0 || x >= 32.0) continue;
-				if (y <= -32.0 || y >= 32.0) continue;
+				if (x <= -32.0 || x >= 32.0 || y <= -32.0 || y >= 32.0) {
+					dssd_flag[j] = -2;
+					continue;
+				}
 				// position correct
 				x -= t0_center[j][0];
 				y -= t0_center[j][1];
@@ -355,61 +468,200 @@ int main() {
 			}
 		}
 
+
+		// sort DSSD events
+		for (int i = 0; i < 3; ++i) {
+			dssd_events[i].Sort();
+		}
+
+
 		// check threshold
 		// check DSSD
 		for (int i = 0; i < 3; ++i) {
 			// check front side
-			bool front_change = true;
-			while (front_change) {
-				front_change = false;
-				// for convenient
-				int &fhit = dssd_events[i].front_hit;
-				unsigned short *fs = dssd_events[i].front_strip;
-				double *fe = dssd_events[i].front_energy;
-				for (int j = 0; j < fhit; ++j) {
-					if (fe[j] < t0_energy_threshold[i]) {
-						fs[j] = fs[fhit-1];
-						fe[j] = fe[fhit-1];
-						--fhit;
-						front_change = true;
-						break;
-					}
+			for (int j = dssd_events[i].front_hit-1; j >= 0; --j) {
+				if (dssd_events[i].front_energy[j] < t0_energy_threshold[i]) {
+					--dssd_events[i].front_hit;
+					if (dssd_flag[i] == 0) dssd_flag[i] = -3;
+					else if (dssd_flag[i] == 1) dssd_flag[i] = -4;
+					++cut_time;
 				}
 			}
-			// check back side
-			bool back_change = true;
-			while (back_change) {
-				back_change = false;
-				// for convenient
-				int &bhit = dssd_events[i].back_hit;
-				unsigned short *bs = dssd_events[i].back_strip;
-				double *be = dssd_events[i].back_energy;
-				for (int j = 0; j < bhit; ++j) {
-					if (be[j] < t0_energy_threshold[i]) {
-						bs[j] = bs[bhit-1];
-						be[j] = be[bhit-1];
-						--bhit;
-						back_change = true;
-						break;
-					}
+			for (int j = dssd_events[i].back_hit-1; j >= 0; --j) {
+				if (dssd_events[i].back_energy[j] < t0_energy_threshold[i]) {
+					--dssd_events[i].back_hit;
+					if (dssd_flag[i] == 0) dssd_flag[i] = -3;
+					else if (dssd_flag[i] == 1) dssd_flag[i] = -4;
 				}
 			}
 		}
+
+
 		// check SSD
 		for (int i = 0; i < 3; ++i) {
 			if (
-				ssd_events[i].time < -9e4
+				ssd_events[i].time > -9e4
 				&& ssd_events[i].energy < t0_energy_threshold[i+3]
 			) {
 				ssd_events[i].time = -1e5;
 				ssd_events[i].energy = 0.0;
+				++cut_time;
 			}
 		}
 
+// std::cout << "layer " << t0_layer[0] << ", " << t0_layer[1] << "\n"
+// 	<< "T0D1 hit " << dssd_events[0].front_hit << ", " << dssd_events[0].back_hit << "\n"
+// 	<< "T0D2 hit " << dssd_events[1].front_hit << ", " << dssd_events[1].back_hit << "\n"
+// 	<< "T0D3 hit " << dssd_events[2].front_hit << ", " << dssd_events[2].back_hit << "\n"
+// 	<< "Flag " << dssd_flag[0] << ", " << dssd_flag[1] << ", " << dssd_flag[2] << "\n"
+// 	<< "Stop number " << stop_t0d2 << ", " << stop_t0d3 << "\n";
 
-		// sort events
+		// get flag
 		for (int i = 0; i < 3; ++i) {
-			dssd_events[i].Sort();
+			if (dssd_flag[i] != 0) continue;
+			// front side flag
+			int front_flag = -1;
+			// check front side
+			if (dssd_events[i].front_hit == 1) front_flag = 2;
+			else if (dssd_events[i].front_hit == 2) {
+				// check if it's adjacent strip
+				int delta_strip = abs(
+					dssd_events[i].front_strip[0]
+					- dssd_events[i].front_strip[1]
+				);
+
+				if (delta_strip == 1) front_flag = 1;
+				else front_flag = 0;
+			} else {
+				std::cerr << "Error: Contradict T0 flag and front hit: entry "
+					<< entry << " T0D" << i+1 << "\n";
+				return -1;
+			}
+			// back side flag
+			int back_flag = -1;
+			// check back side flag
+			if (dssd_events[i].back_hit == 1) back_flag = 2;
+			else if (dssd_events[i].back_hit == 2) {
+				// check if it's adjacent strip
+				int delta_strip = abs(
+					dssd_events[i].back_strip[0]
+					- dssd_events[i].back_strip[1]
+				);
+
+				if (delta_strip == 1) back_flag = 1;
+				else back_flag = 0;
+			} else {
+				std::cerr << "Error: Contradict T0 flag and back hit: entry "
+					<< entry << " T0D" << i+1 << "\n";
+				return -1;
+			}
+			dssd_flag[i] = front_flag*3 + back_flag + 2;
+		}
+
+		// count flags
+		for (int i = 0; i < 3; ++i) {
+			if (dssd_flag[i] != 0 && dssd_flag[i] != -1) ++total_count[i];
+			if (dssd_flag[i] == -4) ++p1_under_threshold_count[i];
+			else if (dssd_flag[i] == -3) ++p2_under_threshold_count[i];
+			else if (dssd_flag[i] == -2) ++out_of_range_count[i];
+			else if (dssd_flag[i] == 0) ++invalid_count[i];
+			else if (dssd_flag[i] >= 1 && dssd_flag[i] <= 10) {
+				++valid_counts[i][dssd_flag[i]-1];
+			}
+		}
+		// count T0 statistics
+		if (
+			dssd_flag[0] >= 2 && dssd_flag[0] <= 10
+			&& dssd_flag[1] >= 2 && dssd_flag[1] <= 10
+			&& (
+				(dssd_flag[2] >= 1 && dssd_flag[2] <= 10)
+				|| dssd_flag[2] == -1
+			)
+		) {
+			++t0_total_count;
+			// shorter dssd flag
+			int short_flag[3] = {0, 0, 0};
+			for (int i = 0; i < 3; ++i) {
+				if (dssd_flag[i] == 1) {
+					short_flag[i] = 1;
+				} else if (dssd_flag[i] == 5) {
+					short_flag[i] = 3;
+				} else if (dssd_flag[i] == 4 || dssd_flag[i] == 8) {
+					short_flag[i] = 4;
+				} else if (dssd_flag[i] == 7 || dssd_flag[i] == 9) {
+					short_flag[i] = 5;
+				} else if (dssd_flag[i] == 10) {
+					short_flag[i] = 6;
+				} else {
+					short_flag[i] = 2;
+				}
+			}
+			t0_flag = -1;
+			// get T0 flag
+			if (
+				short_flag[0] == 2
+				&& short_flag[1] == 2
+				&& short_flag[2] <= 2
+			) {
+				t0_flag = 1;
+				++t0_only_two_count;
+			} else if (
+				(	short_flag[0] == 3
+					|| short_flag[1] == 3
+					|| short_flag[2] == 3
+				) && (
+					short_flag[0] <= 3
+					&& short_flag[1] <= 3
+					&& short_flag[2] <= 3
+				)
+			) {
+				t0_flag = 2;
+				++t0_both_adjdacent_count;
+			} else if (
+				(
+					short_flag[0] == 4
+					|| short_flag[1] == 4
+					|| short_flag[2] == 4
+				) && (
+					short_flag[0] <= 4
+					&& short_flag[1] <= 4
+					&& short_flag[2] <= 4
+				)
+			) {
+				t0_flag = 3;
+				++t0_one_two_count;
+			} else if (
+				(
+					short_flag[0] == 5
+					|| short_flag[1] == 5
+					|| short_flag[2] == 5
+				) && (
+					short_flag[0] <= 5
+					&& short_flag[1] <= 5
+					&& short_flag[2] <= 5
+				)
+			) {
+				t0_flag = 4;
+				++t0_one_adjacent_count;
+			} else if (
+				short_flag[0] == 6
+				|| short_flag[1] == 6
+				|| short_flag[2] == 6
+			) {
+				t0_flag = 5;
+				++t0_both_one_count;
+			} else {
+				std::cerr << "Error: Code error, invalid short_flag.\n";
+				return -1;
+			}
+
+			if (t0_flag == -1) {
+				std::cerr << "Error: Code error, invalid T0 flag.\n";
+				return -1;
+			}
+
+		} else {
+			t0_flag = 0;
 		}
 
 		// fill to histogram
@@ -437,6 +689,8 @@ int main() {
 		for (int i = 0; i < 3; ++i) {
 			ssd_trees[i]->Fill();
 		}
+		// fill T0 detect output tree
+		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -450,11 +704,12 @@ int main() {
 		std::cout << "T0D" << i+1 << ": " << f1->GetParameter(2) << "\n";
 	}
 
-	// save histograms
+	// save histograms and tree
 	detect_file.cd();
 	for (int i = 0; i < 3; ++i) {
 		hist_fb_energy[i]->Write();
 	}
+	opt.Write();
 	detect_file.Close();
 
 	// save trees and close output files
@@ -473,7 +728,7 @@ int main() {
 
 	// output T0D2 pixel file name
 	TString t0d2_pixel_file_name = TString::Format(
-		"%s%sshow-t0d2-pixel-0000.root", kGenerateDataPath, kShowDir
+		"%s%sshow-t0d2-pixel-%04d.root", kGenerateDataPath, kShowDir, run
 	);
 	// output T0D2 pixel file
 	TFile t0d2_pixel_file(t0d2_pixel_file_name, "recreate");
@@ -485,6 +740,53 @@ int main() {
 	t0d2_pixel_file.cd();
 	hist_beam_resolution.Write();
 	t0d2_pixel_file.Close();
+
+	// show statistics
+	for (int i = 0; i < 3; ++i) {
+		double total = double(total_count[i]);
+		std::cout << "---------- T0D" << i+1 << " ----------\n"
+			<< "Invalid " << invalid_count[i] << "\n"
+			<< "Total " << total_count[i] << "\n"
+			<< "1 particle under threshold " << p1_under_threshold_count[i]
+			<< ", " << p1_under_threshold_count[i] / total << "\n"
+			<< "2 particle under threshold " << p2_under_threshold_count[i]
+			<< ", " << p2_under_threshold_count[i] / total << "\n"
+			<< "Out of range " << out_of_range_count[i]
+			<< ", " << out_of_range_count[i] / total << "\n"
+			<< "1 particle " << valid_counts[i][0]
+			<< ", " << valid_counts[i][0] / total << "\n"
+			<< "Front 2 back 2 " << valid_counts[i][1]
+			<< ", " << valid_counts[i][1] / total << "\n"
+			<< "Front 2 back 2a " << valid_counts[i][2]
+			<< ", " << valid_counts[i][2] / total << "\n"
+			<< "Front 2 back 1 " << valid_counts[i][3]
+			<< ", " << valid_counts[i][3] / total << "\n"
+			<< "Front 2a back 2 " << valid_counts[i][4]
+			<< ", " << valid_counts[i][4] / total << "\n"
+			<< "Front 2a back 2a " << valid_counts[i][5]
+			<< ", " << valid_counts[i][5] / total << "\n"
+			<< "Front 2a back 1 " << valid_counts[i][6]
+			<< ", " << valid_counts[i][6] / total << "\n"
+			<< "Front 1 back 2 " << valid_counts[i][7]
+			<< ", " << valid_counts[i][7] / total << "\n"
+			<< "Front 1 back 2a " << valid_counts[i][8]
+			<< ", " << valid_counts[i][8] / total << "\n"
+			<< "Front 1 back 1 " << valid_counts[i][9]
+			<< ", " << valid_counts[i][9] / total << "\n";
+	}
+	double t0_total = double(t0_total_count);
+	std::cout << "---------- T0" << " ----------\n"
+		<< "Total " << t0_total_count << "\n"
+		<< "Only 2 " << t0_only_two_count << ", "
+		<< t0_only_two_count / t0_total << "\n"
+		<< "Include adjacent-adjacent " << t0_both_adjdacent_count << ", "
+		<< t0_both_adjdacent_count / t0_total << "\n"
+		<< "Include 1-2 " << t0_one_two_count << ", "
+		<< t0_one_two_count / t0_total << "\n"
+		<< "Include 1-2a " << t0_one_adjacent_count << ", "
+		<< t0_one_adjacent_count / t0_total << "\n"
+		<< "Include 1-1 " << t0_both_one_count << ", "
+		<< t0_both_one_count / t0_total << "\n";
 
 	return 0;
 }

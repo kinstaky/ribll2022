@@ -48,12 +48,22 @@ double SimpleFit(const double *x, double *y, double &k, double &b) {
 	return chi2;
 }
 
-int main() {
+int main(int argc, char **argv) {
+	int run = 0;
+	if (argc > 1) {
+		run = atoi(argv[1]);
+	}
+	if (run < 0 || run > 1) {
+		std::cout << "Usage: " << argv[0] << "[run]\n"
+			<< "  run        run number, default is 0\n";
+	}
+
 	// generate data file name
 	TString generate_file_name = TString::Format(
-		"%s%sgenerate.root",
+		"%s%sgenerate-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// generate data file
 	TFile generate_file(generate_file_name, "read");

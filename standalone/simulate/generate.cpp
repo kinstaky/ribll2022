@@ -200,7 +200,17 @@ void Rotate(
 }
 
 
-int main() {
+int main(int argc, char **argv) {
+	int run = 0;
+	if (argc > 1) {
+		run = atoi(argv[1]);
+	}
+	if (run < 0 || run > 1) {
+		std::cout << "Usage: " << argv[0] << "[run]\n"
+			<< "  run        run number, default is 0\n";
+	}
+
+
 	TargetEnergyCalculator c14_target("14C", "CD2", 9.53);
 	TargetEnergyCalculator be10_target("10Be", "CD2", 9.53);
 	TargetEnergyCalculator he4_target("4He", "CD2", 9.53);
@@ -208,9 +218,10 @@ int main() {
 
 	// generate file name
 	TString generate_file_name = TString::Format(
-		"%s%sgenerate.root",
+		"%s%sgenerate-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// generate file
 	TFile generate_file(generate_file_name, "recreate");
@@ -300,15 +311,30 @@ int main() {
 		// total energy of beam particle
 		double beam_energy = beam_mass + event.beam_kinetic;
 		// get beam excited energy
-		if (entry >= entries / 3 * 2) {
-			event.beam_excited_energy =
-				12.0125 + 6.179 + generator.Rndm() * (40.0 - 12.0125 - 6.179) + 0.1;
-		} else if (entry >= entries / 3) {
-			event.beam_excited_energy =
-				12.0125 + 3.368 + generator.Rndm() * (40.0 - 12.0125 - 3.368) + 0.1;
-		} else {
-			event.beam_excited_energy =
-				12.0125 + generator.Rndm() * (20.0 - 12.0125) + 0.1;
+		if (run == 0) {
+			if (entry < entries / 3) {
+				event.beam_excited_energy =
+					12.0125 + generator.Rndm() * (20.0 - 12.0125) + 0.1;
+			} else if (entry < entries / 3 * 2) {
+				event.beam_excited_energy =
+					12.0125 + 3.368
+					+ generator.Rndm() * (40.0 - 12.0125 - 3.368) + 0.1;
+			} else {
+				event.beam_excited_energy =
+					12.0125 + 6.179
+					+ generator.Rndm() * (40.0 - 12.0125 - 6.179) + 0.1;
+			}
+		} else if (run == 1) {
+			if (entry < entries / 3) {
+				event.beam_excited_energy =
+					12.02 + 0.2 * ((entry / 10'000) % 100);
+			} else if (entry < entries / 3 * 2) {
+				event.beam_excited_energy =
+					15.39 + 0.2 * ((entry / 10'000) % 100);
+			} else {
+				event.beam_excited_energy =
+					18.2 + 0.2 * ((entry / 10'000) % 100);
+			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;
 
@@ -360,7 +386,10 @@ int main() {
 			recoil_kinetic_in_target
 		);
 
-		if (event.recoil_kinetic < 0) continue;
+		if (event.recoil_kinetic < 0) {
+			--entry;
+			continue;
+		}
 
 		event.rz = 135.0;
 		event.rr = event.rz * tan(event.recoil_theta);
