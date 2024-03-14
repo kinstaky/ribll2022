@@ -39,9 +39,10 @@ public:
 
 	/// @brief check the sum of time and get the time difference
 	/// @param double ignore
+	/// @param int ignore
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double) override;
+	virtual int Merge(double, int) override;
 
 
 	/// @brief normalize XPPAC and VPPAC

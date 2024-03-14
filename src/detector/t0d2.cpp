@@ -310,8 +310,13 @@ int T0d2::Normalize(unsigned int, int iteration) {
 }
 
 
-int T0d2::Merge(double energy_diff) {
-		// input file name
+int T0d2::Merge(double energy_diff, int supplementary) {
+	std::string tag = tag_;
+	if (supplementary == 1) {
+		tag = tag.empty() ? "s1" : tag+"-s1";
+	}
+
+	// input file name
 	TString input_file_name;
 	input_file_name.Form(
 		"%s%s%s-result-%s%04u.root",
@@ -362,7 +367,7 @@ int T0d2::Merge(double energy_diff) {
 		kGenerateDataPath,
 		kMergeDir,
 		name_.c_str(),
-		tag_.empty() ? "" : (tag_+"-").c_str(),
+		tag.empty() ? "" : (tag+"-").c_str(),
 		run_
 	);
 	// output file
@@ -376,7 +381,7 @@ int T0d2::Merge(double energy_diff) {
 	merge_event.SetupOutput(&opt);
 	opt.Branch("hole", hole, "hole[hit]/O");
 
-	MergeStatistics statistics(run_, name_, tag_);
+	MergeStatistics statistics(run_, name_, tag);
 	long long four_hit = 0;
 
 	// total number of entries
@@ -396,9 +401,17 @@ int T0d2::Merge(double energy_diff) {
 
 		ipt->GetEntry(entry);
 
-		int merge_num = FillMergeEvent2(
-			fundamental_event, energy_diff, merge_event
-		);
+		int merge_num = 0;
+		if (supplementary == 0) {
+			merge_num = FillMergeEvent(
+				fundamental_event, energy_diff, merge_event
+			);
+		} else if (supplementary == 1) {
+			merge_num = FillMergeEventSupplementary(
+				fundamental_event, energy_diff, merge_event
+			);
+
+		}
 
 		if (fhit > 0 && bhit > 0) ++statistics.total;
 		if (merge_num == 1) ++statistics.one_hit;

@@ -39,7 +39,7 @@ ROOT::Math::XYZVector Adssd::CalculatePosition(
 }
 
 
-int Adssd::Merge(double) {
+int Adssd::Merge(double, int) {
 	// input file name
 	TString fundamental_file_name;
 	fundamental_file_name.Form(

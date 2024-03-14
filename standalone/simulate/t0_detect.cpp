@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
 			for (int i = 0; i < 3; ++i) {
 				if (dssd_flag[i] == 1) {
 					short_flag[i] = 1;
-				} else if (dssd_flag[i] == 5) {
+				} else if (dssd_flag[i] == 6) {
 					short_flag[i] = 3;
 				} else if (dssd_flag[i] == 4 || dssd_flag[i] == 8) {
 					short_flag[i] = 4;

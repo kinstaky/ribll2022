@@ -495,6 +495,14 @@ public:
 };
 
 
+/// @brief build DSSD-DSSD slice, e.g. T0D1-D2, T0D2-D3
+/// @param[in] layer1 first layer events
+/// @param[in] layer2 second layer events
+/// @param[in] cuts PID cut for particle stopped in second layer
+/// @param[in] tail_cuts PID cut for particle pass the second layer
+/// @param[in] offset durable position offset for two layers
+/// @param[out] slices built slices
+///
 void BuildDssdSlice(
 	const DssdMergeEvent &layer1,
 	const DssdMergeEvent &layer2,
@@ -539,6 +547,13 @@ void BuildDssdSlice(
 }
 
 
+/// @brief build DSSD-SSD slice, e.g. T0D3-S1
+/// @param[in] layer1 first layer events
+/// @param[in] layer2 second layer events
+/// @param[in] cuts PID cut for particle stopped in second layer
+/// @param[in] tail_cuts PID cut for particle pass the second layer
+/// @param[out] slices built slices
+///
 void BuildDssdSsdSlice(
 	const DssdMergeEvent &layer1,
 	const SsdEvent &layer2,
@@ -574,6 +589,13 @@ void BuildDssdSsdSlice(
 }
 
 
+/// @brief build SSD-SSD slice, e.g. T0S1-S2, T0S2-S3
+/// @param[in] layer1 first layer events
+/// @param[in] layer2 second layer events
+/// @param[in] cuts PID cut for particle stopped in second layer
+/// @param[in] tail_cuts PID cut for particle pass the second layer
+/// @param[out] slices built slices
+///
 void BuildSsdSlice(
 	const SsdEvent &layer1,
 	const SsdEvent &layer2,
@@ -602,6 +624,25 @@ void BuildSsdSlice(
 }
 
 
+/// @brief build slices for all layers
+/// @param[in] d1 T0D1 merged event
+/// @param[in] d2 T0D2 merged event
+/// @param[in] d3 T0D3 merged event
+/// @param[in] s1 T0S1 event
+/// @param[in] s2 T0S2 event
+/// @param[in] s3 T0S3 event
+/// @param[in] d1d2_cuts PID cut of T0D1-D2, stopped in D2
+/// @param[in] d1d2_tail_cuts PID cut of T0D1-D2, pass D2
+/// @param[in] d2d3_cuts PID cut of T0D2-D3, stopped in D3
+/// @param[in] d2d3_tail_cuts PID cut of T0D2-D3, pass D3
+/// @param[in] d3s1_cuts PID cut of T0D3-S1, stopped in S1
+/// @param[in] d3s1_tail_cuts PID cut of T0D3-S1, pass S1
+/// @param[in] s1s2_cuts PID cut of T0S1-S2, stopped in S2
+/// @param[in] s1s2_tail_cuts PID cut of T0S1-S2, pass S2
+/// @param[in] s2s3_cuts PID cut of T0S2-S3, stopped in S3
+/// @param[in] s2s3_tail_cuts PID cut of T0S2-S3, pass S3
+/// @param[out] slices built slices
+///
 void BuildSlice(
 	const DssdMergeEvent &d1,
 	const DssdMergeEvent &d2,
@@ -619,17 +660,13 @@ void BuildSlice(
 	const std::vector<ParticleCut> &s1s2_tail_cuts,
 	const std::vector<ParticleCut> &s2s3_cuts,
 	const std::vector<ParticleCut> &s2s3_tail_cuts,
-	std::vector<Slice> &d1d2_slices,
-	std::vector<Slice> &d2d3_slices,
-	std::vector<Slice> &d3s1_slices,
-	std::vector<Slice> &s1s2_slice,
-	std::vector<Slice> &s2s3_slice
+	std::vector<Slice> *slices
 ) {
-	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 4.0, d1d2_slices);
-	BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, d2d3_slices);
-	BuildDssdSsdSlice(d3, s1, d3s1_cuts, d3s1_tail_cuts, d3s1_slices);
-	BuildSsdSlice(s1, s2, s1s2_cuts, s1s2_tail_cuts, s1s2_slice);
-	BuildSsdSlice(s2, s3, s2s3_cuts, s2s3_tail_cuts, s2s3_slice);
+	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 4.0, slices[0]);
+	BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, slices[1]);
+	BuildDssdSsdSlice(d3, s1, d3s1_cuts, d3s1_tail_cuts, slices[2]);
+	BuildSsdSlice(s1, s2, s1s2_cuts, s1s2_tail_cuts, slices[3]);
+	BuildSsdSlice(s2, s3, s2s3_cuts, s2s3_tail_cuts, slices[4]);
 }
 
 
@@ -650,6 +687,10 @@ struct SliceNode {
 };
 
 
+/// @brief convert slices into tree structue
+/// @param[in] slices slice nodes in two dimensional array
+/// @param[in] nodes slice nodes store in vector, but connected by pointer like tree
+///
 void BuildSliceTree(
 	std::vector<Slice> *slices,
 	std::vector<SliceNode> &nodes
@@ -740,14 +781,21 @@ struct LeaveGroup {
 };
 
 
+/// @brief check whether flag is contraditory to the existing group
+/// @param[in] leaves all leave nodes
+/// @param[in] groups all current groups
+/// @param[in] group_index index of group to check
+/// @param[in] leave_flag flag of leaf to checks
+/// @returns true if flag is valid, false if it's contraditory
+///
 bool CheckSliceFlag(
 	const std::vector<SliceNode> &leaves,
 	const std::vector<LeaveGroup> &groups,
 	int group_index,
-	unsigned int leave_flag
+	unsigned int leaf_flag
 ) {
 	for (int i = group_index; i != 0; i = groups[i].prev) {
-		if ((leaves[groups[i].index].flag & leave_flag) != 0) {
+		if ((leaves[groups[i].index].flag & leaf_flag) != 0) {
 			return false;
 		}
 	}
@@ -755,9 +803,17 @@ bool CheckSliceFlag(
 }
 
 
+/// @brief Choose a group of leaves(particles)
+/// @param[in] nodes all slices
+/// @param[out] group selected group
+/// @param[out] behe_found found 10Be and 4He in this group
+/// @param[out] used_slices number of slices used in this group
+///
 void PickSliceGroup(
 	const std::vector<SliceNode> &nodes,
-	std::vector<SliceNode> &group
+	std::vector<SliceNode> &group,
+	bool &behe_found,
+	int &used_slices
 ) {
 	// leaves
 	std::vector<SliceNode> leaves;
@@ -809,8 +865,8 @@ void PickSliceGroup(
 	// 	}
 	// }
 
-	bool behe_found = false;
-	int max_slice = 0;
+	behe_found = false;
+	used_slices = 0;
 	int found_index = 0;
 	for (int i = 1; i < int(groups.size()); ++i) {
 		int behe_flag = 0;
@@ -828,20 +884,20 @@ void PickSliceGroup(
 		if (behe_flag == 3) {
 			if (!behe_found) {
 				behe_found = true;
-				max_slice = slice_num;
+				used_slices = slice_num;
 				found_index = i;
-			} else if (slice_num > max_slice) {
-				max_slice = slice_num;
+			} else if (slice_num > used_slices) {
+				used_slices = slice_num;
 				found_index = i;
 			}
 		} else {
-			if (!behe_found && slice_num > max_slice) {
-				max_slice = slice_num;
+			if (!behe_found && slice_num > used_slices) {
+				used_slices = slice_num;
 				found_index = i;
 			}
 		}
 // std::cout << "found index " << found_index << ", behe " << (behe_found ? "Y" : "N")
-// 	<< ", max slice " << max_slice << "\n";
+// 	<< ", used slice " << used_slices << "\n";
 	}
 
 	group.clear();
@@ -851,7 +907,7 @@ void PickSliceGroup(
 }
 
 
-int T0::SliceTrack() {
+int T0::SliceTrack(int supplementary) {
 	// T0D1 merge file name
 	TString d1_file_name;
 	d1_file_name.Form(
@@ -920,6 +976,7 @@ int T0::SliceTrack() {
 		run_
 	);
 	ipt->AddFriend("s3=tree", s3_file_name);
+
 	// d1 event
 	DssdMergeEvent d1_event;
 	d1_event.SetupInput(ipt);
@@ -940,6 +997,41 @@ int T0::SliceTrack() {
 	// s3 event
 	SsdEvent s3_event;
 	s3_event.SetupInput(ipt, "s3.");
+
+	// supplementary T0D1 event
+	DssdMergeEvent d1_suppl_event;
+	// supplementary T0D2 event
+	DssdMergeEvent d2_suppl_event;
+	if (supplementary == 1) {
+		// supplementary tag
+		std::string suppl_tag = tag_.empty() ? "s1-" : tag_+"-s1-";
+
+		// supplementary T0D1 file name
+		TString d1_suppl_file_name = TString::Format(
+			"%s%st0d1-merge-%s%04u.root",
+			kGenerateDataPath,
+			kMergeDir,
+			suppl_tag.c_str(),
+			run_
+		);
+		// add friend
+		ipt->AddFriend("d1s1=tree", d1_suppl_file_name);
+		// setup input branches
+		d1_suppl_event.SetupInput(ipt, "d1s1.");
+
+		// supplementary T0D2 file name
+		TString d2_suppl_file_name = TString::Format(
+			"%s%st0d2-merge-%s%04u.root",
+			kGenerateDataPath,
+			kMergeDir,
+			suppl_tag.c_str(),
+			run_
+		);
+		// add friend
+		ipt->AddFriend("d2s1=tree", d2_suppl_file_name);
+		// setup input branches
+		d2_suppl_event.SetupInput(ipt, "d2s1.");
+	}
 
 	// T0 telescope file name
 	TString t0_file_name;
@@ -1035,10 +1127,15 @@ int T0::SliceTrack() {
 	s2s3_tails.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
 	s2s3_tails.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
 
+
+	long long normal_count = 0;
+	long long d1_suppl_count = 0;
+	long long d2_suppl_count = 0;
+	long long d1d2_suppl_count = 0;
+
 	// long long test_entries[] = {
 	// 	276, 360, 678, 815, 931, 989
 	// };
-
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1058,12 +1155,27 @@ int T0::SliceTrack() {
 		ipt->GetEntry(entry);
 // std::cout << "============= entry " << entry << " ==============\n";
 
-		// slices
+
+		// picked slices
 		std::vector<Slice> slices[5];
-		// nodes
+		// picked nodes
 		std::vector<SliceNode> nodes;
-		// result node group
+		// picked nodess group
 		std::vector<SliceNode> group;
+		// used events
+		DssdMergeEvent *used_d1_event = &d1_event;
+		DssdMergeEvent *used_d2_event = &d2_event;
+
+		// slices without supplementary
+		std::vector<Slice> normal_slices[5];
+		// nodes without supplementary
+		std::vector<SliceNode> normal_nodes;
+		// temporary picked nodes group
+		std::vector<SliceNode> normal_group;
+		// found 10Be and 4He in normal group ?
+		bool normal_found_behe;
+		// number of used slices in normal group
+		int normal_used_slices;
 		// build slice from DSSD and SSD events
 		BuildSlice(
 			d1_event, d2_event, d3_event,
@@ -1073,10 +1185,195 @@ int T0::SliceTrack() {
 			d3s1_cuts, d3s1_tails,
 			s1s2_cuts, s1s2_tails,
 			s2s3_cuts, s2s3_tails,
-			slices[0], slices[1], slices[2], slices[3], slices[4]
+			normal_slices
 		);
-		BuildSliceTree(slices, nodes);
-		PickSliceGroup(nodes, group);
+		// convert to tree structure
+		BuildSliceTree(normal_slices, normal_nodes);
+		// pick one group
+		PickSliceGroup(
+			normal_nodes, normal_group,
+			normal_found_behe, normal_used_slices
+		);
+
+		if (supplementary == 0) {
+			for (int i = 0; i < 5; ++i) slices[i] = normal_slices[i];
+			nodes = normal_nodes;
+			group = normal_group;
+			used_d1_event = &d1_event;
+			used_d2_event = &d2_event;
+		} else if (supplementary == 1) {
+			// // slices with d1 supplementary events
+			// std::vector<Slice> d1_suppl_slices[5];
+			// // nodes with d1 supplementary events
+			// std::vector<SliceNode> d1_suppl_nodes;
+			// // picked nodes group with d1 supplementary events
+			// std::vector<SliceNode> d1_suppl_group;
+			// // found 10Be and 4He in d1 supplementary group ?
+			// bool d1_suppl_found_behe;
+			// // number of used slices in d1 supplementary group
+			// int d1_suppl_used_slices;
+			// // build slices with d1 supplementary events
+			// BuildSlice(
+			// 	d1_suppl_event, d2_event, d3_event,
+			// 	s1_event, s2_event, s3_event,
+			// 	d1d2_cuts, d1d2_tails,
+			// 	d2d3_cuts, d2d3_tails,
+			// 	d3s1_cuts, d3s1_tails,
+			// 	s1s2_cuts, s1s2_tails,
+			// 	s2s3_cuts, s2s3_tails,
+			// 	d1_suppl_slices
+			// );
+			// // convert to tree structure
+			// BuildSliceTree(d1_suppl_slices, d1_suppl_nodes);
+			// // pick one group
+			// PickSliceGroup(
+			// 	d1_suppl_nodes, d1_suppl_group,
+			// 	d1_suppl_found_behe, d1_suppl_used_slices
+			// );
+
+			// // slices with d2 supplementary events
+			// std::vector<Slice> d2_suppl_slices[5];
+			// // nodes with d2 supplementary events
+			// std::vector<SliceNode> d2_suppl_nodes;
+			// // picked nodes group with d2 supplementary events
+			// std::vector<SliceNode> d2_suppl_group;
+			// // found 10Be and 4He in d2 supplementary group ?
+			// bool d2_suppl_found_behe;
+			// // number of used slices in d2 supplementary group
+			// int d2_suppl_used_slices;
+			// // build slices with d2 supplementary events
+			// BuildSlice(
+			// 	d1_event, d2_suppl_event, d3_event,
+			// 	s1_event, s2_event, s3_event,
+			// 	d1d2_cuts, d1d2_tails,
+			// 	d2d3_cuts, d2d3_tails,
+			// 	d3s1_cuts, d3s1_tails,
+			// 	s1s2_cuts, s1s2_tails,
+			// 	s2s3_cuts, s2s3_tails,
+			// 	d2_suppl_slices
+			// );
+			// // convert to tree structure
+			// BuildSliceTree(d2_suppl_slices, d2_suppl_nodes);
+			// // pick one group
+			// PickSliceGroup(
+			// 	d2_suppl_nodes, d2_suppl_group,
+			// 	d2_suppl_found_behe, d2_suppl_used_slices
+			// );
+
+			// slices with d1 and d2 supplementary events
+			std::vector<Slice> d1d2_suppl_slices[5];
+			// nodes with d1 and d2 supplementary events
+			std::vector<SliceNode> d1d2_suppl_nodes;
+			// picked nodes group with d1 and d2 supplementary events
+			std::vector<SliceNode> d1d2_suppl_group;
+			// found 10Be and 4He in d1 and d2 supplementary group ?
+			bool d1d2_suppl_found_behe;
+			// number of used slices in and d2 supplementary group
+			int d1d2_suppl_used_slices;
+			// build slices with d1 and d2 supplementary events
+			BuildSlice(
+				d1_suppl_event, d2_suppl_event, d3_event,
+				s1_event, s2_event, s3_event,
+				d1d2_cuts, d1d2_tails,
+				d2d3_cuts, d2d3_tails,
+				d3s1_cuts, d3s1_tails,
+				s1s2_cuts, s1s2_tails,
+				s2s3_cuts, s2s3_tails,
+				d1d2_suppl_slices
+			);
+			// convert to tree structure
+			BuildSliceTree(d1d2_suppl_slices, d1d2_suppl_nodes);
+			// pick one group
+			PickSliceGroup(
+				d1d2_suppl_nodes, d1d2_suppl_group,
+				d1d2_suppl_found_behe, d1d2_suppl_used_slices
+			);
+
+			// evaluate different group and pick the bset one
+			// selected flag, 0-normal, 1-d1_suppl, 2-d2_suppl, 3-d1d2_suppl
+			int selected = 0;
+
+			if (normal_found_behe) {
+				selected = 0;
+				++normal_count;
+			// } else if (d2_suppl_found_behe) {
+			// 	selected = 2;
+			// 	++d2_suppl_count;
+			} else if (d1d2_suppl_found_behe) {
+				selected = 3;
+				++d1d2_suppl_count;
+			// } else if (d1_suppl_found_behe) {
+			// 	selected = 1;
+			// 	++d1_suppl_count;
+			} else {
+				size_t max_count = normal_group.size();
+				int max_slices = normal_used_slices;
+
+				// if (
+				// 	d2_suppl_group.size() > max_count
+				// 	|| (
+				// 		d2_suppl_group.size() == max_count
+				// 		&& d2_suppl_used_slices > max_slices
+				// 	)
+				// ) {
+				// 	selected = 2;
+				// 	max_count = d2_suppl_group.size();
+				// 	max_slices = d2_suppl_used_slices;
+				// }
+
+				if (
+					d1d2_suppl_group.size() > max_count
+					|| (
+						d1d2_suppl_group.size() == max_count
+						&& d1d2_suppl_used_slices > max_slices
+					)
+				) {
+					selected = 3;
+					max_count = d1d2_suppl_group.size();
+					max_slices = d1d2_suppl_used_slices;
+				}
+
+				// if (
+				// 	d1_suppl_group.size() > max_count
+				// 	|| (
+				// 		d1_suppl_group.size() == max_count
+				// 		&& d1_suppl_used_slices > max_slices
+				// 	)
+				// ) {
+				// 	selected = 1;
+				// 	max_count = d1_suppl_group.size();
+				// 	max_slices = d1_suppl_used_slices;
+				// }
+			}
+			if (selected == 0) {
+				for (int i = 0; i < 5; ++i) slices[i] = normal_slices[i];
+				nodes = normal_nodes;
+				group = normal_group;
+				used_d1_event = &d1_event;
+				used_d2_event = &d2_event;
+				++normal_count;
+			// } else if (selected == 1) {
+			// 	for (int i = 0; i < 5; ++i) slices[i] = d1_suppl_slices[i];
+			// 	nodes = d1_suppl_nodes;
+			// 	group = d1_suppl_group;
+			// 	used_d1_event = &d1_suppl_event;
+			// 	used_d2_event = &d2_event;
+			// 	++d1_suppl_count;
+			// } else if (selected == 2) {
+			// 	for (int i = 0; i < 5; ++i) slices[i] = d2_suppl_slices[i];
+			// 	nodes = d2_suppl_nodes;
+			// 	group = d2_suppl_group;
+			// 	used_d1_event = &d1_event;
+			// 	used_d2_event = &d2_suppl_event;
+			// 	++d2_suppl_count;
+			} else {
+				for (int i = 0; i < 5; ++i) slices[i] = d1d2_suppl_slices[i];
+				nodes = d1d2_suppl_nodes;
+				group = d1d2_suppl_group;
+				used_d1_event = &d1_suppl_event;
+				used_d2_event = &d2_suppl_event;
+			}
+		}
 
 
 // std::cout << "-------------------------\nEntry: " << entry << "\n";
@@ -1143,34 +1440,34 @@ int T0::SliceTrack() {
 				if (layer == 0) {
 					// fill T0D1 information
 					int d1_index = slice->index[0];
-					if (d1_index >= d1_event.hit) {
+					if (d1_index >= used_d1_event->hit) {
 						std::cerr << "Error: D1 index over hit in run "
 							<< run_ << ", entry "
 							<< entry << ", index " << d1_index
-							<< ", hit " << d1_event.hit << " .\n";
+							<< ", hit " << used_d1_event->hit << "\n";
 						return -1;
 					}
-					t0_event.energy[i][0] = d1_event.energy[d1_index];
-					t0_event.time[i][0] = d1_event.time[d1_index];
-					t0_event.x[i][0] = d1_event.x[d1_index];
-					t0_event.y[i][0] = d1_event.y[d1_index];
-					t0_event.z[i][0] = d1_event.z[d1_index];
-					t0_event.dssd_flag[i][0] = d1_event.flag[d1_index];
+					t0_event.energy[i][0] = used_d1_event->energy[d1_index];
+					t0_event.time[i][0] = used_d1_event->time[d1_index];
+					t0_event.x[i][0] = used_d1_event->x[d1_index];
+					t0_event.y[i][0] = used_d1_event->y[d1_index];
+					t0_event.z[i][0] = used_d1_event->z[d1_index];
+					t0_event.dssd_flag[i][0] = used_d1_event->flag[d1_index];
 					// fill T0D2 information
 					int d2_index = slice->index[1];
-					if (d2_index >= d2_event.hit) {
+					if (d2_index >= used_d2_event->hit) {
 						std::cerr << "Error: D2 index over hit in run "
 							<< run_ << ", entry "
 							<< entry << ", index " << d2_index
-							<< ", hit " << d2_event.hit << " .\n";
+							<< ", hit " << used_d2_event->hit << "\n";
 						return -1;
 					}
-					t0_event.energy[i][1] = d2_event.energy[d2_index];
-					t0_event.time[i][1] = d2_event.time[d2_index];
-					t0_event.x[i][1] = d2_event.x[d2_index];
-					t0_event.y[i][1] = d2_event.y[d2_index];
-					t0_event.z[i][1] = d2_event.z[d2_index];
-					t0_event.dssd_flag[i][1] = d2_event.flag[d2_index];
+					t0_event.energy[i][1] = used_d2_event->energy[d2_index];
+					t0_event.time[i][1] = used_d2_event->time[d2_index];
+					t0_event.x[i][1] = used_d2_event->x[d2_index];
+					t0_event.y[i][1] = used_d2_event->y[d2_index];
+					t0_event.z[i][1] = used_d2_event->z[d2_index];
+					t0_event.dssd_flag[i][1] = used_d2_event->flag[d2_index];
 					t0_event.hole[i] = hole[d2_index];
 				} else if (layer == 1) {
 					// fill T0D3 information
@@ -1215,6 +1512,13 @@ int T0::SliceTrack() {
 	// close files
 	t0_file.Close();
 	d1_file.Close();
+
+	if (supplementary == 1) {
+		std::cout << "Normal " << normal_count << "\n"
+			<< "D1 supplementary " << d1_suppl_count << "\n"
+			<< "D2 supplementary " << d2_suppl_count << "\n"
+			<< "D1D2 supplementary " << d1d2_suppl_count << "\n";
+	}
 
 	return 0;
 }

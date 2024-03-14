@@ -65,6 +65,10 @@ target_link_libraries(track PRIVATE ppac telescopes)
 add_executable(merge_track merge_and_track.cpp)
 target_link_libraries(merge_track PRIVATE t0)
 
+# merge binding events in T0D1 and T0D2
+add_executable(merge_bind merge_bind.cpp)
+target_link_libraries(merge_bind PRIVATE event dssd)
+
 # analyze trace
 add_executable(analyze_trace analyze_trace.cpp)
 target_link_libraries(analyze_trace PRIVATE detectors telescopes)

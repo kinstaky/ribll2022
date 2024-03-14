@@ -25,7 +25,7 @@ int Telescope::Track() {
 }
 
 
-int Telescope::SliceTrack() {
+int Telescope::SliceTrack(int) {
 	std::cerr << "Error: Telescope::SliceTrack not implemented yet.\n";
 	return -1;
 }

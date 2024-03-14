@@ -25,9 +25,10 @@ public:
 
 
 	/// @brief track in slice mode
+	/// @param[in] supplementary use supplementary event? default is 0 (not use)
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int SliceTrack();
+	virtual int SliceTrack(int supplementary = 0);
 
 
 	/// @brief identify particle in telescope

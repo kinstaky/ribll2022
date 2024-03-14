@@ -412,7 +412,7 @@ int Ppac::GetVmeSumRange(
 }
 
 
-int Ppac::Merge(double) {
+int Ppac::Merge(double, int) {
 	bool vppac = name_[0] == 'v';
 	// input file name
 	TString input_file_name;

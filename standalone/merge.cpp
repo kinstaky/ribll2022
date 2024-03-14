@@ -14,7 +14,8 @@ void PrintUsage(const char *name) {
 		"  detector          Set detector name.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"
-		"  -t tag            Set trigger tag.\n";
+		"  -t tag            Set trigger tag.\n"
+		"  -b                Merge bind events.\n";
 }
 
 /// @brief parse arguments
@@ -22,6 +23,7 @@ void PrintUsage(const char *name) {
 /// @param[in] argv arguments
 /// @param[out] help need help
 /// @param[out] trigger_tag trigger tag get from arguments
+/// @param[out] bind merge binding events flag
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -30,7 +32,8 @@ int ParseArguments(
 	int argc,
 	char **argv,
 	bool &help,
-	std::string &trigger_tag
+	std::string &trigger_tag,
+	bool &bind
 ) {
 	// initialize
 	help = false;
@@ -52,6 +55,9 @@ int ParseArguments(
 			// miss arguemnt behind option
 			if (result == argc) return -argc;
 			trigger_tag = argv[result];
+		} else if (argv[result][1] == 'b') {
+			// option of binding events
+			bind = true;
 		} else {
 			return -result;
 		}
@@ -69,8 +75,10 @@ int main(int argc, char **argv) {
 	bool help = false;
 	// trigger tag
 	std::string tag;
+	// binding events flag
+	bool bind = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, tag);
+	int pos_start = ParseArguments(argc, argv, help, tag, bind);
 
 	// need help
 	if (help) {
@@ -95,6 +103,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
+	int supplementary = bind ? 1 : 0;
 
 	int run = atoi(argv[pos_start]);
 	double diff = atof(argv[pos_start+1]);
@@ -108,9 +117,8 @@ int main(int argc, char **argv) {
 		std::shared_ptr<Detector> detector = CreateDetector(name, run, tag);
 		if (!detector) continue;
 
-		if (detector->Merge(diff)) {
-			std::cerr << "Error: Merge "
-				<< name << " failed.\n";
+		if (detector->Merge(diff, supplementary)) {
+			std::cerr << "Error: Merge " << name << " failed.\n";
 			continue;
 		}
 	}

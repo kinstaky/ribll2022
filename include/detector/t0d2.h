@@ -38,9 +38,11 @@ public:
 
 	/// @brief merge adjacent event in the same side and merge events of two sides
 	/// @param[in] energy_diff tolerant energy relateive difference
+	/// @param[in] supplementary supplementary merge event,
+	/// 	default is 0, without supplementary
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int Merge(double energy_diff);
+	virtual int Merge(double energy_diff, int supplementary = 0);
 
 
 	//-------------------------------------------------------------------------

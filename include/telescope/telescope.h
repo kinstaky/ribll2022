@@ -53,9 +53,10 @@ public:
 
 
 	/// @brief slice track
+	/// @param[in] xxx ignore
 	/// @returns 0 if success, -1 otherwise
 	///
-	virtual int SliceTrack();
+	virtual int SliceTrack(int);
 
 
 	/// @brief identify particle in telescope

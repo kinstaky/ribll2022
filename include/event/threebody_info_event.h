@@ -87,6 +87,11 @@ public:
 	// Q from XIA PPAC reaction point or VME PPAC reaction point
 	double q, vq;
 	// other information
+	// bind flag, show bind strips side in bits
+	// bit 1-D1F, bit 2-D1B, bit 3-D2F, bit 4-D2B
+	// e.g. 0x9 means T0D1 is F1B2 and T0D2 is F2B1, 0x0 means no bind strips
+	int bind;
+	// T0D2 hole flag
 	bool hole[2];
 	// run
 	int run;

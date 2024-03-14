@@ -832,6 +832,41 @@ int main(int argc, char **argv) {
 			event.q = ThreeBodyProcess(event);
 			event.vq = ThreeBodyProcess(event, true);
 
+			// bind strips information
+			event.bind = 0;
+			// check T0D1 front (Y) side
+			if (
+				event.be_y_hit[0] == 1
+				&& event.he_y_hit[0] == 1
+				&& event.be_y_strip[0][0] == event.he_y_strip[0][0]
+			) {
+				event.bind |= 0x1;
+			}
+			// check T0D1 back (X) side
+			if (
+				event.be_x_hit[0] == 1
+				&& event.he_x_hit[0] == 1
+				&& event.be_x_strip[0][0] == event.he_x_strip[0][0]
+			) {
+				event.bind |= 0x2;
+			}
+			// check T0D2 front (X) side
+			if (
+				event.be_x_hit[1] == 1
+				&& event.he_x_hit[1] == 1
+				&& event.be_x_strip[1][0] == event.he_x_strip[1][0]
+			) {
+				event.bind |= 0x4;
+			}
+			// check T0D2 back (Y) side
+			if (
+				event.be_y_hit[1] == 1
+				&& event.he_y_hit[1] == 1
+				&& event.be_y_strip[1][0] == event.he_y_strip[1][0]
+			) {
+				event.bind |= 0x8;
+			}
+
 			// hole
 			event.hole[0] = t0.hole[be10_indexes[i]];
 			event.hole[1] = t0.hole[he4_indexes[i]];

@@ -11,6 +11,7 @@
 
 #include "include/event/dssd_event.h"
 #include "include/event/filter_event.h"
+#include "include/event/particle_event.h"
 #include "include/statistics/normalize_statistics.h"
 
 
@@ -614,37 +615,6 @@ int Dssd::NormalizeResult(int iteration) {
 		"hrdefe", "(fe-be)/(fe+be):fe",
 		1000, 0, 60000, 1000, 0,  1
 	);
-	// // 2D hisogram fe VS be with filter
-	// TH2F fe_be_f("hfbef", "fe:be", 1000, 0, 60000, 1000, 0, 60000);
-	// // 2D histogram fe-be VS fs with filter
-	// TH2F de_fs_f(
-	// 	"hefsf", "fe-be:fs",
-	// 	FrontStrip(), 0, FrontStrip(), 1000, 0, diff_e_range
-	// );
-	// // 2D histogram fe-be VS bs with filter
-	// TH2F de_bs_f(
-	// 	"hebsf", "fe-be:bs",
-	// 	BackStrip(), 0, BackStrip(), 1000, -diff_e_range, diff_e_range
-	// );
-	// // 2D histogram fe-be VS fe with filter
-	// TH2F de_fe_f(
-	// 	"hefef", "fe-be:fe",
-	// 	1000, 0, 60000, 1000, 0, diff_e_range
-	// );
-	// // 2D histogram fe-be VS be with filter
-	// TH2F de_be_f(
-	// 	"hebef", "fe-be:be",
-	// 	1000, 0, 60000, 1000, -diff_e_range, diff_e_range
-	// );
-	// // 1D histogram fe-be with filter
-	// TH1F de_f("hdef", "fe-be", 1000, -diff_e_range, diff_e_range);
-	// // 1D histogram abs(fe-be)/(fe+be) with filter
-	// TH1F rde_f("hrdef", "(fe-be)/(fe+be)", 1000, -1, 1);
-	// // 2D histogram (fe-be)/(fe+be) VS fe with filter
-	// TH2F rde_fe_f(
-	// 	"hrdefef", "(fe-be)/(fe+be):fe",
-	// 	1000, 0, 60000, 1000, 0,  1
-	// );
 	// output tree
 	TTree opt("tree", "normalized energy tree");
 	// setup branches
@@ -757,14 +727,6 @@ int Dssd::NormalizeResult(int iteration) {
 	de.Write();
 	rde.Write();
 	rde_fe.Write();
-	// fe_be_f.Write();
-	// de_fs_f.Write();
-	// de_bs_f.Write();
-	// de_fe_f.Write();
-	// de_be_f.Write();
-	// de_f.Write();
-	// rde_f.Write();
-	// rde_fe_f.Write();
 	// write output tree
 	opt.Write();
 	// close files
@@ -952,556 +914,6 @@ int Dssd::CutBeamThreshold() {
 	return -1;
 }
 
-/// @brief merge front hit 1 and back hit 1 events
-/// @param[in] fundamental input fundamental event
-/// @param[in] merge output merged event
-/// @param[in] ref_time input reference time
-/// @param[in] diff_tolerance energy difference tolerance
-/// @param[in] dssd pointer to DSSD detector object
-/// @param[in] hde histogram to record energy difference
-/// @param[in] statistics merge case statistics
-///
-void Merge11Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that only one particle
-	double diff = fe[0] - be[0];
-	hde[0].Fill(diff);
-	++statistics[0].total;
-
-	// fill events
-	if (fabs(diff) < diff_tolerance) {
-		merge.hit = 1;
-		merge.case_tag = 0;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		++statistics[0].merged;
-	}
-}
-
-
-void Merge12Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that ajacent strips in back side
-	double diff_a = fe[0] - be[0] - be[1];
-	if (abs(bs[0]-bs[1]) == 1) hde[0].Fill(diff_a);
-	++statistics[0].total;
-	// assume that one strip can be negelect in back side
-	double diff_b = fe[0] - be[0];
-	if (abs(bs[0]-bs[1]) != 1) hde[1].Fill(diff_b);
-	++statistics[1].total;
-
-	// fill events
-	if (
-		fabs(diff_a) < diff_tolerance
-		&& abs(bs[0]-bs[1]) == 1
-	) {
-		// adjacent back strips event
-		merge.hit = 1;
-		merge.case_tag = 100;
-		merge.flag[0] = 0x301;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0] + bs[1]/(be[0]+be[1])*(bs[1]-bs[0]);
-		merge.z[0] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_b) < diff_tolerance
-	) {
-		merge.hit = 1;
-		merge.case_tag = 101;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		++statistics[1].merged;
-	}
-}
-
-
-void Merge21Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that ajacent strips in front side
-	double diff_a = fe[0] + fe[1] - be[0];
-	if (abs(fs[0]-fs[1]) == 1) hde[0].Fill(diff_a);
-	++statistics[0].total;
-	// assume that one strip can be negelect in front side
-	double diff_b = fe[0] - be[0];
-	if (abs(fs[0]-fs[1]) != 1) hde[1].Fill(diff_b);
-	++statistics[1].total;
-
-	// fill events
-	if (
-		fabs(diff_a) < diff_tolerance
-		&& abs(fs[0]-fs[1]) == 1
-	) {
-		// adjacent event at the front side
-		merge.hit = 1;
-		merge.case_tag = 200;
-		merge.flag[0] = 0x103;
-		merge.energy[0] = be[0];
-		merge.time[0] = fundamental.back_time[0];
-		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_b) < diff_tolerance
-	) {
-		// small energy in the seoncd front strip can be neglected,
-		// or the second back strip was thrown
-		merge.hit = 1;
-		merge.case_tag = 201;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		++statistics[1].merged;
-	}
-}
-
-void Merge22Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that there are two particles
-	double diff_a11 = fe[0] - be[0];
-	double diff_a12 = fe[1] - be[1];
-	double diff_a21 = fe[0] - be[1];
-	double diff_a22 = fe[1] - be[0];
-	if (fabs(diff_a11)+fabs(diff_a12) < fabs(diff_a21)+fabs(diff_a22)) {
-		hde[0].Fill(diff_a11);
-		hde[0].Fill(diff_a12);
-	} else {
-		hde[0].Fill(diff_a21);
-		hde[0].Fill(diff_a22);
-	}
-	++statistics[0].total;
-	// assume that only one particle but adjacent strips in both sides
-	double diff_b = fe[0] + fe[1] - be[0] - be[1];
-	if (abs(fs[0]-fs[1])==1 && abs(bs[0]-bs[1])==1) {
-		hde[1].Fill(diff_b);
-	}
-	++statistics[1].total;
-
-
-	// fill events
-	if (
-		fabs(diff_a11) < diff_tolerance
-		&& fabs(diff_a12) < diff_tolerance
-	) {
-		// two particles event
-		merge.hit = 2;
-		merge.case_tag = 300;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x202;
-		merge.energy[1] = fe[1];
-		merge.time[1] = fundamental.front_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[1];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a21) < diff_tolerance
-		&& fabs(diff_a22) < diff_tolerance
-	) {
-		// two particles event
-		merge.hit = 2;
-		merge.case_tag = 300;
-		merge.flag[0] = 0x201;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[1];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x102;
-		merge.energy[1] = fe[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[0];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_b) < 1.414 * diff_tolerance
-		// && fundamental.cfd_flag == 0
-		&& abs(fs[0]-fs[1]) == 1
-		&& abs(bs[0]-bs[1]) == 1
-	) {
-
-		// one particle event, two adjacent strips
-		merge.hit = 1;
-		merge.case_tag = 301;
-		merge.flag[0] = 0x303;
-		merge.energy[0] = fe[0] + fe[1];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0] + fe[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
-		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
-		merge.z[0] = 0.0;
-		++statistics[1].merged;
-	}
-}
-
-
-void Merge23Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that there are two particles
-	// 1. bs[0] and bs[1] are adjacent strips
-	double diff_a11 = fe[0] - be[0] - be[1];
-	double diff_a12 = fe[1] - be[2];
-	// 2. bs[0] and bs[2] are adjacent strips
-	double diff_a21 = fe[0] - be[0] - be[2];
-	double diff_a22 = fe[1] - be[1];
-	// 3. bs[1] and bs[2] are adjacent strips
-	double diff_a31 = fe[0] - be[0];
-	double diff_a32 = fe[1] - be[1] - be[2];
-	double diff_a33 = fe[0] - be[1] - be[2];
-	double diff_a34 = fe[1] - be[0];
-	// fill to histogram
-	if (abs(bs[0]-bs[1]) == 1) {
-		hde[0].Fill(diff_a11);
-		hde[0].Fill(diff_a12);
-	} else if (abs(bs[0]-bs[2]) == 1) {
-		hde[0].Fill(diff_a21);
-		hde[0].Fill(diff_a22);
-	} else if (abs(bs[1]-bs[2]) == 1) {
-		if (fabs(diff_a31)+fabs(diff_a32) < fabs(diff_a33)+fabs(diff_a34)) {
-			hde[0].Fill(diff_a31);
-			hde[0].Fill(diff_a32);
-		} else {
-			hde[0].Fill(diff_a33);
-			hde[0].Fill(diff_a34);
-		}
-	}
-	++statistics[0].total;
-
-	// fill events
-	if (
-		fabs(diff_a11) < diff_tolerance
-		&& fabs(diff_a12) < diff_tolerance
-		&& abs(bs[0]-bs[1]) == 1
-	) {
-		// particle 1: f0b0b1,
-		// particle 2: f1b2
-		merge.hit = 2;
-		merge.case_tag = 400;
-		merge.flag[0] = 0x301;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0] + be[1]/(be[0]+be[1])*(bs[1]-bs[0]);
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x402;
-		merge.energy[1] = fe[1];
-		merge.time[1] = fundamental.front_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[2];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a21) < diff_tolerance
-		&& fabs(diff_a22) < diff_tolerance
-		&& abs(bs[2]-bs[0]) == 1
-	) {
-		// particle 1: f0b0b2
-		// particle 2: f1b1
-		merge.hit = 2;
-		merge.case_tag = 400;
-		merge.flag[0] = 0x501;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0] + bs[2]/(be[0]+be[2])*(bs[2]-bs[0]);
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x202;
-		merge.energy[1] = fe[1];
-		merge.time[1] = fundamental.front_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[1];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a31) < diff_tolerance
-		&& fabs(diff_a32) < diff_tolerance
-		&& fabs(diff_a31) + fabs(diff_a32) < fabs(diff_a33) + fabs(diff_a34)
-		&& abs(bs[1]-bs[2]) == 1
-	) {
-		// particle 1: f0b0
-		// particle 2: f1b1b2
-		merge.hit = 2;
-		merge.case_tag = 400;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x602;
-		merge.energy[1] = fe[1];
-		merge.time[1] = fundamental.front_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a33) < diff_tolerance
-		&& fabs(diff_a34) < diff_tolerance
-		&& fabs(diff_a33) + fabs(diff_a34) < fabs(diff_a31) + fabs(diff_a32)
-		&& abs(bs[1]-bs[2]) == 1
-	) {
-		// particle 1: f0b1b2
-		// particle 2: f1b0
-		merge.hit = 2;
-		merge.case_tag = 400;
-		merge.flag[0] = 0x601;
-		merge.energy[0] = fe[0];
-		merge.time[0] = fundamental.front_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[1] + bs[2]/(be[1]+be[2])*(bs[2]-bs[1]);
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x102;
-		merge.energy[1] = fe[1];
-		merge.time[1] = fundamental.front_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[0];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	}
-}
-
-
-void Merge32Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	const unsigned short *fs = fundamental.front_strip;
-	const unsigned short *bs = fundamental.back_strip;
-	const double *fe = fundamental.front_energy;
-	const double *be = fundamental.back_energy;
-	// assume that there are two particles
-	// 1. fs[0] and fs[1] are adjacent strips
-	double diff_a11 = fe[0] + fe[1] - be[0];
-	double diff_a12 = fe[2] - be[1];
-	// 2. fs[0] and fs[2] are adjacent strips
-	double diff_a21 = fe[0] + fe[2] - be[0];
-	double diff_a22 = fe[1] - be[1];
-	// 3. fs[1] and fs[2] are adjacent strips
-	double diff_a31 = fe[0] - be[0];
-	double diff_a32 = fe[1] + fe[2] - be[1];
-	double diff_a33 = fe[0] - be[1];
-	double diff_a34 = fe[1] + fe[2] - be[0];
-	// fill to histogram
-	if (abs(fs[0]-fs[1]) == 1) {
-		hde[0].Fill(diff_a11);
-		hde[0].Fill(diff_a12);
-	} else if (abs(fs[0]-fs[2]) == 1) {
-		hde[0].Fill(diff_a21);
-		hde[0].Fill(diff_a22);
-	} else if (abs(fs[1]-fs[2]) == 1) {
-		if (fabs(diff_a31)+fabs(diff_a32) < fabs(diff_a33)+fabs(diff_a34)) {
-			hde[0].Fill(diff_a31);
-			hde[0].Fill(diff_a32);
-		} else {
-			hde[0].Fill(diff_a33);
-			hde[0].Fill(diff_a34);
-		}
-	}
-	++statistics[0].total;
-
-	// fill events
-	if (
-		fabs(diff_a11) < diff_tolerance
-		&& fabs(diff_a12) < diff_tolerance
-		&& abs(fs[0]-fs[1]) == 1
-	) {
-		// particle 1: f0f1b0,
-		// particle 2: f2b1
-		merge.hit = 2;
-		merge.case_tag = 500;
-		merge.flag[0] = 0x103;
-		merge.energy[0] = be[0];
-		merge.time[0] = fundamental.back_time[0];
-		merge.x[0] = fs[0] + fs[1]/(fe[0]+fe[1])*(fs[1]-fs[0]);
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x204;
-		merge.energy[1] = be[1];
-		merge.time[1] = fundamental.back_time[1];
-		merge.x[1] = fs[2];
-		merge.y[1] = bs[1];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a21) < diff_tolerance
-		&& fabs(diff_a22) < diff_tolerance
-		&& abs(fs[0]-fs[2]) == 1
-	) {
-		// particle 1: f0f2b0
-		// particle 2: f1b1
-		merge.hit = 2;
-		merge.case_tag = 500;
-		merge.flag[0] = 0x105;
-		merge.energy[0] = be[0];
-		merge.time[0] = fundamental.back_time[0];
-		merge.x[0] = fs[0] + fs[2]/(fe[0]+fe[2])*(fs[2]-fs[0]);
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x202;
-		merge.energy[1] = be[1];
-		merge.time[1] = fundamental.back_time[1];
-		merge.x[1] = fs[1];
-		merge.y[1] = bs[1];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a31) < diff_tolerance
-		&& fabs(diff_a32) < diff_tolerance
-		&& fabs(diff_a31) + fabs(diff_a32) < fabs(diff_a33) + fabs(diff_a34)
-		&& abs(fs[1]-fs[2]) == 1
-	) {
-		// particle 1: f0b0
-		// particle 2: f1f2b1
-		merge.hit = 2;
-		merge.case_tag = 500;
-		merge.flag[0] = 0x101;
-		merge.energy[0] = be[0];
-		merge.time[0] = fundamental.back_time[0];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[0];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x206;
-		merge.energy[1] = be[1];
-		merge.time[1] = fundamental.back_time[1];
-		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
-		merge.y[1] = bs[1];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	} else if (
-		fabs(diff_a33) < diff_tolerance
-		&& fabs(diff_a34) < diff_tolerance
-		&& fabs(diff_a33) + fabs(diff_a34) < fabs(diff_a31) + fabs(diff_a32)
-		&& abs(fs[2]-fs[1]) == 1
-	) {
-		// particle 1: f0b1
-		// particle 2: f1f2b0
-		merge.hit = 2;
-		merge.case_tag = 500;
-		merge.flag[0] = 0x201;
-		merge.energy[0] = be[1];
-		merge.time[0] = fundamental.back_time[1];
-		merge.x[0] = fs[0];
-		merge.y[0] = bs[1];
-		merge.z[0] = 0.0;
-		merge.flag[1] = 0x106;
-		merge.energy[1] = be[0];
-		merge.time[1] = fundamental.back_time[0];
-		merge.x[1] = fs[1] + fs[2]/(fe[1]+fe[2])*(fs[2]-fs[1]);
-		merge.y[1] = bs[0];
-		merge.z[1] = 0.0;
-		++statistics[0].merged;
-	}
-}
-
-
-void Merge33Event(
-	const DssdFundamentalEvent &fundamental,
-	DssdMergeEvent &merge,
-	double diff_tolerance,
-	TH1F *hde,
-	MergeCaseStatistics* statistics
-) {
-	DssdFundamentalEvent event = fundamental;
-	const unsigned short *fs = event.front_strip;
-	const unsigned short *bs = event.back_strip;
-	const double *fe = event.front_energy;
-	const double *be = event.back_energy;
-	// assume that there are three particles and no adjacent strips
-	double diff_a1 = fe[0] - be[0];
-	double diff_a2 = fe[1] - be[1];
-	double diff_a3 = fe[2] - be[2];
-	// fill to histogram
-	hde[0].Fill(diff_a1);
-	hde[0].Fill(diff_a2);
-	hde[0].Fill(diff_a3);
-	++statistics[0].total;
-
-	// fill events
-	if (
-		fabs(diff_a1) < diff_tolerance
-		&& fabs(diff_a2) < diff_tolerance
-		&& fabs(diff_a3) < diff_tolerance
-	) {
-		merge.hit = 3;
-		merge.case_tag = 600;
-		for (int i = 0; i < 3; ++i) {
-			merge.flag[i] = 0x101 << i;
-			merge.energy[i] = fe[i];
-			merge.time[i] = fundamental.front_time[i];
-			merge.x[i] = fs[i];
-			merge.y[i] = bs[i];
-			merge.z[i] = 0.0;
-		}
-		++statistics[0].merged;
-	}
-}
-
 
 /// @brief swap particles in merge event
 /// @param[inout] merge merge event
@@ -1618,7 +1030,7 @@ int Dssd::SearchBackAdjacentStrips(
 /// @param[in] energy_diff energy difference tolerance
 /// @param[out] merge merge event to fill
 /// @returns merge hit
-int Dssd::FillMergeEvent2(
+int Dssd::FillMergeEvent(
 	const DssdFundamentalEvent &event,
 	double energy_diff,
 	DssdMergeEvent &merge
@@ -1803,90 +1215,159 @@ int Dssd::FillMergeEvent2(
 			// found f1b2 event
 			if (found) break;
 		}
-	// 	if (found) continue;
-	// 	// search f1b2 bind events
-	// 	for (int i = 0; i < fhit; ++i) {
-	// 		// jump if it's used event
-	// 		if ((used_flag & (1 << i)) != 0) continue;
-	// 		// check back side
-	// 		for (int j = 0; j < bhit; ++j) {
-	// 			// ignore used event
-	// 			if ((used_flag & (1 << (j+8))) != 0) continue;
-	// 			// search for binding event
-	// 			for (int k = j+1; k < bhit; ++k) {
-	// 				// ignore used event
-	// 				if ((used_flag & (1 << (k+8))) != 0) continue;
-	// 				// found, check energy
-	// 				double de = fe[i] - be[j] - be[k];
-	// 				if (fabs(de) < energy_diff) {
-	// 					int num = merge.hit;
-	// 					merge.flag[num] = (0x1 << i) | (0x100 << j);
-	// 					merge.merge_tag[num] = 4;
-	// 					merge.energy[num] = fe[i] * be[j] / (be[j] + be[k]);
-	// 					merge.time[num] = ft[i];
-	// 					merge.x[num] = fs[i];
-	// 					merge.y[num] = bs[j];
-	// 					merge.z[num] = 0.0;
-	// 					merge.flag[num+1] = (0x1 << i) | (0x100 << k);
-	// 					merge.merge_tag[num+1] = 4;
-	// 					merge.energy[num+1] = fe[i] * be[k] / (be[j] + be[k]);
-	// 					merge.time[num+1] = ft[i];
-	// 					merge.x[num+1] = fs[i];
-	// 					merge.y[num+1] = bs[k];
-	// 					merge.z[num+1] = 0.0;
-	// 					merge.hit += 2;
-	// 					used_flag |= (0x1 << i) | (0x100 << j) | (0x100 << k);
-	// 					found = true;
-	// 					break;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	if (found) continue;
-	// 	// search f2b1 bind events
-	// 	for (int i = 0; i < bhit; ++i) {
-	// 		// jump if it's used event
-	// 		if ((used_flag & (0x100 << i)) != 0) continue;
-	// 		// check front side now
-	// 		for (int j = 0; j < fhit; ++j) {
-	// 			// ignore used event
-	// 			if ((used_flag & (0x1 << j)) != 0) continue;
-	// 			for (int k = j+1; k < fhit; ++k) {
-	// 				// ignore used event
-	// 				if ((used_flag & (0x1 << k)) != 0) continue;
-	// 				// found, check energy
-	// 				double de = fe[j] + fe[k] - be[i];
-	// 				if (fabs(de) < energy_diff) {
-	// 					int num = merge.hit;
-	// 					merge.flag[num] = (0x100 << i) | (0x1 << j);
-	// 					merge.merge_tag[num] = 5;
-	// 					merge.energy[num] = fe[j];
-	// 					merge.time[num] = ft[j];
-	// 					merge.x[num] = fs[j];
-	// 					merge.y[num] = bs[i];
-	// 					merge.z[num] = 0.0;
-	// 					merge.flag[num+1] = (0x100 << i) | (0x1 << k);
-	// 					merge.merge_tag[num+1] = 5;
-	// 					merge.energy[num+1] = fe[k];
-	// 					merge.time[num+1] = ft[k];
-	// 					merge.x[num+1] = fs[k];
-	// 					merge.y[num+1] = bs[i];
-	// 					merge.z[num+1] = 0.0;
-	// 					merge.hit += 2;
-	// 					used_flag |= (0x100 << i) | (0x1 << j) | (0x1 << k);
-	// 					found = true;
-	// 					break;
-	// 				}
-	// 			}
-	// 		}
-	// 	}
 	}
 	if (merge.hit > 4) merge.hit = 4;
 	return merge.hit;
 }
 
 
-int Dssd::Merge(double energy_diff) {
+
+/// @brief Fill merge event from normalize result event, version 2
+/// @param[in] event normalize result event
+/// @param[in] energy_diff energy difference tolerance
+/// @param[out] merge merge event to fill
+/// @returns merge hit
+int Dssd::FillMergeEventSupplementary(
+	const DssdFundamentalEvent &event,
+	double energy_diff,
+	DssdMergeEvent &merge
+) {
+	// initialize merge event
+	merge.hit = 0;
+	unsigned short used_flag = 0;
+
+	// for convenience
+	const int &fhit = event.front_hit;
+	const int &bhit = event.back_hit;
+	const unsigned short *fs = event.front_strip;
+	const unsigned short *bs = event.back_strip;
+	const double *fe = event.front_energy;
+	const double *be = event.back_energy;
+	const double *ft = event.front_time;
+	// const double *bt = event.back_time;
+
+	// found new event in the loop, initialize to true to start loop
+	bool found = true;
+	// loop to find merge event
+	while (found && merge.hit < 4) {
+		found = false;
+		// search f1b1 event
+		for (int i = 0; i < fhit; ++i) {
+			// jump if it's used event
+			if ((used_flag & (1 << i)) != 0) continue;
+			// check f1b1 event
+			for (int j = 0; j < bhit; ++j) {
+				// jump if it's used event
+				if ((used_flag & (0x100 << j)) != 0) continue;
+				// found, check energy now
+				double de = fe[i] - be[j];
+				// jump if energy is out of range
+				if (fabs(de) < energy_diff) {
+					int num = merge.hit;
+					merge.flag[num] = (0x1 << i) | (0x100 << j);
+					merge.merge_tag[num] = 0;
+					merge.energy[num] = fe[i];
+					merge.time[num] = ft[i];
+					merge.x[num] = fs[i];
+					merge.y[num] = bs[j];
+					merge.z[num] = 0.0;
+					merge.hit += 1;
+					used_flag |= (0x1 << i) | (0x100 << j);
+					found = true;
+					break;
+				}
+			}
+		}
+		if (found) continue;
+		// search f1b2 bind events
+		for (int i = 0; i < fhit; ++i) {
+			// jump if it's used event
+			if ((used_flag & (1 << i)) != 0) continue;
+			// check back side
+			for (int j = 0; j < bhit; ++j) {
+				// ignore used event
+				if ((used_flag & (1 << (j+8))) != 0) continue;
+				// search for binding event
+				for (int k = j+1; k < bhit; ++k) {
+					// ignore used event
+					if ((used_flag & (1 << (k+8))) != 0) continue;
+					// found, check energy
+					double de = fe[i] - be[j] - be[k];
+					if (fabs(de) < energy_diff && abs(bs[j]-bs[k]) != 1) {
+						int num = merge.hit;
+						merge.flag[num] = (0x1 << i) | (0x100 << j);
+						merge.merge_tag[num] = 4;
+						merge.energy[num] = fe[i] * be[j] / (be[j] + be[k]);
+						merge.time[num] = ft[i];
+						merge.x[num] = fs[i];
+						merge.y[num] = bs[j];
+						merge.z[num] = 0.0;
+						merge.flag[num+1] = (0x1 << i) | (0x100 << k);
+						merge.merge_tag[num+1] = 4;
+						merge.energy[num+1] = fe[i] * be[k] / (be[j] + be[k]);
+						merge.time[num+1] = ft[i];
+						merge.x[num+1] = fs[i];
+						merge.y[num+1] = bs[k];
+						merge.z[num+1] = 0.0;
+						merge.hit += 2;
+						used_flag |= (0x1 << i) | (0x100 << j) | (0x100 << k);
+						found = true;
+						break;
+					}
+				}
+			}
+		}
+		if (found) continue;
+		// search f2b1 bind events
+		for (int i = 0; i < bhit; ++i) {
+			// jump if it's used event
+			if ((used_flag & (0x100 << i)) != 0) continue;
+			// check front side now
+			for (int j = 0; j < fhit; ++j) {
+				// ignore used event
+				if ((used_flag & (0x1 << j)) != 0) continue;
+				for (int k = j+1; k < fhit; ++k) {
+					// ignore used event
+					if ((used_flag & (0x1 << k)) != 0) continue;
+					// found, check energy
+					double de = fe[j] + fe[k] - be[i];
+					if (fabs(de) < energy_diff && abs(fs[j]-fs[k]) != 1) {
+						int num = merge.hit;
+						merge.flag[num] = (0x100 << i) | (0x1 << j);
+						merge.merge_tag[num] = 5;
+						merge.energy[num] = fe[j];
+						merge.time[num] = ft[j];
+						merge.x[num] = fs[j];
+						merge.y[num] = bs[i];
+						merge.z[num] = 0.0;
+						merge.flag[num+1] = (0x100 << i) | (0x1 << k);
+						merge.merge_tag[num+1] = 5;
+						merge.energy[num+1] = fe[k];
+						merge.time[num+1] = ft[k];
+						merge.x[num+1] = fs[k];
+						merge.y[num+1] = bs[i];
+						merge.z[num+1] = 0.0;
+						merge.hit += 2;
+						used_flag |= (0x100 << i) | (0x1 << j) | (0x1 << k);
+						found = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+	if (merge.hit > 4) merge.hit = 4;
+	return merge.hit;
+}
+
+
+int Dssd::Merge(double energy_diff, int supplementary) {
+	std::string tag = tag_;
+	if (supplementary == 1) {
+		if (tag.empty()) tag = "s1";
+		else tag += "-s1";
+	}
+
 	// input file name
 	TString input_file_name;
 	input_file_name.Form(
@@ -1906,17 +1387,6 @@ int Dssd::Merge(double energy_diff) {
 			<< input_file_name << " failed.\n";
 		return -1;
 	}
-	// // input time file name
-	// TString time_file_name;
-	// time_file_name.Form(
-	// 	"%s%sreftime-%s%04u.root",
-	// 	kGenerateDataPath,
-	// 	kFundamentalDir,
-	// 	tag_.empty() ? "" : (tag_+"-").c_str(),
-	// 	run_
-	// );
-	// // add friend
-	// ipt->AddFriend("ref=tree", time_file_name);
 	// input event
 	DssdFundamentalEvent fundamental_event;
 	// double ref_time;
@@ -1934,7 +1404,7 @@ int Dssd::Merge(double energy_diff) {
 		kGenerateDataPath,
 		kMergeDir,
 		name_.c_str(),
-		tag_.empty() ? "" : (tag_+"-").c_str(),
+		tag.empty() ? "" : (tag+"-").c_str(),
 		run_
 	);
 	// output file
@@ -1946,7 +1416,7 @@ int Dssd::Merge(double energy_diff) {
 	// setup output branches
 	merge_event.SetupOutput(&opt);
 
-	MergeStatistics statistics(run_, name_, tag_);
+	MergeStatistics statistics(run_, name_, tag);
 	long long four_hit = 0;
 
 	// total number of entries
@@ -1966,9 +1436,17 @@ int Dssd::Merge(double energy_diff) {
 
 		ipt->GetEntry(entry);
 
-		int merge_num = FillMergeEvent2(
-			fundamental_event, energy_diff, merge_event
-		);
+
+		int merge_num = 0;
+		if (supplementary == 0) {
+			merge_num = FillMergeEvent(
+				fundamental_event, energy_diff, merge_event
+			);
+		} else if (supplementary == 1) {
+			merge_num = FillMergeEventSupplementary(
+				fundamental_event, energy_diff, merge_event
+			);
+		}
 
 		if (fhit > 0 && bhit > 0) ++statistics.total;
 		if (merge_num == 1) ++statistics.one_hit;
