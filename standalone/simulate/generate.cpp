@@ -6,6 +6,7 @@
 #include <TRandom3.h>
 #include <TString.h>
 #include <TTree.h>
+#include <Math/Vector3D.h>
 
 #include "include/event/generate_event.h"
 #include "include/calculator/target_energy_calculator.h"
@@ -64,7 +65,7 @@ void InelasticScattering(
 	// calculate exit angle in lab frame
 	exit_angle = fabs(atan(exit_momentum_vertical / exit_momentum_parallel));
 	exit_angle = exit_momentum_parallel > 0 ?
-		exit_angle : 3.1415926 - exit_angle;
+		exit_angle : pi - exit_angle;
 
 	// p of recoil particle in center of mass frame
 	double recoil_momentum_center = exit_momentum_center;
@@ -89,7 +90,7 @@ void InelasticScattering(
 	recoil_angle =
 		fabs(atan(recoil_momentum_vertical / recoil_momentum_parallel));
 	recoil_angle = recoil_momentum_parallel > 0 ?
-		recoil_angle : 3.1415926 - recoil_angle;
+		recoil_angle : pi - recoil_angle;
 	return;
 }
 
@@ -144,7 +145,7 @@ void BreakupReaction(
 	fragment1_angle =
 		fabs(atan(fragment1_momentum_vertical / fragment1_momentum_parallel));
 	fragment1_angle = fragment1_momentum_parallel > 0 ?
-		fragment1_angle : 3.1415926 - fragment1_angle;
+		fragment1_angle : pi - fragment1_angle;
 
 	// fragment2 momentum parallel part in c.m. frame
 	double fragment2_momentum_center_parallel = -fragment_momentum*cos(theta);
@@ -167,7 +168,7 @@ void BreakupReaction(
 	fragment2_angle =
 		fabs(atan(fragment2_momentum_vertical / fragment2_momentum_parallel));
 	fragment2_angle = fragment2_momentum_parallel > 0 ?
-		fragment2_angle : 3.1415926 - fragment2_angle;
+		fragment2_angle : pi - fragment2_angle;
 
 	return;
 }
@@ -191,10 +192,10 @@ void Rotate(
 		+cos(fragment_theta)*cos(parent_theta);
 
 	theta = fabs(atan(sqrt(pow(x, 2.0) + pow(y, 2.0)) / z));
-	theta = z > 0 ? theta : 3.1415926 - theta;
+	theta = z > 0 ? theta : pi - theta;
 	phi = atan(y / x);
 	if (x < 0) {
-		phi = y > 0 ? phi + 3.1415926 : phi - 3.1415926;
+		phi = y > 0 ? phi + pi : phi - pi;
 	}
 	return;
 }
@@ -287,7 +288,7 @@ int main(int argc, char **argv) {
 		event.target_x = generator.Gaus(0.0, 6.0);
 		// get reaction point y
 		event.target_y = generator.Gaus(0.0, 6.0);
-		// get beam tarce at z = -800
+		// get beam trace at z = -800
 		double beam_trace_x = generator.Gaus(0.0, 5.0);
 		double beam_trace_y = generator.Gaus(0.0, 5.0);
 		event.beam_phi = atan(beam_trace_y / beam_trace_x);
@@ -380,6 +381,26 @@ int main(int argc, char **argv) {
 			event.recoil_theta, event.recoil_phi
 		);
 
+		// get angle of parent relate to recoil
+		ROOT::Math::XYZVector v_parent(
+			sin(parent_angle)*cos(parent_phi),
+			sin(parent_angle)*sin(parent_phi),
+			cos(parent_angle)
+		);
+		v_parent *= sqrt(pow(parent_energy, 2.0) - pow(parent_mass, 2.0))
+			/ sqrt(pow(parent_energy, 2.0) + pow(parent_mass, 2.0));
+
+		ROOT::Math::XYZVector v_recoil(
+			sin(recoil_angle)*cos(recoil_phi),
+			sin(recoil_angle)*sin(recoil_phi),
+			cos(recoil_angle)
+		);
+		v_recoil *= sqrt(pow(recoil_energy, 2.0) - pow(target_mass, 2.0))
+			/ sqrt(pow(recoil_energy, 2.0) + pow(target_mass, 2.0));
+
+		event.parent_recoil_angle = (v_parent - v_recoil).Theta();
+		event.elastic_angle = elastic_angle;
+
 		// consider energy loss of recoil particle in target
 		event.recoil_kinetic = h2_target.Energy(
 			(1.0-depth) / cos(event.recoil_theta),
@@ -419,6 +440,29 @@ int main(int argc, char **argv) {
 		// calculate kinetic energy for fragments
 		fragment_kinetic_in_target[0] = fragment1_energy - fragment1_mass;
 		fragment_kinetic_in_target[1] = fragment2_energy - fragment2_mass;
+
+
+		// get angle of parent relate to recoil
+		ROOT::Math::XYZVector v_fragment1(
+			sin(fragment1_angle)*cos(fragment_phi_center),
+			sin(fragment1_angle)*sin(fragment_phi_center),
+			cos(fragment1_angle)
+		);
+		v_fragment1 *=
+			sqrt(pow(fragment1_energy, 2.0) - pow(fragment1_mass, 2.0))
+			/ sqrt(pow(fragment1_energy, 2.0) + pow(fragment1_mass, 2.0));
+
+		ROOT::Math::XYZVector v_fragment2(
+			sin(fragment2_angle)*cos(fragment_phi_center-pi),
+			sin(fragment2_angle)*sin(fragment_phi_center-pi),
+			cos(fragment2_angle)
+		);
+		v_fragment2 *=
+			sqrt(pow(fragment2_energy, 2.0) - pow(fragment2_mass, 2.0))
+			/ sqrt(pow(fragment2_energy, 2.0) + pow(fragment2_mass, 2.0));
+
+		event.fragment_fragment_angle = (v_fragment1 - v_fragment2).Theta();
+		event.breakup_angle = breakup_angle;
 
 
 		// consider energy loss of fragment1 particle in target

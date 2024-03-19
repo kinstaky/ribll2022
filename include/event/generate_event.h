@@ -49,6 +49,11 @@ public:
 	double fragment_y[2];
 	double fragment_z[2];
 	double fragment_r[2];
+	// other information
+	double elastic_angle;
+	double parent_recoil_angle;
+	double breakup_angle;
+	double fragment_fragment_angle;
 };
 
 }	// ribll2022

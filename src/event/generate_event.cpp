@@ -78,6 +78,18 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress(
 		(prefix+"fragment_r").c_str(), fragment_r
 	);
+	tree->SetBranchAddress(
+		(prefix+"elastic_angle").c_str(), &elastic_angle
+	);
+	tree->SetBranchAddress(
+		(prefix+"parent_recoil_angle").c_str(), &parent_recoil_angle
+	);
+	tree->SetBranchAddress(
+		(prefix+"breakup_angle").c_str(), &breakup_angle
+	);
+	tree->SetBranchAddress(
+		(prefix+"fragment_fragment_angle").c_str(), &fragment_fragment_angle
+	);
 }
 
 
@@ -107,6 +119,10 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("fragment_y", fragment_y, "fy[2]/D");
 	tree->Branch("fragment_z", fragment_z, "fz[2]/D");
 	tree->Branch("fragment_r", fragment_r, "fr[2]/D");
+	tree->Branch("elastic_angle", &elastic_angle, "ea/D");
+	tree->Branch("parent_recoil_angle", &parent_recoil_angle, "pra/D");
+	tree->Branch("breakup_angle", &breakup_angle, "ba/D");
+	tree->Branch("fragment_fragment_angle", &fragment_fragment_angle, "ffa/D");
 }
 
 }	// namespace
