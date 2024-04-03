@@ -164,5 +164,17 @@ target_link_libraries(
 add_executable(show_t0_rebuild_rate show_t0_rebuild_rate.cpp)
 target_link_libraries(
 	show_t0_rebuild_rate PRIVATE
-	event event ROOT::Core ROOT::Graf
+	event ROOT::Core ROOT::Graf
+)
+
+# show calculate T0D2 energy
+add_executable(show_calculate_t0d2 show_calculate_t0d2.cpp)
+target_link_libraries(
+	show_calculate_t0d2 PRIVATE event d2_energy_calculator
+)
+
+# show T0 PID with angle
+add_executable(show_t0_pid_angle show_t0_pid_angle.cpp)
+target_link_libraries(
+	show_t0_pid_angle PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
 )

@@ -861,7 +861,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		bool t0_valid = true;
 		for (unsigned short i = 0; i < t0.num; ++i) {
 			// ignore bad strips
-			if (hole[i]) continue;
+			// if (hole[i]) continue;
 			if (t0.charge[i] == 4 && t0.mass[i] == 10) {
 				// find 10Be
 				if ((t0_status & 0x1) == 0) {

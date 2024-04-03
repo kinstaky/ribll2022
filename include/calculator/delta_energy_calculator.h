@@ -33,7 +33,7 @@ public:
 	/// @brief initialize the delta energy calculator
 	/// @param[in] telescope telescope name, e.g. t0
 	/// @param[in] thickness thickness of Si in telescope, in um
-	/// @param[in] projectiles name of projectiles, e.g. 1H, 4He 
+	/// @param[in] projectiles name of projectiles, e.g. 1H, 4He
 	/// @returns 0 if success, -1 otherwise
 	///
 	static int Initialize(

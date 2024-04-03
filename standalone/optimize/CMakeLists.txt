@@ -37,3 +37,10 @@ target_link_libraries(
 # ppac_group
 add_executable(ppac_group ppac_group.cpp)
 target_link_libraries(ppac_group PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf)
+
+# optimized calibrate T0
+add_executable(opt_calibrate opt_calibrate.cpp)
+target_link_libraries(
+	opt_calibrate PRIVATE
+	event ROOT::Core ROOT::RIO Ceres::ceres range_energy_calculator delta_energy_calculator
+)

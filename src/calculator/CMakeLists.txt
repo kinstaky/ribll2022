@@ -28,6 +28,14 @@ target_link_libraries(
 	PUBLIC range_energy_calculator
 )
 
+# D2 energy calculator library
+add_library(
+	d2_energy_calculator
+	d2_energy_calculator.cpp
+	${CALCULATOR_INCLUDE_DIR}/d2_energy_calculator.h
+)
+target_link_libraries(d2_energy_calculator PUBLIC range_energy_calculator)
+
 # csi energy calculator library
 add_library(
 	csi_energy_calculator

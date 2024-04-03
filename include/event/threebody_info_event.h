@@ -107,6 +107,7 @@ public:
 	bool hole[2];
 	// run
 	int run;
+	// entry
 	long long entry;
 };
 

@@ -547,6 +547,82 @@ void BuildDssdSlice(
 }
 
 
+/// @brief build DSSD-DSSD slice with hole, e.g. T0D1-D2, T0D2-D3
+/// @param[in] layer1 first layer events
+/// @param[in] layer2 second layer events
+/// @param[in] cuts PID cut for particle stopped in second layer
+/// @param[in] tail_cuts PID cut for particle pass the second layer
+/// @param[in] hole_cuts PID cut for hole area and particle stopped
+/// @param[in] hole_tail_cuts PID cut for hole area and particle passed
+/// @param[in] hole1 true the first is hole
+/// @param[in] hole2 true the second is hole
+/// @param[in] offset durable position offset for two layers
+/// @param[out] slices built slices
+///
+void BuildDssdSliceHole(
+	const DssdMergeEvent &layer1,
+	const DssdMergeEvent &layer2,
+	const std::vector<ParticleCut> &cuts,
+	const std::vector<ParticleCut> &tail_cuts,
+	const std::vector<ParticleCut> &hole_cuts,
+	const std::vector<ParticleCut> &hole_tail_cuts,
+	bool *hole1,
+	bool *hole2,
+	double offset,
+	std::vector<Slice> &slices
+) {
+	for (int i = 0; i < layer1.hit; ++i) {
+		for (int j = 0; j < layer2.hit; ++j) {
+			double xoffset = layer1.x[i] - layer2.x[j];
+			double yoffset = layer1.y[i] - layer2.y[j];
+			// check x, y offset
+			if (fabs(xoffset) < offset && fabs(yoffset) < offset) {
+				const std::vector<ParticleCut> *used_cuts = nullptr;
+				const std::vector<ParticleCut> *used_tail_cuts = nullptr;
+				if ((hole1 && hole1[i]) || (hole2 && hole2[j])) {
+					used_cuts = &hole_cuts;
+					used_tail_cuts = &hole_tail_cuts;
+				} else if ((hole1 && !hole1[i]) || (hole2 && !hole2[j])) {
+					used_cuts = &cuts;
+					used_tail_cuts = &tail_cuts;
+				} else {
+					std::cerr << "Error: hole1 and hole2 invalid.\n";
+					return;
+				}
+				// check penatrate PID curv
+				for (const auto &cut : *(used_cuts)) {
+					if (cut.cut->IsInside(
+						layer2.energy[j], layer1.energy[i]
+					)) {
+						// build slice
+						slices.emplace_back(
+							cut.charge,
+							cut.mass,
+							false,
+							i, j
+						);
+					}
+				}
+				// check pass PID curv
+				for (const auto &cut : *(used_tail_cuts)) {
+					if (cut.cut->IsInside(
+						layer2.energy[j], layer1.energy[i]
+					)) {
+						// build slice
+						slices.emplace_back(
+							cut.charge,
+							cut.mass,
+							true,
+							i, j
+						);
+					}
+				}
+			}
+		}
+	}
+}
+
+
 /// @brief build DSSD-SSD slice, e.g. T0D3-S1
 /// @param[in] layer1 first layer events
 /// @param[in] layer2 second layer events
@@ -660,10 +736,29 @@ void BuildSlice(
 	const std::vector<ParticleCut> &s1s2_tail_cuts,
 	const std::vector<ParticleCut> &s2s3_cuts,
 	const std::vector<ParticleCut> &s2s3_tail_cuts,
+	const std::vector<ParticleCut> &d1d2_hole_cuts,
+	const std::vector<ParticleCut> &d1d2_hole_tail_cuts,
+	const std::vector<ParticleCut> &d2d3_hole_cuts,
+	const std::vector<ParticleCut> &d2d3_hole_tail_cuts,
+	bool *hole,
 	std::vector<Slice> *slices
 ) {
-	BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 4.0, slices[0]);
-	BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, slices[1]);
+	// BuildDssdSlice(d1, d2, d1d2_cuts, d1d2_tail_cuts, 4.0, slices[0]);
+	// BuildDssdSlice(d2, d3, d2d3_cuts, d2d3_tail_cuts, 4.2, slices[1]);
+	BuildDssdSliceHole(
+		d1, d2,
+		d1d2_cuts, d1d2_tail_cuts, d1d2_hole_cuts, d1d2_hole_tail_cuts,
+		nullptr, hole,
+		4.0,
+		slices[0]
+	);
+	BuildDssdSliceHole(
+		d2, d3,
+		d2d3_cuts, d2d3_tail_cuts, d2d3_hole_cuts, d2d3_hole_tail_cuts,
+		hole, nullptr,
+		4.2,
+		slices[1]
+	);
 	BuildDssdSsdSlice(d3, s1, d3s1_cuts, d3s1_tail_cuts, slices[2]);
 	BuildSsdSlice(s1, s2, s1s2_cuts, s1s2_tail_cuts, slices[3]);
 	BuildSsdSlice(s2, s3, s2s3_cuts, s2s3_tail_cuts, slices[4]);
@@ -1108,6 +1203,7 @@ int T0::SliceTrack(int supplementary) {
 	// T0D3-S1 tail cuts
 	std::vector<ParticleCut> d3s1_tails;
 	d3s1_tails.push_back({2, 0, ReadCut("t0-d3s1-tail-p1i1-He")});
+
 	// T0S1-S2 cuts
 	std::vector<ParticleCut> s1s2_cuts;
 	s1s2_cuts.push_back({2, 3, ReadCut("t0-s1s2-p1i1-3He")});
@@ -1117,6 +1213,7 @@ int T0::SliceTrack(int supplementary) {
 	std::vector<ParticleCut> s1s2_tails;
 	s1s2_tails.push_back({2, 0, ReadCut("t0-s1s2-tail-p1i1-He")});
 	s1s2_tails.push_back({2, 6, ReadCut("t0-s1s2-tail-p1i1-6He")});
+
 	// T0S2-S3 cuts
 	std::vector<ParticleCut> s2s3_cuts;
 	s2s3_cuts.push_back({2, 3, ReadCut("t0-s2s3-p1i1-3He")});
@@ -1127,6 +1224,22 @@ int T0::SliceTrack(int supplementary) {
 	s2s3_tails.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
 	s2s3_tails.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
 
+	// T0D1-D2 hole cuts
+	std::vector<ParticleCut> d1d2_hole_cuts;
+	d1d2_hole_cuts.push_back({2, 4, ReadCut("t0-d1d2-hole-p1i1-4He")});
+	d1d2_hole_cuts.push_back({4, 10, ReadCut("t0-d1d2-hole-p1i1-10Be")});
+	// T0D1-D2 hole tail cuts
+	std::vector<ParticleCut> d1d2_hole_tail_cuts;
+	d1d2_hole_tail_cuts.push_back({2, 0, ReadCut("t0-d1d2-hole-tail-p1i1-He")});
+	d1d2_hole_tail_cuts.push_back({4, 0, ReadCut("t0-d1d2-hole-tail-p1i1-Be")});
+
+	// T0D2-D3 hole cuts
+	std::vector<ParticleCut> d2d3_hole_cuts;
+	d2d3_hole_cuts.push_back({2, 4, ReadCut("t0-d2d3-hole-p1i1-4He")});
+	d2d3_hole_cuts.push_back({4, 10, ReadCut("t0-d2d3-hole-p1i1-10Be")});
+	// T0D2-D3 hole tail cuts
+	std::vector<ParticleCut> d2d3_hole_tail_cuts;
+	d2d3_hole_tail_cuts.push_back({2, 0, ReadCut("t0-d2d3-hole-tail-p1i1-He")});
 
 	long long normal_count = 0;
 	long long d1_suppl_count = 0;
@@ -1185,6 +1298,9 @@ int T0::SliceTrack(int supplementary) {
 			d3s1_cuts, d3s1_tails,
 			s1s2_cuts, s1s2_tails,
 			s2s3_cuts, s2s3_tails,
+			d1d2_hole_cuts, d1d2_hole_tail_cuts,
+			d2d3_hole_cuts, d2d3_hole_tail_cuts,
+			hole,
 			normal_slices
 		);
 		// convert to tree structure
@@ -1279,6 +1395,9 @@ int T0::SliceTrack(int supplementary) {
 				d3s1_cuts, d3s1_tails,
 				s1s2_cuts, s1s2_tails,
 				s2s3_cuts, s2s3_tails,
+				d1d2_hole_cuts, d1d2_hole_tail_cuts,
+				d2d3_hole_cuts, d2d3_hole_tail_cuts,
+				hole,
 				d1d2_suppl_slices
 			);
 			// convert to tree structure
@@ -2479,8 +2598,6 @@ int T0::Rebuild() {
 		ipt->GetEntry(entry);
 		// initialize particle event
 		particle_event.num = 0;
-		has_4he = false;
-		has_10be = false;
 
 		for (int i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
@@ -2514,13 +2631,6 @@ int T0::Rebuild() {
 			particle_event.index[particle_event.num] = i;
 			hole[particle_event.num] = t0_event.hole[i];
 			++particle_event.num;
-
-			if (type_event.charge[i] == 2 && type_event.mass[i] == 4) {
-				has_4he = true;
-			}
-			if (type_event.charge[i] == 4 && type_event.mass[i] == 10) {
-				has_10be = true;
-			}
 		}
 
 		opt.Fill();

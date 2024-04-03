@@ -16,6 +16,7 @@
 #include "include/event/threebody_info_event.h"
 #include "include/ppac_track.h"
 #include "include/calculator/csi_energy_calculator.h"
+#include "include/calculator/d2_energy_calculator.h"
 
 using namespace ribll;
 
@@ -222,7 +223,8 @@ void PrintUsage(const char *name) {
 		"Options:\n"
 		"  -h                Print this help information.\n"
 		"  -r recoil_mass    Set recoil particle mass number.\n"
-		"  -s                Use simulated data.\n";
+		"  -s                Use simulated data.\n"
+		"  -c                Use calculated T0D2 energy.\n";
 }
 
 
@@ -232,6 +234,7 @@ void PrintUsage(const char *name) {
 /// @param[out] help need help
 /// @param[out] recoil_mass recoil particle mass number
 /// @param[out] sim use simulated data
+/// @param[out] calc use calculated T0D2 energy
 /// @returns start index of positional arguments if succes, if failed returns
 ///		-argc (negative argc) for miss argument behind option,
 /// 	or -index (negative index) for invalid arguemnt
@@ -241,12 +244,14 @@ int ParseArguments(
 	char **argv,
 	bool &help,
 	int &recoil_mass,
-	bool &sim
+	bool &sim,
+	bool &calc
 ) {
 	// initialize
 	help = false;
 	recoil_mass = 2;
 	sim = false;
+	calc = false;
 	// start index of positional arugments
 	int result = 0;
 	for (result = 1; result < argc; ++result) {
@@ -266,6 +271,8 @@ int ParseArguments(
 			recoil_mass = atoi(argv[result]);
 		} else if (argv[result][1] == 's') {
 			sim = true;
+		} else if (argv[result][1] == 'c') {
+			calc = true;
 		} else {
 			return -result;
 		}
@@ -280,8 +287,10 @@ int main(int argc, char **argv) {
 	int recoil_mass = 2;
 	// use simulated data
 	bool sim = false;
+	// use calculated T0D2 energy
+	bool calc = false;
 	// parse arguments and get start index of positional arguments
-	int pos_start = ParseArguments(argc, argv, help, recoil_mass, sim);
+	int pos_start = ParseArguments(argc, argv, help, recoil_mass, sim, calc);
 
 	// need help
 	if (help) {
@@ -309,10 +318,11 @@ int main(int argc, char **argv) {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%sinfo/threebody%s%s.root",
+		"%sinfo/threebody%s%s%s.root",
 		kGenerateDataPath,
 		argc == 1 ? "" : TString::Format("-%dH", recoil_mass).Data(),
-		sim ? "-sim" : ""
+		sim ? "-sim" : "",
+		calc ? "-calc" : ""
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -334,7 +344,9 @@ int main(int argc, char **argv) {
 	// total number of possible 2H events
 	int total_possible_2H = 0;
 
-	elc::CsiEnergyCalculator calculator("2H");
+	elc::CsiEnergyCalculator d_calculator("2H");
+	elc::D2EnergyCalculator be_calculator("10Be");
+	elc::D2EnergyCalculator he_calculator("4He");
 
 	// statistics for calculating efficiency
 	size_t t0_valid_count = 0;
@@ -346,11 +358,13 @@ int main(int argc, char **argv) {
 
 	for (
 		unsigned int run = sim ? 0 : 618;
-		run <= (sim ? 0 : 716);
+		run <= (sim ? 0 : 746);
 		++run
 	) {
 		if (run == 628) continue;
 		if (run > 652 && run < 675) continue;
+		if (run > 716 && run < 739) continue;
+
 		std::cout << "Processing run " << run << "\n";
 		// input file name
 		TString channel_file_name = TString::Format(
@@ -607,8 +621,22 @@ int main(int argc, char **argv) {
 			event.t0_energy[0] =
 				t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
 			// T0D2
-			event.t0_energy[0] +=
-				t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+			if (!calc) {
+				event.t0_energy[0] +=
+					t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+			} else {
+				if (event.layer[0] == 1) {
+					// stop in T0D2
+					event.t0_energy[0] +=
+						be_calculator.Energy(0, event.t0_energy[0], 0.0, true);
+				} else if (event.layer[0] >= 2) {
+					double d3_energy = t0_param[2][0]
+						+ t0_param[2][1] * event.be_channel[2];
+					// stop in or pass T0D3
+					event.t0_energy[0] +=
+						be_calculator.DeltaEnergy(1, d3_energy, 0.0, event.layer[0]==2);
+				}
+			}
 			// T0D3
 			if (event.layer[0] > 1) {
 				event.t0_energy[0] +=
@@ -633,8 +661,22 @@ int main(int argc, char **argv) {
 			event.t0_energy[1] =
 				t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
 			// T0D2
-			event.t0_energy[1] +=
-				t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+			if (!calc) {
+				event.t0_energy[1] +=
+					t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+			} else {
+				if (event.layer[1] == 1) {
+					// stop in T0D2
+					event.t0_energy[1] +=
+						he_calculator.Energy(1, event.t0_energy[1], 0.0, true);
+				} else if (event.layer[1] >= 2) {
+					double d3_energy =
+						t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
+					// stop in or pass T0D3
+					event.t0_energy[1] +=
+						he_calculator.DeltaEnergy(1, d3_energy, 0.0, event.layer[1]==2);
+				}
+			}
 			// T0D3
 			if (event.layer[1] > 1) {
 				event.t0_energy[1] +=
@@ -828,7 +870,7 @@ int main(int argc, char **argv) {
 				// TAFD energy
 				event.tafd_energy = taf[taf_indexes[i]].energy[0][0];
 				// try to calculate CsI energy
-				event.csi_energy = calculator.Energy(
+				event.csi_energy = d_calculator.Energy(
 					taf[taf_indexes[i]].theta[0], event.tafd_energy, 150.0
 				);
 				if (event.csi_energy < 0) continue;
@@ -890,26 +932,42 @@ int main(int argc, char **argv) {
 			vppac_num = vppac.num;
 			xppac_num = xppac.num;
 			event.ppac_flag = 0;
+			// get using PPAC xz and yz
+			double using_ppac_xz[3] = {ppac_xz[0], ppac_xz[1], ppac_xz[2]};
+			double using_ppac_yz[3] = {ppac_yz[0], ppac_yz[1], ppac_yz[2]};
+			if (run >= ppac_change_run) {
+				using_ppac_xz[0] = all_ppac_xz[1];
+				using_ppac_yz[0] = all_ppac_yz[1];
+			}
+			// get using ppac correct
+			double using_ppac_correct[2][3] = {
+				{ppac_correct[0][0], ppac_correct[0][1], ppac_correct[0][2]},
+				{ppac_correct[1][0], ppac_correct[1][1], ppac_correct[1][2]}
+			};
+			if (run >= ppac_change_run) {
+				using_ppac_correct[0][0] = all_ppac_correct[0][1];
+				using_ppac_correct[1][0] = all_ppac_correct[1][1];
+			}
 			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
 				event.ppac_flag |= 1;
 				for (int j = 0; j < 3; ++j) {
 					event.xppac_x[j] = xppac.x[j];
 					event.xppac_y[j] = xppac.y[j];
 					if (!sim) {
-						event.xppac_x[j] -= ppac_correct[0][j];
-						event.xppac_y[j] -= ppac_correct[1][j];
+						event.xppac_x[j] -= using_ppac_correct[0][j];
+						event.xppac_y[j] -= using_ppac_correct[1][j];
 					}
 				}
 				// PPAC x track
 				event.xppac_track[0] = TrackPpac(
-					event.xppac_xflag, ppac_xz, event.xppac_x,
+					event.xppac_xflag, using_ppac_xz, event.xppac_x,
 					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
 					event.be_x[0], event.he_x[0], event.d_x, event.d_y,
 					event.xptx
 				);
 				// PPAC y track
 				event.xppac_track[1] = TrackPpac(
-					event.xppac_yflag, ppac_yz, event.xppac_y,
+					event.xppac_yflag, using_ppac_yz, event.xppac_y,
 					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
 					event.be_y[0], event.he_y[0], event.d_y, event.d_x,
 					event.xpty
@@ -922,20 +980,20 @@ int main(int argc, char **argv) {
 					event.vppac_x[j] = vppac.x[j];
 					event.vppac_y[j] = vppac.y[j];
 					if (!sim) {
-						event.vppac_x[j] -= ppac_correct[0][j];
-						event.vppac_y[j] -= ppac_correct[1][j];
+						event.vppac_x[j] -= using_ppac_correct[0][j];
+						event.vppac_y[j] -= using_ppac_correct[1][j];
 					}
 				}
 				// PPAC x track
 				event.vppac_track[0] = TrackPpac(
-					event.vppac_xflag, ppac_xz, event.vppac_x,
+					event.vppac_xflag, using_ppac_xz, event.vppac_x,
 					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
 					event.be_x[0], event.he_x[0], event.d_x, event.d_y,
 					event.vptx
 				);
 				// PPAC y track
 				event.vppac_track[1] = TrackPpac(
-					event.vppac_yflag, ppac_yz, event.vppac_y,
+					event.vppac_yflag, using_ppac_yz, event.vppac_y,
 					event.t0_energy[0], event.t0_energy[1], event.taf_energy,
 					event.be_y[0], event.he_y[0], event.d_y, event.d_x,
 					event.vpty

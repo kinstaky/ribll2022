@@ -3,6 +3,7 @@
 #include "include/defs.h"
 #include "include/calculator/range_energy_calculator.h"
 #include "include/calculator/delta_energy_calculator.h"
+#include "include/calculator/d2_energy_calculator.h"
 
 using namespace ribll::elc;
 
@@ -64,6 +65,14 @@ int main() {
 		"t0", ribll::t0_thickness, t0_projectiles
 	)) {
 		std::cerr << "Error: Initialize delta-energy calculator failed.\n";
+		return -1;
+	}
+
+	const std::vector<std::string> t0_projectiles2 = {"4He", "10Be"};
+	if (D2EnergyCalculator::Initialize(
+		ribll::t0_thickness, t0_projectiles2
+	)) {
+		std::cerr << "Error: Initialize d2-energy calculator failed.\n";
 		return -1;
 	}
 	return 0;

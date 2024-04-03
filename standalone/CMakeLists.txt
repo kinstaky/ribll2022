@@ -99,7 +99,7 @@ target_link_libraries(info_pd PRIVATE event ROOT::Graf)
 
 # info-3body
 add_executable(info_threebody info_threebody.cpp)
-target_link_libraries(info_threebody PRIVATE event csi_energy_calculator)
+target_link_libraries(info_threebody PRIVATE event csi_energy_calculator d2_energy_calculator)
 
 # spectrum
 add_executable(spectrum spectrum.cpp)

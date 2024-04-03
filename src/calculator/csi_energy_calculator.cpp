@@ -23,7 +23,7 @@ double CsiEnergyCalculator::Energy(
 	double dead_al_thick,
 	double mylar_thick
 ) const {
-		// epsilon, stop if reach this standard
+	// epsilon, stop if reach this standard
 	double eps = 1e-4;
 	// sensitive thickness in Si
 	double si_sensitive_thick = si_thick - dead_si_thick * 2;
@@ -52,7 +52,7 @@ double CsiEnergyCalculator::Energy(
 		si_range -= si_sensitive_thick / cos_theta;
 		// residual energy after sensitive layer
 		double residual_energy = si_calculator_.Energy(si_range);
-		// loss energy undern current total energy
+		// loss energy under current total energy
 		double loss_energy = upper_bound - residual_energy;
 		if (loss_energy > si_energy) {
 			// current total energy is too small

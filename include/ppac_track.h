@@ -13,6 +13,11 @@ constexpr double ppac_correct[2][3] = {
 	{0, -0.84, -1.78}
 };
 
+constexpr double all_ppac_correct[2][4] = {
+	{0.0, 0.95, 2.23, 3.4},
+	{0.0, -0.16, -0.84, -1.78}
+};
+
 
 /// @brief caculate the x offset with asummed l0
 /// @param[in] l0 assumed offset of PPAC 0
