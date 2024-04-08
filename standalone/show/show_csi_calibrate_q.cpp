@@ -127,7 +127,16 @@ int main() {
 	TH1F hpqa("hpqa", "aligned power calibrated CsI Q value", 90, -23, -8);
 	// histogram-optimized-2-Q-aligned
 	TH1F hoqa("hoqa", "aligned optimized CsI Q value", 90, -23, -8);
-
+	// output tree
+	TTree opt("tree", "different calibrated Q");
+	// output data, different Q
+	double linear_q, power_q, optimized_q;
+	bool good;
+	// setup output branches
+	opt.Branch("linear_q", &linear_q, "lq/D");
+	opt.Branch("power_q", &power_q, "pq/D");
+	opt.Branch("opt_q", &optimized_q, "oq/D");
+	opt.Branch("good", &good, "good/O");
 
 	// Q value offset
 	double q_offset[12] = {
@@ -229,38 +238,44 @@ int main() {
 			&& !event.hole[1]
 			&& event.csi_channel > 1400.0
 		) {
-			// linear-calibrated 1 CsI energy
-			double linear_csi_energy =
-				linear_param[event.csi_index][0]
-				+ linear_param[event.csi_index][1] * event.csi_channel;
-			// linear-calibrated 1 Q value
-			double linear_q = ThreeBodyProcess(event, linear_csi_energy);
-			// fill to histogram
-			hlqc[event.csi_index].Fill(linear_q);
-			hlqa.Fill(linear_q - q_offset[event.csi_index]);
-		
-			// power-calibrated CsI energy
-			double power_csi_energy = pow(
-				(event.csi_channel - power_param[event.csi_index][2])
-					/ power_param[event.csi_index][0],
-				1.0 / power_param[event.csi_index][1]
-			);
-			// power-calibrated CsI Q value
-			double power_q = ThreeBodyProcess(event, power_csi_energy);
-			// fill to histogram
-			hpqa.Fill(power_q - q_offset[event.csi_index]);
-
-			// optimized CsI energy
-			double opt_csi_energy = pow(
-				(event.csi_channel - csi_param[event.csi_index][2])
-					/ csi_param[event.csi_index][0],
-				1.0 / csi_param[event.csi_index][1]
-			);
-			// optimized Q value
-			double opt_q = ThreeBodyProcess(event, opt_csi_energy);
-			// fill to histogram
-			hoqa.Fill(opt_q - q_offset[event.csi_index]);
+			good = true;
+		} else {
+			good = false;
 		}
+		// linear-calibrated 1 CsI energy
+		double linear_csi_energy =
+			linear_param[event.csi_index][0]
+			+ linear_param[event.csi_index][1] * event.csi_channel;
+		// linear-calibrated 1 Q value
+		linear_q = ThreeBodyProcess(event, linear_csi_energy);
+		// fill to histogram
+		hlqc[event.csi_index].Fill(linear_q);
+		hlqa.Fill(linear_q - q_offset[event.csi_index]);
+	
+		// power-calibrated CsI energy
+		double power_csi_energy = pow(
+			(event.csi_channel - power_param[event.csi_index][2])
+				/ power_param[event.csi_index][0],
+			1.0 / power_param[event.csi_index][1]
+		);
+		// power-calibrated CsI Q value
+		power_q = ThreeBodyProcess(event, power_csi_energy);
+		// fill to histogram
+		hpqa.Fill(power_q - q_offset[event.csi_index]);
+
+		// optimized CsI energy
+		double opt_csi_energy = pow(
+			(event.csi_channel - csi_param[event.csi_index][2])
+				/ csi_param[event.csi_index][0],
+			1.0 / csi_param[event.csi_index][1]
+		);
+		// optimized Q value
+		optimized_q = ThreeBodyProcess(event, opt_csi_energy);
+		// fill to histogram
+		hoqa.Fill(optimized_q - q_offset[event.csi_index]);
+
+		// fill tree
+		opt.Fill();
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -340,6 +355,7 @@ int main() {
 	hlqa.Write();
 	hpqa.Write();
 	hoqa.Write();
+	opt.Write();
 	// close output file
 	opf.Close();
 	// close input file
