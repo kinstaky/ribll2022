@@ -178,3 +178,24 @@ add_executable(show_t0_pid_angle show_t0_pid_angle.cpp)
 target_link_libraries(
 	show_t0_pid_angle PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
 )
+
+# show CsI energy range with channel
+add_executable(show_csi_energy_range show_csi_energy_range.cpp)
+target_link_libraries(
+	show_csi_energy_range PRIVATE
+	event ROOT::Core ROOT::RIO ROOT::Graf csi_energy_calculator
+)
+
+# show CsI range Q
+add_executable(show_csi_range_q show_csi_range_q.cpp)
+target_link_libraries(
+	show_csi_range_q PRIVATE
+	event ROOT::Core ROOT::RIO ROOT::Graf
+)
+
+# show CsI calibrated Q
+add_executable(show_csi_calibrate_q show_csi_calibrate_q.cpp)
+target_link_libraries(
+	show_csi_calibrate_q PRIVATE
+	event ROOT::Core ROOT::RIO ROOT::Graf
+)

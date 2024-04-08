@@ -24,9 +24,6 @@ const std::pair<double, double> tafd_phi_ranges[6] = {
 	{-122.4*TMath::DegToRad(), -177.6*TMath::DegToRad()},
 	{177.6*TMath::DegToRad(), 122.4*TMath::DegToRad()}
 };
-constexpr double tafd_thickness[6] = {
-	151.0, 152.0, 156.0, 150.0, 150.0, 150.0
-};
 constexpr double tafd_threshold[6] = {0.6, 0.5, 0.6, 0.6, 0.5, 0.5};
 constexpr double csi_threshold[12] = {
 	1200.0, 1200.0,

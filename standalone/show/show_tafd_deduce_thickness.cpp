@@ -240,6 +240,7 @@ int main(int argc, char **argv) {
 						event.energy[0][0] + csi_energy
 					);
 					double thickness = full_range - csi_range;
+					thickness *= cos(event.theta[0]);
 					hist_thicks[index*2].Fill(thickness);
 				} else if (event.flag[0] == 0x5) {
 					double csi_energy = pow(
@@ -253,6 +254,7 @@ int main(int argc, char **argv) {
 						event.energy[0][0] + csi_energy
 					);
 					double thickness = full_range - csi_range;
+					thickness *= cos(event.theta[0]);
 					hist_thicks[index*2+1].Fill(thickness);
 				}
 			}
@@ -266,7 +268,7 @@ int main(int argc, char **argv) {
 
 	for (int i = 0; i < 12; ++i) {
 		TF1 *fit_func = new TF1(
-			TString::Format("f%d", i), "gaus", 150, 250
+			TString::Format("f%d", i), "gaus", 100, 200
 		);
 		fit_func->SetParameter(1, 180);
 		fit_func->SetParameter(2, 20);

@@ -19,8 +19,6 @@
 
 namespace ribll {
 
-// thickness of tafd
-const double tafd_thick[6] = {151.0, 152.0, 156.0, 150.0, 150.0, 150.0};
 // center phi angle of tafd, to distinguish CsI index
 const double tafd_center_phi[6] = {
 	90.0*TMath::DegToRad(), 30.0*TMath::DegToRad(),
@@ -307,7 +305,7 @@ int Taf::ParticleIdentify() {
 					type_event.mass[0] = cut.mass;
 					type_event.layer[0] = 1;
 					csi_energy[0] = csi_calculators[cut.mass-1].Energy(
-						tele.theta[0], de, tafd_thick[index_]
+						tele.theta[0], de, tafd_thickness[index_]
 					);
 					break;
 				}
@@ -351,43 +349,6 @@ const unsigned int particles_charge[particle_types] = {
 };
 
 
-// /// @brief L = pedo + a0 * E ^ ((a1+A) / (a2+A))
-// /// @param[in] x energy (MeV)
-// /// @param[in] par par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
-// ///		par[3]=a2-a1>0, par[4]=A, par[5]=offset
-// /// @returns channel
-// double LinearExp(double *x, double *par) {
-// 	double e = x[0] - par[5];
-// 	return par[0] + par[1] * TMath::Power(
-// 		e,
-// 		((par[2]+par[4]) / (par[2]+par[3]+par[4]))
-// 	);
-// }
-
-// /// @brief E = ((L - pedo) / a0) ^ ((a2+A) / (a1+A))
-// /// @param[in] x channel
-// /// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
-// ///		par[3]=a2-a1>0, par[4]=A, par[5]=offset
-// /// @returns energy (MeV)
-// double LinearExpInverse(double *x, double *par) {
-// 	return TMath::Power(
-// 		(x[0] - par[5] - par[0]) / par[1],
-// 		(par[2]+par[3]+par[4]) / (par[2]+par[4])
-// 	);
-// }
-
-// /// @brief L = pedo + a0 * (E - a1 * A * Z^2 * ln(1 + E/(a1*A*Z^2)))
-// /// @param[in] x Energy(MeV)
-// /// @param[in] par parameters, par[0]=pedo, par[1]=a0, par[2]=a1,
-// ///		par[3]=A, par[4]=offset
-// /// @returns channel
-// double LinearLog(double *x, double *par) {
-// 	double t = par[2] * par[3] * 4.0;
-// 	double e = x[0] - par[4];
-// 	return par[0] + par[1] * (e - t * TMath::Log(e/t + 1.0));
-// }
-
-
 /// @brief fitting function of H iostopes in CsI, L = a0*E^a1+a2
 /// @param[in] x energy (MeV)
 /// @param[in] par parameters, par[0]-a0, par[1]-a1, par[2]-a2
@@ -395,6 +356,16 @@ const unsigned int particles_charge[particle_types] = {
 ///
 double HFit(double *x, double *par) {
   return par[0] * pow(x[0], par[1]) + par[2];
+}
+
+
+/// @brief fitting function of H iostopes in CsI, E = ((L-a2)/a0)^(1/a1)
+/// @param[in] x channel
+/// @param[in] par parameters, par[0]-a0, par[1]-a1, par[2]-a2
+/// @returns energy (MeV)
+///
+double H2Fit(double *x, double *par) {
+	return pow((x[0]-par[2])/par[0], 1.0/par[1]);
 }
 
 
@@ -416,15 +387,20 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 	TChain ipt("taf", "chain of taf events");
 	// particle type event chain
 	TChain type_chain("type", "chain of particle type events");
-	for (unsigned int i = run_; i <= end_run; ++i) {
-		if (i == 628) continue;
+	for (unsigned int run = run_; run <= end_run; ++run) {
+		if (run < 618) continue;
+		if (run == 628) continue;
+		if (run > 652 && run < 675) continue;
+		if (run > 716 && run < 739) continue;
+		if (run > 746) continue;
+
 		ipt.AddFile(TString::Format(
 			"%s%s%s-telescope-%s%04u.root/tree",
 			kGenerateDataPath,
 			kTelescopeDir,
 			name_.c_str(),
 			tag_.empty() ? "" : (tag_+"-").c_str(),
-			i
+			run
 		));
 		type_chain.AddFile(TString::Format(
 			"%s%s%s-particle-type-%s%04u.root/tree",
@@ -432,7 +408,7 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 			kParticleIdentifyDir,
 			name_.c_str(),
 			tag_.empty() ? "" : (tag_+"-").c_str(),
-			i
+			run
 		));
 	}
 	ipt.AddFriend(&type_chain);
@@ -457,9 +433,9 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// output calibration graphs, the first index is for CsI index
-	// the second index is for ADSSD strip
-	TGraph gpcali[2][16];
-	TGraph gdcali[2][16];
+	TGraph gpcali[2];
+	TGraph gdcali_linear[2];
+	TGraph gdcali_pow[2];
 	// pid graph with calculated CsI energy for checking
 	TH2F pid("pid", "#DeltaE-E", 1000, 0, 200, 1000, 0, 15);
 
@@ -499,148 +475,124 @@ int Taf::CsiCalibrate(unsigned int end_run) {
 		if (type_event.mass[0] == 1) {
 			// calculated csi energy, 1H
 			csi_energy = h1_csi_calculator.Energy(
-				ta_event.theta[0], ta_event.energy[0][0], tafd_thick[index_]
+				ta_event.theta[0], ta_event.energy[0][0], tafd_thickness[index_]
 			);
-			gpcali[csi_index][ta_event.front_strip[0]].AddPoint(
-				csi_energy, csi_channel
-			);
+			gpcali[csi_index].AddPoint(csi_energy, csi_channel);
 		} else {
 			// calculated csi energy, 2H
 			csi_energy = h2_csi_calculator.Energy(
-				ta_event.theta[0], ta_event.energy[0][0], tafd_thick[index_]
+				ta_event.theta[0], ta_event.energy[0][0], tafd_thickness[index_]
 			);
-			gdcali[csi_index][ta_event.front_strip[0]].AddPoint(
-				csi_energy, csi_channel
-			);
+			gdcali_linear[csi_index].AddPoint(csi_channel, csi_energy);
+			// gdcali_pow[csi_index].AddPoint(csi_channel, csi_energy);
+			gdcali_pow[csi_index].AddPoint(csi_energy, csi_channel);
 		}
 		pid.Fill(csi_energy, ta_event.energy[0][0]);
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
-	// fitting 1H
+	// fit 1H
 	for (size_t i = 0; i < 2; ++i) {
-		for (size_t j = 0; j < 16; ++j) {
-			// fit 1H (p)
-			TF1 fitp (
-				TString::Format("fps%ld%c", j, "ab"[i]),
-				HFit, 0, 45, 3
-			);
-			// set initial values
-			fitp.SetParameter(0, 200.0);
-			fitp.SetParameter(1, 0.9);
-			fitp.SetParameter(2, 0.0);
-			// fit
-			gpcali[i][j].Fit(&fitp, "QR+");
-			// record parameters
-			fitp.GetParameters(csi_calibrate_params_[i*16+j]);
+		// fit 1H (p)
+		TF1 fitp (
+			TString::Format("fp%c", "ab"[i]),
+			HFit, 0, 45, 3
+		);
+		// set initial values
+		fitp.SetParameter(0, 200.0);
+		fitp.SetParameter(1, 0.9);
+		fitp.SetParameter(2, 0.0);
+		// fit
+		gpcali[i].Fit(&fitp, "QR+");
+		// record parameters
+		fitp.GetParameters(csi_calibrate_params_[i]);
 
-			// print result
-			std::cout << "AB"[i] << j << " "
-				<< "1H " << fitp.GetParameter(0) << ", "
-				<< fitp.GetParameter(1) << ", "
-				<< fitp.GetParameter(2) << "\n";
-		}
+		// print result
+		std::cout << "AB"[i] << " 1H " 
+			<< fitp.GetParameter(0) << ", "
+			<< fitp.GetParameter(1) << ", "
+			<< fitp.GetParameter(2) << "\n";
 	}
-
 	// save parameters
 	if (WriteCsiCalibrateParameters("1H")) {
 		std::cerr << "Error: Write CsI calibrate parameters failed.\n";
 	}
 
 
-	// fitting 2H
+	// fit 2H with non-linear function
 	for (size_t i = 0; i < 2; ++i) {
-		for (size_t j = 0; j < 16; ++j) {
-			// fit 2H (d)
-			TF1 fitd (
-				TString::Format("fds%ld%c", j, "ab"[i]),
-				HFit, 0, 45, 3
-			);
-			// set initial values
-			fitd.SetParameter(0, 200.0);
-			fitd.SetParameter(1, 0.9);
-			fitd.SetParameter(2, 0.0);
-			// fit
-			gdcali[i][j].Fit(&fitd, "QR+");
-			// record parameters
-			fitd.GetParameters(csi_calibrate_params_[i*16+j]);
+		// fit 2H (d)
+		TF1 fitd(
+			TString::Format("fdpow%c", "ab"[i]), HFit, 10, 50, 3
+		);
+		// set initial values
+		fitd.SetParameter(0, 200.0);
+		fitd.SetParameter(1, 0.9);
+		fitd.SetParameter(2, 0.0);
+		// fit
+		gdcali_pow[i].Fit(&fitd, "QR+");
+		// record parameters
+		fitd.GetParameters(csi_calibrate_params_[i]);
 
-			// print result
-			std::cout << "AB"[i] << j << " "
-				<< "2H " << fitd.GetParameter(0) << ", "
-				<< fitd.GetParameter(1) << ", "
-				<< fitd.GetParameter(2) << "\n";
-		}
+		// print result
+		std::cout << "AB"[i] << " 2H "
+			<< fitd.GetParameter(0) << ", "
+			<< fitd.GetParameter(1) << ", "
+			<< fitd.GetParameter(2) << "\n";
 	}
-
 	// save parameters
 	if (WriteCsiCalibrateParameters("2H")) {
 		std::cerr << "Error: Write CsI calibrate parameters failed.\n";
 	}
 
 
-			// // fit 3H (t)
-			// TF1 fitt (
-			// 	TString::Format("ft%c8%c", "lg"[j], "ab"[i]),
-			// 	HFit, 0, 600, 3
-			// );
-			// // set initial values
-			// fitt.SetParameter(0, 200.0);
-			// fitt.SetParameter(1, 0.1);
-			// fitt.FixParameter(2, 0.0);
-			// // fit
-			// gcali[i][j][2].Fit(&fitt, "QR+");
-			// // record parameters
-			// fitt.GetParameters(csi_calibrate_params_[i*2+j][2]);
-
-			// // fit 4He (alpha)
-			// TF1 fita (
-			// 	TString::Format("fa%c8%c",  "lg"[j], "ab"[i]),
-			// 	HeFit, 0, 600, 3
-			// );
-			// // set initial values
-			// fita.SetParameter(0, 200.0);
-			// fita.SetParameter(1, 0.9);
-			// fita.FixParameter(2, 0.0);
-			// // fit
-			// gcali[i][j][3].Fit(&fita, "QR+");
-			// // record parameters
-			// fita.GetParameters(csi_calibrate_params_[i*2+j][3]);
-
-			// print result
-			// std::cout << "AB"[i] << j << " "
-				// << "1H " << fitp.GetParameter(0) << ", "
-				// << fitp.GetParameter(1) << ", "
-				// << fitp.GetParameter(2) << "\n"
-				// << "2H " << fitd.GetParameter(0) << ", "
-				// << fitd.GetParameter(1) << ", "
-				// << fitd.GetParameter(2) << "\n";
-				// << "3H " << fitt.GetParameter(0) << ", "
-				// << fitt.GetParameter(1) << ", "
-				// << fitt.GetParameter(2) << "\n"
-				// << "4He " << fita.GetParameter(0) << ", "
-				// << fita.GetParameter(1) << ", "
-				// << fita.GetParameter(2) << "\n";
-	// 	}
-	// }
+	double linear_param[2][2];
+	// fit 2H with linear function
+	for (int i = 0; i < 2; ++i) {
+		// function
+		TF1 fit2h(
+			TString::Format("fdl%c", "ab"[i]), "pol1", 0, 11000
+		);
+		// fit
+		gdcali_linear[i].Fit(&fit2h, "QR+");
+		// get parameters
+		fit2h.GetParameters(linear_param[i]);
+		std::cout << "AB"[i] << " 2H "
+			<< linear_param[i][0] << ", "
+			<< linear_param[i][1] << "\n";
+	}
+	// save parameters
+	// file name
+	TString linear_param_file_name = TString::Format(
+		"%s%staf%ucsi-cali-param-2H-linear.txt",
+		kGenerateDataPath,
+		kCalibrationDir,
+		index_
+	);
+	// output stream
+	std::ofstream fout(linear_param_file_name.Data());
+	if (!fout.good()) {
+		std::cerr << "Error: Open calibration file "
+			<< linear_param_file_name << " failed.\n";
+	}
+	for (int i = 0; i < 2; ++i) {
+		fout << linear_param[i][0] << " " << linear_param[i][1] << "\n";
+	}
+	// close file
+	fout.close();
 
 
 	opf.cd();
 	// save graphs
 	for (size_t i = 0; i < 2; ++i) {
-		for (size_t j = 0; j < 16; ++j) {
-			gpcali[i][j].Write(TString::Format(
-				"gps%ld%c", j, "ab"[i]
-			));
-		}
+		gpcali[i].Write(TString::Format("gp%c", "ab"[i]));
 	}
 	for (size_t i = 0; i < 2; ++i) {
-		for (size_t j = 0; j < 16; ++j) {
-			gdcali[i][j].Write(TString::Format(
-				"gds%ld%c", j, "ab"[i]
-			));
-		}
+		gdcali_pow[i].Write(TString::Format("gdp%c", "ab"[i]));
+	}
+	for (size_t i = 0; i < 2; ++i) {
+		gdcali_linear[i].Write(TString::Format("gdl%c", "ab"[i]));
 	}
 	pid.Write("pid");
 	// close files
@@ -667,9 +619,10 @@ int Taf::ReadCsiCalibrateParameters() {
 	}
 	std::string tmp;
 	std::string strip;
-	for (size_t i = 0; i < 32; ++i) {
-		fin >> strip >> csi_calibrate_params_[i][0]
-			>> csi_calibrate_params_[i][1] >> csi_calibrate_params_[i][2];
+	for (size_t i = 0; i < 2; ++i) {
+		fin >> csi_calibrate_params_[i][0]
+			>> csi_calibrate_params_[i][1]
+			>> csi_calibrate_params_[i][2];
 	}
 	std::string version;
 	fin >> tmp >> version;
@@ -684,7 +637,7 @@ int Taf::WriteCsiCalibrateParameters(const char *version) {
 	// calibrate parameters file name
 	TString file_name;
 	file_name.Form(
-		"%s%staf%ucsi-cali-param-%s-strips.txt",
+		"%s%staf%ucsi-cali-param-%s.txt",
 		kGenerateDataPath,
 		kCalibrationDir,
 		index_,
@@ -697,11 +650,9 @@ int Taf::WriteCsiCalibrateParameters(const char *version) {
 			<< file_name << " failed.\n";
 	}
 	for (size_t i = 0; i < 2; ++i) {
-		for (size_t j = 0; j < 16; ++j) {
-			fout << "AB"[i] << j << " " << csi_calibrate_params_[i*16+j][0]
-				<< " " << csi_calibrate_params_[i*16+j][1]
-				<< " " << csi_calibrate_params_[i*16+j][2] << "\n";
-		}
+		fout << csi_calibrate_params_[i][0]
+			<< " " << csi_calibrate_params_[i][1]
+			<< " " << csi_calibrate_params_[i][2] << "\n";
 	}
 	fout << "Version: " << version << "\n";
 	// close file

@@ -79,17 +79,18 @@ const unsigned int vtaf_back_channel[vtaf_num] = {8, 0};
 const std::vector<double> t0_thickness {
 	1010.0, 1504.0, 1501.0, 1534.0, 1532.0, 1540.0
 };
-
 constexpr double t0z[3] = {100.0, 111.76, 123.52};
 
 constexpr unsigned int ppac_num = 3;
-
-
 constexpr double ppac_xz[ppac_num] = {-695.2, -454.2, -275.2};
 constexpr double ppac_yz[ppac_num] = {-689.2, -448.2, -269.2};
 constexpr double all_ppac_xz[4] = {-695.2, -633.7, -454.2, -275.2};
 constexpr double all_ppac_yz[4] = {-689.2, -627.7, -448.2, -269.2};
 constexpr int ppac_change_run = 717;
+
+// thickness of tafd
+constexpr double tafd_thickness[6] = {166.0, 154.0, 158.0, 162.0, 150.0, 164.0};
+
 
 //-----------------------------------------------------------------------------
 //								calibration parameters

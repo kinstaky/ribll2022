@@ -69,7 +69,7 @@ protected:
 
 private:
 	unsigned int index_;
-	double csi_calibrate_params_[32][3];
+	double csi_calibrate_params_[2][3];
 };
 
 }		// namespace ribll
