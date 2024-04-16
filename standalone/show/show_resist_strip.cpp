@@ -252,12 +252,12 @@ int main() {
 		for (int i = 0; i < 3; ++i) {
 			// change positions
 			double ct0x[2], ct0y[2], ctafx, ctafy, cppacx, cppacy;
-			// change 10Be position
-			ct0x[0] = info.be_x[0] + 0.5;
-			ct0y[0] = info.be_y[0] + 0.5;
-			// change 4He position
-			ct0x[1] = info.he_x[0] + 0.5;
-			ct0y[1] = info.he_y[0] + 0.5;
+			// keep 10Be position
+			ct0x[0] = info.be_x[0];
+			ct0y[0] = info.be_y[0];
+			// keep 4He position
+			ct0x[1] = info.he_x[0];
+			ct0y[1] = info.he_y[0];
 			// change 2H position
 			double ctaf_r =
 				102.5/16.0 * (info.d_x_strip + i*0.5) + 32.6;
@@ -271,9 +271,9 @@ int main() {
 			ctafy = ctaf_r * sin(ctaf_phi) + 34.4*sin(mid_phi);
 			// change 14C position
 			cppacx =
-				info.xppac_x[ppac_x_index] + ppac_correct[0][ppac_x_index] + 0.5;
+				info.xppac_x[ppac_x_index] + ppac_correct[0][ppac_x_index];
 			cppacy =
-				info.xppac_y[ppac_y_index] + ppac_correct[1][ppac_y_index] + 0.5;
+				info.xppac_y[ppac_y_index] + ppac_correct[1][ppac_y_index];
 
 			double d_kinetic = info.tafd_energy + pow(
 				(info.csi_channel - csi_param[info.csi_index][2])

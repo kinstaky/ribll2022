@@ -637,6 +637,8 @@ void BuildDssdSsdSlice(
 	const std::vector<ParticleCut> &tail_cuts,
 	std::vector<Slice> &slices
 ) {
+	// check valid, although energy is 0 if is invalid
+	if (layer2.time < -9e4) return;
 	for (int i = 0; i < layer1.hit; ++i) {
 		for (const auto &cut : cuts) {
 			if (cut.cut->IsInside(layer2.energy, layer1.energy[i])) {
@@ -679,6 +681,8 @@ void BuildSsdSlice(
 	const std::vector<ParticleCut> &tail_cuts,
 	std::vector<Slice> &slices
 ) {
+	// check valid, although energy is 0 if is invalid
+	if (layer1.time < -9e4 || layer2.time < -9e4) return;
 	for (const auto &cut : cuts) {
 		if (cut.cut->IsInside(layer2.energy, layer1.energy)) {
 			slices.emplace_back(
@@ -1318,64 +1322,6 @@ int T0::SliceTrack(int supplementary) {
 			used_d1_event = &d1_event;
 			used_d2_event = &d2_event;
 		} else if (supplementary == 1) {
-			// // slices with d1 supplementary events
-			// std::vector<Slice> d1_suppl_slices[5];
-			// // nodes with d1 supplementary events
-			// std::vector<SliceNode> d1_suppl_nodes;
-			// // picked nodes group with d1 supplementary events
-			// std::vector<SliceNode> d1_suppl_group;
-			// // found 10Be and 4He in d1 supplementary group ?
-			// bool d1_suppl_found_behe;
-			// // number of used slices in d1 supplementary group
-			// int d1_suppl_used_slices;
-			// // build slices with d1 supplementary events
-			// BuildSlice(
-			// 	d1_suppl_event, d2_event, d3_event,
-			// 	s1_event, s2_event, s3_event,
-			// 	d1d2_cuts, d1d2_tails,
-			// 	d2d3_cuts, d2d3_tails,
-			// 	d3s1_cuts, d3s1_tails,
-			// 	s1s2_cuts, s1s2_tails,
-			// 	s2s3_cuts, s2s3_tails,
-			// 	d1_suppl_slices
-			// );
-			// // convert to tree structure
-			// BuildSliceTree(d1_suppl_slices, d1_suppl_nodes);
-			// // pick one group
-			// PickSliceGroup(
-			// 	d1_suppl_nodes, d1_suppl_group,
-			// 	d1_suppl_found_behe, d1_suppl_used_slices
-			// );
-
-			// // slices with d2 supplementary events
-			// std::vector<Slice> d2_suppl_slices[5];
-			// // nodes with d2 supplementary events
-			// std::vector<SliceNode> d2_suppl_nodes;
-			// // picked nodes group with d2 supplementary events
-			// std::vector<SliceNode> d2_suppl_group;
-			// // found 10Be and 4He in d2 supplementary group ?
-			// bool d2_suppl_found_behe;
-			// // number of used slices in d2 supplementary group
-			// int d2_suppl_used_slices;
-			// // build slices with d2 supplementary events
-			// BuildSlice(
-			// 	d1_event, d2_suppl_event, d3_event,
-			// 	s1_event, s2_event, s3_event,
-			// 	d1d2_cuts, d1d2_tails,
-			// 	d2d3_cuts, d2d3_tails,
-			// 	d3s1_cuts, d3s1_tails,
-			// 	s1s2_cuts, s1s2_tails,
-			// 	s2s3_cuts, s2s3_tails,
-			// 	d2_suppl_slices
-			// );
-			// // convert to tree structure
-			// BuildSliceTree(d2_suppl_slices, d2_suppl_nodes);
-			// // pick one group
-			// PickSliceGroup(
-			// 	d2_suppl_nodes, d2_suppl_group,
-			// 	d2_suppl_found_behe, d2_suppl_used_slices
-			// );
-
 			// slices with d1 and d2 supplementary events
 			std::vector<Slice> d1d2_suppl_slices[5];
 			// nodes with d1 and d2 supplementary events
@@ -1428,18 +1374,6 @@ int T0::SliceTrack(int supplementary) {
 				size_t max_count = normal_group.size();
 				int max_slices = normal_used_slices;
 
-				// if (
-				// 	d2_suppl_group.size() > max_count
-				// 	|| (
-				// 		d2_suppl_group.size() == max_count
-				// 		&& d2_suppl_used_slices > max_slices
-				// 	)
-				// ) {
-				// 	selected = 2;
-				// 	max_count = d2_suppl_group.size();
-				// 	max_slices = d2_suppl_used_slices;
-				// }
-
 				if (
 					d1d2_suppl_group.size() > max_count
 					|| (
@@ -1451,18 +1385,6 @@ int T0::SliceTrack(int supplementary) {
 					max_count = d1d2_suppl_group.size();
 					max_slices = d1d2_suppl_used_slices;
 				}
-
-				// if (
-				// 	d1_suppl_group.size() > max_count
-				// 	|| (
-				// 		d1_suppl_group.size() == max_count
-				// 		&& d1_suppl_used_slices > max_slices
-				// 	)
-				// ) {
-				// 	selected = 1;
-				// 	max_count = d1_suppl_group.size();
-				// 	max_slices = d1_suppl_used_slices;
-				// }
 			}
 			if (selected == 0) {
 				for (int i = 0; i < 5; ++i) slices[i] = normal_slices[i];
@@ -1471,20 +1393,6 @@ int T0::SliceTrack(int supplementary) {
 				used_d1_event = &d1_event;
 				used_d2_event = &d2_event;
 				++normal_count;
-			// } else if (selected == 1) {
-			// 	for (int i = 0; i < 5; ++i) slices[i] = d1_suppl_slices[i];
-			// 	nodes = d1_suppl_nodes;
-			// 	group = d1_suppl_group;
-			// 	used_d1_event = &d1_suppl_event;
-			// 	used_d2_event = &d2_event;
-			// 	++d1_suppl_count;
-			// } else if (selected == 2) {
-			// 	for (int i = 0; i < 5; ++i) slices[i] = d2_suppl_slices[i];
-			// 	nodes = d2_suppl_nodes;
-			// 	group = d2_suppl_group;
-			// 	used_d1_event = &d1_event;
-			// 	used_d2_event = &d2_suppl_event;
-			// 	++d2_suppl_count;
 			} else {
 				for (int i = 0; i < 5; ++i) slices[i] = d1d2_suppl_slices[i];
 				nodes = d1d2_suppl_nodes;
@@ -1607,10 +1515,13 @@ int T0::SliceTrack(int supplementary) {
 				} else if (layer == 2) {
 					// fill T0S1 information
 					t0_event.ssd_energy[0] = s1_event.energy;
+					t0_event.ssd_time[0] = s1_event.time;
 				} else if (layer == 3) {
 					t0_event.ssd_energy[1] = s2_event.energy;
+					t0_event.ssd_time[1] = s2_event.time;
 				} else if (layer == 4) {
 					t0_event.ssd_energy[2] = s3_event.energy;
+					t0_event.ssd_time[2] = s3_event.time;
 				}
 				node = &(nodes[node->parent]);
 			}

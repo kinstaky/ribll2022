@@ -80,7 +80,7 @@ double QFit(double *x, double *par) {
 
 double QFit3(double *x, double *par) {
 	return par[0] * exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
-		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.5)/par[4], 2.0))
+		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.811)/par[4], 2.0))
 		+ par[5] * exp(-0.5*pow((x[0]-par[6])/par[7], 2.0));
 }
 
@@ -139,10 +139,16 @@ int main() {
 	opt.Branch("good", &good, "good/O");
 
 	// Q value offset
+	// double q_offset[12] = {
+	// 	-0.39, -0.13, 0.21, 0.56,
+	// 	0.49, 0.50, 0.19, 0.29,
+	// 	-0.12, -0.20, -0.39, -0.66
+	// };
+
 	double q_offset[12] = {
-		-0.39, -0.13, 0.21, 0.56,
-		0.49, 0.50, 0.19, 0.29,
-		-0.12, -0.20, -0.39, -0.66
+		-0.46, -0.25, 0.18, 0.49,
+		0.49, 0.55, 0.28, 0.30,
+		-0.04, -0.10, -0.12, -0.64
 	};
 
 	// calibrate parameters
@@ -248,9 +254,11 @@ int main() {
 			+ linear_param[event.csi_index][1] * event.csi_channel;
 		// linear-calibrated 1 Q value
 		linear_q = ThreeBodyProcess(event, linear_csi_energy);
-		// fill to histogram
-		hlqc[event.csi_index].Fill(linear_q);
-		hlqa.Fill(linear_q - q_offset[event.csi_index]);
+		if (good) {
+			// fill to histogram
+			hlqc[event.csi_index].Fill(linear_q);
+			hlqa.Fill(linear_q - q_offset[event.csi_index]);
+		}
 	
 		// power-calibrated CsI energy
 		double power_csi_energy = pow(
@@ -260,8 +268,10 @@ int main() {
 		);
 		// power-calibrated CsI Q value
 		power_q = ThreeBodyProcess(event, power_csi_energy);
-		// fill to histogram
-		hpqa.Fill(power_q - q_offset[event.csi_index]);
+		if (good) {
+			// fill to histogram
+			hpqa.Fill(power_q - q_offset[event.csi_index]);
+		}
 
 		// optimized CsI energy
 		double opt_csi_energy = pow(
@@ -271,8 +281,10 @@ int main() {
 		);
 		// optimized Q value
 		optimized_q = ThreeBodyProcess(event, opt_csi_energy);
-		// fill to histogram
-		hoqa.Fill(optimized_q - q_offset[event.csi_index]);
+		if (good) {
+			// fill to histogram
+			hoqa.Fill(optimized_q - q_offset[event.csi_index]);
+		}
 
 		// fill tree
 		opt.Fill();
@@ -328,8 +340,8 @@ int main() {
 	};
 	// initial value
 	double fit_init_value[9] = {
-		100.0, -18.0, 1.0,
-		120.0, -15.5, 1.0,
+		100.0, -18.2, 1.0,
+		120.0, -15.4, 1.0,
 		40.0, -12.0, 1.0
 	};
 	// loop and fit 4 histograms

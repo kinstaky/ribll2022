@@ -65,6 +65,7 @@ void ThreeBodyInfoEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"be_y_time").c_str(), be_y_time);
 	tree->SetBranchAddress((prefix+"he_x_time").c_str(), he_x_time);
 	tree->SetBranchAddress((prefix+"he_y_time").c_str(), he_y_time);
+	tree->SetBranchAddress((prefix+"ssd_time").c_str(), ssd_time);
 	tree->SetBranchAddress((prefix+"d_x_time").c_str(), &d_x_time);
 	tree->SetBranchAddress((prefix+"d_y_time").c_str(), &d_y_time);
 	tree->SetBranchAddress((prefix+"be_x_strip").c_str(), be_x_strip);
@@ -143,6 +144,7 @@ void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
 	tree->Branch("be_y_time", be_y_time, "beyt[3][2]/D");
 	tree->Branch("he_x_time", he_x_time, "hext[3][2]/D");
 	tree->Branch("he_y_time", he_y_time, "heyt[3][2]/D");
+	tree->Branch("ssd_time", ssd_time, "st[3]/D");
 	tree->Branch("d_x_time", &d_x_time, "dxt/D");
 	tree->Branch("d_y_time", &d_y_time, "dyt/D");
 	tree->Branch("be_x_strip", be_x_strip, "bexs[3][2]/i");

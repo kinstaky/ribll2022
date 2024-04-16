@@ -807,6 +807,10 @@ int main(int argc, char **argv) {
 					return -1;
 				}
 			}
+			// fill SSD time
+			for (int i = 0; i < 3; ++i) {
+				event.ssd_time[i] = t0.ssd_time[i];
+			}
 
 			// fill T0D2 and T0D3 4He result
 			for (int j = 1; j < event.layer[1]+1; ++j) {

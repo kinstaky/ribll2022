@@ -32,6 +32,7 @@ public:
 	double energy[8][3];
 	double time[8][3];
 	double ssd_energy[3];
+	double ssd_time[3];
 	double x[8][3];
 	double y[8][3];
 	double z[8][3];

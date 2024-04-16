@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include <TChain.h>
 #include <TF1.h>
@@ -8,132 +9,42 @@
 #include <TString.h>
 #include <TTree.h>
 #include <Math/Vector3D.h>
+#include <THStack.h>
 
 #include "include/event/threebody_info_event.h"
 #include "include/ppac_track.h"
 
-
 using namespace ribll;
 
-// double pos_param[6][2] = {
-// 	{-3.00068, -0.0174848},
-// 	{0.530552, -4.95597},
-// 	{-0.453959, 1.39616},
-// 	{0.817438, 1.99788},
-// 	{1.37519, -1.14332},
-// 	{2.08862, 3.909}
-// };
 
-double pos_param[6][2] = {
-	{-0.42, 0.05},
-	{0.59, 0.46},
-	{1.22, 0.43},
-	{0.92, -0.46},
-	{0.69, -3.48},
-	{-0.95, 2.11}
+constexpr double tafd_phi_start[6] = {
+	117.6, 57.6, -2.4, -62.4, -122.4, 177.6
 };
 
-// double pos_param[6][2] = {
-// 	{1.77919, 1.34676},
-// 	{1.78847, -2.74042},
-// 	{1.2214, 0.427209},
-// 	{0.921257, -0.460719},
-// 	{0.692692, -3.47688},
-// 	{-0.95645, 2.10895}
-// };
+constexpr double theory_q[4] = {
+	-12.0125, -15.3805, -18.1915, -19.5545
+};
 
 
 /// @brief rebuild threebody reaction process
 /// @param[in] event input event
-/// @param[out] tx reaction point x
-/// @param[out] ty reaction point y
-/// @param[out] be_kinetic 10Be kinetic energy
-/// @param[out] he_kinetic 4He kinetic energy
-/// @param[out] d_kinetic 2H kinetic energy
-/// @param[out] c_kinetic 14C kinetic energy
+/// @param[in] csi_energy CsI energy
+/// @param[in] tx reaction point x
+/// @param[in] ty reaction point y
 /// @returns Q value
 ///
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
-	double &tx,
-	double &ty,
-	double &be_kinetic,
-	double &he_kinetic,
-	double &d_kinetic,
-	double &c_kinetic
+	double csi_energy,
+	double tafx,
+	double tafy
 ) {
-	// 10Be kinematic energy
-	// T0D1 energy
-	be_kinetic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
-	// T0D2 energy
-	be_kinetic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
-	// T0D3 energy
-	if (event.layer[0] > 1) {
-		be_kinetic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
-	}
-	// T0S1 energy
-	if (event.layer[0] > 2) {
-		be_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	}
-	// T0S2 energy
-	if (event.layer[0] > 3) {
-		be_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	}
-	// T0S3 energy
-	if (event.layer[0] > 4) {
-		be_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	}
-
-	// 4He kinematic energy
-	// T0D1 energy
-	he_kinetic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
-	// T0D2 energy
-	he_kinetic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
-	// T0D3 energy
-	if (event.layer[1] > 1) {
-		he_kinetic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
-	}
-	// T0S1 energy
-	if (event.layer[1] > 2) {
-		he_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	}
-	// T0S2 energy
-	if (event.layer[1] > 3) {
-		he_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	}
-	// T0S3 energy
-	if (event.layer[1] > 4) {
-		he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	}
-
-	// 2H kinematic energy
-	d_kinetic = event.tafd_energy + pow(
-		(event.csi_channel - csi_param[event.csi_index][2]) / csi_param[event.csi_index][0],
-		1.0 / csi_param[event.csi_index][1]
-	);
-
-
-	// calculate reaction point
-	double ppac_cx[3], ppac_cy[3];
-	for (int i = 0; i < 3; ++i) {
-		ppac_cx[i] = event.xppac_x[i] - ppac_correct[0][i];
-		ppac_cy[i] = event.xppac_y[i] - ppac_correct[1][i];
-	}
-	TrackPpac(
-		event.xppac_xflag, ppac_xz, ppac_cx,
-		be_kinetic, he_kinetic, d_kinetic,
-		event.be_x[0], event.he_x[0], event.d_x, event.d_y,
-		tx
-	);
-	TrackPpac(
-		event.xppac_yflag, ppac_yz, ppac_cy,
-		be_kinetic, he_kinetic, d_kinetic,
-		event.be_y[0], event.he_y[0], event.d_y, event.d_x,
-		ty
-	);
+	// target point
+	double tx = event.xptx;
+	double ty = event.xpty;
 
 	// 10Be momentum
-	double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
+	double be_momentum = MomentumFromKinetic(mass_10be, event.t0_energy[0]);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
 		event.be_x[0] - tx,
@@ -143,7 +54,7 @@ double ThreeBodyProcess(
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
+	double he_momentum = MomentumFromKinetic(mass_4he, event.t0_energy[1]);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
 		event.he_x[0] - tx,
@@ -152,31 +63,29 @@ double ThreeBodyProcess(
 	);
 	p_he = p_he.Unit() * he_momentum;
 
+	double taf_energy = event.tafd_energy + csi_energy;
 	// 2H momentum
-	double d_momentum = MomentumFromKinetic(mass_2h, d_kinetic);
+	double d_momentum = MomentumFromKinetic(mass_2h, taf_energy);
 	// 2H momentum vector
 	ROOT::Math::XYZVector p_d(
-		event.d_x - tx + pos_param[event.csi_index/2][0],
-		event.d_y - ty + pos_param[event.csi_index/2][1],
+		tafx - tx,
+		tafy - ty,
 		135.0
 	);
 	p_d = p_d.Unit() * d_momentum;
 
 	// beam 14C momentum vector
-	ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
+	ROOT::Math::XYZVector p_beam = p_be + p_he + p_d;
 
-// std::cout << p_be.X() << ", " << p_be.Y() << ", " << p_be.Z() << "\n"
-// 	<< p_he.X() << ", " << p_he.Y() << ", " << p_he.Z() << "\n"
-// 	<< p_d.X() << ", " << p_d.Y() << ", " << p_d.Z() << "\n"
-// 	<< p_c.X() << ", " << p_c.Y() << ", " << p_c.Z() << "\n";
 	// 14C momentum
-	double c_momentum = p_c.R();
+	double beam_momentum = p_beam.R();
 	// 14C kinematic energy
-	c_kinetic =
-		sqrt(pow(c_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
+	double c14_kinetic =
+		sqrt(pow(beam_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
 
 	// three-fold Q value
-	double q = be_kinetic + he_kinetic + d_kinetic - c_kinetic;
+	double q = event.t0_energy[0] + event.t0_energy[1]
+		+ taf_energy - c14_kinetic;
 
 	return q;
 }
@@ -184,39 +93,40 @@ double ThreeBodyProcess(
 
 /// @brief calculate 14C exicted energy
 /// @param[in] event input event
-/// @param[in] be_kinetic 10Be kinetic energy
-/// @param[in] he_kinetic 4He kinetic energy
-/// @param[in] tx reaction point x
-/// @param[in] ty reaction point y
-/// @param[in] excited_10be excited energy of 10Be
+/// @param[in] state 10Be state, 0-ground state, 1-3.5MeV, 2-6MeV, 3-7.5MeV
 /// @returns excited energy of 14C
 ///
 double TwoBodyProcess(
 	const ThreeBodyInfoEvent &event,
-	const double be_kinetic,
-	const double he_kinetic,
-	const double tx,
-	const double ty,
-	const double excited_10be
+	const int state
 ) {
+	double excited_10be = 0.0;
+	if (state == 1) {
+		excited_10be = 3.5;
+	} else if (state == 2) {
+		excited_10be = 6.0;
+	} else if (state == 3) {
+		excited_10be = 7.5;
+	}
+
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(
-		mass_10be + excited_10be, be_kinetic
+		mass_10be + excited_10be, event.t0_energy[0]
 	);
 	// 10Be momentum vector
 	ROOT::Math::XYZVector p_be(
-		event.be_x[0] - tx,
-		event.be_y[0] - ty,
+		event.be_x[0] - event.xptx,
+		event.be_y[0] - event.xpty,
 		100.0
 	);
 	p_be = p_be.Unit() * be_momentum;
 
 	// 4He momentum
-	double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
+	double he_momentum = MomentumFromKinetic(mass_4he, event.t0_energy[1]);
 	// 4He momentum vector
 	ROOT::Math::XYZVector p_he(
-		event.he_x[0] - tx,
-		event.he_y[0] - ty,
+		event.he_x[0] - event.xptx,
+		event.he_y[0] - event.xpty,
 		100.0
 	);
 	p_he = p_he.Unit() * he_momentum;
@@ -227,8 +137,8 @@ double TwoBodyProcess(
 	double c_momentum = p_c.R();
 	// excited 14C total energy
 	double c_energy =
-		(be_kinetic + mass_10be + excited_10be)
-		+ (he_kinetic + mass_4he);
+		(event.t0_energy[0] + mass_10be + excited_10be)
+		+ (event.t0_energy[1] + mass_4he);
 	// excited 14C mass
 	double excited_c_mass = sqrt(
 		pow(c_energy, 2.0) - pow(c_momentum, 2.0)
@@ -237,6 +147,57 @@ double TwoBodyProcess(
 	double excited_14c = excited_c_mass - mass_14c;
 
 	return excited_14c;
+}
+
+
+/// @brief check the Q values and get the state and type  
+/// @param[in] q Q values
+/// @param[out] type -1: invalid, 0:three same values,
+/// 	1:two same values, 2:different values
+/// @returns confirmed state
+///
+int CheckRepresentQ(double *q, int &type) {
+	// check linear Q values
+	double diff[3];
+	int state[3];
+	int counts[4] = {0, 0, 0, 0};
+	// search for closest state
+	for (int i = 0; i < 3; ++i) {
+		diff[i] = q[i] - theory_q[0];
+		state[i] = 0;
+		for (int j = 1; j < 4; ++j) {
+			double t = q[i] - theory_q[j];
+			if (fabs(t) < fabs(diff[i])) {
+				diff[i] = t;
+				state[i] = j;
+			}
+		}
+		// increase counts
+		if (q[i] < -11.0 && q[i] > -20.5) {
+			++counts[state[i]];
+		}
+	}
+	// maximum counts
+	int max_count = counts[0];
+	// state with maximum counts
+	int max_state = 0;
+	for (int i = 1; i < 4; ++i) {
+		if (counts[i] > max_count) {
+			max_count = counts[i];
+			max_state = i;
+		}
+	}
+
+	type = -1;
+	if (max_count == 1) {
+		type = 2;
+	} else if (max_count == 2) {
+		type = 1;
+	} else if (max_count == 3) {
+		type = 0;
+	}
+
+	return max_state;
 }
 
 
@@ -277,380 +238,535 @@ int main() {
 	// setup input branches
 	event.SetupInput(ipt);
 
-	// ipt->AddFriend(
-	// 	"group=tree",
-	// 	TString::Format(
-	// 		"%s%sthreebody-group.root",
-	// 		kGenerateDataPath,
-	// 		kOptimizeDir
-	// 	)
-	// );
-	// double mean;
-	// double sigma;
-	// ipt->SetBranchAddress("group.q_mean", &mean);
-	// ipt->SetBranchAddress("group.q_sigma", &sigma);
-
 	// simulated file to get efficiency
-	TString simulate_file_name = TString::Format(
-		"%s%sdetect.root",
+	TString efficiency_file_name = TString::Format(
+		"%s%sefficiency-0001.root",
 		kGenerateDataPath,
 		kSimulateDir
 	);
 	// simulate file
-	TFile simulate_file(simulate_file_name, "read");
-	TGraph *eff0 = (TGraph*)simulate_file.Get("gef0");
-	TGraph *eff1 = (TGraph*)simulate_file.Get("gef1");
-	TGraph *eff2 = (TGraph*)simulate_file.Get("gef2");
+	TFile efficiency_file(efficiency_file_name, "read");
+	TGraph *geff[3];
+	for (int i = 0; i < 3; ++i) {
+		geff[i] = (TGraph*)efficiency_file.Get(TString::Format("g%d", i));
+	}
+	if (!geff[0] || !geff[1] || !geff[2]) {
+		std::cerr << "Error: Get efficiency graph from "
+			<< efficiency_file_name << " failed.\n";
+	}
 
 	// output file name
-	TString output_file_name;
-	output_file_name.Form(
+	TString output_file_name = TString::Format(
 		"%s%sthreebody.root",
 		kGenerateDataPath,
 		kSpectrumDir
 	);
 	// output file
 	TFile output_file(output_file_name, "recreate");
-	// histogram of Q value
-	TH1F hist_q("hq", "Q value", 60, -23, -8);
-	hist_q.SetLineColor(kBlack);
-	// histogram of Q value seperated by CsI index
-	std::vector<TH1F> sep_hist_q;
-	for (int i = 0; i < 12; ++i) sep_hist_q.emplace_back(
-		TString::Format("hq%d", i), "Q", 60, -23, -8
-	);
-	// histogram of 14C decay to all state of 10Be
-	TH1F c_spec_all("hsca", "spectrum of 14C", 100, 10, 40);
+
 	// spectrum of 14C decay to 10Be ground state
-	TH1F c_spec_0("hsc0", "spectrum of 14C to 10Be ground state", 100, 12, 32);
-	// spectrum of 14C decay to 10Be 3.5 MeV state
-	TH1F c_spec_1("hsc1", "spectrum of 14C to 10Be 3.3MeV state", 100, 12, 32);
-	// spectrum of 14C decay to 10Be 6 MeV state
-	TH1F c_spec_2("hsc2", "spectrum of 14C to 10Be 6MeV state", 100, 12, 32);
-	// spectrum of 14C decay to 10Be 7.5 MeV state
-	TH1F c_spec_3("hsc3", "spectrum of 14C to 10Be 7.5MeV state", 100, 12, 32);
+	TH1F c_spec_0(
+		"hsc0", "spectrum of 14C to 10Be ground state",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 3.368 MeV state
+	TH1F c_spec_1(
+		"hsc1", "spectrum of 14C to 10Be 3.368MeV state",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 6.179 MeV state
+	TH1F c_spec_2(
+		"hsc2", "spectrum of 14C to 10Be 6.179MeV state",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 7.542 MeV state
+	TH1F c_spec_3(
+		"hsc3", "spectrum of 14C to 10Be 7.542MeV state",
+		100, 12, 32
+	);
 	// spectrum in the range of hjx's article
 	TH1F hjx_spectrum0("hjx0", "spectrum", 35, 12, 19);
 	// sepectrum of first excited state in hjx's article range
 	TH1F hjx_spectrum1("hjx1", "spectrum", 45, 16, 25);
 	// spectrum of 6MeV excited state in Baba's article predicted range
 	TH1F sigma_predicted_spectrum2("baba2", "spectrum", 55, 19, 30);
-	hjx_spectrum0.SetLineColor(kBlack);
-	hjx_spectrum1.SetLineColor(kBlack);
-	sigma_predicted_spectrum2.SetLineColor(kBlack);
-	// corrected efficiency
-	TGraph gefc[3];
+	// hjx_spectrum0.SetLineColor(kBlack);
+	// hjx_spectrum1.SetLineColor(kBlack);
+	// sigma_predicted_spectrum2.SetLineColor(kBlack);
+
+	// spectrum of 14C decay to 10Be ground state, represent events
+	TH1F c_rep_spec_0(
+		"hrsc0", "spectrum of 14C to 10Be ground state (represent)",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 3.368 MeV state, represent events
+	TH1F c_rep_spec_1(
+		"hrsc1", "spectrum of 14C to 10Be 3.368MeV state (represent)",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 6.179 MeV state, represent events
+	TH1F c_rep_spec_2(
+		"hrsc2", "spectrum of 14C to 10Be 6.179MeV state (represent)",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 7.542 MeV state, represent events
+	TH1F c_rep_spec_3(
+		"hrsc3", "spectrum of 14C to 10Be 7.542MeV state (represent)",
+		100, 12, 32
+	);
+	// spectrum in the range of hjx's article, represent events
+	TH1F hjx_rep_spectrum0("hjxr0", "spectrum", 35, 12, 19);
+	// sepectrum of 3.368 MeV state in hjx's article range, represent events
+	TH1F hjx_rep_spectrum1("hjxr1", "spectrum", 45, 16, 25);
+	// spectrum of 6.179 MeV state in Baba's article predicted range, represent
+	TH1F sigma_predicted_rep_spectrum2("babar2", "spectrum", 55, 19, 30);
+	// hjx_rep_spectrum0.SetLineColor(kBlack);
+	// hjx_rep_spectrum1.SetLineColor(kBlack);
+	// sigma_predicted_rep_spectrum2.SetLineColor(kBlack);
+
+	// spectrum of 14C decay to 10Be ground state, efficiency corrected
+	TH1F c_rep_spec_0_corr(
+		"hrsc0c",
+		"spectrum of 14C to 10Be ground state (represent, efficiency)",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 3.368 MeV state, efficiency corrected
+	TH1F c_rep_spec_1_corr(
+		"hrsc1c",
+		"spectrum of 14C to 10Be 3.368MeV state (represent, efficiency)",
+		100, 12, 32
+	);
+	// spectrum of 14C decay to 10Be 6.179 MeV state, efficiency correted
+	TH1F c_rep_spec_2_corr(
+		"hrsc2c",
+		"spectrum of 14C to 10Be 6.179MeV state (represent, efficiency)",
+		100, 12, 32
+	);
+	// multiplied efficiency to show in the same graph with spectrum  
+	TGraph cgeff[3];
+
+
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
-	double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
-	double threebody_q;
+	double linear_q[3], power_q[3], opt_q[3];
+	// traditional state
+	int linear_state, power_state, opt_state;
+	// represent state
+	int linear_represent_state, power_represent_state, opt_represent_state;
+	int linear_type, power_type, opt_type;
 	int be_state;
-	double c_excited;
-	bool ppac_valid;
+	double c_excited, c_possible_excited[4];
+	int ppac_flag, taf_flag, bind, hole;
 	// setup output branches
-	opt.Branch("be_kinetic", &be_kinetic, "bek/D");
-	opt.Branch("he_kinetic", &he_kinetic, "hek/D");
-	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
-	opt.Branch("c_kinetic", &c_kinetic, "ck/D");
-	opt.Branch("q", &threebody_q, "q/D");
+	opt.Branch("linear_q", linear_q, "lq[3]/D");
+	opt.Branch("power_q", power_q, "pq[3]/D");
+	opt.Branch("opt_q", opt_q, "oq[3]/D");
+	opt.Branch("linear_rep_state", &linear_represent_state, "lrstate/I");
+	opt.Branch("power_rep_state", &power_represent_state, "prstate/I");
+	opt.Branch("opt_rep_state", &opt_represent_state, "orstate/I");
+	opt.Branch("linear_type", &linear_type, "ltype/I");
+	opt.Branch("power_type", &power_type, "ptype/I");
+	opt.Branch("opt_type", &opt_type, "otype/I");
+	opt.Branch("linear_state", &linear_state, "lstate/I");	
+	opt.Branch("power_state", &power_state, "pstate/I");
+	opt.Branch("opt_state", &opt_state, "ostate/I");
 	opt.Branch("be_state",  &be_state, "state/I");
 	opt.Branch("c_excited", &c_excited, "cex/D");
-	// opt.Branch("mean", &mean, "mean/D");
-	// opt.Branch("sigma", &sigma, "sigma/D");
-	opt.Branch("ppac_valid", &ppac_valid, "pvalid/O");
+	opt.Branch("c_possible_excited", c_possible_excited, "cpex[4]/D");
+	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
+	opt.Branch("taf_flag", &taf_flag, "tflag/I");
+	opt.Branch("bind", &bind, "bind/I");
+	opt.Branch("hole", &hole, "hole/I");
 
+
+	// Q value correct
 	constexpr double q_correct[12] = {
-		0.5, 0.0, -0.6, -0.6, -0.8, -0.6,
-		-0.2, -0.5, 0.0, 0.0, 0.0, -0.3
+		-0.46, -0.25, 0.18, 0.49,
+		0.49, 0.55, 0.28, 0.30,
+		-0.04, -0.10, -0.12, -0.64
 	};
+
+	// calibrate parameters
+	double linear_param[12][2];
+	double power_param[12][3];
+
+	// read linear calibrate parameters
+	// loop TAFs
+	for (int index = 0; index < 6; ++index) {
+		// file name   
+		TString file_name = TString::Format(
+			"%s%staf%dcsi-cali-param-2H-linear.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			index
+		);
+		// input stream
+		std::ifstream linear_fin(file_name.Data());
+		if (!linear_fin.good()) {
+			std::cerr << "Error: Get parameters from file "
+				<< file_name << " failed.\n";
+			return -1;
+		}
+		linear_fin >> linear_param[index*2][0] >> linear_param[index*2][1]
+			>> linear_param[index*2+1][0] >> linear_param[index*2+1][1];
+		// close files
+		linear_fin.close();
+	}
+	// show read parameteres
+	std::cout << "Read linear calibrate parameters\n";
+	for (int i = 0; i < 12; ++i) {
+		std::cout << linear_param[i][0] << ", "
+			<< linear_param[i][1] << "\n";
+	}
+
+	// read power calibrate parameters
+	// loop TAFs
+	for (int index = 0; index < 6; ++index) {
+		// file name   
+		TString file_name = TString::Format(
+			"%s%staf%dcsi-cali-param-2H.txt",
+			kGenerateDataPath,
+			kCalibrationDir,
+			index
+		);
+		// input stream
+		std::ifstream power_fin(file_name.Data());
+		if (!power_fin.good()) {
+			std::cerr << "Error: Get parameters from file "
+				<< file_name << " failed.\n";
+			return -1;
+		}
+		for (int i = 0; i < 2; ++i) {
+			power_fin >> power_param[index*2+i][0]
+				>> power_param[index*2+i][1]
+				>> power_param[index*2+i][2];
+		}
+		// close files
+		power_fin.close();
+	}
+	// show read parameteres
+	std::cout << "Read power calibrate parameters 2\n";
+	for (int i = 0; i < 12; ++i) {
+		std::cout << power_param[i][0] << ", "
+			<< power_param[i][1] << ", "
+			<< power_param[i][2] << "\n";
+	}
 
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 		ipt->GetEntry(entry);
 
-		// check PPAC flags
-		ppac_valid = true;
-		if (event.xppac_xflag == 0 || event.xppac_yflag == 0) {
-			ppac_valid = false;
-			opt.Fill();
-			continue;
+		// get status
+		taf_flag = event.taf_flag;
+		ppac_flag = event.ppac_flag;
+		bind = event.bind;
+		hole = 0;
+		hole |= event.hole[0] ? 0x1 : 0;
+		hole |= event.hole[1] ? 0x2 : 0;
+
+		// loop to get different TAF X and Y
+		for (int i = 0; i < 3; ++i) {
+			// change 2H position
+			double ctaf_r = 102.5/16.0 * (event.d_x_strip + i*0.5) + 32.6;
+			double ctaf_phi =
+				-55.2/8.0 * (event.d_y_strip+0.5)
+				+ tafd_phi_start[event.csi_index/2];
+			ctaf_phi *= TMath::DegToRad();
+			double mid_phi =
+				(tafd_phi_start[event.csi_index/2] - 27.6) * TMath::DegToRad();
+			// get changed position
+			double ctafx = ctaf_r * cos(ctaf_phi) + 34.4*cos(mid_phi);
+			double ctafy = ctaf_r * sin(ctaf_phi) + 34.4*sin(mid_phi);
+
+			// get Q values
+			// linear CsI energy
+			double linear_csi_energy =
+				linear_param[event.csi_index][0]
+				+ linear_param[event.csi_index][1] * event.csi_channel;
+			// linear Q value
+			linear_q[i] = ThreeBodyProcess(event, linear_csi_energy, ctafx, ctafy);
+			linear_q[i] -= q_correct[event.csi_index];
+
+			// power CsI energy
+			double power_csi_energy = pow(
+				(event.csi_channel - power_param[event.csi_index][2])
+					/ power_param[event.csi_index][0],
+				1.0 / power_param[event.csi_index][1]
+			);
+			// power Q value
+			power_q[i] = ThreeBodyProcess(event, power_csi_energy, ctafx, ctafy);
+			power_q[i] -= q_correct[event.csi_index];
+
+			// optimized CsI energy
+			double opt_csi_energy = pow(
+				(event.csi_channel - csi_param[event.csi_index][2])
+					/ csi_param[event.csi_index][0],
+				1.0 / csi_param[event.csi_index][1] 
+			);
+			// optimized Q value
+			opt_q[i] = ThreeBodyProcess(event, opt_csi_energy, ctafx, ctafy);
+			opt_q[i] -= q_correct[event.csi_index];
 		}
 
-		// reaction point
-		double tx, ty;
-		threebody_q = ThreeBodyProcess(
-			event, tx, ty,
-			be_kinetic, he_kinetic, d_kinetic, c_kinetic
-		);
 
-		// q value correct
-		threebody_q += q_correct[event.csi_index];
+		// get state and type
+		linear_represent_state = CheckRepresentQ(linear_q, linear_type);
+		power_represent_state = CheckRepresentQ(power_q, power_type);
+		opt_represent_state = CheckRepresentQ(opt_q, opt_type);
 
-		// if (threebody_q > -13.5 && threebody_q < -10) be_state = 0;
-		// else if (threebody_q > -16 && threebody_q < -14.5) be_state = 1;
-		// else if (threebody_q > -19 && threebody_q < -16.5) be_state = 2;
-		// else be_state = -1;
 
-		if (threebody_q > -14 && threebody_q < -10) be_state = 0;
-		else if (threebody_q > -16.5 && threebody_q < -14.5) be_state = 1;
-		else if (threebody_q > -19 && threebody_q < -17) be_state = 2;
-		else be_state = -1;
+		if (linear_q[1] < -11 && linear_q[1] > -13.5) linear_state = 0;
+		else if (linear_q[1] < -14.5 && linear_q[1] > -16.5) linear_state = 1;
+		else if (linear_q[1] < -17 && linear_q[1] > -19) linear_state = 2;
+		else if (linear_q[1] < -19 && linear_q[1] > -20.5) linear_state = 3;
+		else linear_state = -1;
 
-		double be_excited = 0.0;
-		if (be_state == 1) be_excited = 3.368;
-		else if (be_state == 2) be_excited = 6.179;
+		if (power_q[1] < -11 && power_q[1] > -13.5) power_state = 0;
+		else if (power_q[1] < -14.5 && power_q[1] > -16.5) power_state = 1;
+		else if (power_q[1] < -17 && power_q[1] > -19) power_state = 2;
+		else if (power_q[1] < -19 && power_q[1] > -20.5) power_state = 3;
+		else power_state = -1;
 
-		c_excited = TwoBodyProcess(
-			event, be_kinetic, he_kinetic,
-			tx, ty, be_excited
-		);
+		if (opt_q[1] < -11 && opt_q[1] > -13.5) opt_state = 0;
+		else if (opt_q[1] < -14.5 && opt_q[1] > -16.5) opt_state = 1;
+		else if (opt_q[1] < -17 && opt_q[1] > -19) opt_state = 2;
+		else if (opt_q[1] < -19 && opt_q[1] > -20.5) opt_state = 3;
+		else opt_state = -1;
 
-		// if (sigma < 0.2) {
-			hist_q.Fill(threebody_q);
-			sep_hist_q[event.csi_index].Fill(threebody_q);
-			c_spec_all.Fill(c_excited);
-			if (be_state == 0){
+		be_state = power_represent_state;
+		c_excited = TwoBodyProcess(event, be_state);
+		
+		for (int i = 0; i < 4; ++i) {
+			c_possible_excited[i] = TwoBodyProcess(event, i);
+		}
+
+		if (
+			taf_flag == 0
+			&& (ppac_flag & 1) == 1
+			&& bind == 0
+			&& hole == 0
+		) {
+			if (power_state == 0){
 				c_spec_0.Fill(c_excited);
 				hjx_spectrum0.Fill(c_excited);
-			} else if (be_state == 1) {
+			} else if (power_state == 1) {
 				c_spec_1.Fill(c_excited);
 				hjx_spectrum1.Fill(c_excited);
-			} else if (be_state == 2) {
+			} else if (power_state == 2) {
 				c_spec_2.Fill(c_excited);
 				sigma_predicted_spectrum2.Fill(c_excited);
-			} else if (be_state == 3) {
+			} else if (power_state == 3) {
 				c_spec_3.Fill(c_excited);
 			}
-		// }
 
+			if (be_state == 0){
+				c_rep_spec_0.Fill(c_excited);
+				hjx_rep_spectrum0.Fill(c_excited);
+			} else if (be_state == 1) {
+				c_rep_spec_1.Fill(c_excited);
+				hjx_rep_spectrum1.Fill(c_excited);
+			} else if (be_state == 2) {
+				c_rep_spec_2.Fill(c_excited);
+				sigma_predicted_rep_spectrum2.Fill(c_excited);
+			} else if (be_state == 3) {
+				c_rep_spec_3.Fill(c_excited);
+			}
+		}
+
+		// fill to tree
 		opt.Fill();
 	}
 
-
-	// fit total Q spectrum
-	Spectrum total_q_spectrum(4);
-	// fit histograms
-	TF1 fit_q_spectrum("fq", total_q_spectrum, -23, -8, 12);
-	double fit_q_initial_parameters[12] = {
-		20.0, -11.5, 1.0,
-		60.0, -15.0, 1.0,
-		50.0, -17.5, 1.0,
-		10.0, -19.0, 0.5
+	// efficiency corrected spectrum
+	TH1F *spec_rep[3] = {&c_rep_spec_0, &c_rep_spec_1, &c_rep_spec_2};
+	TH1F *spec_corr[3] = {
+		&c_rep_spec_0_corr, &c_rep_spec_1_corr, &c_rep_spec_2_corr
 	};
-	fit_q_spectrum.SetParameters(fit_q_initial_parameters);
-	// set limits to A
-	fit_q_spectrum.SetParLimits(0, 0.1, 100.0);
-	fit_q_spectrum.SetParLimits(3, 0.1, 100.0);
-	fit_q_spectrum.SetParLimits(6, 0.1, 100.0);
-	fit_q_spectrum.SetParLimits(9, 1.0, 100.0);
-	// set limits to mean
-	fit_q_spectrum.SetParLimits(1, -13.0, -11.0);
-	fit_q_spectrum.SetParLimits(4, -16.0, -13.5);
-	fit_q_spectrum.SetParLimits(7, -18.5, -16.5);
-	fit_q_spectrum.SetParLimits(10, -21.0, -19.0);
-	// set limits to sigma
-	// fit_q_spectrum.SetParLimits(11, 0.1, 10.0);
-	fit_q_spectrum.SetNpx(1000);
-	hist_q.Fit(&fit_q_spectrum, "R+");
-
-	double q_parameters[12];
-	fit_q_spectrum.GetParameters(q_parameters);
-	TF1 *fit_q_spectrums[4];
-	for (int i = 0; i < 4; ++i) {
-		fit_q_spectrums[i] = new TF1(
-			TString::Format("fq%d", i), "gaus", -23, -8
-		);
-		fit_q_spectrums[i]->SetParameters(q_parameters+3*i);
-		fit_q_spectrums[i]->SetLineColor(kBlue);
-		fit_q_spectrums[i]->SetNpx(200);
-		hist_q.GetListOfFunctions()->Add(fit_q_spectrums[i]);
-	}
-
-	std::cout << "Fit Q spectrum result:\n";
-	for (int i = 0; i < 4; ++i) {
-		std::cout << q_parameters[i*3] << " " << q_parameters[i*3+1]
-			<< " " << q_parameters[i*3+2] << "\n";
+	for (int i = 0; i < 3; ++i) {
+		int bins = spec_rep[i]->GetNbinsX();
+		for (int bin = 1; bin <= bins; ++bin) {
+			spec_corr[i]->SetBinContent(
+				bin,
+				spec_rep[i]->GetBinContent(bin)
+				/ geff[i]->Eval(spec_rep[i]->GetBinCenter(bin)) 
+			);
+		}
 	}
 
 
 	// fit hjx range spectrum
-	Spectrum hjx_peaks(7);
+	Spectrum hjx_peaks(6);
 	// fitting function
 	TF1 fit_hjx("fhjx", hjx_peaks, 12, 19, 21);
-	double fit_hjx_initial_parameters[21] = {
-		2.0, 13.6, 0.05,
-		5.8, 14.3, 0.08,
-		6.0, 14.9, 0.05,
-		10.0, 15.7, 0.05,
-		5.0, 16.0, 0.1,
-		3.0, 16.9, 0.1,
-		5.0, 18.0, 0.4
+	double fit_hjx_initial_parameters[18] = {
+		10.0, 13.6, 0.1,
+		20.0, 14.9, 0.05,
+		20.0, 15.6, 0.05,
+		10.0, 16.4, 0.1,
+		10.0, 17.3, 0.1,
+		20.0, 18.2, 0.4
 	};
 
 	fit_hjx.SetParameters(fit_hjx_initial_parameters);
 
-	fit_hjx.SetParLimits(0, 1.0, 3.0);
+	// fit_hjx.SetParLimits(0, 1.0, 3.0);
 	fit_hjx.SetParLimits(1, 13.4, 14.0);
-	fit_hjx.SetParLimits(2, 0.0, 0.2);
+	fit_hjx.SetParLimits(2, 0.0, 1.0);
 
-	fit_hjx.SetParLimits(3, 2.0, 10.0);
-	fit_hjx.SetParLimits(4, 14.1, 14.7);
-	fit_hjx.SetParLimits(5, 0.0, 0.2);
+	// fit_hjx.SetParLimits(3, 2.0, 10.0);
+	fit_hjx.SetParLimits(4, 14.5, 15.2);
+	fit_hjx.SetParLimits(5, 0.0, 0.4);
 
-	fit_hjx.SetParLimits(6, 2.0, 10.0);
-	fit_hjx.SetParLimits(7, 14.8, 15.2);
-	fit_hjx.SetParLimits(8, 0.0, 0.4);
+	// fit_hjx.SetParLimits(6, 2.0, 30.0);
+	fit_hjx.SetParLimits(7, 15.2, 16.0);
+	fit_hjx.SetParLimits(8, 0.0, 0.2);
 
-	fit_hjx.SetParLimits(9, 2.0, 30.0);
-	fit_hjx.SetParLimits(10, 15.3, 15.9);
-	fit_hjx.SetParLimits(11, 0.0, 0.2);
+	// fit_hjx.SetParLimits(9, 0.0, 10.0);
+	fit_hjx.SetParLimits(10, 15.9, 16.7);
+	fit_hjx.SetParLimits(11, 0.0, 0.25);
 
-	fit_hjx.SetParLimits(12, 0.0, 10.0);
-	fit_hjx.SetParLimits(13, 15.9, 16.4);
-	fit_hjx.SetParLimits(14, 0.0, 0.25);
+	// fit_hjx.SetParLimits(12, 0.0, 10.0);
+	fit_hjx.SetParLimits(13, 16.7, 17.6);
+	fit_hjx.SetParLimits(14, 0.0, 0.15);
 
-	fit_hjx.SetParLimits(15, 0.0, 10.0);
-	fit_hjx.SetParLimits(16, 16.5, 17.2);
-	fit_hjx.SetParLimits(17, 0.0, 0.15);
-
-	fit_hjx.SetParLimits(18, 0.0, 10.0);
-	fit_hjx.SetParLimits(19, 17.6, 18.6);
-	fit_hjx.SetParLimits(20, 0.0, 1.0);
+	// fit_hjx.SetParLimits(15, 0.0, 10.0);
+	fit_hjx.SetParLimits(16, 17.6, 18.6);
+	fit_hjx.SetParLimits(17, 0.0, 1.0);
 
 	fit_hjx.SetNpx(1000);
-	hjx_spectrum0.Fit(&fit_hjx, "R+");
-	double hjx_final_parameters[21];
+	hjx_rep_spectrum0.Fit(&fit_hjx, "R+");
+	double hjx_final_parameters[18];
 	fit_hjx.GetParameters(hjx_final_parameters);
-	TF1 *fit_hjxs[7];
-	for (int i = 0; i < 7; ++i) {
+	TF1 *fit_hjxs[6];
+	for (int i = 0; i < 6; ++i) {
 		fit_hjxs[i] = new TF1(
 			TString::Format("fhjx0%d", i), "gaus", 12, 19
 		);
 		fit_hjxs[i]->SetParameters(hjx_final_parameters+3*i);
 		fit_hjxs[i]->SetLineColor(kBlue);
 		fit_hjxs[i]->SetNpx(200);
-		hjx_spectrum0.GetListOfFunctions()->Add(fit_hjxs[i]);
+		hjx_rep_spectrum0.GetListOfFunctions()->Add(fit_hjxs[i]);
 	}
 
 	std::cout << "Fit hjx spectrum result:\n";
-	for (int i = 0; i < 7; ++i) {
+	for (int i = 0; i < 6; ++i) {
 		std::cout << hjx_final_parameters[i*3] << " " << hjx_final_parameters[i*3+1]
 			<< " " << hjx_final_parameters[i*3+2] << "\n";
 	}
 
 
 
-	// first excited state
-	Spectrum first_peaks(3);
-	// fitting function
-	TF1 fit_hjx1("fhjx1", first_peaks, 16, 19, 9);
-	double fit_hjx1_initial_parameters[9] = {
-		10.0, 17.3, 0.08,
-		5.0, 17.9, 0.1,
-		15.0, 18.5, 0.1,
-	};
+	// // first excited state
+	// Spectrum first_peaks(3);
+	// // fitting function
+	// TF1 fit_hjx1("fhjx1", first_peaks, 16, 19, 9);
+	// double fit_hjx1_initial_parameters[9] = {
+	// 	10.0, 17.3, 0.08,
+	// 	5.0, 17.9, 0.1,
+	// 	15.0, 18.5, 0.1,
+	// };
 
-	fit_hjx1.SetParameters(fit_hjx1_initial_parameters);
+	// fit_hjx1.SetParameters(fit_hjx1_initial_parameters);
 
-	fit_hjx1.SetParLimits(0, 2.0, 20.0);
-	fit_hjx1.SetParLimits(1, 17.0, 17.5);
-	fit_hjx1.SetParLimits(2, 0.0, 0.2);
+	// fit_hjx1.SetParLimits(0, 2.0, 20.0);
+	// fit_hjx1.SetParLimits(1, 17.0, 17.5);
+	// fit_hjx1.SetParLimits(2, 0.0, 0.2);
 
-	fit_hjx1.SetParLimits(3, 2.0, 20.0);
-	fit_hjx1.SetParLimits(4, 17.2, 18.0);
-	fit_hjx1.SetParLimits(5, 0.0, 0.4);
+	// fit_hjx1.SetParLimits(3, 2.0, 20.0);
+	// fit_hjx1.SetParLimits(4, 17.2, 18.0);
+	// fit_hjx1.SetParLimits(5, 0.0, 0.4);
 
-	fit_hjx1.SetParLimits(6, 2.0, 30.0);
-	fit_hjx1.SetParLimits(7, 18.0, 19.0);
-	fit_hjx1.SetParLimits(8, 0.0, 0.4);
+	// fit_hjx1.SetParLimits(6, 2.0, 30.0);
+	// fit_hjx1.SetParLimits(7, 18.0, 19.0);
+	// fit_hjx1.SetParLimits(8, 0.0, 0.4);
 
 
-	fit_hjx1.SetNpx(1000);
-	hjx_spectrum1.Fit(&fit_hjx1, "R+");
-	double hjx1_final_parameters[9];
-	fit_hjx1.GetParameters(hjx1_final_parameters);
-	TF1 *fit_hjxs1[3];
+	// fit_hjx1.SetNpx(1000);
+	// hjx_spectrum1.Fit(&fit_hjx1, "R+");
+	// double hjx1_final_parameters[9];
+	// fit_hjx1.GetParameters(hjx1_final_parameters);
+	// TF1 *fit_hjxs1[3];
+	// for (int i = 0; i < 3; ++i) {
+	// 	fit_hjxs1[i] = new TF1(
+	// 		TString::Format("fhjx1%d", i), "gaus", 16, 19
+	// 	);
+	// 	fit_hjxs1[i]->SetParameters(hjx1_final_parameters+3*i);
+	// 	fit_hjxs1[i]->SetLineColor(kBlue);
+	// 	fit_hjxs1[i]->SetNpx(200);
+	// 	hjx_spectrum1.GetListOfFunctions()->Add(fit_hjxs1[i]);
+	// }
+
+	// std::cout << "Fit hjx spectrum first excited result:\n";
+	// for (int i = 0; i < 3; ++i) {
+	// 	std::cout << hjx1_final_parameters[i*3] << " " << hjx1_final_parameters[i*3+1]
+	// 		<< " " << hjx1_final_parameters[i*3+2] << "\n";
+	// }
+
+
+
+	// // 6MeV excited state
+	// Spectrum second_peaks(3);
+	// // fitting function
+	// TF1 fit_baba2("fbaba2", second_peaks, 21, 30, 9);
+	// double fit_baba2_initial_parameters[9] = {
+	// 	20.0, 21.4, 0.05,
+	// 	20.0, 22.2, 0.05,
+	// 	10.0, 23.6, 0.2
+	// };
+
+	// fit_baba2.SetParameters(fit_baba2_initial_parameters);
+
+	// fit_baba2.SetParLimits(0, 2.0, 50.0);
+	// fit_baba2.SetParLimits(1, 21.0, 22.0);
+	// fit_baba2.SetParLimits(2, 0.0, 1.0);
+
+	// fit_baba2.SetParLimits(3, 2.0, 50.0);
+	// fit_baba2.SetParLimits(4, 21.8, 23.0);
+	// fit_baba2.SetParLimits(5, 0.0, 1.0);
+
+	// fit_baba2.SetParLimits(6, 0.0, 50.0);
+	// fit_baba2.SetParLimits(7, 23.0, 25.0);
+	// fit_baba2.SetParLimits(8, 0.0, 1.0);
+
+
+	// fit_baba2.SetNpx(1000);
+	// sigma_predicted_spectrum2.Fit(&fit_baba2, "R+");
+	// double baba2_final_parameters[9];
+	// fit_baba2.GetParameters(baba2_final_parameters);
+	// TF1 *fit_babas2[3];
+	// for (int i = 0; i < 3; ++i) {
+	// 	fit_babas2[i] = new TF1(
+	// 		TString::Format("fbaba2%d", i), "gaus", 21, 30
+	// 	);
+	// 	fit_babas2[i]->SetParameters(baba2_final_parameters+3*i);
+	// 	fit_babas2[i]->SetLineColor(kBlue);
+	// 	fit_babas2[i]->SetNpx(200);
+	// 	sigma_predicted_spectrum2.GetListOfFunctions()->Add(fit_babas2[i]);
+	// }
+
+	// std::cout << "Fit predicted sigma bond spectrum result:\n";
+	// for (int i = 0; i < 3; ++i) {
+	// 	std::cout << baba2_final_parameters[i*3] << " " << baba2_final_parameters[i*3+1]
+	// 		<< " " << baba2_final_parameters[i*3+2] << "\n";
+	// }
+
+	const double energy_base[3] = {12.02, 15.39, 18.20};
+	const double ratio[3] = {100.0, 150.0, 150.0};
 	for (int i = 0; i < 3; ++i) {
-		fit_hjxs1[i] = new TF1(
-			TString::Format("fhjx1%d", i), "gaus", 16, 19
-		);
-		fit_hjxs1[i]->SetParameters(hjx1_final_parameters+3*i);
-		fit_hjxs1[i]->SetLineColor(kBlue);
-		fit_hjxs1[i]->SetNpx(200);
-		hjx_spectrum1.GetListOfFunctions()->Add(fit_hjxs1[i]);
+		for (int j = 0; j < 100; ++j) {
+			double e = energy_base[i] + 0.2 * j;
+			cgeff[i].AddPoint(
+				e, geff[i]->Eval(e) * ratio[i]
+			);
+		}
 	}
 
-	std::cout << "Fit hjx spectrum first excited result:\n";
-	for (int i = 0; i < 3; ++i) {
-		std::cout << hjx1_final_parameters[i*3] << " " << hjx1_final_parameters[i*3+1]
-			<< " " << hjx1_final_parameters[i*3+2] << "\n";
-	}
-
-
-
-	// 6MeV excited state
-	Spectrum second_peaks(3);
-	// fitting function
-	TF1 fit_baba2("fbaba2", second_peaks, 21, 30, 9);
-	double fit_baba2_initial_parameters[9] = {
-		20.0, 21.4, 0.05,
-		20.0, 22.2, 0.05,
-		10.0, 23.6, 0.2
-	};
-
-	fit_baba2.SetParameters(fit_baba2_initial_parameters);
-
-	fit_baba2.SetParLimits(0, 2.0, 50.0);
-	fit_baba2.SetParLimits(1, 21.0, 22.0);
-	fit_baba2.SetParLimits(2, 0.0, 1.0);
-
-	fit_baba2.SetParLimits(3, 2.0, 50.0);
-	fit_baba2.SetParLimits(4, 21.8, 23.0);
-	fit_baba2.SetParLimits(5, 0.0, 1.0);
-
-	fit_baba2.SetParLimits(6, 0.0, 50.0);
-	fit_baba2.SetParLimits(7, 23.0, 25.0);
-	fit_baba2.SetParLimits(8, 0.0, 1.0);
-
-
-	fit_baba2.SetNpx(1000);
-	sigma_predicted_spectrum2.Fit(&fit_baba2, "R+");
-	double baba2_final_parameters[9];
-	fit_baba2.GetParameters(baba2_final_parameters);
-	TF1 *fit_babas2[3];
-	for (int i = 0; i < 3; ++i) {
-		fit_babas2[i] = new TF1(
-			TString::Format("fbaba2%d", i), "gaus", 21, 30
-		);
-		fit_babas2[i]->SetParameters(baba2_final_parameters+3*i);
-		fit_babas2[i]->SetLineColor(kBlue);
-		fit_babas2[i]->SetNpx(200);
-		sigma_predicted_spectrum2.GetListOfFunctions()->Add(fit_babas2[i]);
-	}
-
-	std::cout << "Fit predicted sigma bond spectrum result:\n";
-	for (int i = 0; i < 3; ++i) {
-		std::cout << baba2_final_parameters[i*3] << " " << baba2_final_parameters[i*3+1]
-			<< " " << baba2_final_parameters[i*3+2] << "\n";
-	}
-
-	gefc[0].AddPoint(12.0, 0.0);
-	gefc[1].AddPoint(15.0, 0.0);
-	gefc[2].AddPoint(18.0, 0.0);
-	for (int i = 0; i < 41; ++i) {
-		gefc[0].AddPoint(12.0+i*0.5, 25.0*eff0->Eval(12.0+i*0.5));
-	}
-	for (int i = 0; i < 35; ++i) {
-		gefc[1].AddPoint(15.0+i*0.5, 40.0*eff1->Eval(15.0+i*0.5));
-	}
-	for (int i = 0; i < 29; ++i) {
-		gefc[2].AddPoint(18.0+i*0.5, 40.0*eff2->Eval(18.0+i*0.5));
-	}
+	THStack c_rep_stack("hrs", "spectrum of 14C (represent)");
+	c_rep_stack.Add(&c_rep_spec_0);
+	c_rep_stack.Add(&c_rep_spec_1);
+	c_rep_stack.Add(&c_rep_spec_2);
 
 	// save
-	hist_q.Write();
-	for (TH1F &hist : sep_hist_q) hist.Write();
-	c_spec_all.Write();
 	c_spec_0.Write();
 	c_spec_1.Write();
 	c_spec_2.Write();
@@ -658,9 +774,23 @@ int main() {
 	hjx_spectrum0.Write();
 	hjx_spectrum1.Write();
 	sigma_predicted_spectrum2.Write();
-	gefc[0].Write("gef0");
-	gefc[1].Write("gef1");
-	gefc[2].Write("gef2");
+	c_rep_spec_0.Write();
+	c_rep_spec_1.Write();
+	c_rep_spec_2.Write();
+	c_rep_spec_3.Write();
+	c_rep_spec_0.SetLineColor(kBlue);
+	c_rep_spec_1.SetLineColor(kBlack);
+	c_rep_spec_2.SetLineColor(kRed);
+	c_rep_stack.Write();
+	c_rep_spec_0_corr.Write();
+	c_rep_spec_1_corr.Write();
+	c_rep_spec_2_corr.Write();
+	hjx_rep_spectrum0.Write();
+	hjx_rep_spectrum1.Write();
+	sigma_predicted_rep_spectrum2.Write();
+	for (int i = 0; i < 3; ++i) {
+		cgeff[i].Write(TString::Format("gef%d", i));
+	}
 	// save tree
 	opt.Write();
 	// close files

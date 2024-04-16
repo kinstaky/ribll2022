@@ -86,7 +86,7 @@ double QFit2(double *x, double *par) {
 
 double QFit3(double *x, double *par) {
 	return par[0] * exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
-		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.5)/par[4], 2.0))
+		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.811)/par[4], 2.0))
 		+ par[5] * exp(-0.5*pow((x[0]-par[6])/par[7], 2.0));
 }
 
@@ -182,9 +182,9 @@ int main() {
 	};
 
 	double q_offset[12] = {
-		-0.39, -0.13, 0.21, 0.56,
-		0.49, 0.50, 0.19, 0.29,
-		-0.12, -0.20, -0.39, -0.66
+		-0.46, -0.25, 0.18, 0.49,
+		0.49, 0.55, 0.28, 0.30,
+		-0.04, -0.10, -0.12, -0.64
 	};
 
 	// total number of entries
@@ -276,8 +276,8 @@ int main() {
 			// fit
 			hqc[i][j].Fit(f3p, "QR+");
 			// get fitted result
-			offset[i][j][0] = f3p->GetParameter(1) + 18.0;
-			offset[i][j][1] = f3p->GetParameter(6) + 12.0;
+			offset[i][j][0] = f3p->GetParameter(1) + 18.1915;
+			offset[i][j][1] = f3p->GetParameter(6) + 12.0125;
 			sigma[i][j][0] = f3p->GetParameter(2);
 			sigma[i][j][1] = f3p->GetParameter(4);
 			sigma[i][j][2] = f3p->GetParameter(7);

@@ -89,6 +89,7 @@ public:
 	// time
 	double be_x_time[3][2], be_y_time[3][2];
 	double he_x_time[3][2], he_y_time[3][2];
+	double ssd_time[3];
 	double d_x_time, d_y_time;
 	// strips
 	unsigned int be_x_strip[3][2], be_y_strip[3][2];
