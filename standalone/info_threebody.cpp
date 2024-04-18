@@ -901,9 +901,9 @@ int main(int argc, char **argv) {
 				event.tafd_energy = taf[taf_indexes[i]].energy[0][0];
 				// TAF-CsI energy
 				// calibrated parameters
-				double a0 = csi_param[event.csi_index][0];
-				double a1 = csi_param[event.csi_index][1];
-				double a2 = csi_param[event.csi_index][2];
+				double a0 = power_csi_param[event.csi_index][0];
+				double a1 = power_csi_param[event.csi_index][1];
+				double a2 = power_csi_param[event.csi_index][2];
 				// CsI energy
 				event.csi_energy = pow(
 					(event.csi_channel - a2) / a0,

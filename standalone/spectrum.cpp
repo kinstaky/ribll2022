@@ -13,6 +13,7 @@
 
 #include "include/event/threebody_info_event.h"
 #include "include/ppac_track.h"
+#include "include/calculator/d2_energy_calculator.h"
 
 using namespace ribll;
 
@@ -350,11 +351,14 @@ int main() {
 	TTree opt("tree", "spectrum");
 	// output data
 	double linear_q[3], power_q[3], opt_q[3];
+	double calc_be_q[3], calc_he_q[3], calc_behe_q[3];
 	// traditional state
 	int linear_state, power_state, opt_state;
 	// represent state
 	int linear_represent_state, power_represent_state, opt_represent_state;
+	int calc_be_represent_state, calc_he_represent_state, calc_behe_represent_state;
 	int linear_type, power_type, opt_type;
+	int calc_be_type, calc_he_type, calc_behe_type;
 	int be_state;
 	double c_excited, c_possible_excited[4];
 	int ppac_flag, taf_flag, bind, hole;
@@ -362,12 +366,21 @@ int main() {
 	opt.Branch("linear_q", linear_q, "lq[3]/D");
 	opt.Branch("power_q", power_q, "pq[3]/D");
 	opt.Branch("opt_q", opt_q, "oq[3]/D");
+	opt.Branch("cbe_q", calc_be_q, "c1q[3]/D");
+	opt.Branch("che_q", calc_he_q, "c2q[3]/D");
+	opt.Branch("cbehe_q", calc_behe_q, "c3q[3]/D");
 	opt.Branch("linear_rep_state", &linear_represent_state, "lrstate/I");
 	opt.Branch("power_rep_state", &power_represent_state, "prstate/I");
 	opt.Branch("opt_rep_state", &opt_represent_state, "orstate/I");
+	opt.Branch("cbe_rep_state", &calc_be_represent_state, "c1state/I");
+	opt.Branch("che_rep_state", &calc_he_represent_state, "c2state/I");
+	opt.Branch("cbehe_rep_state", &calc_behe_represent_state, "c3state/I");
 	opt.Branch("linear_type", &linear_type, "ltype/I");
 	opt.Branch("power_type", &power_type, "ptype/I");
 	opt.Branch("opt_type", &opt_type, "otype/I");
+	opt.Branch("cbe_type", &calc_be_type, "c1type/I");
+	opt.Branch("che_type", &calc_he_type, "c2type/I");
+	opt.Branch("cbehe_type", &calc_behe_type, "c3type/I");
 	opt.Branch("linear_state", &linear_state, "lstate/I");	
 	opt.Branch("power_state", &power_state, "pstate/I");
 	opt.Branch("opt_state", &opt_state, "ostate/I");
@@ -453,6 +466,10 @@ int main() {
 			<< power_param[i][2] << "\n";
 	}
 
+	elc::D2EnergyCalculator be_calculator("10Be");
+	elc::D2EnergyCalculator he_calculator("4He");
+
+
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 		ipt->GetEntry(entry);
 
@@ -463,6 +480,56 @@ int main() {
 		hole = 0;
 		hole |= event.hole[0] ? 0x1 : 0;
 		hole |= event.hole[1] ? 0x2 : 0;
+
+		// backup kinetic energy
+		const double be_energy = event.t0_energy[0];
+		const double he_energy = event.t0_energy[1];
+
+		// calculate 10Be energy
+		// energy correct
+		double be_correct = 0.0;
+		double be_d2_energy =
+			t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
+		if (event.layer[0] == 1) {
+			double d1_energy =
+				t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
+			// stop in T0D2
+			double calc_be_energy =
+				be_calculator.Energy(0, d1_energy, 0.0, true);
+			// get energy correct
+			be_correct = calc_be_energy - be_d2_energy;
+		} else if (event.layer[0] == 2) {
+			double d3_energy =
+				t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
+			// stop in T0D3
+			double calc_be_energy =
+				be_calculator.DeltaEnergy(1, d3_energy, 0.0, true);
+			// get energy correct
+			be_correct = calc_be_energy - be_d2_energy;
+		}
+		// calculate 4He energy
+		double he_correct = 0.0;
+		double he_d2_energy =
+			t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
+		if (event.layer[1] == 1) {
+			double d1_energy =
+				t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
+			// stop in T0D2
+			double calc_he_energy =
+				he_calculator.Energy(0, d1_energy, 0.0, true);
+			// get energy correct
+			he_correct = calc_he_energy - he_d2_energy;
+		} else if (event.layer[1] >= 2) {
+			double d3_energy =
+				t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
+			// stop in or pass T0D3
+			double calc_he_energy = he_calculator.DeltaEnergy(
+				1, d3_energy, 0.0, event.layer[1]==2
+			);
+			// get energy correct
+			he_correct = calc_he_energy - he_d2_energy;
+		}
+
 
 		// loop to get different TAF X and Y
 		for (int i = 0; i < 3; ++i) {
@@ -506,6 +573,25 @@ int main() {
 			// optimized Q value
 			opt_q[i] = ThreeBodyProcess(event, opt_csi_energy, ctafx, ctafy);
 			opt_q[i] -= q_correct[event.csi_index];
+
+
+			// calculate Be energy
+			event.t0_energy[0] = be_energy + be_correct;
+			calc_be_q[i] = ThreeBodyProcess(event, power_csi_energy, ctafx, ctafy);
+			calc_be_q[i] -= q_correct[event.csi_index];
+
+			// calculate BeHe energy
+			event.t0_energy[1] = he_energy + he_correct;
+			calc_behe_q[i] = ThreeBodyProcess(event, power_csi_energy, ctafx, ctafy);
+			calc_behe_q[i] -= q_correct[event.csi_index];
+
+			// calculate He energy
+			event.t0_energy[0] = be_energy;
+			calc_he_q[i] = ThreeBodyProcess(event, power_csi_energy, ctafx, ctafy);
+			calc_he_q[i] -= q_correct[event.csi_index];
+
+			// backup energy
+			event.t0_energy[1] = he_energy;
 		}
 
 
@@ -513,6 +599,9 @@ int main() {
 		linear_represent_state = CheckRepresentQ(linear_q, linear_type);
 		power_represent_state = CheckRepresentQ(power_q, power_type);
 		opt_represent_state = CheckRepresentQ(opt_q, opt_type);
+		calc_be_represent_state = CheckRepresentQ(calc_be_q, calc_be_type);
+		calc_he_represent_state = CheckRepresentQ(calc_he_q, calc_he_type);
+		calc_behe_represent_state = CheckRepresentQ(calc_behe_q, calc_behe_type);
 
 
 		if (linear_q[1] < -11 && linear_q[1] > -13.5) linear_state = 0;
@@ -767,6 +856,7 @@ int main() {
 	c_rep_stack.Add(&c_rep_spec_2);
 
 	// save
+	output_file.cd();
 	c_spec_0.Write();
 	c_spec_1.Write();
 	c_spec_2.Write();

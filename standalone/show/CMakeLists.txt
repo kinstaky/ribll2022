@@ -199,3 +199,9 @@ target_link_libraries(
 	show_csi_calibrate_q PRIVATE
 	event ROOT::Core ROOT::RIO ROOT::Graf
 )
+
+# show beam angle
+add_executable(show_beam_angle show_beam_angle.cpp)
+target_link_libraries(
+	show_beam_angle PRIVATE event ROOT::Core ROOT::RIO
+)

@@ -103,7 +103,7 @@ target_link_libraries(info_threebody PRIVATE event csi_energy_calculator d2_ener
 
 # spectrum
 add_executable(spectrum spectrum.cpp)
-target_link_libraries(spectrum PRIVATE event ROOT::Hist)
+target_link_libraries(spectrum PRIVATE event ROOT::Hist d2_energy_calculator)
 
 # spectrum 3a
 add_executable(spectrum_3a spectrum_3a.cpp)

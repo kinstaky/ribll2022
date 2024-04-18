@@ -719,6 +719,7 @@ C14ToBe10He4ThreeBodyChannel::C14ToBe10He4ThreeBodyChannel(
 
 
 int C14ToBe10He4ThreeBodyChannel::Coincide() {
+	const int be_mass_number = 9;
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(
@@ -801,9 +802,10 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	// output file name
 	TString output_file_name;
 	output_file_name.Form(
-		"%s%sC14-10Be-4He-%dH-%s%04u.root",
+		"%s%sC14-%dBe-4He-%dH-%s%04u.root",
 		kGenerateDataPath,
 		kChannelDir,
+		be_mass_number,
 		recoil_mass_,
 		simulate_ ? "sim-" : "",
 		run_
@@ -862,12 +864,12 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		for (unsigned short i = 0; i < t0.num; ++i) {
 			// ignore bad strips
 			// if (hole[i]) continue;
-			if (t0.charge[i] == 4 && t0.mass[i] == 10) {
+			if (t0.charge[i] == 4 && t0.mass[i] == be_mass_number) {
 				// find 10Be
 				if ((t0_status & 0x1) == 0) {
 					index[0] = i;
 					t0_status |= 0x1;
-					t0.mass[i] = 10;
+					t0.mass[i] = be_mass_number;
 				} else {
 					t0_valid = false;
 				}
