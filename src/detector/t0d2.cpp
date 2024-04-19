@@ -1,5 +1,6 @@
 #include <TF1.h>
 #include <TH2F.h>
+#include <TRandom3.h>
 
 #include "include/detector/t0d2.h"
 
@@ -310,6 +311,135 @@ int T0d2::Normalize(unsigned int, int iteration) {
 }
 
 
+/// @brief fill hole flag
+/// @param[in] merge_event DSSD merge level event 
+/// @param[in] index index to fill 
+/// @param[in] hbr histogram of pixel resolution 
+/// @param[in] hole hole flag to fill
+///  
+void FillHole(
+	const DssdMergeEvent &merge_event,
+	int index,
+	TH2F *hbr,
+	bool *hole
+) {
+	// get strip
+	int xstrip = int(merge_event.x[index]);
+	int ystrip = int(merge_event.y[index]);
+
+	// check the basic pixel
+	// get resolution
+	double res1 = hbr->GetBinContent(xstrip+1, ystrip+1);
+	// compare
+	hole[index] = res1 > 0.08;
+	if (hole[index]) return;
+
+	// check y+1 pixel
+	if ((merge_event.merge_tag[index] & 1) != 0) {
+		// get resolution
+		double res = hbr->GetBinContent(xstrip+1, ystrip+2);
+		// compare
+		if (res > 0.08) {
+			hole[index] = true;
+			return;
+		}
+	}
+
+	// check x+1 pixel
+	if ((merge_event.merge_tag[index] & 2) != 0) {
+		// get resolution
+		double res = hbr->GetBinContent(xstrip+2, ystrip+1);
+		// compare
+		if (res > 0.08) {
+			hole[index] = true;
+			return;
+		}
+	}
+
+	// check x+1,y+1 pixel
+	if (merge_event.merge_tag[index] == 3) {
+		// get resolution
+		double res = hbr->GetBinContent(xstrip+2, ystrip+2);
+		// compare
+		if (res > 0.08) {
+			hole[index] = true;
+			return;
+		}
+	}
+
+	return;
+}
+
+
+
+void FillRandomHole(
+	const DssdMergeEvent &merge_event,
+	int index,
+	TH2F *hahp,
+	TRandom3 *generator,
+	bool *hole
+) {
+	// get strip
+	int xstrip = int(merge_event.x[index]);
+	int ystrip = int(merge_event.y[index]);
+	if (ystrip == 17) {
+		hole[index] = true;
+		return;
+	}
+
+	// check the basic (x,y) pixel
+	// get possiblity
+	double possibility_basic = hahp->GetBinContent(xstrip+1, ystrip+1);
+	// get random number
+	double rand_basic = generator->Rndm();
+	// compare
+	hole[index] = rand_basic < possibility_basic;
+	if (hole[index]) return;
+
+
+	// check x,y+1 pixel, f1b2 and f2b2
+	if ((merge_event.merge_tag[index] & 1) != 0) {
+		// get possibility
+		double possiblity = hahp->GetBinContent(xstrip+1, ystrip+2);
+		// get random number
+		double random = generator->Rndm();
+		// compare
+		if (random < possiblity) {
+			hole[index] = true;
+			return;
+		}
+	}
+
+	// check x+1,y pixel, f2b1 and f2b2
+	if ((merge_event.merge_tag[index] & 2) != 0) {
+		// get possibility
+		double possiblity = hahp->GetBinContent(xstrip+2, ystrip+1);
+		// get random number
+		double random = generator->Rndm();
+		// compare
+		if (random < possiblity) {
+			hole[index] = true;
+			return;
+		}
+	}
+
+	// check x+1,y+1 pixel, f2b2
+	if (merge_event.merge_tag[index] == 3) {
+		// get possibility
+		double possiblity = hahp->GetBinContent(xstrip+2, ystrip+2);
+		// get random number
+		double random = generator->Rndm();
+		// compare
+		if (random < possiblity) {
+			hole[index] = true;
+			return;
+		}
+	}
+	
+	return;
+}
+
+
 int T0d2::Merge(double energy_diff, int supplementary) {
 	std::string tag = tag_;
 	if (supplementary == 1) {
@@ -359,6 +489,26 @@ int T0d2::Merge(double energy_diff, int supplementary) {
 			<< pixel_file_name << " failed.\n";
 		return -1;
 	}
+
+	TH2F *hahp = nullptr;
+	if (run_ == 2) {
+		// average hole possiblity file name
+		TString avg_hole_file_name = TString::Format(
+			"%s%st0d2-average-hole.root",
+			kGenerateDataPath, kShowDir
+		);
+		// average hole possiblity file
+		TFile *avg_hole_file = new TFile(avg_hole_file_name, "read");
+		// average hole possiblity histogram
+		hahp = (TH2F*)avg_hole_file->Get("hahp");
+		if (!hahp) {
+			std::cerr << "Error: Get average hole possibility from "
+				<< avg_hole_file_name << " failed.\n";
+			return -1;
+		}
+	}
+
+	TRandom3 generator(0);
 
 	// output file name
 	TString merge_file_name;
@@ -419,81 +569,10 @@ int T0d2::Merge(double energy_diff, int supplementary) {
 		else if (merge_num == 3) ++statistics.three_hit;
 		else if (merge_num == 4) ++four_hit;
 		for (int i = 0; i < merge_event.hit; ++i) {
-			if (merge_event.merge_tag[i] == 0) {
-				// f1b1
-				if (
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int(merge_event.y[i])+1
-					) > 0.08
-				) {
-					hole[i] = true;
-				} else {
-					hole[i] = false;
-				}
-			} else if (merge_event.merge_tag[i] == 1) {
-				// f1b2
-				if (
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int(merge_event.y[i])+1
-					) > 0.08
-					||
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int(merge_event.y[i])+2
-					) > 0.08
-				) {
-					hole[i] = true;
-				} else {
-					hole[i] = false;
-				}
-			} else if (merge_event.merge_tag[i] == 2) {
-				// f2b1
-				if (
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int(merge_event.y[i])+1
-					) > 0.08
-					||
-					hbr->GetBinContent(
-						int(merge_event.x[i])+2,
-						int(merge_event.y[i])+1
-					) > 0.08
-				) {
-					hole[i] = true;
-				} else {
-					hole[i] = false;
-				}
-			} else if (merge_event.merge_tag[i] == 3) {
-				// f2b2
-				if (
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int (merge_event.y[i])+1
-					) > 0.08
-					||
-					hbr->GetBinContent(
-						int(merge_event.x[i])+2,
-						int(merge_event.y[i])+1
-					) > 0.08
-					||
-					hbr->GetBinContent(
-						int(merge_event.x[i])+1,
-						int(merge_event.y[i])+2
-					) > 0.08
-					||
-					hbr->GetBinContent(
-						int(merge_event.x[i])+2,
-						int(merge_event.y[i])+2
-					) > 0.08
-				) {
-					hole[i] = true;
-				} else {
-					hole[i] = false;
-				}
+			if (run_ == 2) {
+				FillRandomHole(merge_event, i, hahp, &generator, hole);
 			} else {
-				hole[i] = false;
+				FillHole(merge_event, i, hbr, hole);
 			}
 			auto position =
 				CalculatePosition(merge_event.x[i], merge_event.y[i]);

@@ -6,15 +6,28 @@
 #include <TGraph.h>
 
 #include "include/event/channel_event.h"
+#include "include/event/t0_event.h"
+#include "include/event/particle_event.h"
 
 using namespace ribll;
 
-int main() {
+int main(int argc, char **argv) {
+	if (argc != 2) {
+		std::cout << "Usage: " << argv[0] << " run\n"
+			"  run            run number\n";
+		return -1;
+	}
+	// run number
+	int run = atoi(argv[1]);
+	if (run < 1 || run > 2) {
+		std::cerr << "Error: Invalid run " << run << "\n";
+		return -1;
+	}
+
 	// input channel file name
 	TString input_file_name = TString::Format(
-		"%s%sC14-10Be-4He-2H-sim-0001.root",
-		kGenerateDataPath,
-		kChannelDir
+		"%s%sC14-10Be-4He-2H-sim-%04d.root",
+		kGenerateDataPath, kChannelDir, run
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -28,13 +41,11 @@ int main() {
 
 	// input XIA PPAC file
 	TString xppac_file_name = TString::Format(
-		"%s%sxppac-particle-sim-ta-0001.root",
-		kGenerateDataPath,
-		kParticleDir
+		"%s%sxppac-particle-sim-ta-%04d.root",
+		kGenerateDataPath, kParticleDir, run
 	);
 	// add friend
 	ipt->AddFriend("xppac=tree", xppac_file_name);
-
 	// input channel event
 	ChannelEvent channel;
 	// XIA PPAC flag
@@ -44,12 +55,25 @@ int main() {
 	ipt->SetBranchAddress("xppac.xflag", &xppac_xflag);
 	ipt->SetBranchAddress("xppac.yflag", &xppac_yflag);
 
+	// input T0 telescope file to get hole
+	TString t0_file_name = TString::Format(
+		"%s%st0-telescope-sim-ta-%04d.root",
+		kGenerateDataPath, kTelescopeDir, run
+	);
+	// add friend
+	ipt->AddFriend("t0=tree", t0_file_name);
+	// hole
+	bool hole[8];
+	// setup input branch
+	ipt->SetBranchAddress("t0.hole", hole);
+
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%sefficiency-0001.root",
+		"%s%sefficiency-%04d.root",
 		kGenerateDataPath,
-		kSimulateDir
+		kSimulateDir,
+		run
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
@@ -101,15 +125,19 @@ int main() {
 			++xppac_valid_count[i1][i2];
 		}
 		if (channel.taf_index >= 0 && channel.taf_index <=5) {
-			++t0_valid_count[i1][i2];
 			++taf_valid_count[i1][i2];
-			if (xppac_xflag != 0 && xppac_yflag != 0) {
-				++valid_count[i1][i2];
+			if (!hole[0] && !hole[1]) {
+				++t0_valid_count[i1][i2];
+				if (xppac_xflag != 0 && xppac_yflag != 0) {
+					++valid_count[i1][i2];
+				}
 			}
 		} else if (channel.taf_index == -2) {
 			++taf_valid_count[i1][i2];
 		} else if (channel.taf_index == -4) {
-			++t0_valid_count[i1][i2];
+			if (!hole[0] && !hole[1]) {
+				++t0_valid_count[i1][i2];
+			}
 		}
 	}
 	// show finish

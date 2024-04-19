@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 1) {
+	if (run < 0 || run > 2) {
 		std::cout << "Usage: " << argv[0] << "[run]\n"
 			<< "  run        run number, default is 0\n";
 	}
@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
 					12.0125 + 6.179
 					+ generator.Rndm() * (40.0 - 12.0125 - 6.179) + 0.1;
 			}
-		} else if (run == 1) {
+		} else if (run == 1 || run == 2) {
 			if (entry < entries / 3) {
 				event.beam_excited_energy =
 					12.02 + 0.2 * ((entry / 10'000) % 100);
