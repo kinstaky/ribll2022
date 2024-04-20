@@ -2,6 +2,22 @@
 set(PROJECT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CALCULATOR_INCLUDE_DIR ${PROJECT_INCLUDE_DIR}/calculator)
 
+# target energy calculator library
+add_library(
+	lost_energy_calculator
+	lost_energy_calculator.cpp
+	${CALCULATOR_INCLUDE_DIR}/lost_energy_calculator.h
+)
+target_include_directories(
+	lost_energy_calculator
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIRS
+)
+target_link_libraries(
+	lost_energy_calculator
+	PUBLIC ROOT::Core ROOT::RIO ROOT::Hist
+)
+
+
 # range energy calculator library
 add_library(
 	range_energy_calculator

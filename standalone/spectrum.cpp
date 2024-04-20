@@ -610,9 +610,9 @@ int main() {
 		else if (linear_q[1] < -19 && linear_q[1] > -20.5) linear_state = 3;
 		else linear_state = -1;
 
-		if (power_q[1] < -11 && power_q[1] > -13.5) power_state = 0;
-		else if (power_q[1] < -14.5 && power_q[1] > -16.5) power_state = 1;
-		else if (power_q[1] < -17 && power_q[1] > -19) power_state = 2;
+		if (power_q[1] < -11.5 && power_q[1] > -12.5) power_state = 0;
+		else if (power_q[1] < -15 && power_q[1] > -16.2) power_state = 1;
+		else if (power_q[1] < -17.5 && power_q[1] > -18.5) power_state = 2;
 		else if (power_q[1] < -19 && power_q[1] > -20.5) power_state = 3;
 		else power_state = -1;
 

@@ -2,5 +2,5 @@
 add_executable(initialize_energy_calculator initialize_energy_calculator.cpp)
 target_link_libraries(
 	initialize_energy_calculator
-	PRIVATE range_energy_calculator delta_energy_calculator d2_energy_calculator
+	PRIVATE lost_energy_calculator range_energy_calculator delta_energy_calculator d2_energy_calculator
 )

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "include/defs.h"
+#include "include/calculator/lost_energy_calculator.h"
 #include "include/calculator/range_energy_calculator.h"
 #include "include/calculator/delta_energy_calculator.h"
 #include "include/calculator/d2_energy_calculator.h"
@@ -8,7 +9,17 @@
 using namespace ribll::elc;
 
 int main() {
-	const std::vector<ProjectileMaterial> list{
+	const std::vector<std::string> loss_projectiles {
+		"4He", "10Be", "14C"
+	};
+
+	if (LostEnergyCalculator::Initialize(loss_projectiles)) {
+		std::cerr << "Error: Initialize loss-energy calculator failed.\n";
+		return -1;
+	}
+
+
+	const std::vector<ProjectileMaterial> list {
 		{"1H", "Si"},
 		{"1H", "Al"},
 		{"1H", "Mylar"},
