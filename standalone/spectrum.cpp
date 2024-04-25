@@ -241,7 +241,7 @@ int main() {
 
 	// simulated file to get efficiency
 	TString efficiency_file_name = TString::Format(
-		"%s%sefficiency-0001.root",
+		"%s%sefficiency-0002.root",
 		kGenerateDataPath,
 		kSimulateDir
 	);
@@ -667,7 +667,7 @@ int main() {
 	}
 
 	// efficiency corrected spectrum
-	TH1F *spec_rep[3] = {&c_rep_spec_0, &c_rep_spec_1, &c_rep_spec_2};
+	TH1F *spec_rep[3] = {&c_spec_0, &c_spec_1, &c_spec_2};
 	TH1F *spec_corr[3] = {
 		&c_rep_spec_0_corr, &c_rep_spec_1_corr, &c_rep_spec_2_corr
 	};
@@ -845,7 +845,7 @@ int main() {
 		for (int j = 0; j < 100; ++j) {
 			double e = energy_base[i] + 0.2 * j;
 			cgeff[i].AddPoint(
-				e, geff[i]->Eval(e) * ratio[i]
+				e, geff[i]->Eval(e) * ratio[i] * 0.5
 			);
 		}
 	}

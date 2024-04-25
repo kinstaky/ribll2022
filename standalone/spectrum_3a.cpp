@@ -59,7 +59,7 @@ int main() {
 	TFile output_file(output_file_name, "recreate");
 
 	// histogram of Q value
-	TH1F hist("h", "3 alpha", 200, 7, 17);
+	TH1F hist("h", "3 alpha", 200, 7, 37);
 	hist.SetLineColor(kBlack);
 
 	for (long long entry = 0; entry < chain.GetEntriesFast(); ++entry) {
