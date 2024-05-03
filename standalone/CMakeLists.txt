@@ -101,18 +101,6 @@ target_link_libraries(info_pd PRIVATE event ROOT::Graf)
 add_executable(info_threebody info_threebody.cpp)
 target_link_libraries(info_threebody PRIVATE event csi_energy_calculator d2_energy_calculator)
 
-# spectrum
-add_executable(spectrum spectrum.cpp)
-target_link_libraries(spectrum PRIVATE event ROOT::Hist d2_energy_calculator)
-
-# spectrum 3a
-add_executable(spectrum_3a spectrum_3a.cpp)
-target_link_libraries(spectrum_3a PRIVATE event ROOT::Hist)
-
-# spectrum 2a
-add_executable(spectrum_2a spectrum_2a.cpp)
-target_link_libraries(spectrum_2a PRIVATE event ROOT::Hist)
-
 
 add_subdirectory(calculate)
 add_subdirectory(check)
@@ -121,3 +109,4 @@ add_subdirectory(show)
 add_subdirectory(simulate)
 add_subdirectory(summary)
 add_subdirectory(optimize)
+add_subdirectory(spectrum)

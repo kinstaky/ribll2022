@@ -779,10 +779,10 @@ int Taf::Rebuild() {
 	particle_event.SetupOutput(&opt);
 	opt.Branch("csi_index", &csi_index, "ci/I");
 
-	// read CsI calibrate parameters
-	if (ReadCsiCalibrateParameters()) {
-		return -1;
-	}
+	// // read CsI calibrate parameters
+	// if (ReadCsiCalibrateParameters()) {
+	// 	return -1;
+	// }
 
 	// totla number of entries
 	long long entries = ipt->GetEntries();
@@ -819,10 +819,17 @@ int Taf::Rebuild() {
 			// calculate the first index of CsI calibration paramters
 			csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
 			// calculate CsI energy from calibrate parameters
-			double csi_energy = CalibrateCsiEnergy(
-				ta_event.energy[0][1],
-				csi_calibrate_params_[csi_index*16 + ta_event.front_strip[0]],
-				type_event.mass[0]-1
+			// double csi_energy = CalibrateCsiEnergy(
+			// 	ta_event.energy[0][1],
+			// 	csi_calibrate_params_[csi_index*16 + ta_event.front_strip[0]],
+			// 	type_event.mass[0]-1
+			// );
+			double a0 = power_csi_param[index_*2+csi_index][0];
+			double a1 = power_csi_param[index_*2+csi_index][1];
+			double a2 = power_csi_param[index_*2+csi_index][2];
+			double csi_energy = pow(
+				(ta_event.energy[0][1] - a2 ) / a0,
+				1.0 / a1
 			);
 			// calculate the total energy
 			particle_event.energy[0] = si_energy + csi_energy;

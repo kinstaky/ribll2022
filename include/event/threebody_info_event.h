@@ -78,6 +78,8 @@ public:
 	int xppac_track[2];
 	// VME PPAC track number, index 0 for x, 1 for y
 	int vppac_track[2];
+	// PPAC beam direction
+	double beam_px, beam_py, beam_pz;
 	// dssd normalize result information
 	// dssd hit
 	int be_x_hit[3], be_y_hit[3];

@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
 		std::cout << "Processing run " << run << "\n";
 		// input file name
 		TString channel_file_name = TString::Format(
-			"%s%sC14-10Be-4He-%dH-%s%04d.root",
+			"%s%sC14-9Be-4He-%dH-%s%04d.root",
 			kGenerateDataPath,
 			kChannelDir,
 			recoil_mass,
@@ -977,6 +977,22 @@ int main(int argc, char **argv) {
 					event.xpty
 				);
 
+				if (event.xppac_track[0] >= 2 && event.xppac_track[1] >= 2) {
+					double xk, xb, yk, yb;
+					TrackMultiplePpac(
+						event.xppac_xflag, using_ppac_xz, event.xppac_x,
+						xk, xb
+					);
+					TrackMultiplePpac(
+						event.xppac_yflag, using_ppac_yz, event.xppac_y,
+						yk, yb
+					);
+					ROOT::Math::XYZVector bp(xk, yk, 1.0);
+					bp = bp.Unit() * MomentumFromKinetic(mass_14c, 389.5);
+					event.beam_px = bp.X();
+					event.beam_py = bp.Y();
+					event.beam_pz = bp.Z();
+				}
 			}
 			if (event.vppac_xflag != 0 && event.vppac_yflag != 0) {
 				event.ppac_flag |= 2;

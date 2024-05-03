@@ -719,7 +719,7 @@ C14ToBe10He4ThreeBodyChannel::C14ToBe10He4ThreeBodyChannel(
 
 
 int C14ToBe10He4ThreeBodyChannel::Coincide() {
-	const int be_mass_number = 10;
+	const int be_mass_number = 9;
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(

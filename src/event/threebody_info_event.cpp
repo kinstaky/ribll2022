@@ -51,6 +51,9 @@ void ThreeBodyInfoEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"vppac_y").c_str(), vppac_y);
 	tree->SetBranchAddress((prefix+"xppac_track").c_str(), xppac_track);
 	tree->SetBranchAddress((prefix+"vppac_track").c_str(), vppac_track);
+	tree->SetBranchAddress((prefix+"beam_px").c_str(), &beam_px);
+	tree->SetBranchAddress((prefix+"beam_py").c_str(), &beam_py);
+	tree->SetBranchAddress((prefix+"beam_pz").c_str(), &beam_pz);
 	tree->SetBranchAddress((prefix+"be_x_hit").c_str(), be_x_hit);
 	tree->SetBranchAddress((prefix+"be_y_hit").c_str(), be_y_hit);
 	tree->SetBranchAddress((prefix+"he_x_hit").c_str(), he_x_hit);
@@ -130,6 +133,9 @@ void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
 	tree->Branch("vppac_y", vppac_y, "vppacy[3]/D");
 	tree->Branch("xppac_track", xppac_track, "xptrack[2]/I");
 	tree->Branch("vppac_track", vppac_track, "vptrack[2]/I");
+	tree->Branch("beam_px", &beam_px, "bpx/D");
+	tree->Branch("beam_py", &beam_py, "bpy/D");
+	tree->Branch("beam_pz", &beam_pz, "bpz/D");
 	tree->Branch("be_x_hit", be_x_hit, "bexhit[3]/I");
 	tree->Branch("be_y_hit", be_y_hit, "beyhit[3]/I");
 	tree->Branch("he_x_hit", he_x_hit, "hexhit[3]/I");

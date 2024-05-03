@@ -141,9 +141,11 @@ constexpr double power_csi_param[12][3] = {
 constexpr double pi = 3.14159265359;
 
 constexpr double u = 931.494;
+constexpr double mass_n = u * 1.00866491588;
 constexpr double mass_1h = u * 1.0072764520;
 constexpr double mass_2h = u * 2.0135531980;
 constexpr double mass_4he = u * 4.0015060943;
+constexpr double mass_9be = u * 9.0099887420;
 constexpr double mass_10be = u * 10.0113403769;
 constexpr double mass_14c = u * 13.9999505089;
 constexpr double mass_15c = u * 15.0073077289;

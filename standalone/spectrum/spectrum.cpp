@@ -220,10 +220,18 @@ private:
 };
 
 
-int main() {
+int main(int argc, char **argv) {
+	std::string suffix = "";
+	if (argc > 1) {
+		suffix = std::string(argv[1]);
+	}
+
 	// input file name
 	TString input_file_name = TString::Format(
-		"%s%sthreebody.root", kGenerateDataPath, kInformationDir
+		"%s%sthreebody%s.root",
+		kGenerateDataPath,
+		kInformationDir,
+		suffix.empty() ? "" : ("-"+suffix).c_str()
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -258,9 +266,10 @@ int main() {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%sthreebody.root",
+		"%s%sthreebody%s.root",
 		kGenerateDataPath,
-		kSpectrumDir
+		kSpectrumDir,
+		suffix.empty() ? "" : ("-"+suffix).c_str()
 	);
 	// output file
 	TFile output_file(output_file_name, "recreate");
@@ -324,7 +333,6 @@ int main() {
 	// hjx_rep_spectrum0.SetLineColor(kBlack);
 	// hjx_rep_spectrum1.SetLineColor(kBlack);
 	// sigma_predicted_rep_spectrum2.SetLineColor(kBlack);
-
 	// spectrum of 14C decay to 10Be ground state, efficiency corrected
 	TH1F c_rep_spec_0_corr(
 		"hrsc0c",
@@ -345,6 +353,7 @@ int main() {
 	);
 	// multiplied efficiency to show in the same graph with spectrum  
 	TGraph cgeff[3];
+	
 
 
 	// output tree
