@@ -1160,8 +1160,8 @@ int T0::SliceTrack(int supplementary) {
 	d1d2_cuts.push_back({2, 6, ReadCut("t0-d1d2-p1i1-6He")});
 	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-6Li")});
 	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-7Li")});
-	d1d2_cuts.push_back({3, 6, ReadCut("t0-d1d2-p1i1-8Li")});
-	d1d2_cuts.push_back({3, 7, ReadCut("t0-d1d2-p1i1-9Li")});
+	d1d2_cuts.push_back({3, 8, ReadCut("t0-d1d2-p1i1-8Li")});
+	d1d2_cuts.push_back({3, 9, ReadCut("t0-d1d2-p1i1-9Li")});
 	d1d2_cuts.push_back({4, 7, ReadCut("t0-d1d2-p1i1-7Be")});
 	d1d2_cuts.push_back({4, 9, ReadCut("t0-d1d2-p1i1-9Be")});
 	d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-p1i1-10Be")});
@@ -1181,14 +1181,14 @@ int T0::SliceTrack(int supplementary) {
 
 	// T0D2-D3 cuts
 	std::vector<ParticleCut> d2d3_cuts;
-	d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-p1i1-3He")});
+	d2d3_cuts.push_back({2, 3, ReadCut("t0-d2d3-p1i1-3He")});
 	d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-p1i1-4He")});
 	d2d3_cuts.push_back({2, 6, ReadCut("t0-d2d3-p1i1-6He")});
-	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-6Li")});
+	d2d3_cuts.push_back({3, 6, ReadCut("t0-d2d3-p1i1-6Li")});
 	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-7Li")});
-	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-8Li")});
-	d2d3_cuts.push_back({3, 7, ReadCut("t0-d2d3-p1i1-9Li")});
-	d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-9Be")});
+	d2d3_cuts.push_back({3, 8, ReadCut("t0-d2d3-p1i1-8Li")});
+	d2d3_cuts.push_back({3, 9, ReadCut("t0-d2d3-p1i1-9Li")});
+	d2d3_cuts.push_back({4, 9, ReadCut("t0-d2d3-p1i1-9Be")});
 	d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-10Be")});
 	// T0D2-D3 tail cuts
 	std::vector<ParticleCut> d2d3_tails;
@@ -1245,14 +1245,12 @@ int T0::SliceTrack(int supplementary) {
 	std::vector<ParticleCut> d2d3_hole_tail_cuts;
 	d2d3_hole_tail_cuts.push_back({2, 0, ReadCut("t0-d2d3-hole-tail-p1i1-He")});
 
+	// for statistics
 	long long normal_count = 0;
 	long long d1_suppl_count = 0;
 	long long d2_suppl_count = 0;
 	long long d1d2_suppl_count = 0;
 
-	// long long test_entries[] = {
-	// 	276, 360, 678, 815, 931, 989
-	// };
 
 	// total number of entries
 	long long entries = ipt->GetEntries();
@@ -1524,6 +1522,90 @@ int T0::SliceTrack(int supplementary) {
 					t0_event.ssd_time[2] = s3_event.time;
 				}
 				node = &(nodes[node->parent]);
+			}
+
+			// Hole correct: Some events still in normal cut even though
+			// they're in hole pixel, maybe I can remark them as not hole
+			if (t0_event.hole[i]) {
+				if (t0_event.charge[i] == 4 && t0_event.mass[i] == 10) {
+					// 10Be hole event
+					if (t0_event.layer[i] == 1) {
+						// stop in T0D2
+						if (d1d2_cuts[8].cut->IsInside(
+							t0_event.energy[i][1], t0_event.energy[i][0]
+						)) {
+							t0_event.mass[i] = 9;
+							t0_event.hole[i] = false;
+						} else if (d1d2_cuts[9].cut->IsInside(
+							t0_event.energy[i][1], t0_event.energy[i][0]
+						)) {
+							t0_event.mass[i] = 10;
+							t0_event.hole[i] = false;
+						}
+					} else if (t0_event.layer[i] == 2) {
+						// stop in T0D3
+						if (
+							d1d2_tails[2].cut->IsInside(
+								t0_event.energy[i][1], t0_event.energy[i][0]
+							)
+							&&
+							d2d3_cuts[7].cut->IsInside(
+								t0_event.energy[i][2], t0_event.energy[i][1]
+							)
+						) {
+							t0_event.mass[i] = 9;
+							t0_event.hole[i] = false;
+						} else if (
+							d1d2_tails[2].cut->IsInside(
+								t0_event.energy[i][1], t0_event.energy[i][0]
+							)
+							&&
+							d2d3_cuts[8].cut->IsInside(
+								t0_event.energy[i][2], t0_event.energy[i][1]
+							)
+						) {
+							t0_event.mass[i] = 10;
+							t0_event.hole[i] = false;
+						}
+					}
+
+				} else if (t0_event.charge[i] == 2 && t0_event.mass[i] == 4) {
+					// 4He hole event
+					if (t0_event.layer[i] == 1) {
+						// stop in T0D2
+						if (d1d2_cuts[1].cut->IsInside(
+							t0_event.energy[i][1], t0_event.energy[i][0]
+						)) {
+							t0_event.hole[i] = false;
+						}
+					} else if (t0_event.layer[i] == 2) {
+						// stop in T0D3
+						if (
+							d1d2_tails[0].cut->IsInside(
+								t0_event.energy[i][1], t0_event.energy[i][0]
+							)
+							&&
+							d2d3_cuts[1].cut->IsInside(
+								t0_event.energy[i][2], t0_event.energy[i][1]
+							)
+						) {
+							t0_event.hole[i] = false;
+						}
+					} else if (t0_event.layer[i] > 2) {
+						// stop in SSD or CsI
+						if (
+							d1d2_tails[0].cut->IsInside(
+								t0_event.energy[i][1], t0_event.energy[i][0]
+							)
+							&&
+							d2d3_tails[0].cut->IsInside(
+								t0_event.energy[i][2], t0_event.energy[i][1]
+							)
+						) {
+							t0_event.hole[i] = false;
+						}
+					}
+				}
 			}
 		}
 

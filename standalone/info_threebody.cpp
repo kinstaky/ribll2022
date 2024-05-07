@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
 		std::cout << "Processing run " << run << "\n";
 		// input file name
 		TString channel_file_name = TString::Format(
-			"%s%sC14-9Be-4He-%dH-%s%04d.root",
+			"%s%sC14-10Be-4He-%dH-%s%04d.root",
 			kGenerateDataPath,
 			kChannelDir,
 			recoil_mass,
