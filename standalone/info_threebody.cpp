@@ -682,14 +682,17 @@ int main(int argc, char **argv) {
 				event.t0_energy[1] +=
 					t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
 			}
+			// T0S1
 			if (event.layer[1] > 2) {
 				event.t0_energy[1] +=
 					t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
 			}
+			// T0S2
 			if (event.layer[1] > 3) {
 				event.t0_energy[1] +=
 					t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
 			}
+			// T0S3
 			if (event.layer[1] > 4) {
 				event.t0_energy[1] +=
 					t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];

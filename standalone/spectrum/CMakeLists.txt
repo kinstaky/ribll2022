@@ -2,6 +2,11 @@
 add_executable(spectrum spectrum.cpp)
 target_link_libraries(spectrum PRIVATE event ROOT::Hist d2_energy_calculator)
 
+# spectrum
+add_executable(spectrum_v2 spectrum_v2.cpp)
+target_link_libraries(spectrum_v2 PRIVATE event ROOT::Hist d2_energy_calculator)
+
+
 # spectrum 3a
 add_executable(spectrum_3a spectrum_3a.cpp)
 target_link_libraries(spectrum_3a PRIVATE event ROOT::Hist)

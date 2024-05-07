@@ -94,7 +94,7 @@ double ThreeBodyProcess(
 
 /// @brief calculate 14C exicted energy
 /// @param[in] event input event
-/// @param[in] state 10Be state, 0-ground state, 1-3.5MeV, 2-6MeV, 3-7.5MeV
+/// @param[in] state 10Be state, 0-ground state, 1-3.368MeV, 2-6.179MeV, 3-7.542MeV
 /// @returns excited energy of 14C
 ///
 double TwoBodyProcess(
@@ -102,13 +102,9 @@ double TwoBodyProcess(
 	const int state
 ) {
 	double excited_10be = 0.0;
-	if (state == 1) {
-		excited_10be = 3.5;
-	} else if (state == 2) {
-		excited_10be = 6.0;
-	} else if (state == 3) {
-		excited_10be = 7.5;
-	}
+	if (state == 1) excited_10be = 3.368;
+	else if (state == 2) excited_10be = 6.179;
+	else if (state == 3) excited_10be = 7.542;
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(
