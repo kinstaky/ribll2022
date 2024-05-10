@@ -101,7 +101,6 @@ target_link_libraries(info_pd PRIVATE event ROOT::Graf)
 add_executable(info_threebody info_threebody.cpp)
 target_link_libraries(info_threebody PRIVATE event csi_energy_calculator d2_energy_calculator)
 
-
 add_subdirectory(calculate)
 add_subdirectory(check)
 add_subdirectory(filter)
@@ -110,3 +109,4 @@ add_subdirectory(simulate)
 add_subdirectory(summary)
 add_subdirectory(optimize)
 add_subdirectory(spectrum)
+add_subdirectory(hole)

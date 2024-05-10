@@ -10,7 +10,7 @@ using namespace ribll::elc;
 
 int main() {
 	const std::vector<std::string> loss_projectiles {
-		"4He", "10Be", "14C"
+		"4He", "9Be", "10Be", "14C", "16N"
 	};
 
 	if (LostEnergyCalculator::Initialize(loss_projectiles)) {

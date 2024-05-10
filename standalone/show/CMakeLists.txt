@@ -214,9 +214,3 @@ target_include_directories(
 target_link_libraries(
 	show_average_hole PRIVATE ROOT::Core ROOT::RIO ROOT::Graf
 )
-
-# show hole model
-add_executable(show_hole_model show_hole_model.cpp)
-target_link_libraries(
-	show_hole_model PRIVATE lost_energy_calculator ROOT::Core ROOT::RIO ROOT::Tree
-)
