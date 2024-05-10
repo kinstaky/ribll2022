@@ -203,7 +203,7 @@ target_link_libraries(
 # show beam angle
 add_executable(show_beam_angle show_beam_angle.cpp)
 target_link_libraries(
-	show_beam_angle PRIVATE event ROOT::Core ROOT::RIO
+	show_beam_angle PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist
 )
 
 # show average hole possibility

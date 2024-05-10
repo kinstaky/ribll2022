@@ -58,25 +58,25 @@ int main(int argc, char **argv) {
 	// 0: without calculation
 	// 1: only calculate the hole part
 	// 2: calculate all events 
-	double be_kinetic[3], he_kinetic[3], d_kinetic, c_kinetic[3];
+	double be_kinetic[4], he_kinetic[4], d_kinetic, c_kinetic[4];
 	// Q value 
-	double q[3];
+	double q[4];
 	// 10Be state, under different T0D2 energy method
-	int be_state[3];
+	int be_state[4];
 	// excited energy with calculated T0D2 energy,
-	double excited_energy[3];
+	double excited_energy[4];
 	// setup output branches
 	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
 	opt.Branch("taf_flag", &taf_flag, "tflag/I");
 	opt.Branch("bind", &bind, "bind/I");
 	opt.Branch("hole", &hole, "hole/I");
-	opt.Branch("be_kinetic", be_kinetic, "bek[3]/D");
-	opt.Branch("he_kinetic", he_kinetic, "hek[3]/D");
+	opt.Branch("be_kinetic", be_kinetic, "bek[4]/D");
+	opt.Branch("he_kinetic", he_kinetic, "hek[4]/D");
 	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
-	opt.Branch("c_kinetic", c_kinetic, "ck[3]/D");
-	opt.Branch("q", q, "q[3]/D");
-	opt.Branch("be_state", be_state, "bes[3]/I");
-	opt.Branch("excited_energy", excited_energy, "ex[3]/D");
+	opt.Branch("c_kinetic", c_kinetic, "ck[4]/D");
+	opt.Branch("q", q, "q[4]/D");
+	opt.Branch("be_state", be_state, "bes[4]/I");
+	opt.Branch("excited_energy", excited_energy, "ex[4]/D");
 
 
 	// Q value correct
@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
 		be_kinetic[2] = be_d1_energy + calc_be_d2_energy + be_d3_energy;
 		// with calculation if hole
 		be_kinetic[1] = event.hole[0] ? be_kinetic[2] : be_kinetic[0];
+		be_kinetic[3] = be_kinetic[2];
 
 		// 4He kinetic energy
 		// 4He T0D1 energy
@@ -160,6 +161,7 @@ int main(int argc, char **argv) {
 		}
 		// He kinetic energy with calculation if needed (hole)
 		he_kinetic[1] = event.hole[1] ? he_kinetic[2] : he_kinetic[0];
+		he_kinetic[3] = he_kinetic[0];
 
 		// deutron kinetic energy
 		d_kinetic = event.taf_energy;
@@ -168,7 +170,7 @@ int main(int argc, char **argv) {
 		double tx = (event.ppac_flag & 1) == 0 ? event.vptx : event.xptx;
 		double ty = (event.ppac_flag & 1) == 0 ? event.vpty : event.xpty;
 
-		for (int i = 0; i < 3; ++i) {
+		for (int i = 0; i < 4; ++i) {
 			// 10Be momentum
 			double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic[i]);
 			// 10Be momentum vector
