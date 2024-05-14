@@ -2591,7 +2591,7 @@ int T0::Rebuild() {
 		ipt->GetEntry(entry);
 		// initialize particle event
 		particle_event.num = 0;
-
+		has_4he = has_10be = false;
 		for (int i = 0; i < t0_event.num; ++i) {
 			// jump confuesd particles
 			if (type_event.charge[i] <= 0 || type_event.mass[i] <= 0) continue;
@@ -2623,6 +2623,13 @@ int T0::Rebuild() {
 			particle_event.status[particle_event.num] = t0_event.status[i];
 			particle_event.index[particle_event.num] = i;
 			hole[particle_event.num] = t0_event.hole[i];
+			if (type_event.mass[i] == 10 && type_event.charge[i] == 4) {
+				has_10be = true;
+			}
+			if (type_event.mass[i] == 4 && type_event.charge[i] == 2) {
+				has_4he = true;
+			}
+
 			++particle_event.num;
 		}
 
