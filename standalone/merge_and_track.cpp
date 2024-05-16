@@ -19,6 +19,9 @@
 using namespace ribll;
 
 constexpr bool print_debug = false;
+constexpr double d1_range = 1000.0;
+constexpr double d2_range = 2000.0;
+constexpr double d3_range = 1000.0;
 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run\n"
@@ -107,7 +110,8 @@ struct MergeEventNode {
 /// @param[in] event DSSD fundamental event 
 /// @param[in] range front-back correlation, energy difference in range 
 /// @param[in] positionFromStrip function to calculate postion from strip 
-/// @param[in] hbr 2D histogram of T0D2 pixel energy resolution 
+/// @param[in] hhsr 2D histogram of T0D2 hole start run
+/// @param[in] run run number 
 /// @param[out] result DSSD merge events  
 /// @param[out] hole wheter this merged event includes hole pixel
 ///
@@ -115,7 +119,8 @@ void GetMergeEvents(
 	const DssdFundamentalEvent &event,
 	double range,
 	void (*positionFromStrip)(double, double, double&, double&),
-	TH2F *hbr,
+	TH2F *hhsr,
+	int run,
 	std::vector<DssdMergeEvent> &result,
 	std::vector<std::vector<bool>> &hole
 ) {
@@ -137,11 +142,14 @@ void GetMergeEvents(
 	// loop front events
 	// single strip events
 	for (int i = 0; i < fhit; ++i) {
+		if (fe[i] < 200.0) break;
 		front_events.push_back(std::make_pair(i, -1));
 	}
 	// adjacent strip events
 	for (int i = 0; i < fhit; ++i) {
+		if (fe[i] < 200.0) break;
 		for (int j = i+1; j < fhit; ++j) {
+			if (fe[j] < 200.0) break;
 			// possible adjacent strip
 			if (abs(fs[i]-fs[j]) == 1) {
 				front_events.push_back(std::make_pair(i, j));
@@ -151,18 +159,21 @@ void GetMergeEvents(
 	// loop back events
 	// single strip events
 	for (int i = 0; i < bhit; ++i) {
+		if (be[i] < 200.0) break;
 		back_events.push_back(std::make_pair(i, -1));
 	}
 	// adjacent strip events
 	for (int i = 0; i < bhit; ++i) {
+		if (be[i] < 200.0) break;
 		for (int j = i+1; j < bhit; ++j) {
+			if (be[j] < 200.0) break;
 			// possible adjacent strip
 			if (abs(bs[i]-bs[j]) == 1) {
 				back_events.push_back(std::make_pair(i, j));
 			}
 		}
 	}
-	
+
 	// all possible merged events
 	std::vector<MergeEvent> merge_events;
 	// front-back correlation
@@ -209,7 +220,7 @@ void GetMergeEvents(
 				positionFromStrip(fstrip, bstrip, merge.x, merge.y);
 				// check hole
 				merge.hole = false;
-				if (hbr) {
+				if (hhsr) {
 					bool is_hole = false;
 					int pixels[4][2] = {
 						{front.first, back.first},
@@ -218,12 +229,12 @@ void GetMergeEvents(
 						{front.second, back.second}
 					};
 					// check pixels
-					for (int i = 0; i < 4; ++i) {
+					for (int i = 0; i < 1; ++i) {
 						if (pixels[i][0] < 0 || pixels[i][1] < 0) continue;
-						double res = hbr->GetBinContent(
+						int start_run = hhsr->GetBinContent(
 							fs[pixels[i][0]]+1, bs[pixels[i][1]]+1
 						);
-						if (res > 0.08) is_hole = true;
+						if (start_run > 0 && run >= start_run) is_hole = true;
 					}
 					// assign hole flag
 					merge.hole = is_hole;
@@ -338,7 +349,7 @@ void GetMergeEvents(
 			dssd_merge.z[num] = 0.0;
 			dssd_merge.energy[num] = branches[i][j].energy;
 			// ignore time at current stage
-			if (hbr) {
+			if (hhsr) {
 				dssd_hole.push_back(branches[i][j].hole);
 			}
 			++num;
@@ -1492,22 +1503,18 @@ int main(int argc, char **argv) {
 	s3.SetupInput(ipt, "s3.");
 
 	// T0D2 pixel resolution file name
-	TString pixel_file_name = TString::Format(
-		"%s%sshow-t0d2-pixel-%04d.root",
-		kGenerateDataPath,
-		kShowDir,
-		run
+	TString hole_flag_file_name = TString::Format(
+		"%s%shole-flag.root", kGenerateDataPath, kHoleDir
 	);
 	// pixel resolution file
-	TFile pixel_file(pixel_file_name, "read");
+	TFile hole_flag_file(hole_flag_file_name, "read");
 	// resolution histogram
-	TH2F *hbr = (TH2F*)pixel_file.Get("hbr");
-	if (!hbr) {
-		std::cerr << "Error: Get pixel resolution from "
-			<< pixel_file_name << " failed.\n";
+	TH2F *hhsr = (TH2F*)hole_flag_file.Get("hhsr");
+	if (!hhsr) {
+		std::cerr << "Error: Get hole start run from "
+			<< hole_flag_file_name << " failed.\n";
 		return -1;
 	}
-
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -1668,7 +1675,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d1_merge;
 		std::vector<std::vector<bool>> d1_hole;
 		GetMergeEvents(
-			d1, 500.0, T0D1PositionFromStrip, nullptr,
+			d1, d1_range, T0D1PositionFromStrip, nullptr, run,
 			d1_merge, d1_hole
 		);
 		if (print_debug) {
@@ -1695,7 +1702,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d2_merge;
 		std::vector<std::vector<bool>> d2_hole;
 		GetMergeEvents(
-			d2, 1000.0, T0D2PositionFromStrip, hbr,
+			d2, d2_range, T0D2PositionFromStrip, hhsr, run,
 			d2_merge, d2_hole
 		);
 		if (print_debug) {
@@ -1722,7 +1729,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d3_merge;
 		std::vector<std::vector<bool>> d3_hole;
 		GetMergeEvents(
-			d3, 200.0, T0D3PositionFromStrip, nullptr,
+			d3, d3_range, T0D3PositionFromStrip, nullptr, run,
 			d3_merge, d3_hole
 		);
 		if (print_debug) {
@@ -1788,7 +1795,7 @@ int main(int argc, char **argv) {
 	opf.WriteObject(&identify, "identify");
 	// close files
 	opf.Close();
-	pixel_file.Close();
+	hole_flag_file.Close();
 	d1_file.Close();
 
 	// print statistics

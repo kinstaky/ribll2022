@@ -134,14 +134,6 @@ target_link_libraries(show_pid_width PRIVATE t0)
 add_executable(show_d3_hit show_d3_hit.cpp)
 target_link_libraries(show_d3_hit PRIVATE event ROOT::Core ROOT::Graf)
 
-# show T0D2 shift
-add_executable(show_d2_shift show_d2_shift.cpp)
-target_link_libraries(show_d2_shift PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf ROOT::Gpad)
-
-# show T0D2 pixel
-add_executable(show_d2_pixel show_d2_pixel.cpp)
-target_link_libraries(show_d2_pixel PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf ROOT::Gpad)
-
 # show resist strip
 add_executable(show_resist_strip show_resist_strip.cpp)
 target_link_libraries(show_resist_strip PRIVATE event ROOT::Graf)

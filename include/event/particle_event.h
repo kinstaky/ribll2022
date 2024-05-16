@@ -25,18 +25,18 @@ public:
 
 
 	int num;
-	unsigned short charge[4];
-	unsigned short mass[4];
-	double energy[4];
-	double time[4];
-	double x[4];
-	double y[4];
-	double z[4];
-	double px[4];
-	double py[4];
-	double pz[4];
-	int status[4];
-	int index[4];
+	unsigned short charge[8];
+	unsigned short mass[8];
+	double energy[8];
+	double time[8];
+	double x[8];
+	double y[8];
+	double z[8];
+	double px[8];
+	double py[8];
+	double pz[8];
+	int status[8];
+	int index[8];
 };
 
 }	// namespace ribll
