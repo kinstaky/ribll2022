@@ -130,6 +130,8 @@ int main(int argc, char **argv) {
 	TChain chain("t0", "t0 telescope");
 	for (unsigned int i = run; i <= end_run; ++i) {
 		if (i == 628) continue;
+		if (i > 652 && i < 675) continue;
+		if (i > 716 && i < 739) continue;
 		chain.AddFile(TString::Format(
 			"%s%st0-telescope-%s%04u.root/tree",
 			kGenerateDataPath,

@@ -11,6 +11,7 @@
 #include <TTree.h>
 #include <TCutG.h>
 #include <TH2F.h>
+#include <TRandom3.h>
 
 #include "include/event/dssd_event.h"
 #include "include/event/ssd_event.h" 
@@ -19,9 +20,18 @@
 using namespace ribll;
 
 constexpr bool print_debug = false;
-constexpr double d1_range = 1000.0;
-constexpr double d2_range = 2000.0;
-constexpr double d3_range = 1000.0;
+constexpr double d1_range = 500.0;
+constexpr double d2_range = 1000.0;
+constexpr double d3_range = 200.0;
+
+// const double cy_param[6][2] = {
+// 	{-0.451425,	0.00679791},
+// 	{0.217737, 0.00697266},
+// 	{0.121048, 0.00565964},
+// 	{-0.578595, 0.00231362},
+// 	{1.03268, 0.00235314},
+// 	{-2.97632, 0.00217422}
+// };
 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run\n"
@@ -105,13 +115,30 @@ struct MergeEventNode {
 };
 
 
+class HoleInfo {
+public:
+	bool simulate;
+	bool hole_flag[32][32];
+	double hole_possibility[32][32];
+	TRandom3 *generator;
+
+	bool IsHole(int fs, int bs) const {
+		if (simulate) {
+			double random = generator->Rndm();
+			return random < hole_possibility[fs][bs];
+		} else {
+			return hole_flag[fs][bs];
+		}
+		return false;
+	}
+};
+
 
 /// @brief get all possible merged events from fundamental events
 /// @param[in] event DSSD fundamental event 
 /// @param[in] range front-back correlation, energy difference in range 
 /// @param[in] positionFromStrip function to calculate postion from strip 
-/// @param[in] hhsr 2D histogram of T0D2 hole start run
-/// @param[in] run run number 
+/// @param[in] hole T0D2 hole flag
 /// @param[out] result DSSD merge events  
 /// @param[out] hole wheter this merged event includes hole pixel
 ///
@@ -119,8 +146,7 @@ void GetMergeEvents(
 	const DssdFundamentalEvent &event,
 	double range,
 	void (*positionFromStrip)(double, double, double&, double&),
-	TH2F *hhsr,
-	int run,
+	const HoleInfo *hole_info,
 	std::vector<DssdMergeEvent> &result,
 	std::vector<std::vector<bool>> &hole
 ) {
@@ -215,26 +241,23 @@ void GetMergeEvents(
 				merge.flag = fflag | bflag;
 				merge.tag = ftag + btag;
 				merge.energy = fe_sum;
-				merge.x = fstrip;
-				merge.y = bstrip;
 				positionFromStrip(fstrip, bstrip, merge.x, merge.y);
 				// check hole
 				merge.hole = false;
-				if (hhsr) {
+				if (hole_info) {
 					bool is_hole = false;
 					int pixels[4][2] = {
-						{front.first, back.first},
-						{front.first, back.second},
-						{front.second, back.first},
-						{front.second, back.second}
+						{fs[front.first], bs[back.first]},
+						{fs[front.first], bs[back.second]},
+						{fs[front.second], bs[back.first]},
+						{fs[front.second], bs[back.second]}
 					};
 					// check pixels
 					for (int i = 0; i < 1; ++i) {
-						if (pixels[i][0] < 0 || pixels[i][1] < 0) continue;
-						int start_run = hhsr->GetBinContent(
-							fs[pixels[i][0]]+1, bs[pixels[i][1]]+1
-						);
-						if (start_run > 0 && run >= start_run) is_hole = true;
+						int fstrip = pixels[i][0];
+						int bstrip = pixels[i][1];
+						if (fstrip < 0 || bstrip < 0) continue;
+						if (hole_info->IsHole(fstrip, bstrip)) is_hole = true;
 					}
 					// assign hole flag
 					merge.hole = is_hole;
@@ -349,7 +372,7 @@ void GetMergeEvents(
 			dssd_merge.z[num] = 0.0;
 			dssd_merge.energy[num] = branches[i][j].energy;
 			// ignore time at current stage
-			if (hhsr) {
+			if (hole_info) {
 				dssd_hole.push_back(branches[i][j].hole);
 			}
 			++num;
@@ -444,6 +467,302 @@ void T0D3PositionFromStrip(
 ) {
 	x = 2.0 * front_strip - 31.0 - 0.95;
 	y = 2.0 * back_strip - 31.0 - 0.8;
+}
+
+
+/// @brief search for T0D2 f2b1 binding events
+/// @param[in] d2_event T0D2 fundamental event 
+/// @param[in] range T0D2 front-back correlation energy range
+/// @param[in] hole T0D2 hole flag
+/// @param[out] d2_merge T0D2 merge events  
+/// @returns true if T0D2 binding events is found
+/// 
+bool SearchD2Front2Back1(
+	const DssdFundamentalEvent &d2_event,
+	const double range,
+	const HoleInfo *hole,
+	std::vector<DssdMergeEvent> &d2_merge
+) {
+	// result
+	bool found = false;
+	// variables for convenient
+	const int &fhit = d2_event.front_hit;
+	const int &bhit = d2_event.back_hit;
+	const unsigned short *fs = d2_event.front_strip;
+	const unsigned short *bs = d2_event.back_strip;
+	const double *fe = d2_event.front_energy;
+	const double *be = d2_event.back_energy;
+
+	// search for f2b1 event
+	for (int i = 0; i < bhit; ++i) {
+		for (int j = 0; j < fhit; ++j) {
+			if (hole->IsHole(fs[j], bs[i])) continue;
+			for (int k = j+1; k < fhit; ++k) {
+				if (hole->IsHole(fs[k], bs[i])) continue;
+				if (abs(fs[j]-fs[k]) == 1) continue;
+				// energy difference
+				double de = be[i] - fe[j] - fe[k];
+				if (fabs(de) >= range) continue;
+				DssdMergeEvent merge;
+				merge.hit = 2;
+				merge.flag[0] = (0x100<<i) | (0x1<<j);
+				merge.merge_tag[0] = 5;
+				merge.energy[0] = fe[j];
+				T0D2PositionFromStrip(fs[j], bs[i], merge.x[0], merge.y[0]);
+				merge.flag[1] = (0x100<<i) | (0x1<<k);
+				merge.merge_tag[1] = 5;
+				merge.energy[1] = fe[k];
+				T0D2PositionFromStrip(fs[k], bs[i], merge.x[1], merge.y[1]);
+				found = true;
+				d2_merge.push_back(merge);
+			}
+		}
+	}
+
+	return found;
+}
+
+
+/// @brief search for T0D2 f1b2 binding events
+/// @param[in] d2_event T0D2 fundamental event 
+/// @param[in] range T0D2 front-back correlation energy range
+/// @param[in] hole T0D2 hole flag
+/// @param[out] d2_merge T0D2 merge events  
+/// @returns true if T0D2 binding events is found
+/// 
+bool SearchD2Front1Back2(
+	const DssdFundamentalEvent &d2_event,
+	const double range,
+	const HoleInfo *hole,
+	std::vector<DssdMergeEvent> &d2_merge
+) {
+	// result
+	bool found = false;
+	// variables for convenient
+	const int &fhit = d2_event.front_hit;
+	const int &bhit = d2_event.back_hit;
+	const unsigned short *fs = d2_event.front_strip;
+	const unsigned short *bs = d2_event.back_strip;
+	const double *fe = d2_event.front_energy;
+	const double *be = d2_event.back_energy;
+
+	// search for f1b2 event
+	for (int i = 0; i < fhit; ++i) {
+		for (int j = 0; j < bhit; ++j) {
+			if (hole->IsHole(fs[i], bs[j])) continue;
+			for (int k = j+1; k < bhit; ++k) {
+				if (hole->IsHole(fs[i], bs[k])) continue;
+				if (abs(bs[j]-bs[k]) == 1) continue;
+				// energy difference
+				double de = fe[i] - be[j] - be[k];
+				if (fabs(de) >= range) continue;
+				DssdMergeEvent merge;
+				merge.hit = 2;
+				merge.flag[0] = (0x1<<i) | (0x100<<j);
+				merge.merge_tag[0] = 4;
+				merge.energy[0] = fe[i] * be[j] / (be[j] + be[k]);
+				T0D2PositionFromStrip(fs[i], bs[j], merge.x[0], merge.y[0]);
+				merge.flag[1] = (0x1<<i) | (0x100<<k);
+				merge.merge_tag[1] = 4;
+				merge.energy[1] = fe[i] * be[k] / (be[j] + be[k]);
+				T0D2PositionFromStrip(fs[i], bs[k], merge.x[1], merge.y[1]);
+				found = true;
+				d2_merge.push_back(merge);
+			}
+		}
+	}
+
+	return found;
+}
+
+
+/// @brief get binding events from T0D1 and T0D2 fundamental events
+/// @param[in] d1_event T0D1 fundamental event
+/// @param[in] d2_event T0D2 fundamental event
+/// @param[in] range1 T0D1 front-back energy correlation range
+/// @param[in] range2 T0D2 front-back energy correlation range
+/// @param[in] hole T0D2 hole flag
+/// @param[out] d1_merge1 T0D1 f1b2 binding or f2ab2 merge events
+/// @param[out] d1_merge2 T0D2 f2b1 binding merge events
+/// @param[out] d2_merge1 T0D1 f2b1 binding or f2b2a merge events
+/// @param[out] d2_merge2 T0D2 f1b2 binding merge events
+///
+void GetBindEvents(
+	const DssdFundamentalEvent &d1_event,
+	const DssdFundamentalEvent &d2_event,
+	const double range1,
+	const double range2,
+	const HoleInfo *hole,
+	std::vector<DssdMergeEvent> &d1_merge1,
+	std::vector<DssdMergeEvent> &d1_merge2,
+	std::vector<DssdMergeEvent> &d2_merge1,
+	std::vector<DssdMergeEvent> &d2_merge2
+) {
+	// for convenient
+	int d1_fhit = d1_event.front_hit;
+	int d1_bhit = d1_event.back_hit;
+	const double *d1fe = d1_event.front_energy;
+	const double *d1be = d1_event.back_energy;
+	const unsigned short *d1fs = d1_event.front_strip;
+	const unsigned short *d1bs = d1_event.back_strip;
+
+	// search for D1 f1b2 event
+	bool found_d1_f1b2 = false;
+	for (int i = 0; i < d1_fhit; ++i) {
+		if (d1fe[i] < 200.0) break;
+		if (d1fe[i] < 15000.0) continue;
+		// search for back twin events in energy range
+		for (int j = 0; j < d1_bhit; ++j) {
+			if (d1be[j] < 10000.0) continue;
+			for (int k = j+1; k < d1_bhit; ++k) {
+				if (d1be[k] > 10000.0) continue;
+				// energy difference
+				double de = d1fe[i] - d1be[j] - d1be[k];
+				if (fabs(de) >= range1) continue;
+				// found
+				DssdMergeEvent merge;
+				merge.hit = 2;
+				merge.flag[0] = (0x1<<i) | (0x100<<j);
+				merge.merge_tag[0] = 4;
+				merge.energy[0] = d1fe[i] * d1be[j] / (d1be[j]+d1be[k]);
+				T0D1PositionFromStrip(
+					d1fs[i], d1bs[j], merge.x[0], merge.y[0]
+				);
+				merge.flag[1] = (0x1<<i) | (0x100<<k);
+				merge.merge_tag[1] = 4;
+				merge.energy[1] = d1fe[i] * d1be[k] / (d1be[j]+d1be[k]);
+				T0D1PositionFromStrip(
+					d1fs[i], d1bs[k], merge.x[1], merge.y[1]
+				);
+				d1_merge1.push_back(merge);
+				found_d1_f1b2 = true;
+			}
+		}
+	}
+
+	// search for D1 f2ab2 event
+	bool found_d1_f2ab2 = false;
+	for (int i = 0; i < d1_fhit; ++i) {
+		if (d1fe[i] < 10000.0) break;
+		for (int j = i+1; j < d1_fhit; ++j) {
+			if (d1fe[j] > 10000.0) continue;
+			if (abs(d1fs[i]-d1fs[j]) != 1) continue;
+			// search for back events
+			for (int k = 0; k < d1_bhit; ++k) {
+				double de1 = d1fe[i] - d1be[k];
+				if (fabs(de1) >= range1) continue;
+				for (int l = k+1; l < d1_bhit; ++l) {
+					double de2 = d1fe[j] - d1be[l];
+					if (fabs(de2) >= range1) continue;
+					// found
+					DssdMergeEvent merge;
+					merge.hit = 2;
+					merge.flag[0] = (0x1<<i) | (0x100<<k);
+					merge.merge_tag[0] = 0;
+					merge.energy[0] = d1fe[i];
+					T0D1PositionFromStrip(
+						d1fs[i], d1bs[k], merge.x[0], merge.y[0]
+					);
+					merge.flag[1] = (0x1<<j) | (0x100<<l);
+					merge.merge_tag[1] = 0;
+					merge.energy[1] = d1fe[j];
+					T0D1PositionFromStrip(
+						d1fs[j], d1bs[l], merge.x[1], merge.y[1]
+					);
+					d1_merge1.push_back(merge);
+					found_d1_f2ab2 = true;
+				}
+			}
+		}
+	}
+
+	if (found_d1_f1b2 || found_d1_f2ab2) {
+		bool found_d2_f2b1 =
+			SearchD2Front2Back1(d2_event, range2, hole, d2_merge1);
+		if (!found_d2_f2b1) {
+			d1_merge1.clear();
+			d2_merge1.clear();
+		}
+	}
+
+
+	// search for D1 f2b1 event
+	bool found_d1_f2b1 = false;
+	for (int i = 0; i < d1_bhit; ++i) {
+		if (d1be[i] < 15000.0) continue;
+		// search for front twin events in energy range
+		for (int j = 0; j < d1_fhit; ++j) {
+			if (d1fe[j] < 10000.0) continue;
+			for (int k = j+1; k < d1_fhit; ++k) {
+				if (d1fe[k] > 10000.0) continue;
+				// energy difference
+				double de = d1be[i] - d1fe[j] - d1fe[k];
+				if (fabs(de) >= range1) continue;
+				// found
+				DssdMergeEvent merge;
+				merge.hit = 2;
+				merge.flag[0] = (0x100<<i) | (0x1<<j);
+				merge.merge_tag[0] = 5;
+				merge.energy[0] = d1fe[j];
+				T0D1PositionFromStrip(
+					d1fs[j], d1bs[i], merge.x[0], merge.y[0]
+				);
+				merge.flag[1] = (0x100<<i) | (0x1<<k);
+				merge.merge_tag[1] = 5;
+				merge.energy[1] = d1fe[k];
+				T0D1PositionFromStrip(
+					d1fs[k], d1bs[i], merge.x[1], merge.y[1]
+				);
+				d1_merge2.push_back(merge);
+				found_d1_f2b1 = true;
+			}
+		}
+	}
+
+	// search for D1 f2b2a event
+	bool found_d1_f2b2a = false;
+	for (int i = 0; i < d1_bhit; ++i) {
+		if (d1be[i] < 10000.0) break;
+		for (int j = i+1; j < d1_bhit; ++j) {
+			if (d1be[j] > 10000.0) continue;
+			if (abs(d1bs[i]-d1bs[j]) != 1) continue;
+			// search for front events
+			for (int k = 0; k < d1_fhit; ++k) {
+				double de1 = d1be[i] - d1fe[k];
+				if (fabs(de1) >= range1) continue;
+				for (int l = k+1; l < d1_fhit; ++l) {
+					double de2 = d1be[j] - d1fe[l];
+					if (fabs(de2) >= range1) continue;
+					// found
+					DssdMergeEvent merge;
+					merge.hit = 2;
+					merge.flag[0] = (0x100<<i) | (0x1<<k);
+					merge.merge_tag[0] = 0;
+					merge.energy[0] = d1fe[k];
+					T0D1PositionFromStrip(
+						d1fs[k], d1bs[i], merge.x[0], merge.y[0]
+					);
+					merge.flag[1] = (0x100<<j) | (0x1<<l);
+					merge.merge_tag[1] = 0;
+					merge.energy[1] = d1fe[l];
+					T0D1PositionFromStrip(
+						d1fs[l], d1bs[j], merge.x[1], merge.y[1]
+					);
+					d1_merge2.push_back(merge);
+					found_d1_f2b2a = true;
+				}
+			}
+		}
+	}
+
+	if (found_d1_f2b1 || found_d1_f2b2a) {
+		bool found_d2_f1b2 =
+			SearchD2Front1Back2(d2_event, range2, hole, d2_merge2);
+		if (!found_d2_f1b2) {
+			d1_merge2.clear();
+			d2_merge2.clear();
+		}
+	}
 }
 
 
@@ -857,7 +1176,20 @@ void BuildSliceTree(
 	}
 
 	if (print_debug) {
+		std::cout << "Slice:\n";
+		std::cout << "Charge, Mass, Penetrate, Index1, Index2\n";
+		for (size_t i = 0; i < 5; ++i) {
+			std::cout << "Layer " << i << "\n";
+			for (size_t j = 0; j < slices[i].size(); ++j) {
+				std::cout << slices[i][j].charge << ", "
+					<< slices[i][j].mass << ", "
+					<< slices[i][j].tail << ", "
+					<< slices[i][j].index[0] << ", "
+					<< slices[i][j].index[1] << "\n";
+			}
+		}
 		std::cout << "Node:\n";
+		std::cout << ", Layer, Index, Parent, Flag, Leaf\n";
 		for (size_t i = 0; i < nodes.size(); ++i) {
 			std::cout << i << " " << nodes[i].layer << ", "
 				<< nodes[i].index << ", " << nodes[i].parent
@@ -1047,6 +1379,7 @@ struct ExtraInfo {
 /// @param[in] t0_cut T0 cuts
 /// @param[in] info extra information
 /// @param[out] t0_event tracked T0 event
+/// @param[out] merge_event selecteed merged event
 /// @param[out] found_behe_times times Be+He is found
 /// @returns 0 if success, -1 otherwise
 ///
@@ -1058,9 +1391,14 @@ int SliceTrack(
 	const SsdEvent &s2_event,
 	const SsdEvent &s3_event,
 	const std::vector<std::vector<bool>> &d2_hole,
+	const std::vector<DssdMergeEvent> &d1_bind_events1,
+	const std::vector<DssdMergeEvent> &d2_bind_events1,
+	const std::vector<DssdMergeEvent> &d1_bind_events2,
+	const std::vector<DssdMergeEvent> &d2_bind_events2,
 	const T0Cut &t0_cut,
 	const ExtraInfo &info,
 	T0Event &t0_event,
+	DssdMergeEvent *merge_event,
 	int &found_behe_times
 ) {
 	// picked slices
@@ -1076,9 +1414,9 @@ int SliceTrack(
 	// used slices of selected group
 	int used_slices = 0;
 	// selected events
-	const DssdMergeEvent *selected_d1_event = nullptr;
-	const DssdMergeEvent *selected_d2_event = nullptr;
-	const DssdMergeEvent *selected_d3_event = nullptr;
+	// const DssdMergeEvent *selected_d1_event = nullptr;
+	// const DssdMergeEvent *selected_d2_event = nullptr;
+	// const DssdMergeEvent *selected_d3_event = nullptr;
 	const std::vector<bool> *selected_d2_hole = nullptr;
 	// loop possible events
 	for (size_t i = 0; i < d1_events.size(); ++i) {
@@ -1135,15 +1473,151 @@ int SliceTrack(
 					for (int l = 0; l < 5; ++l) slices[l] = normal_slices[l];
 					nodes = normal_nodes;
 					group = normal_group;
-					selected_d1_event = used_d1_event;
-					selected_d2_event = used_d2_event;
-					selected_d3_event = used_d3_event;
+					merge_event[0] = d1_events[i];
+					merge_event[1] = d2_events[j];
+					merge_event[2] = d3_events[k];
 					selected_d2_hole = &(d2_hole[j]);
 				}
 				// std::cout << "Select: " << (selected ? "Y" : "N")
 				// 	<< ", BeHe " << (normal_found_behe ? "Y" : "N")
 				// 	<< ", number " << normal_group.size()
 				// 	<< ", slices " << normal_used_slices << "\n";
+			}
+		}
+	}
+
+	// make T0D2 binding events 1 hole
+	std::vector<std::vector<bool>> d2_bind_hole1;
+	for (size_t i = 0; i < d2_bind_events1.size(); ++i) {
+		std::vector<bool> temp;
+		for (int j = 0; j < d2_bind_events1[i].hit; ++j) {
+			temp.push_back(false);
+		}
+		d2_bind_hole1.push_back(temp);
+	}
+	// loop possible events
+	for (size_t i = 0; i < d1_bind_events1.size(); ++i) {
+		if (found_behe_times > 0) break;
+		for (size_t j = 0; j < d2_bind_events1.size(); ++j) {
+			for (size_t k = 0; k < d3_events.size(); ++k) {				
+				// used events
+				const DssdMergeEvent *used_d1_event = &(d1_bind_events1[i]);
+				const DssdMergeEvent *used_d2_event = &(d2_bind_events1[j]);
+				const DssdMergeEvent *used_d3_event = &(d3_events[k]);
+
+				// slices
+				std::vector<Slice> bind_slices[5];
+				// nodes
+				std::vector<SliceNode> bind_nodes;
+				// picked nodes group
+				std::vector<SliceNode> bind_group;
+				// found 10Be and 4He in group ?
+				bool bind_found_behe;
+				// number of used slices
+				int bind_used_slices;
+				// build slice from DSSD and SSD events
+				BuildSlice(
+					*used_d1_event, *used_d2_event, *used_d3_event,
+					s1_event, s2_event, s3_event,
+					d2_bind_hole1[j],
+					t0_cut,
+					bind_slices
+				);
+				// convert to tree structure
+				BuildSliceTree(bind_slices, bind_nodes);
+				// pick one group
+				PickSliceGroup(
+					bind_nodes, bind_group,
+					bind_found_behe, bind_used_slices
+				);
+
+				// this group is selected?
+				bool selected = false;
+				// select it if it's the best group
+				if (found_behe_times == 0 && bind_found_behe) {
+					selected = true;
+				}
+				if (bind_found_behe) ++found_behe_times;
+				// record the selected slices
+				if (selected) {
+					found_particles = bind_group.size();
+					used_slices = bind_used_slices;
+					for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
+					nodes = bind_nodes;
+					group = bind_group;
+					merge_event[0] = d1_bind_events1[i];
+					merge_event[1] = d2_bind_events1[j];
+					merge_event[2] = d3_events[k];
+					selected_d2_hole = &(d2_bind_hole1[j]);
+				}
+			}
+		}
+	}
+
+	// make T0D2 binding events 1 hole
+	std::vector<std::vector<bool>> d2_bind_hole2;
+	for (size_t i = 0; i < d2_bind_events2.size(); ++i) {
+		std::vector<bool> temp;
+		for (int j = 0; j < d2_bind_events2[i].hit; ++j) {
+			temp.push_back(false);
+		}
+		d2_bind_hole2.push_back(temp);
+	}
+	// loop possible events
+	for (size_t i = 0; i < d1_bind_events2.size(); ++i) {
+		if (found_behe_times > 0) break;
+		for (size_t j = 0; j < d2_bind_events2.size(); ++j) {
+			for (size_t k = 0; k < d3_events.size(); ++k) {				
+				// used events
+				const DssdMergeEvent *used_d1_event = &(d1_bind_events2[i]);
+				const DssdMergeEvent *used_d2_event = &(d2_bind_events2[j]);
+				const DssdMergeEvent *used_d3_event = &(d3_events[k]);
+
+				// slices
+				std::vector<Slice> bind_slices[5];
+				// nodes
+				std::vector<SliceNode> bind_nodes;
+				// picked nodes group
+				std::vector<SliceNode> bind_group;
+				// found 10Be and 4He in group ?
+				bool bind_found_behe;
+				// number of used slices
+				int bind_used_slices;
+				// build slice from DSSD and SSD events
+				BuildSlice(
+					*used_d1_event, *used_d2_event, *used_d3_event,
+					s1_event, s2_event, s3_event,
+					d2_bind_hole2[j],
+					t0_cut,
+					bind_slices
+				);
+				// convert to tree structure
+				BuildSliceTree(bind_slices, bind_nodes);
+				// pick one group
+				PickSliceGroup(
+					bind_nodes, bind_group,
+					bind_found_behe, bind_used_slices
+				);
+
+				// this group is selected?
+				bool selected = false;
+				// select it if it's the best group
+				if (found_behe_times == 0 && bind_found_behe) {
+					selected = true;
+				}
+				if (bind_found_behe) ++found_behe_times;
+				// record the selected slices
+				if (selected) {
+					found_particles = bind_group.size();
+					used_slices = bind_used_slices;
+					for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
+					nodes = bind_nodes;
+					group = bind_group;
+					merge_event[0] = d1_bind_events2[i];
+					merge_event[1] = d2_bind_events2[j];
+					merge_event[2] = d3_events[k];
+					selected_d2_hole = &(d2_bind_hole2[j]);
+				}
 			}
 		}
 	}
@@ -1215,51 +1689,51 @@ int SliceTrack(
 			if (layer == 0) {
 				// fill T0D1 information
 				int d1_index = slice->index[0];
-				if (d1_index >= selected_d1_event->hit) {
+				if (d1_index >= merge_event[0].hit) {
 					std::cerr << "Error: D1 index over hit in run "
 						<< info.run << ", entry "
 						<< info.entry << ", index " << d1_index
-						<< ", hit " << selected_d1_event->hit << "\n";
+						<< ", hit " << merge_event[0].hit << "\n";
 					return -1;
 				}
-				t0_event.energy[i][0] = selected_d1_event->energy[d1_index];
-				t0_event.time[i][0] = selected_d1_event->time[d1_index];
-				t0_event.x[i][0] = selected_d1_event->x[d1_index];
-				t0_event.y[i][0] = selected_d1_event->y[d1_index];
+				t0_event.energy[i][0] = merge_event[0].energy[d1_index];
+				t0_event.time[i][0] = merge_event[0].time[d1_index];
+				t0_event.x[i][0] = merge_event[0].x[d1_index];
+				t0_event.y[i][0] = merge_event[0].y[d1_index];
 				t0_event.z[i][0] = 100.0;
-				t0_event.dssd_flag[i][0] = selected_d1_event->flag[d1_index];
+				t0_event.dssd_flag[i][0] = merge_event[0].flag[d1_index];
 				// fill T0D2 information
 				int d2_index = slice->index[1];
-				if (d2_index >= selected_d2_event->hit) {
+				if (d2_index >= merge_event[1].hit) {
 					std::cerr << "Error: D2 index over hit in run "
 						<< info.run << ", entry "
 						<< info.entry << ", index " << d2_index
-						<< ", hit " << selected_d2_event->hit << "\n";
+						<< ", hit " << merge_event[1].hit << "\n";
 					return -1;
 				}
-				t0_event.energy[i][1] = selected_d2_event->energy[d2_index];
-				t0_event.time[i][1] = selected_d2_event->time[d2_index];
-				t0_event.x[i][1] = selected_d2_event->x[d2_index];
-				t0_event.y[i][1] = selected_d2_event->y[d2_index];
+				t0_event.energy[i][1] = merge_event[1].energy[d2_index];
+				t0_event.time[i][1] = merge_event[1].time[d2_index];
+				t0_event.x[i][1] = merge_event[1].x[d2_index];
+				t0_event.y[i][1] = merge_event[1].y[d2_index];
 				t0_event.z[i][1] = 111.76;
-				t0_event.dssd_flag[i][1] = selected_d2_event->flag[d2_index];
+				t0_event.dssd_flag[i][1] = merge_event[1].flag[d2_index];
 				t0_event.hole[i] = selected_d2_hole->at(d2_index);
 			} else if (layer == 1) {
 				// fill T0D3 information
 				int d3_index = slice->index[1];
-				if (d3_index >= selected_d3_event->hit) {
+				if (d3_index >= merge_event[2].hit) {
 					std::cerr << "Error: D1 index over hit in run "
 						<< info.run << ", entry "
 						<< info.entry << ", index " << d3_index
-						<< ", hit " << selected_d3_event->hit << " .\n";
+						<< ", hit " << merge_event[2].hit << " .\n";
 					return -1;
 				}
-				t0_event.energy[i][2] = selected_d3_event->energy[d3_index];
-				t0_event.time[i][2] = selected_d3_event->time[d3_index];
-				t0_event.x[i][2] = selected_d3_event->x[d3_index];
-				t0_event.y[i][2] = selected_d3_event->y[d3_index];
+				t0_event.energy[i][2] = merge_event[2].energy[d3_index];
+				t0_event.time[i][2] = merge_event[2].time[d3_index];
+				t0_event.x[i][2] = merge_event[2].x[d3_index];
+				t0_event.y[i][2] = merge_event[2].y[d3_index];
 				t0_event.z[i][2] = 123.52;
-				t0_event.dssd_flag[i][2] = selected_d3_event->flag[d3_index];
+				t0_event.dssd_flag[i][2] = merge_event[2].flag[d3_index];
 			} else if (layer == 2) {
 				// fill T0S1 information
 				t0_event.ssd_energy[0] = s1_event.energy;
@@ -1273,90 +1747,6 @@ int SliceTrack(
 			}
 			node = &(nodes[node->parent]);
 		}
-
-		// // Hole correct: Some events still in normal cut even though
-		// // they're in hole pixel, maybe I can remark them as not hole
-		// if (t0_event.hole[i]) {
-		// 	if (t0_event.charge[i] == 4 && t0_event.mass[i] == 10) {
-		// 		// 10Be hole event
-		// 		if (t0_event.layer[i] == 1) {
-		// 			// stop in T0D2
-		// 			if (d1d2_cuts[8].cut->IsInside(
-		// 				t0_event.energy[i][1], t0_event.energy[i][0]
-		// 			)) {
-		// 				t0_event.mass[i] = 9;
-		// 				t0_event.hole[i] = false;
-		// 			} else if (d1d2_cuts[9].cut->IsInside(
-		// 				t0_event.energy[i][1], t0_event.energy[i][0]
-		// 			)) {
-		// 				t0_event.mass[i] = 10;
-		// 				t0_event.hole[i] = false;
-		// 			}
-		// 		} else if (t0_event.layer[i] == 2) {
-		// 			// stop in T0D3
-		// 			if (
-		// 				d1d2_tails[2].cut->IsInside(
-		// 					t0_event.energy[i][1], t0_event.energy[i][0]
-		// 				)
-		// 				&&
-		// 				d2d3_cuts[7].cut->IsInside(
-		// 					t0_event.energy[i][2], t0_event.energy[i][1]
-		// 				)
-		// 			) {
-		// 				t0_event.mass[i] = 9;
-		// 				t0_event.hole[i] = false;
-		// 			} else if (
-		// 				d1d2_tails[2].cut->IsInside(
-		// 					t0_event.energy[i][1], t0_event.energy[i][0]
-		// 				)
-		// 				&&
-		// 				d2d3_cuts[8].cut->IsInside(
-		// 					t0_event.energy[i][2], t0_event.energy[i][1]
-		// 				)
-		// 			) {
-		// 				t0_event.mass[i] = 10;
-		// 				t0_event.hole[i] = false;
-		// 			}
-		// 		}
-
-		// 	} else if (t0_event.charge[i] == 2 && t0_event.mass[i] == 4) {
-		// 		// 4He hole event
-		// 		if (t0_event.layer[i] == 1) {
-		// 			// stop in T0D2
-		// 			if (d1d2_cuts[1].cut->IsInside(
-		// 				t0_event.energy[i][1], t0_event.energy[i][0]
-		// 			)) {
-		// 				t0_event.hole[i] = false;
-		// 			}
-		// 		} else if (t0_event.layer[i] == 2) {
-		// 			// stop in T0D3
-		// 			if (
-		// 				d1d2_tails[0].cut->IsInside(
-		// 					t0_event.energy[i][1], t0_event.energy[i][0]
-		// 				)
-		// 				&&
-		// 				d2d3_cuts[1].cut->IsInside(
-		// 					t0_event.energy[i][2], t0_event.energy[i][1]
-		// 				)
-		// 			) {
-		// 				t0_event.hole[i] = false;
-		// 			}
-		// 		} else if (t0_event.layer[i] > 2) {
-		// 			// stop in SSD or CsI
-		// 			if (
-		// 				d1d2_tails[0].cut->IsInside(
-		// 					t0_event.energy[i][1], t0_event.energy[i][0]
-		// 				)
-		// 				&&
-		// 				d2d3_tails[0].cut->IsInside(
-		// 					t0_event.energy[i][2], t0_event.energy[i][1]
-		// 				)
-		// 			) {
-		// 				t0_event.hole[i] = false;
-		// 			}
-		// 		}
-		// 	}
-		// }
 	}
 
 	return 0;
@@ -1502,19 +1892,59 @@ int main(int argc, char **argv) {
 	// setup input branches
 	s3.SetupInput(ipt, "s3.");
 
-	// T0D2 pixel resolution file name
-	TString hole_flag_file_name = TString::Format(
-		"%s%shole-flag.root", kGenerateDataPath, kHoleDir
-	);
-	// pixel resolution file
-	TFile hole_flag_file(hole_flag_file_name, "read");
-	// resolution histogram
-	TH2F *hhsr = (TH2F*)hole_flag_file.Get("hhsr");
-	if (!hhsr) {
-		std::cerr << "Error: Get hole start run from "
-			<< hole_flag_file_name << " failed.\n";
-		return -1;
+	HoleInfo hole_info;
+	if (run == 2) {
+		hole_info.simulate = true;
+		hole_info.generator = new TRandom3(201);
+		
+		// T0D2 average hole possibility file name
+		TString hole_possibility_file_name = TString::Format(
+			"%s%saverage-hole.root", kGenerateDataPath, kHoleDir
+		);
+		// T0D2 average hole file
+		TFile hole_possibility_file(hole_possibility_file_name, "read");
+		// average hole histogram
+		TH2F *hahp = (TH2F*)hole_possibility_file.Get("hahp");
+		if (!hahp) {
+			std::cerr << "Error: Get hole average from "
+				<< hole_possibility_file_name << " failed.\n";
+			return -1;
+		}
+		for (int fs = 0; fs < 32; ++fs) {
+			for (int bs = 0; bs < 32; ++bs) {
+				hole_info.hole_possibility[fs][bs] =
+					hahp->GetBinContent(fs+1, bs+1);
+			}
+		}
+		// close file
+		hole_possibility_file.Close();
+	} else {
+		hole_info.simulate = false;
+
+		// T0D2 pixel resolution file name
+		TString hole_flag_file_name = TString::Format(
+			"%s%shole-flag.root", kGenerateDataPath, kHoleDir
+		);
+		// pixel resolution file
+		TFile hole_flag_file(hole_flag_file_name, "read");
+		// resolution histogram
+		TH2F *hhsr = (TH2F*)hole_flag_file.Get("hhsr");
+		if (!hhsr) {
+			std::cerr << "Error: Get hole start run from "
+				<< hole_flag_file_name << " failed.\n";
+			return -1;
+		}
+		for (int fs = 0; fs < 32; ++fs) {
+			for (int bs = 0; bs < 32; ++bs) {
+				hole_info.hole_flag[fs][bs] = false;
+				int start_run = hhsr->GetBinContent(fs+1, bs+1);
+				if (start_run == 0) continue;
+				if (run >= start_run) hole_info.hole_flag[fs][bs] = true;
+			}
+		}
+		hole_flag_file.Close();
 	}
+	
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -1533,13 +1963,34 @@ int main(int argc, char **argv) {
 	// setup output branches
 	t0.SetupOutput(&opt);
 
+	// output merge file
+	TString merge_file_name[3];
+	for (int i = 0; i < 3; ++i) {
+		merge_file_name[i].Form(
+			"%s%st0d%d-mt-merge-%s%04d.root",
+			kGenerateDataPath,
+			kMergeDir,
+			i+1,
+			tag.empty() ? "" : (tag+"-").c_str(),
+			run 
+		);
+	}
+	// output merge file
+	TFile *merge_file[3];
+	// output merge tree
+	TTree *merge_tree[3];
+	// output merge event
+	DssdMergeEvent merge_event[3];
+	for (int i = 0; i < 3; ++i) {
+		merge_file[i] = new TFile(merge_file_name[i], "recreate");
+		merge_tree[i] = new TTree("tree", "merge-track middle result");
+		merge_event[i].SetupOutput(merge_tree[i]);
+	}
+	
 	// T0 cuts
 	T0Cut t0_cut;
 
 	// T0D1-D2 cuts
-	// t0_cut.d1d2_cuts.push_back({1, 1, ReadCut("t0-d1d2-p1i1-1H")});
-	// t0_cut.d1d2_cuts.push_back({1, 2, ReadCut("t0-d1d2-p1i1-2H")});
-	// t0_cut.d1d2_cuts.push_back({1, 3, ReadCut("t0-d1d2-p1i1-3H")});
 	t0_cut.d1d2_cuts.push_back({2, 3, ReadCut("t0-d1d2-p1i1-3He")});
 	t0_cut.d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-p1i1-4He")});
 	t0_cut.d1d2_cuts.push_back({2, 6, ReadCut("t0-d1d2-p1i1-6He")});
@@ -1558,10 +2009,19 @@ int main(int argc, char **argv) {
 	t0_cut.d1d2_cuts.push_back({6, 13, ReadCut("t0-d1d2-p1i1-13C")});
 	t0_cut.d1d2_cuts.push_back({6, 14, ReadCut("t0-d1d2-p1i1-14C")});
 	// t0_cut.d1d2_cuts.push_back({6, 15, ReadCut("t0-d1d2-p1i1-15C")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d1d2_cuts.push_back({2, 4, ReadCut("t0-d1d2-cy-4He")});
+	// t0_cut.d1d2_cuts.push_back({2, 6, ReadCut("t0-d1d2-cy-6He")});
+	// t0_cut.d1d2_cuts.push_back({4, 10, ReadCut("t0-d1d2-cy-10Be")});
+	// t0_cut.d1d2_cuts.push_back({4, 12, ReadCut("t0-d1d2-cy-12Be")});
+
 	// T0D1-D2 tail cuts
 	t0_cut.d1d2_tail_cuts.push_back({2, 0, ReadCut("t0-d1d2-tail-p1i1-He")});
 	t0_cut.d1d2_tail_cuts.push_back({3, 0, ReadCut("t0-d1d2-tail-p1i1-Li")});
 	t0_cut.d1d2_tail_cuts.push_back({4, 0, ReadCut("t0-d1d2-tail-p1i1-Be")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d1d2_tail_cuts.push_back({2, 0, ReadCut("t0-d1d2-tail-cy-He")});
+	// t0_cut.d1d2_tail_cuts.push_back({4, 0, ReadCut("t0-d1d2-tail-cy-Be")});
 
 	// T0D2-D3 cuts
 	t0_cut.d2d3_cuts.push_back({2, 3, ReadCut("t0-d2d3-p1i1-3He")});
@@ -1573,9 +2033,18 @@ int main(int argc, char **argv) {
 	t0_cut.d2d3_cuts.push_back({3, 9, ReadCut("t0-d2d3-p1i1-9Li")});
 	t0_cut.d2d3_cuts.push_back({4, 9, ReadCut("t0-d2d3-p1i1-9Be")});
 	t0_cut.d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-p1i1-10Be")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d2d3_cuts.push_back({2, 4, ReadCut("t0-d2d3-cy-4He")});
+	// t0_cut.d2d3_cuts.push_back({2, 6, ReadCut("t0-d2d3-cy-6He")});
+	// t0_cut.d2d3_cuts.push_back({4, 10, ReadCut("t0-d2d3-cy-10Be")});
+	// t0_cut.d2d3_cuts.push_back({4, 12, ReadCut("t0-d2d3-cy-12Be")});
+
 	// T0D2-D3 tail cuts
 	t0_cut.d2d3_tail_cuts.push_back({2, 0, ReadCut("t0-d2d3-tail-p1i1-He")});
 	t0_cut.d2d3_tail_cuts.push_back({3, 0, ReadCut("t0-d2d3-tail-p1i1-Li")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d2d3_tail_cuts.push_back({2, 0, ReadCut("t0-d2d3-tail-cy-He")});
+
 
 	// T0D3-S1 cuts
 	t0_cut.d3s1_cuts.push_back({2, 3, ReadCut("t0-d3s1-p1i1-3He")});
@@ -1585,24 +2054,43 @@ int main(int argc, char **argv) {
 	t0_cut.d3s1_cuts.push_back({3, 7, ReadCut("t0-d3s1-p1i1-7Li")});
 	t0_cut.d3s1_cuts.push_back({3, 8, ReadCut("t0-d3s1-p1i1-8Li")});
 	t0_cut.d3s1_cuts.push_back({3, 9, ReadCut("t0-d3s1-p1i1-9Li")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d3s1_cuts.push_back({2, 4, ReadCut("t0-d3s1-cy-4He")});
+	// t0_cut.d3s1_cuts.push_back({2, 6, ReadCut("t0-d3s1-cy-6He")});
+
 	// T0D3-S1 tail cuts
-	t0_cut.d3s1_tail_cuts.push_back({2, 0, ReadCut("t0-d3s1-tail-p1i1-He")});
+	t0_cut.d3s1_tail_cuts.push_back({2, 4, ReadCut("t0-d3s1-tail-p1i1-He")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.d3s1_tail_cuts.push_back({2, 0, ReadCut("t0-d3s1-tail-cy-He")});
 
 	// T0S1-S2 cuts
 	t0_cut.s1s2_cuts.push_back({2, 3, ReadCut("t0-s1s2-p1i1-3He")});
 	t0_cut.s1s2_cuts.push_back({2, 4, ReadCut("t0-s1s2-p1i1-4He")});
 	t0_cut.s1s2_cuts.push_back({2, 6, ReadCut("t0-s1s2-p1i1-6He")});
-	// T0S1-S2 cuts
-	t0_cut.s1s2_tail_cuts.push_back({2, 0, ReadCut("t0-s1s2-tail-p1i1-He")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.s1s2_cuts.push_back({2, 4, ReadCut("t0-s1s2-cy-4He")});
+	// t0_cut.s1s2_cuts.push_back({2, 6, ReadCut("t0-s1s2-cy-6He")});
+
+	// T0S1-S2 tail cuts
+	t0_cut.s1s2_tail_cuts.push_back({2, 4, ReadCut("t0-s1s2-tail-p1i1-He")});
 	t0_cut.s1s2_tail_cuts.push_back({2, 6, ReadCut("t0-s1s2-tail-p1i1-6He")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.s1s2_tail_cuts.push_back({2, 0, ReadCut("t0-s1s2-tail-cy-He")});
 
 	// T0S2-S3 cuts
 	t0_cut.s2s3_cuts.push_back({2, 3, ReadCut("t0-s2s3-p1i1-3He")});
 	t0_cut.s2s3_cuts.push_back({2, 4, ReadCut("t0-s2s3-p1i1-4He")});
 	t0_cut.s2s3_cuts.push_back({2, 6, ReadCut("t0-s2s3-p1i1-6He")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.s2s3_cuts.push_back({2, 4, ReadCut("t0-s2s3-cy-4He")});
+	// t0_cut.s2s3_cuts.push_back({2, 6, ReadCut("t0-s2s3-cy-6He")});
+	
 	// T0S2-S3 pass cuts
 	t0_cut.s2s3_tail_cuts.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
 	t0_cut.s2s3_tail_cuts.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
+	// ChenYing's cuts for 16C run
+	// t0_cut.s2s3_tail_cuts.push_back({2, 4, ReadCut("t0-s2s3-tail-cy-4He")});
+	// t0_cut.s2s3_tail_cuts.push_back({2, 6, ReadCut("t0-s2s3-tail-cy-6He")});
 
 	// T0D1-D2 hole cuts
 	t0_cut.d1d2_hole_cuts.push_back(
@@ -1675,7 +2163,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d1_merge;
 		std::vector<std::vector<bool>> d1_hole;
 		GetMergeEvents(
-			d1, d1_range, T0D1PositionFromStrip, nullptr, run,
+			d1, d1_range, T0D1PositionFromStrip, nullptr,
 			d1_merge, d1_hole
 		);
 		if (print_debug) {
@@ -1702,7 +2190,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d2_merge;
 		std::vector<std::vector<bool>> d2_hole;
 		GetMergeEvents(
-			d2, d2_range, T0D2PositionFromStrip, hhsr, run,
+			d2, d2_range, T0D2PositionFromStrip, &hole_info,
 			d2_merge, d2_hole
 		);
 		if (print_debug) {
@@ -1729,7 +2217,7 @@ int main(int argc, char **argv) {
 		std::vector<DssdMergeEvent> d3_merge;
 		std::vector<std::vector<bool>> d3_hole;
 		GetMergeEvents(
-			d3, d3_range, T0D3PositionFromStrip, nullptr, run,
+			d3, d3_range, T0D3PositionFromStrip, nullptr,
 			d3_merge, d3_hole
 		);
 		if (print_debug) {
@@ -1753,6 +2241,97 @@ int main(int argc, char **argv) {
 		// 	std::chrono::high_resolution_clock::now();
 		// d3_merge_time += d3_merge_time_point - d2_merge_time_point;
 
+		std::vector<DssdMergeEvent> d1_bind_merge1;
+		std::vector<DssdMergeEvent> d1_bind_merge2;
+		std::vector<DssdMergeEvent> d2_bind_merge1;
+		std::vector<DssdMergeEvent> d2_bind_merge2;
+		GetBindEvents(
+			d1, d2, d1_range, d2_range, &hole_info,
+			d1_bind_merge1, d1_bind_merge2,
+			d2_bind_merge1, d2_bind_merge2
+		);
+		if (print_debug) {
+			std::cout << "---------- D1 bind events 1 ----------\n"
+				<< "Possible cases " << d1_bind_merge1.size() << "\n";
+			for (size_t i = 0; i < d1_bind_merge1.size(); ++i) {
+				std::cout << "Case " << i
+					<< ", hit " << d1_bind_merge1[i].hit << "\n"
+					<< "index, flag, tag, x, y, energy\n";
+				for (int j = 0; j < d1_bind_merge1[i].hit; ++j) {
+					std::cout << std::dec << j << ", "
+						<< std::hex << d1_bind_merge1[i].flag[j] << ", "
+						<< std::dec << d1_bind_merge1[i].merge_tag[j] << ", "
+						<< d1_bind_merge1[i].x[j] << ", "
+						<< d1_bind_merge1[i].y[j] << ", "
+						<< d1_bind_merge1[i].energy[j] << "\n";
+				}
+			}
+			std::cout << "---------- D1 bind events 2 ----------\n"
+				<< "Possible cases " << d1_bind_merge2.size() << "\n";
+			for (size_t i = 0; i < d1_bind_merge2.size(); ++i) {
+				std::cout << "Case " << i
+					<< ", hit " << d1_bind_merge2[i].hit << "\n"
+					<< "index, flag, tag, x, y, energy\n";
+				for (int j = 0; j < d1_bind_merge2[i].hit; ++j) {
+					std::cout << std::dec << j << ", "
+						<< std::hex << d1_bind_merge2[i].flag[j] << ", "
+						<< std::dec << d1_bind_merge2[i].merge_tag[j] << ", "
+						<< d1_bind_merge2[i].x[j] << ", "
+						<< d1_bind_merge2[i].y[j] << ", "
+						<< d1_bind_merge2[i].energy[j] << "\n";
+				}
+			}
+			std::cout << "---------- D2 bind events 1 ----------\n"
+				<< "Possible cases " << d2_bind_merge1.size() << "\n";
+			for (size_t i = 0; i < d2_bind_merge1.size(); ++i) {
+				std::cout << "Case " << i
+					<< ", hit " << d2_bind_merge1[i].hit << "\n"
+					<< "index, flag, tag, x, y, energy\n";
+				for (int j = 0; j < d2_bind_merge1[i].hit; ++j) {
+					std::cout << std::dec << j << ", "
+						<< std::hex << d2_bind_merge1[i].flag[j] << ", "
+						<< std::dec << d2_bind_merge1[i].merge_tag[j] << ", "
+						<< d2_bind_merge1[i].x[j] << ", "
+						<< d2_bind_merge1[i].y[j] << ", "
+						<< d2_bind_merge1[i].energy[j] << "\n";
+				}
+			}
+			std::cout << "---------- D2 bind events 2 ----------\n"
+				<< "Possible cases " << d2_bind_merge2.size() << "\n";
+			for (size_t i = 0; i < d2_bind_merge2.size(); ++i) {
+				std::cout << "Case " << i
+					<< ", hit " << d2_bind_merge2[i].hit << "\n"
+					<< "index, flag, tag, x, y, energy\n";
+				for (int j = 0; j < d2_bind_merge2[i].hit; ++j) {
+					std::cout << std::dec << j << ", "
+						<< std::hex << d2_bind_merge2[i].flag[j] << ", "
+						<< std::dec << d2_bind_merge2[i].merge_tag[j] << ", "
+						<< d2_bind_merge2[i].x[j] << ", "
+						<< d2_bind_merge2[i].y[j] << ", "
+						<< d2_bind_merge2[i].energy[j] << "\n";
+				}
+			}
+		}
+
+		// for (auto &m : d1_merge) {
+		// 	for (int i = 0; i < m.hit; ++i) {
+		// 		m.energy[i] = cy_param[0][0] + cy_param[0][1] * m.energy[i]; 
+		// 	}
+		// }
+		// for (auto &m : d2_merge) {
+		// 	for (int i = 0; i < m.hit; ++i) {
+		// 		m.energy[i] = cy_param[1][0] + cy_param[1][1] * m.energy[i]; 
+		// 	}
+		// }
+		// for (auto &m : d3_merge) {
+		// 	for (int i = 0; i < m.hit; ++i) {
+		// 		m.energy[i] = cy_param[2][0] + cy_param[2][1] * m.energy[i];
+		// 	}
+		// }
+		// s1.energy = cy_param[3][0] + cy_param[3][1] * s1.energy;
+		// s2.energy = cy_param[4][0] + cy_param[4][1] * s2.energy;
+		// s3.energy = cy_param[5][0] + cy_param[5][1] * s3.energy;
+
 		// extra information, inclueds run and entry
 		ExtraInfo extract_info;
 		extract_info.run = run;
@@ -1763,8 +2342,10 @@ int main(int argc, char **argv) {
 			d1_merge, d2_merge, d3_merge,
 			s1, s2, s3,
 			d2_hole,
+			d1_bind_merge1, d2_bind_merge1,
+			d1_bind_merge2, d2_bind_merge2,
 			t0_cut, extract_info,
-			t0, found_behe_times
+			t0, merge_event, found_behe_times
 		)) {
 			std::cerr << "Error: Slice track in run " << run
 				<< ", entry " << entry << " failed.\n";
@@ -1776,12 +2357,18 @@ int main(int argc, char **argv) {
 		} else if (found_behe_times > 3) {
 			++found_behe_counts[3];
 		}
+		// if (found_behe_times > 0) std::cout << entry << "\n";
 
 		// const auto track_time_point = 
 		// 	std::chrono::high_resolution_clock::now();
 		// track_time += track_time_point - d3_merge_time_point;
 
+		opf.cd();
 		opt.Fill();
+		for (int i = 0; i < 3; ++i) {
+			merge_file[i]->cd();
+			merge_tree[i]->Fill();
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -1791,12 +2378,19 @@ int main(int argc, char **argv) {
 	identify.push_back(true);
 
 	// save tree
+	opf.cd();
 	opt.Write();
 	opf.WriteObject(&identify, "identify");
-	// close files
 	opf.Close();
-	hole_flag_file.Close();
+
+	for (int i = 0; i < 3; ++i) {
+		merge_file[i]->cd();
+		merge_tree[i]->Write();
+		merge_file[i]->Close();
+	}
+
 	d1_file.Close();
+
 
 	// print statistics
 	std::cout << "Found Be+He times:\n";

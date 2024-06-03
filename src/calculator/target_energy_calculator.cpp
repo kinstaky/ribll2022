@@ -13,6 +13,7 @@ TargetEnergyCalculator::TargetEnergyCalculator(
 , density_(density)
 {}
 
+
 double TargetEnergyCalculator::Energy(double depth, double energy) {
 	double range = calculator_.Range(energy);
 	range -= depth * density_;

@@ -335,7 +335,7 @@ int main(int argc, char **argv) {
 					15.39 + 0.2 * ((entry / 10'000) % 100);
 			} else {
 				event.beam_excited_energy =
-					18.2 + 0.2 * ((entry / 10'000) % 100);
+					18.19 + 0.2 * ((entry / 10'000) % 100);
 			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;

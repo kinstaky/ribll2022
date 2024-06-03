@@ -11,6 +11,15 @@ add_executable(correct_hole_flag correct_hole_flag.cpp)
 target_include_directories(correct_hole_flag PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
 target_link_libraries(correct_hole_flag PRIVATE ROOT::Core ROOT::RIO ROOT::Graf)
 
+# show average hole possibility
+add_executable(show_average_hole show_average_hole.cpp)
+target_include_directories(
+	show_average_hole PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(
+	show_average_hole PRIVATE ROOT::Core ROOT::RIO ROOT::Graf
+)
+
 # hole model
 add_executable(hole_model hole_model.cpp)
 target_link_libraries(

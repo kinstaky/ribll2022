@@ -61,32 +61,32 @@ int main() {
 		d2_energy[1] = t0_param[1][0] + t0_param[1][1]*event.he_channel[1];
 		d3_energy[0] = t0_param[2][0] + t0_param[2][1]*event.be_channel[2];
 		d3_energy[1] = t0_param[2][0] + t0_param[2][1]*event.he_channel[2];
-		if (event.layer[0] == 1) {
-			calc_d2_from_d1[0] = be_calculator.Energy(
-				0, d1_energy[0], event.be_theta, true
-			);
-			calc_d2_from_d3[0] = -1e5;
-		} else if (event.layer[0] >= 2) {
-			calc_d2_from_d1[0] = be_calculator.Energy(
-				0, d1_energy[0], event.be_theta, false
-			);
-			calc_d2_from_d3[0] = be_calculator.DeltaEnergy(
-				1, d3_energy[0], event.be_theta, event.layer[0]==2
-			);
-		}
-		if (event.layer[1] == 1) {
-			calc_d2_from_d1[1] = he_calculator.Energy(
-				0, d1_energy[1], event.he_theta, true
-			);
-			calc_d2_from_d3[1] = -1e5;
-		} else if (event.layer[1] >= 2) {
-			calc_d2_from_d1[1] = he_calculator.Energy(
-				0, d1_energy[1], event.he_theta, false
-			);
-			calc_d2_from_d3[1] = he_calculator.DeltaEnergy(
-				1, d3_energy[1], event.he_theta, event.layer[1]==2
-			);
-		}
+		// if (event.layer[0] == 1) {
+		// 	calc_d2_from_d1[0] = be_calculator.Energy(
+		// 		0, d1_energy[0], event.be_theta, true
+		// 	);
+		// 	calc_d2_from_d3[0] = -1e5;
+		// } else if (event.layer[0] >= 2) {
+		// 	calc_d2_from_d1[0] = be_calculator.Energy(
+		// 		0, d1_energy[0], event.be_theta, false
+		// 	);
+		// 	calc_d2_from_d3[0] = be_calculator.DeltaEnergy(
+		// 		1, d3_energy[0], event.be_theta, event.layer[0]==2
+		// 	);
+		// }
+		// if (event.layer[1] == 1) {
+		// 	calc_d2_from_d1[1] = he_calculator.Energy(
+		// 		0, d1_energy[1], event.he_theta, true
+		// 	);
+		// 	calc_d2_from_d3[1] = -1e5;
+		// } else if (event.layer[1] >= 2) {
+		// 	calc_d2_from_d1[1] = he_calculator.Energy(
+		// 		0, d1_energy[1], event.he_theta, false
+		// 	);
+		// 	calc_d2_from_d3[1] = he_calculator.DeltaEnergy(
+		// 		1, d3_energy[1], event.he_theta, event.layer[1]==2
+		// 	);
+		// }
 		opt.Fill();
 	}
 

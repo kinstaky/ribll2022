@@ -494,8 +494,8 @@ int T0d2::Merge(double energy_diff, int supplementary) {
 	if (run_ == 2) {
 		// average hole possiblity file name
 		TString avg_hole_file_name = TString::Format(
-			"%s%st0d2-average-hole.root",
-			kGenerateDataPath, kShowDir
+			"%s%saverage-hole.root",
+			kGenerateDataPath, kHoleDir
 		);
 		// average hole possiblity file
 		TFile *avg_hole_file = new TFile(avg_hole_file_name, "read");

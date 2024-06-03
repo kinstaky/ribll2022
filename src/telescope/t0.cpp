@@ -1526,87 +1526,87 @@ int T0::SliceTrack(int supplementary) {
 
 			// Hole correct: Some events still in normal cut even though
 			// they're in hole pixel, maybe I can remark them as not hole
-			if (t0_event.hole[i]) {
-				if (t0_event.charge[i] == 4 && t0_event.mass[i] == 10) {
-					// 10Be hole event
-					if (t0_event.layer[i] == 1) {
-						// stop in T0D2
-						if (d1d2_cuts[8].cut->IsInside(
-							t0_event.energy[i][1], t0_event.energy[i][0]
-						)) {
-							t0_event.mass[i] = 9;
-							t0_event.hole[i] = false;
-						} else if (d1d2_cuts[9].cut->IsInside(
-							t0_event.energy[i][1], t0_event.energy[i][0]
-						)) {
-							t0_event.mass[i] = 10;
-							t0_event.hole[i] = false;
-						}
-					} else if (t0_event.layer[i] == 2) {
-						// stop in T0D3
-						if (
-							d1d2_tails[2].cut->IsInside(
-								t0_event.energy[i][1], t0_event.energy[i][0]
-							)
-							&&
-							d2d3_cuts[7].cut->IsInside(
-								t0_event.energy[i][2], t0_event.energy[i][1]
-							)
-						) {
-							t0_event.mass[i] = 9;
-							t0_event.hole[i] = false;
-						} else if (
-							d1d2_tails[2].cut->IsInside(
-								t0_event.energy[i][1], t0_event.energy[i][0]
-							)
-							&&
-							d2d3_cuts[8].cut->IsInside(
-								t0_event.energy[i][2], t0_event.energy[i][1]
-							)
-						) {
-							t0_event.mass[i] = 10;
-							t0_event.hole[i] = false;
-						}
-					}
+			// if (t0_event.hole[i]) {
+			// 	if (t0_event.charge[i] == 4 && t0_event.mass[i] == 10) {
+			// 		// 10Be hole event
+			// 		if (t0_event.layer[i] == 1) {
+			// 			// stop in T0D2
+			// 			if (d1d2_cuts[8].cut->IsInside(
+			// 				t0_event.energy[i][1], t0_event.energy[i][0]
+			// 			)) {
+			// 				t0_event.mass[i] = 9;
+			// 				t0_event.hole[i] = false;
+			// 			} else if (d1d2_cuts[9].cut->IsInside(
+			// 				t0_event.energy[i][1], t0_event.energy[i][0]
+			// 			)) {
+			// 				t0_event.mass[i] = 10;
+			// 				t0_event.hole[i] = false;
+			// 			}
+			// 		} else if (t0_event.layer[i] == 2) {
+			// 			// stop in T0D3
+			// 			if (
+			// 				d1d2_tails[2].cut->IsInside(
+			// 					t0_event.energy[i][1], t0_event.energy[i][0]
+			// 				)
+			// 				&&
+			// 				d2d3_cuts[7].cut->IsInside(
+			// 					t0_event.energy[i][2], t0_event.energy[i][1]
+			// 				)
+			// 			) {
+			// 				t0_event.mass[i] = 9;
+			// 				t0_event.hole[i] = false;
+			// 			} else if (
+			// 				d1d2_tails[2].cut->IsInside(
+			// 					t0_event.energy[i][1], t0_event.energy[i][0]
+			// 				)
+			// 				&&
+			// 				d2d3_cuts[8].cut->IsInside(
+			// 					t0_event.energy[i][2], t0_event.energy[i][1]
+			// 				)
+			// 			) {
+			// 				t0_event.mass[i] = 10;
+			// 				t0_event.hole[i] = false;
+			// 			}
+			// 		}
 
-				} else if (t0_event.charge[i] == 2 && t0_event.mass[i] == 4) {
-					// 4He hole event
-					if (t0_event.layer[i] == 1) {
-						// stop in T0D2
-						if (d1d2_cuts[1].cut->IsInside(
-							t0_event.energy[i][1], t0_event.energy[i][0]
-						)) {
-							t0_event.hole[i] = false;
-						}
-					} else if (t0_event.layer[i] == 2) {
-						// stop in T0D3
-						if (
-							d1d2_tails[0].cut->IsInside(
-								t0_event.energy[i][1], t0_event.energy[i][0]
-							)
-							&&
-							d2d3_cuts[1].cut->IsInside(
-								t0_event.energy[i][2], t0_event.energy[i][1]
-							)
-						) {
-							t0_event.hole[i] = false;
-						}
-					} else if (t0_event.layer[i] > 2) {
-						// stop in SSD or CsI
-						if (
-							d1d2_tails[0].cut->IsInside(
-								t0_event.energy[i][1], t0_event.energy[i][0]
-							)
-							&&
-							d2d3_tails[0].cut->IsInside(
-								t0_event.energy[i][2], t0_event.energy[i][1]
-							)
-						) {
-							t0_event.hole[i] = false;
-						}
-					}
-				}
-			}
+			// 	} else if (t0_event.charge[i] == 2 && t0_event.mass[i] == 4) {
+			// 		// 4He hole event
+			// 		if (t0_event.layer[i] == 1) {
+			// 			// stop in T0D2
+			// 			if (d1d2_cuts[1].cut->IsInside(
+			// 				t0_event.energy[i][1], t0_event.energy[i][0]
+			// 			)) {
+			// 				t0_event.hole[i] = false;
+			// 			}
+			// 		} else if (t0_event.layer[i] == 2) {
+			// 			// stop in T0D3
+			// 			if (
+			// 				d1d2_tails[0].cut->IsInside(
+			// 					t0_event.energy[i][1], t0_event.energy[i][0]
+			// 				)
+			// 				&&
+			// 				d2d3_cuts[1].cut->IsInside(
+			// 					t0_event.energy[i][2], t0_event.energy[i][1]
+			// 				)
+			// 			) {
+			// 				t0_event.hole[i] = false;
+			// 			}
+			// 		} else if (t0_event.layer[i] > 2) {
+			// 			// stop in SSD or CsI
+			// 			if (
+			// 				d1d2_tails[0].cut->IsInside(
+			// 					t0_event.energy[i][1], t0_event.energy[i][0]
+			// 				)
+			// 				&&
+			// 				d2d3_tails[0].cut->IsInside(
+			// 					t0_event.energy[i][2], t0_event.energy[i][1]
+			// 				)
+			// 			) {
+			// 				t0_event.hole[i] = false;
+			// 			}
+			// 		}
+			// 	}
+			// }
 		}
 
 		opt.Fill();

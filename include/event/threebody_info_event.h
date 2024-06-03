@@ -24,18 +24,18 @@ public:
 	virtual void SetupOutput(TTree *tree) override;
 
 
-	// beam particle angle
-	double beam_theta, beam_phi;
-	// 10Be particle angle
-	double be_theta, be_phi;
-	// 4He particle angle
-	double he_theta, he_phi;
-	// 2H particle angle
-	double d_theta, d_phi;
-	// 10Be 4He, 2H and beam angle
-	double be_beam_angle, he_beam_angle, d_beam_angle;
-	// 10Be-4He angle, 14C*-2H angle
-	double behe_angle, cd_angle;
+	// // beam particle angle
+	// double beam_theta, beam_phi;
+	// // 10Be particle angle
+	// double be_theta, be_phi;
+	// // 4He particle angle
+	// double he_theta, he_phi;
+	// // 2H particle angle
+	// double d_theta, d_phi;
+	// // 10Be 4He, 2H and beam angle
+	// double be_beam_angle, he_beam_angle, d_beam_angle;
+	// // 10Be-4He angle, 14C*-2H angle
+	// double behe_angle, cd_angle;
 	// index
 	int csi_index;
 	// layers
@@ -80,6 +80,8 @@ public:
 	int vppac_track[2];
 	// PPAC beam direction
 	double beam_px, beam_py, beam_pz;
+	// Target flag
+	int target_flag;
 	// dssd normalize result information
 	// dssd hit
 	int be_x_hit[3], be_y_hit[3];

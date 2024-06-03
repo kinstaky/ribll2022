@@ -607,6 +607,7 @@ int Detector::ExtractTrigger(
 			fflush(stdout);
 		}
 
+
 		// check and fill event
 		int fill_index = fill_event(
 			trigger_times[entry],
@@ -614,6 +615,18 @@ int Detector::ExtractTrigger(
 			fundamental_event,
 			statistics
 		);
+
+		if (fabs(trigger_times[entry]-1740303744730)<1000) {
+			std::cout << entry << ", " << trigger_times[entry] << "\n";
+			std::cout << fill_index << "\n";
+			auto range = match_map.equal_range(trigger_times[entry]);
+			int counts = 0;
+			for (auto iter = range.first; iter != range.second; ++iter) {
+				++counts;
+			}
+			std::cout << counts << "\n";
+		}
+
 
 		xia_trigger_time = trigger_times[entry];
 		if (fill_index >= 0) {

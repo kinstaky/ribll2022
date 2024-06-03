@@ -1160,7 +1160,7 @@ int Dssd::FillMergeEvent(
 				if ((used_flag & (0x100 << j)) != 0) continue;
 				// energy difference of sides
 				double de = total_front_energy - be[j];
-				if (de < energy_diff) {
+				if (fabs(de) < energy_diff) {
 					int num = merge.hit;
 					merge.flag[num] = (0x1 << i) | (0x1 << fi) | (0x100 << j);
 					merge.merge_tag[num] = 2;

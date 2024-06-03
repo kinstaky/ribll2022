@@ -122,96 +122,96 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event, bool vppac = false) {
 	double q = event.t0_energy[0] + event.t0_energy[1]
 		+ event.taf_energy - event.c14_kinetic;
 
-	// get angles
-	event.beam_theta = p_beam.Theta();
-	event.beam_phi = p_beam.Phi();
-	event.be_theta = p_be.Theta();
-	event.be_phi = p_be.Phi();
-	event.he_theta = p_he.Theta();
-	event.he_phi = p_he.Phi();
-	event.d_theta = p_d.Theta();
-	event.d_phi = p_d.Phi();
-	event.be_beam_angle = acos(p_beam.Unit().Dot(p_be.Unit()));
-	event.he_beam_angle = acos(p_beam.Unit().Dot(p_he.Unit()));
-	event.d_beam_angle = acos(p_beam.Unit().Dot(p_d.Unit()));
+	// // get angles
+	// event.beam_theta = p_beam.Theta();
+	// event.beam_phi = p_beam.Phi();
+	// event.be_theta = p_be.Theta();
+	// event.be_phi = p_be.Phi();
+	// event.he_theta = p_he.Theta();
+	// event.he_phi = p_he.Phi();
+	// event.d_theta = p_d.Theta();
+	// event.d_phi = p_d.Phi();
+	// event.be_beam_angle = acos(p_beam.Unit().Dot(p_be.Unit()));
+	// event.he_beam_angle = acos(p_beam.Unit().Dot(p_he.Unit()));
+	// event.d_beam_angle = acos(p_beam.Unit().Dot(p_d.Unit()));
 
-	// momentum vector of excited 14C
-	ROOT::Math::XYZVector p_ex_c = p_be + p_he;
-	// angle of excited 14C in beam frame
-	double c14_beam_theta, c14_beam_phi;
-	// rotate 14C momentum vector to get beam frame direction
-	Rotate(
-		event.beam_theta, event.beam_phi,
-		p_ex_c.Theta(), p_ex_c.Phi(),
-		c14_beam_theta, c14_beam_phi
-	);
-	// angle of recoil 2H in beam frame
-	double d_beam_theta, d_beam_phi;
-	// rotate d momentum vector to get beam frame direction
-	Rotate(
-		event.beam_theta, event.beam_phi,
-		event.d_theta, event.d_phi,
-		d_beam_theta, d_beam_phi
-	);
+	// // momentum vector of excited 14C
+	// ROOT::Math::XYZVector p_ex_c = p_be + p_he;
+	// // angle of excited 14C in beam frame
+	// double c14_beam_theta, c14_beam_phi;
+	// // rotate 14C momentum vector to get beam frame direction
+	// Rotate(
+	// 	event.beam_theta, event.beam_phi,
+	// 	p_ex_c.Theta(), p_ex_c.Phi(),
+	// 	c14_beam_theta, c14_beam_phi
+	// );
+	// // angle of recoil 2H in beam frame
+	// double d_beam_theta, d_beam_phi;
+	// // rotate d momentum vector to get beam frame direction
+	// Rotate(
+	// 	event.beam_theta, event.beam_phi,
+	// 	event.d_theta, event.d_phi,
+	// 	d_beam_theta, d_beam_phi
+	// );
 
-	// get excited 14C* velocity
-	ROOT::Math::XYZVector v_ex_c(
-		sin(c14_beam_theta)*cos(c14_beam_phi),
-		sin(c14_beam_theta)*sin(c14_beam_phi),
-		cos(c14_beam_theta)
-	);
-	double ex_c_energy = mass_10be + mass_4he
-		+ event.t0_energy[0] + event.t0_energy[1];
-	v_ex_c *= sqrt(pow(ex_c_energy, 2.0) - pow(mass_14c, 2.0))
-		/ sqrt(pow(ex_c_energy, 2.0) + pow(mass_14c, 2.0));
-	// get recoil 2H velocity
-	ROOT::Math::XYZVector v_d(
-		sin(d_beam_theta)*cos(d_beam_phi),
-		sin(d_beam_theta)*sin(d_beam_phi),
-		cos(d_beam_theta)
-	);
-	v_d *= sqrt(pow(mass_2h+event.taf_energy, 2.0) - pow(mass_2h, 2.0))
-		/ sqrt(pow(mass_2h+event.taf_energy, 2.0) + pow(mass_2h, 2.0));
-
-
-	// angle of 10Be in 14C* frame
-	double be10_c14_theta, be10_c14_phi;
-	// rotate 10Be momentum vector to get 14C* frame direction
-	Rotate(
-		p_ex_c.Theta(), p_ex_c.Phi(),
-		p_be.Theta(), p_be.Phi(),
-		be10_c14_theta, be10_c14_phi
-	);
-	// angle of 4He in 14C* frame
-	double he4_c14_theta, he4_c14_phi;
-	// rotate 4He momentum vector to get 14C* frame direction
-	Rotate(
-		p_ex_c.Theta(), p_ex_c.Phi(),
-		p_he.Theta(), p_he.Phi(),
-		he4_c14_theta, he4_c14_phi
-	);
-
-	// get 10Be velocity
-	ROOT::Math::XYZVector v_be(
-		sin(be10_c14_theta)*cos(be10_c14_phi),
-		sin(be10_c14_theta)*sin(be10_c14_phi),
-		cos(be10_c14_theta)
-	);
-	v_be *= sqrt(pow(mass_10be+event.t0_energy[0], 2.0) - pow(mass_10be, 2.0))
-		/ sqrt(pow(mass_10be+event.t0_energy[0], 2.0) + pow(mass_10be, 2.0));
-	// get 4He velocity
-	ROOT::Math::XYZVector v_he(
-		sin(he4_c14_theta)*cos(he4_c14_phi),
-		sin(he4_c14_theta)*sin(he4_c14_phi),
-		cos(he4_c14_theta)
-	);
-	v_he *= sqrt(pow(mass_4he+event.t0_energy[1], 2.0) - pow(mass_4he, 2.0))
-		/ sqrt(pow(mass_4he+event.t0_energy[1], 2.0) + pow(mass_4he, 2.0));
+	// // get excited 14C* velocity
+	// ROOT::Math::XYZVector v_ex_c(
+	// 	sin(c14_beam_theta)*cos(c14_beam_phi),
+	// 	sin(c14_beam_theta)*sin(c14_beam_phi),
+	// 	cos(c14_beam_theta)
+	// );
+	// double ex_c_energy = mass_10be + mass_4he
+	// 	+ event.t0_energy[0] + event.t0_energy[1];
+	// v_ex_c *= sqrt(pow(ex_c_energy, 2.0) - pow(mass_14c, 2.0))
+	// 	/ sqrt(pow(ex_c_energy, 2.0) + pow(mass_14c, 2.0));
+	// // get recoil 2H velocity
+	// ROOT::Math::XYZVector v_d(
+	// 	sin(d_beam_theta)*cos(d_beam_phi),
+	// 	sin(d_beam_theta)*sin(d_beam_phi),
+	// 	cos(d_beam_theta)
+	// );
+	// v_d *= sqrt(pow(mass_2h+event.taf_energy, 2.0) - pow(mass_2h, 2.0))
+	// 	/ sqrt(pow(mass_2h+event.taf_energy, 2.0) + pow(mass_2h, 2.0));
 
 
-	// get correlate angle
-	event.cd_angle = (v_ex_c - v_d).Theta();
-	event.behe_angle = (v_be - v_he).Theta();
+	// // angle of 10Be in 14C* frame
+	// double be10_c14_theta, be10_c14_phi;
+	// // rotate 10Be momentum vector to get 14C* frame direction
+	// Rotate(
+	// 	p_ex_c.Theta(), p_ex_c.Phi(),
+	// 	p_be.Theta(), p_be.Phi(),
+	// 	be10_c14_theta, be10_c14_phi
+	// );
+	// // angle of 4He in 14C* frame
+	// double he4_c14_theta, he4_c14_phi;
+	// // rotate 4He momentum vector to get 14C* frame direction
+	// Rotate(
+	// 	p_ex_c.Theta(), p_ex_c.Phi(),
+	// 	p_he.Theta(), p_he.Phi(),
+	// 	he4_c14_theta, he4_c14_phi
+	// );
+
+	// // get 10Be velocity
+	// ROOT::Math::XYZVector v_be(
+	// 	sin(be10_c14_theta)*cos(be10_c14_phi),
+	// 	sin(be10_c14_theta)*sin(be10_c14_phi),
+	// 	cos(be10_c14_theta)
+	// );
+	// v_be *= sqrt(pow(mass_10be+event.t0_energy[0], 2.0) - pow(mass_10be, 2.0))
+	// 	/ sqrt(pow(mass_10be+event.t0_energy[0], 2.0) + pow(mass_10be, 2.0));
+	// // get 4He velocity
+	// ROOT::Math::XYZVector v_he(
+	// 	sin(he4_c14_theta)*cos(he4_c14_phi),
+	// 	sin(he4_c14_theta)*sin(he4_c14_phi),
+	// 	cos(he4_c14_theta)
+	// );
+	// v_he *= sqrt(pow(mass_4he+event.t0_energy[1], 2.0) - pow(mass_4he, 2.0))
+	// 	/ sqrt(pow(mass_4he+event.t0_energy[1], 2.0) + pow(mass_4he, 2.0));
+
+
+	// // get correlate angle
+	// event.cd_angle = (v_ex_c - v_d).Theta();
+	// event.behe_angle = (v_be - v_he).Theta();
 
 	return q;
 }
@@ -315,6 +315,7 @@ int main(int argc, char **argv) {
 	}
 
 	std::string tag = sim ? "sim-ta" : "ta";
+	unsigned int sim_run = sim ? atoi(argv[pos_start]) : -1;
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -357,8 +358,8 @@ int main(int argc, char **argv) {
 
 
 	for (
-		unsigned int run = sim ? 0 : 618;
-		run <= (sim ? 0 : 746);
+		unsigned int run = sim ? sim_run : 618;
+		run <= (sim ? sim_run : 746);
 		++run
 	) {
 		if (run == 628) continue;
@@ -991,7 +992,7 @@ int main(int argc, char **argv) {
 						yk, yb
 					);
 					ROOT::Math::XYZVector bp(xk, yk, 1.0);
-					bp = bp.Unit() * MomentumFromKinetic(mass_14c, 389.5);
+					bp = bp.Unit() * MomentumFromKinetic(mass_14c, 385.0);
 					event.beam_px = bp.X();
 					event.beam_py = bp.Y();
 					event.beam_pz = bp.Z();
@@ -1021,6 +1022,12 @@ int main(int argc, char **argv) {
 					event.be_y[0], event.he_y[0], event.d_y, event.d_x,
 					event.vpty
 				);
+			}
+
+			if (pow(event.xptx-2.5, 2.0) + pow(event.xpty+2.0, 2.0) < 196.0) {
+				event.target_flag = 1;
+			} else {
+				event.target_flag = 0;
 			}
 
 			// Q

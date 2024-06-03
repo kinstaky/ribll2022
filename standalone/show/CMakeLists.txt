@@ -198,11 +198,10 @@ target_link_libraries(
 	show_beam_angle PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist
 )
 
-# show average hole possibility
-add_executable(show_average_hole show_average_hole.cpp)
-target_include_directories(
-	show_average_hole PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
-)
-target_link_libraries(
-	show_average_hole PRIVATE ROOT::Core ROOT::RIO ROOT::Graf
-)
+# show pixel energy
+add_executable(show_pixel_energy show_pixel_energy.cpp)
+target_link_libraries(show_pixel_energy PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
+
+# show T0D2 calculated energy resolution
+add_executable(show_d2_calculate_resolution show_d2_calculate_resolution.cpp)
+target_link_libraries(show_d2_calculate_resolution PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
