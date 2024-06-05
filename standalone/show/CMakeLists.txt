@@ -108,6 +108,14 @@ target_link_libraries(
 	show_ppac_effect PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
 )
 
+
+# show PPAC effect 2
+add_executable(show_ppac_effect2 show_ppac_effect2.cpp)
+target_link_libraries(
+	show_ppac_effect2 PRIVATE event ROOT::Core ROOT::RIO ROOT::Graf
+)
+
+
 # show pd reaction single PPAC track
 add_executable(show_pd_single_ppac show_pd_single_ppac.cpp)
 target_link_libraries(
