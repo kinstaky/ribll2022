@@ -120,6 +120,14 @@ target_link_libraries(
 )
 
 
+# show PPAC normalize result
+add_executable(show_ppac_normalize show_ppac_normalize.cpp)
+target_include_directories(show_ppac_normalize PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
+target_link_libraries(
+	show_ppac_normalize PRIVATE ROOT::Core ROOT::RIO ROOT::Graf
+)
+
+
 # show pd reaction single PPAC track
 add_executable(show_pd_single_ppac show_pd_single_ppac.cpp)
 target_link_libraries(
