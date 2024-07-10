@@ -17,8 +17,14 @@ using namespace ribll;
 int main(int argc, char **argv) {
 	std::string suffix = "";
 	if (argc > 1) {
+		if (argv[1][0] == '-' && argv[1][1] == 'h') {
+			std::cout << "Usage: " << argv[0] << " [suffix]\n"
+				<< "  suffix        ROOT file suffix tag\n";
+			return -1;
+		}
 		suffix = std::string(argv[1]);
 	}
+
 
 	// input file name
 	TString input_file_name = TString::Format(

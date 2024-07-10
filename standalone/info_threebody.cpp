@@ -603,6 +603,10 @@ int main(int argc, char **argv) {
 				++valid_count;
 			}
 
+			// initialize
+			event.xppac_track[0] = event.xppac_track[1] = 0;
+			event.vppac_track[0] = event.vppac_track[1] = 0;
+
 			// T0
 			// T0 layer
 			event.layer[0] = t0_type.layer[be10_indexes[i]];

@@ -12,11 +12,11 @@
 #include <glog/logging.h>
 
 #include "include/event/threebody_info_event.h"
-#include "include/calculator/delta_energy_calculator.h"
 #include "include/ppac_track.h"
 
+#define TAFD_OPT
 // #define THRES_OPT
-#define POS_OPT
+// #define POS_OPT
 // #define PPAC_OPT
 
 using namespace ribll;
@@ -24,86 +24,20 @@ using namespace ribll;
 
 double ThreeBodyProcess(
 	const ThreeBodyInfoEvent &event,
+	const double *tafd_opt_param,
 	const double *csi_opt_param,
 	const double *pos_opt_param,
 	double &d_kinetic,
 	double &c_kinetic
 ) {
-	// // 10Be kinetic energy
-	// // T0D1 energy
-	// be_kinetic = t0_param[0][0] + t0_param[0][1] * event.be_channel[0];
-	// // T0D2 energy
-	// if (calculated_t0d2) {
-	// 	be_kinetic += be_calc->Energy(0, be_kinetic);
-	// } else {
-	// 	be_kinetic += t0_param[1][0] + t0_param[1][1] * event.be_channel[1];
-	// }
-	// // T0D3 energy
-	// if (event.layer[0] > 1) {
-	// 	be_kinetic += t0_param[2][0] + t0_param[2][1] * event.be_channel[2];
-	// }
-	// // T0S1 energy
-	// if (event.layer[0] > 2) {
-	// 	be_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	// }
-	// // T0S2 energy
-	// if (event.layer[0] > 3) {
-	// 	be_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	// }
-	// // T0S3 energy
-	// if (event.layer[0] > 4) {
-	// 	be_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	// }
-
-	// // 4He kinetic energy
-	// // T0D1 energy
-	// he_kinetic = t0_param[0][0] + t0_param[0][1] * event.he_channel[0];
-	// // T0D2 energy
-	// if (calculated_t0d2) {
-	// 	he_kinetic += he_calc->Energy(0, he_kinetic);
-	// } else {
-	// 	he_kinetic += t0_param[1][0] + t0_param[1][1] * event.he_channel[1];
-	// }
-	// // T0D3 energy
-	// if (event.layer[1] > 1) {
-	// 	he_kinetic += t0_param[2][0] + t0_param[2][1] * event.he_channel[2];
-	// }
-	// // T0S1 energy
-	// if (event.layer[1] > 2) {
-	// 	he_kinetic += t0_param[3][0] + t0_param[3][1] * event.ssd_channel[0];
-	// }
-	// // T0S2 energy
-	// if (event.layer[1] > 3) {
-	// 	he_kinetic += t0_param[4][0] + t0_param[4][1] * event.ssd_channel[1];
-	// }
-	// // T0S3 energy
-	// if (event.layer[1] > 4) {
-	// 	he_kinetic += t0_param[5][0] + t0_param[5][1] * event.ssd_channel[2];
-	// }
 
 	// 2H kinetic energy
-	d_kinetic = event.tafd_energy + pow(
-		(event.csi_channel - csi_opt_param[2]) / csi_opt_param[0],
-		1.0 / csi_opt_param[1]
-	);
-
-
-	// double ppac_correct[2][3] = {
-	// 	{ppac_param[0], 0.0, 0.0},
-	// 	{ppac_param[1], 0.0, 0.0}
-	// };
-	// PpacOffsetX(ppac_correct[0][0], ppac_correct[0][1], ppac_correct[0][2]);
-	// PpacOffsetY(ppac_correct[1][0], ppac_correct[1][1], ppac_correct[1][2]);
-	// // calculate reaction point
-	// double ppac_cx[3], ppac_cy[3];
-	// for (int i = 0; i < 3; ++i) {
-	// 	ppac_cx[i] = event.ppac_x[i] - ppac_correct[0][i];
-	// 	ppac_cy[i] = event.ppac_y[i] - ppac_correct[1][i];
-	// }
-	// // slope and intercept
-	// double xk, yk, xb, yb;
-	// TrackMultiplePpac(event.ppac_xflag, ppac_xz, ppac_cx, xk, xb);
-	// TrackMultiplePpac(event.ppac_yflag, ppac_yz, ppac_cy, yk, yb);
+	d_kinetic =
+		tafd_opt_param[0] + tafd_opt_param[1]*event.tafd_energy
+		+ pow(
+			(event.csi_channel - csi_opt_param[2]) / csi_opt_param[0],
+			1.0 / csi_opt_param[1]
+		);
 
 	// 10Be momentum
 	double be_momentum = MomentumFromKinetic(mass_10be, event.t0_energy[0]);
@@ -137,10 +71,7 @@ double ThreeBodyProcess(
 
 	// beam 14C momentum vector
 	ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
-// std::cout << p_be.X() << ", " << p_be.Y() << ", " << p_be.Z() << "\n"
-// 	<< p_he.X() << ", " << p_he.Y() << ", " << p_he.Z() << "\n"
-// 	<< p_d.X() << ", " << p_d.Y() << ", " << p_d.Z() << "\n"
-// 	<< p_c.X() << ", " << p_c.Y() << ", " << p_c.Z() << "\n";
+
 
 	// 14C momentum
 	double c_momentum = p_c.R();
@@ -268,17 +199,16 @@ public:
 	CostFunctor(
 		const ThreeBodyInfoEvent &event,
 		const int state
-		// elc::DeltaEnergyCalculator *be_calculator,
-		// elc::DeltaEnergyCalculator *he_calculator
 	)
 	: event_(event)
 	, state_(state)
-	// , be_calculator_(be_calculator)
-	// , he_calculator_(he_calculator)
 	{}
 
 
 	bool operator()(
+#ifdef TAFD_OPT
+		const double * const tafd_param,
+#endif	
 		const double * const csi_opt_param,
 #ifdef POS_OPT
 		const double * const pos_opt_param,
@@ -297,6 +227,9 @@ public:
 		};
 #endif
 
+#ifndef TAFD_OPT
+		double tafd_param[2] = {0.0, 0.0};
+#endif
 #ifndef POS_OPT
 		double pos_opt_param[2] = {0.0, 0.0};
 #endif
@@ -309,6 +242,7 @@ public:
 
 		double q = ThreeBodyProcess(
 			event_,
+			tafd_param,
 			csi_param_full,
 			pos_opt_param,
 			d_kinetic, c_kinetic
@@ -328,8 +262,6 @@ public:
 private:
 	ThreeBodyInfoEvent event_;
 	int state_;
-	// elc::DeltaEnergyCalculator *be_calculator_;
-	// elc::DeltaEnergyCalculator *he_calculator_;
 };
 
 
@@ -421,7 +353,7 @@ int main(int argc, char **argv) {
 
 	// input file name
 	TString input_file_name = TString::Format(
-		"%s%sthreebody.root", kGenerateDataPath, kInformationDir
+		"%s%sthreebody-10Be.root", kGenerateDataPath, kInformationDir
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -437,21 +369,21 @@ int main(int argc, char **argv) {
 	// setup input branches
 	event.SetupInput(ipt);
 
-	// resist strip file name
-	TString resist_strip_file_name = TString::Format(
-		"%s%sresist-strip.root", kGenerateDataPath, kShowDir
+	// spectrum-v2 file name
+	TString be_state_file_name = TString::Format(
+		"%s%sthreebody-10Be-2.root", kGenerateDataPath, kSpectrumDir
 	);
-	// add resist strip friend
-	ipt->AddFriend("resist=tree", resist_strip_file_name);
-	// most same state
-	int most_same_state;
-	// setup input branch
-	ipt->SetBranchAddress("resist.same_state", &most_same_state);
+	// add friend
+	ipt->AddFriend("spec=tree", be_state_file_name);
+	// be state
+	int correct_be_state[4];
+	// setup input branches
+	ipt->SetBranchAddress("spec.be_state", correct_be_state);
 
 	// output file
 	TFile opf(
 		TString::Format(
-			"%s%sthreebody%s.root",
+			"%s%sthreebody-10Be%s.root",
 			kGenerateDataPath,
 			kOptimizeDir,
 			iteration ? "-1" : ""
@@ -502,59 +434,23 @@ int main(int argc, char **argv) {
 	opt.Branch("state", &be_state, "state/I");
 	opt.Branch("excited", &c_excited, "ex/D");
 
+	double tafd_opt_param[6][2];
 	double csi_opt_param[12][3];
 	double pos_opt_param[6][2];
 	// double ppac_opt_param[2] = {0.0, 0.0};
 	// double ppac_correct[2][3];
 
 	// initialize
+	for (int i = 0; i < 6; ++i) {
+		tafd_opt_param[i][0] = 0.0;
+		tafd_opt_param[i][1] = 1.0;
+	}
 	for (int i = 0; i < 12; ++i) {
 		for (int j = 0; j < 3; ++j) csi_opt_param[i][j] = csi_param[i][j];
 	}
 	for (int i = 0; i < 6; ++i) {
 		pos_opt_param[i][0] = pos_opt_param[i][1] = 0.0;
 	}
-	// // read CsI calibration parameters from file
-	// std::ifstream fin_csi(TString::Format(
-	// 	"%s%scsi-calibrate%s.txt",
-	// 	kGenerateDataPath,
-	// 	kOptimizeDir,
-	// 	iteration ? "-tb" : ""
-	// ).Data());
-	// for (int i = 0; i < 12; ++i) {
-	// 	for (int j = 0; j < 3; ++j) fin_csi >> csi_param[i][j];
-	// }
-	// fin_csi.close();
-
-	// // read TAF position parameters from file
-	// std::ifstream fin_pos(TString::Format(
-	// 	"%s%staf-position%s.txt",
-	// 	kGenerateDataPath,
-	// 	kOptimizeDir,
-	// 	iteration ? "-tb" : ""
-	// ).Data());
-	// for (int i = 0; i < 6; ++i) {
-	// 	for (int j = 0; j < 2; ++j) fin_pos >> pos_param[i][j];
-	// }
-	// fin_pos.close();
-
-	// // read PPAC correct parameters from file
-	// std::ifstream fin_ppac(TString::Format(
-	// 	"%s%sppac-position%s.txt",
-	// 	kGenerateDataPath,
-	// 	kOptimizeDir,
-	// 	iteration ? "-tb" : ""
-	// ).Data());
-	// for (int i = 0; i < 2; ++i) {
-	// 	for (int j = 0; j < 3; ++j) fin_ppac >> ppac_correct[i][j];
-	// }
-	// fin_ppac.close();
-	// ppac_param[0] = ppac_correct[0][0];
-	// ppac_param[1] = ppac_correct[1][0];
-
-	// energy calculators
-	// elc::DeltaEnergyCalculator be_calculator("t0", "10Be");
-	// elc::DeltaEnergyCalculator he_calculator("t0", "4He");
 
 
 	int states_csi[12][5];
@@ -571,30 +467,17 @@ int main(int argc, char **argv) {
 		// ignore events without PID
 		if (event.taf_flag != 0) continue;
 		// ignore events without PPAC tracking
-		if (event.xppac_track[0] < 1 || event.xppac_track[1] < 1) continue;
-
-		// q_value = ThreeBodyProcess(
-		// 	event, (calculate_t0d2 & 0x1) != 0,
-		// 	&be_calculator, &he_calculator,
-		// 	csi_param[event.csi_index],
-		// 	pos_param[event.csi_index/2],
-		// 	ppac_param,
-		// 	be_kinetic, he_kinetic, d_kinetic, c_kinetic
-		// );
+		if (event.xppac_track[0] == 0 || event.xppac_track[1] == 0) continue;
+		// ignore hole
+		if (event.hole[0] || event.hole[1]) continue;
+		// ignore binding events
+		if (event.bind != 0) continue;
 
 		init_q_spectrum.Fill(event.q);
 		init_q_sep_spectrum[event.csi_index].Fill(event.q);
 		init_hist_beam_energy.Fill(event.c14_kinetic);
 
-		// get state
-		// int state;
-		// if (q_value > -13.5 && q_value < -10) state = 0;
-		// else if (q_value > -16 && q_value < -14.5 ) state = 1;
-		// else if (q_value > -19 && q_value < -16.5) state = 2;
-		// else state = -1;
-
-		// states.push_back(most_same_state);
-		states_csi[event.csi_index][most_same_state+1]++;
+		states_csi[event.csi_index][correct_be_state[0]]++;
 	}
 
 	std::cout << "  -1  0  1  2  3\n";
@@ -617,14 +500,16 @@ int main(int argc, char **argv) {
 		if (event.xppac_track[0] < 1 || event.xppac_track[1] < 1) continue;
 
 		// check state
-		// if (states[entry] < 0) continue;
-		if (most_same_state < 0) continue;
+		if (correct_be_state[0] < 0) continue;
 
 		ceres::CostFunction *cost_function;
 		cost_function = new ceres::NumericDiffCostFunction<
 			CostFunctor,
 			ceres::CENTRAL,
 			1
+#ifdef TAFD_OPT
+			, 2
+#endif
 #ifdef THRES_OPT
 			, 3
 #else
@@ -638,12 +523,15 @@ int main(int argc, char **argv) {
 #endif
 		> (
 			new CostFunctor(
-				event, most_same_state
+				event, correct_be_state[0]
 			)
 		);
 		problem.AddResidualBlock(
 			cost_function,
 			nullptr,
+#ifdef TAFD_OPT
+			tafd_opt_param[event.csi_index/2],
+#endif
 			csi_opt_param[event.csi_index]
 #ifdef POS_OPT
 			, pos_opt_param[event.csi_index/2]
@@ -671,25 +559,42 @@ int main(int argc, char **argv) {
 	// PpacOffsetY(ppac_correct[1][0], ppac_correct[1][1], ppac_correct[1][2]);
 
 	// print optimization results
-	std::cout << "Optimization calibration results:\n";
-	for (int i = 0; i < 12; ++i) {
-		std::cout << i << " "
-			<< csi_opt_param[i][0] << " "
-			<< csi_opt_param[i][1] << " "
-			<< csi_opt_param[i][2] << "\n";
+#ifdef TAFD_OPT
+	std::cout << "Optimized TAFD calibration results:\n";
+	for (int i = 0; i < 6; ++i) {
+		std::cout << i << ": "
+			<< tafd_opt_param[i][0] << ", "
+			<< tafd_opt_param[i][1] << "\n";
 	}
+#endif
+	std::cout << "Optimized CsI calibration results:\n";
+	for (int i = 0; i < 12; ++i) {
+		std::cout << i << ": "
+			<< csi_opt_param[i][0] << ", "
+#ifndef THRES_OPT
+			<< csi_opt_param[i][1] << "\n";
+#else
+			<< csi_opt_param[i][1] << ", ";
+			<< csi_opt_param[i][2] << "\n";
+#endif
+	}
+#ifdef POS_OPT
 	std::cout << "Optimized position results:\n";
 	for (int i = 0; i < 6; ++i) {
-		std::cout << i << " "
-			<< pos_opt_param[i][0] << " "
+		std::cout << i << ": "
+			<< pos_opt_param[i][0] << ", "
 			<< pos_opt_param[i][1] << "\n";
 	}
+#endif
+#ifdef PPAC_OPT
 	std::cout << "Optimized PPAC position results:\n";
 	for (int i = 0; i < 2; ++i) {
-		std::cout << ppac_correct[i][0] << ", "
+		std::cout << i << ": "
+			<< ppac_correct[i][0] << ", "
 			<< ppac_correct[i][1] << ", "
 			<< ppac_correct[i][2] << "\n";
 	}
+#endif
 
 	// save calibration parameters
 	std::ofstream fout_calibrate(TString::Format(
@@ -738,16 +643,21 @@ int main(int argc, char **argv) {
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 		ipt->GetEntry(entry);
 
-		// ignore event without PID
+		// ignore events without PID
 		if (event.taf_flag != 0) continue;
 		// ignore events without PPAC tracking
-		if (event.xppac_track[0] < 1 || event.xppac_track[1] < 1) continue;
+		if (event.xppac_track[0] == 0 || event.xppac_track[1] == 0) continue;
+		// ignore hole
+		if (event.hole[0] || event.hole[1]) continue;
+		// ignore binding events
+		if (event.bind != 0) continue;
 
 		be_kinetic = event.t0_energy[0];
 		he_kinetic = event.t0_energy[1];
 
 		q_value = ThreeBodyProcess(
 			event,
+			tafd_opt_param[event.csi_index/2],
 			csi_opt_param[event.csi_index],
 			pos_opt_param[event.csi_index/2],
 			d_kinetic, c_kinetic
