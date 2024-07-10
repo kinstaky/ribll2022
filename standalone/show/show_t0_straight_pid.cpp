@@ -184,6 +184,12 @@ int FitPid(int start_run, int end_run) {
 }
 
 
+double DoubleGaus(double *x, double *par) {
+	return
+		par[0]*exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
+		+ par[3]*exp(-0.5*pow((x[0]-par[4])/par[5], 2.0));
+}
+
 int StraightPid(int start_run, int end_run, double *parameters) {
 	// input t0 chain
 	TChain chain("t0", "t0 telescope");
@@ -274,7 +280,49 @@ int StraightPid(int start_run, int end_run, double *parameters) {
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
+
+	// fit 9Be and 10Be in D1D2
+	TF1 d1d2_be_fit("fbe12", DoubleGaus, 19'000, 21'500, 6);
+	// initial parameters
+	double init_d1d2_be_param[6] = {
+		600, 19800, 250, 600, 20700, 250
+	};
+	d1d2_be_fit.SetParameters(init_d1d2_be_param);
+	d1d2ef.Fit(&d1d2_be_fit, "R+");
+	for (int i = 0; i < 2; ++i) {
+		TF1 *f1 = new TF1(TString::Format("f%dbe12", i+9), "gaus", 19'000, 21'500);
+		f1->SetLineColor(kGreen);
+		f1->SetParameters(d1d2_be_fit.GetParameters()+i*3);
+		d1d2ef.GetListOfFunctions()->Add(f1);
+	}
+	std::cout << "D1D2 Be fit result:\n"
+		<< d1d2_be_fit.GetParameter(1) << ", "
+		<< d1d2_be_fit.GetParameter(2) << "\n"
+		<< d1d2_be_fit.GetParameter(4) << ", "
+		<< d1d2_be_fit.GetParameter(5) << "\n";
+
+	// fit 9Be and 10Be in D2D3
+	TF1 d2d3_be_fit("fbe23", DoubleGaus, 22'500, 25'500, 6);
+	// initial parameters
+	double init_d2d3_be_param[6] = {
+		100, 23500, 500, 300, 24500, 350
+	};
+	d2d3_be_fit.SetParameters(init_d2d3_be_param);
+	// d2d3_be_fit.SetParLimits(1, 23300, 23700);
+	d2d3ef.Fit(&d2d3_be_fit, "R+");
+	for (int i = 0; i < 2; ++i) {
+		TF1 *f1 = new TF1(TString::Format("f%dbe23", i+9), "gaus", 22'500, 25'500);
+		f1->SetLineColor(kGreen);
+		f1->SetParameters(d2d3_be_fit.GetParameters()+i*3);
+		d2d3ef.GetListOfFunctions()->Add(f1);
+	}
+	std::cout << "D2D3 Be fit result:\n"
+		<< d2d3_be_fit.GetParameter(1) << ", "
+		<< d2d3_be_fit.GetParameter(2) << "\n"
+		<< d2d3_be_fit.GetParameter(4) << ", "
+		<< d2d3_be_fit.GetParameter(5) << "\n";
 	
+
 	// save histograms
 	d1d2_pid.Write();
 	d2d3_pid.Write();
@@ -376,10 +424,17 @@ int main(int argc, char **argv) {
 	// end run number
 	int end_run = atoi(argv[pos_start+1]);
 
+	// parameters for 14C, run 618-746
 	double parameters[] = {
 		0.47, -0.042,
 		0.59, -0.042
 	};
+
+	// // parameters for 16C, run 281-300
+	// double parameters[] = {
+	// 	0.54, -0.04,
+	// 	0.69, -0.035
+	// };
 
 	if (fit) {
 		if (FitPid(start_run, end_run)) {

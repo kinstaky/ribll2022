@@ -79,6 +79,7 @@ void ThreeBodyInfoEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"d_x_strip").c_str(), &d_x_strip);
 	tree->SetBranchAddress((prefix+"d_y_strip").c_str(), &d_y_strip);
 	tree->SetBranchAddress((prefix+"c14_kinetic").c_str(), &c14_kinetic);
+	tree->SetBranchAddress((prefix+"c14_momentum").c_str(), &c14_momentum);
 	tree->SetBranchAddress((prefix+"q").c_str(), &q);
 	tree->SetBranchAddress((prefix+"vq").c_str(), &vq);
 	tree->SetBranchAddress((prefix+"bind").c_str(), &bind);
@@ -162,6 +163,7 @@ void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
 	tree->Branch("d_x_strip", &d_x_strip, "dxs/i");
 	tree->Branch("d_y_strip", &d_y_strip, "dys/i");
 	tree->Branch("c14_kinetic", &c14_kinetic, "c14k/D");
+	tree->Branch("c14_momentum", &c14_momentum, "c14p/D");
 	tree->Branch("q", &q, "q/D");
 	tree->Branch("vq", &vq, "vq/D");
 	tree->Branch("bind", &bind, "bind/I");

@@ -101,6 +101,7 @@ public:
 	unsigned int d_x_strip, d_y_strip;
 	// state
 	double c14_kinetic;
+	double c14_momentum;
 	// Q from XIA PPAC reaction point or VME PPAC reaction point
 	double q, vq;
 	// other information

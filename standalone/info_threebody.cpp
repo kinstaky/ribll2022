@@ -113,10 +113,10 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event, bool vppac = false) {
 	ROOT::Math::XYZVector p_beam = p_be + p_he + p_d;
 
 	// 14C momentum
-	double beam_momentum = p_beam.R();
+	event.c14_momentum = p_beam.R();
 	// 14C kinematic energy
 	event.c14_kinetic =
-		sqrt(pow(beam_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
+		sqrt(pow(event.c14_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
 
 	// three-fold Q value
 	double q = event.t0_energy[0] + event.t0_energy[1]
