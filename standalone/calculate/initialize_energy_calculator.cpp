@@ -45,6 +45,8 @@ int main() {
 		{"9Be", "Si"},
 		{"10Be", "Si"},
 		{"10Be", "CD2"},
+		{"12Be", "Si"},
+		{"12Be", "CD2"},
 		{"10B", "Si"},
 		{"11B", "Si"},
 		{"12B", "Si"},
@@ -52,7 +54,9 @@ int main() {
 		{"12C", "Si"},
 		{"13C", "Si"},
 		{"14C", "Si"},
-		{"14C", "CD2"}
+		{"14C", "CD2"},
+		{"16C", "Si"},
+		{"16C", "CD2"}
 	};
 	if (RangeEnergyCalculator::Initialize(list)) {
 		std::cerr << "Error: Initialize range-energy calculator failed.\n";
@@ -70,7 +74,9 @@ int main() {
 		"7Li",
 		"9Be",
 		"10Be",
-		"14C"
+		"12Be",
+		"14C",
+		"16C"
 	};
 	if (DeltaEnergyCalculator::Initialize(
 		"t0", ribll::t0_thickness, t0_projectiles

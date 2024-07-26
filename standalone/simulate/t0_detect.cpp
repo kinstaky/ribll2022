@@ -287,8 +287,10 @@ int main(int argc, char **argv) {
 			for (size_t j = 0; j < 7; ++j) {
 				t0_lost_energy[i][j] = 0.0;
 			}
-			range[i] = frag_calculators[i]->Range(event.fragment_kinetic[i]);
-			residual_energy[i] = event.fragment_kinetic[i];
+			range[i] = frag_calculators[i]->Range(
+				event.fragment_kinetic_after_target[i]
+			);
+			residual_energy[i] = event.fragment_kinetic_after_target[i];
 
 			for (size_t j = 0; j < 6; ++j) {
 				double thick = thickness[j] / cos(event.fragment_theta[i]);
@@ -364,7 +366,10 @@ int main(int argc, char **argv) {
 		// calculate T0 position
 		for (size_t i = 0; i < 2; ++i) {
 			// check range
-			if (event.fragment_x[i] > -32.0 && event.fragment_x[i] < 32.0) {
+			if (
+				event.fragment_x[i] > -32.0 && event.fragment_x[i] < 32.0
+				&& event.fragment_y[i] > -32.0 && event.fragment_y[i] < 32.0
+			) {
 				// T0D1 position
 				int t0d1_x_strip = int(event.fragment_x[i] + 32.0);
 				int t0d1_y_strip = int(event.fragment_y[i] + 32.0);

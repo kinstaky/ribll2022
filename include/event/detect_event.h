@@ -43,6 +43,7 @@ public:
 	double be_kinetic, he_kinetic, d_kinetic, c_kinetic;
 	int valid;
 	double q;
+	double c14_excited;
 };
 
 

@@ -4,7 +4,15 @@ namespace ribll {
 
 void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress(
-		(prefix+"beam_kinetic").c_str(), &beam_kinetic
+		(prefix+"depth").c_str(), &depth
+	);
+	tree->SetBranchAddress(
+		(prefix+"beam_kinetic_in_target").c_str(),
+		&beam_kinetic_in_target
+	);
+	tree->SetBranchAddress(
+		(prefix+"beam_kinetic_before_target").c_str(),
+		&beam_kinetic_before_target
 	);
 	tree->SetBranchAddress(
 		(prefix+"c14_excited").c_str(), &beam_excited_energy
@@ -37,7 +45,12 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 		(prefix+"parent_phi").c_str(), &parent_phi
 	);
 	tree->SetBranchAddress(
-		(prefix+"recoil_kinetic").c_str(), &recoil_kinetic
+		(prefix+"recoil_kinetic_after_target").c_str(),
+		&recoil_kinetic_after_target
+	);
+	tree->SetBranchAddress(
+		(prefix+"recoil_kinetic_in_target").c_str(),
+		&recoil_kinetic_in_target
 	);
 	tree->SetBranchAddress(
 		(prefix+"recoil_theta").c_str(), &recoil_theta
@@ -58,7 +71,12 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 		(prefix+"recoil_r").c_str(), &rr
 	);
 	tree->SetBranchAddress(
-		(prefix+"fragment_kinetic").c_str(), fragment_kinetic
+		(prefix+"fragment_kinetic_after_target").c_str(),
+		fragment_kinetic_after_target
+	);
+	tree->SetBranchAddress(
+		(prefix+"fragment_kinetic_in_target").c_str(),
+		fragment_kinetic_in_target
 	);
 	tree->SetBranchAddress(
 		(prefix+"fragment_theta").c_str(), fragment_theta
@@ -94,7 +112,13 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 
 
 void GenerateEvent::SetupOutput(TTree *tree) {
-	tree->Branch("beam_kinetic", &beam_kinetic, "bk/D");
+	tree->Branch("depth", &depth, "depth/D");
+	tree->Branch(
+		"beam_kinetic_in_target", &beam_kinetic_in_target, "bkit/D"
+	);
+	tree->Branch(
+		"beam_kinetic_before_target", &beam_kinetic_before_target, "bkbt/D"
+	);
 	tree->Branch("c14_excited", &beam_excited_energy, "c14ex/D");
 	tree->Branch("be10_excited", &fragment_excited_energy, "be10ex/D");
 	tree->Branch("be10_state", &fragment_state, "be10state/I");
@@ -105,14 +129,32 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("parent_kinetic", &parent_kinetic, "pk/D");
 	tree->Branch("parent_theta", &parent_theta, "ptheta/D");
 	tree->Branch("parent_phi", &parent_phi, "pphi/D");
-	tree->Branch("recoil_kinetic", &recoil_kinetic, "rk/D");
+	tree->Branch(
+		"recoil_kinetic_after_target",
+		&recoil_kinetic_after_target,
+		"rkat/D"
+	);
+	tree->Branch(
+		"recoil_kinetic_in_target",
+		&recoil_kinetic_in_target,
+		"rkit/D"
+	);
 	tree->Branch("recoil_theta", &recoil_theta, "rtheta/D");
 	tree->Branch("recoil_phi", &recoil_phi, "rphi/D");
 	tree->Branch("recoil_x", &rx, "rx/D");
 	tree->Branch("recoil_y", &ry, "ry/D");
 	tree->Branch("recoil_z", &rz, "rz/D");
 	tree->Branch("recoil_r", &rr, "rr/D");
-	tree->Branch("fragment_kinetic", fragment_kinetic, "fk[2]/D");
+	tree->Branch(
+		"fragment_kinetic_after_target",
+		fragment_kinetic_after_target,
+		"fkat[2]/D"
+	);
+	tree->Branch(
+		"fragment_kinetic_in_target",
+		fragment_kinetic_in_target,
+		"fkit[2]/D"
+	);
 	tree->Branch("fragment_theta", fragment_theta, "ftheta[2]/D");
 	tree->Branch("fragment_phi", fragment_phi, "fphi[2]/D");
 	tree->Branch("fragment_x", fragment_x, "fx[2]/D");

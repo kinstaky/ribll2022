@@ -23,6 +23,7 @@ constexpr bool taf_strips_affect = true;
 constexpr bool ppac_strips_affect = true;
 constexpr bool t0_energy_affect = true;
 constexpr bool taf_energy_affect = true;
+constexpr bool target_affect = true;
 
 constexpr double state_start[3] = {12.5, 16.0, 18.5};
 
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 1) {
+	if (run < 0 || run > 2) {
 		std::cout << "Usage: " << argv[0] << "[run]\n"
 			<< "  run        run number, default is 0\n";
 	}
@@ -157,10 +158,13 @@ int main(int argc, char **argv) {
 		generate_tree->GetEntry(entry);
 
 		// calculate taf energy
-		double recoil_range = h2_calculator.Range(event.recoil_kinetic);
+		double recoil_kinetic = target_affect
+			? event.recoil_kinetic_after_target
+			: event.recoil_kinetic_in_target;
+		double recoil_range = h2_calculator.Range(recoil_kinetic);
 		if (recoil_range < 150.0 / cos(event.recoil_theta)) {
 			detect.taf_layer = 0;
-			detect.taf_lost_energy[0] = event.recoil_kinetic;
+			detect.taf_lost_energy[0] = recoil_kinetic;
 			detect.taf_lost_energy[1] = 0.0;
 		} else {
 			detect.taf_layer = 1;
@@ -168,7 +172,7 @@ int main(int argc, char **argv) {
 				recoil_range - 150.0 / cos(event.recoil_theta)
 			);
 			detect.taf_lost_energy[0] =
-				event.recoil_kinetic - detect.taf_lost_energy[1];
+				recoil_kinetic - detect.taf_lost_energy[1];
 		}
 		// detected energy
 		detect.taf_energy[0] =
@@ -177,14 +181,20 @@ int main(int argc, char **argv) {
 			detect.taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
 
 		// calculate t0 energy
+		double fragment_kinetic[2];
+		for (int i = 0; i < 2; ++i) {
+			fragment_kinetic[i] = target_affect
+				? event.fragment_kinetic_after_target[i]
+				: event.fragment_kinetic_in_target[i];
+		}
 		double range[2];
 		double residual_energy[2];
 		for (size_t i = 0; i < 2; ++i) {
 			for (size_t j = 0; j < 7; ++j) {
 				detect.t0_lost_energy[i][j] = 0.0;
 			}
-			range[i] = frag_calculators[i]->Range(event.fragment_kinetic[i]);
-			residual_energy[i] = event.fragment_kinetic[i];
+			range[i] = frag_calculators[i]->Range(fragment_kinetic[i]);
+			residual_energy[i] = fragment_kinetic[i];
 
 			for (size_t j = 0; j < 6; ++j) {
 				double thick = t0_thickness[j] / cos(event.fragment_theta[i]);
@@ -364,7 +374,7 @@ int main(int argc, char **argv) {
 			detect.d_kinetic +=
 				detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
 		} else {
-			detect.d_kinetic = event.recoil_kinetic;
+			detect.d_kinetic = recoil_kinetic;
 		}
 		detect.be_kinetic = detect.he_kinetic = 0.0;
 		if (t0_energy_affect) {
@@ -375,8 +385,8 @@ int main(int argc, char **argv) {
 				detect.he_kinetic += detect.t0_energy[1][i];
 			}
 		} else {
-			detect.be_kinetic = event.fragment_kinetic[0];
-			detect.he_kinetic = event.fragment_kinetic[1];
+			detect.be_kinetic = fragment_kinetic[0];
+			detect.he_kinetic = fragment_kinetic[1];
 		}
 
 		// rebuild Q value spectrum
@@ -437,9 +447,9 @@ int main(int argc, char **argv) {
 			pow(c_energy, 2.0) - pow(c_momentum, 2.0)
 		);
 		// excited energy of 14C
-		double excited_14c = excited_c_mass - mass_14c;
+		detect.c14_excited = excited_c_mass - mass_14c;
 		if (detect.valid == 7 && rebuild_state != -1) {
-			hist_energy_res.Fill(excited_14c - event.beam_excited_energy);
+			hist_energy_res.Fill(detect.c14_excited - event.beam_excited_energy);
 		}
 		// fill to tree
 		detect_tree.Fill();

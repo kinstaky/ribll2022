@@ -16,6 +16,11 @@ using namespace ribll;
 
 using elc::TargetEnergyCalculator;
 
+constexpr double beam_mass = mass_14c;
+constexpr double target_mass = mass_2h;
+constexpr double fragment2_mass = mass_4he;
+
+
 void InelasticScattering(
 	double beam_mass,
 	double target_mass,
@@ -235,28 +240,8 @@ int main(int argc, char **argv) {
 	TTree tree("tree", "generated data");
 	// generate data
 	GenerateEvent event;
-	double depth;
-	double beam_kinetic_before_target;
-	double recoil_kinetic_in_target;
-	double fragment_kinetic_in_target[2];
 	// setup branches
 	event.SetupOutput(&tree);
-	tree.Branch("depth", &depth, "depth/D");
-	tree.Branch(
-		"beam_kinetic_before_target",
-		&beam_kinetic_before_target,
-		"bkt/D"
-	);
-	tree.Branch(
-		"recoil_kinetic_in_target",
-		&recoil_kinetic_in_target,
-		"rkt/D"
-	);
-	tree.Branch(
-		"fragment_kinetic_in_target",
-		fragment_kinetic_in_target,
-		"fkt[2]/D"
-	);
 
 	// initialize generator
 	TRandom3 generator(0);
@@ -274,9 +259,6 @@ int main(int argc, char **argv) {
 		);
 	}
 
-	constexpr double beam_mass = mass_14c;
-	constexpr double target_mass = mass_2h;
-	constexpr double fragment2_mass = mass_4he;
 	double parent_energy, recoil_energy;
 	double parent_angle, recoil_angle;
 	double fragment1_energy, fragment2_energy;
@@ -302,16 +284,16 @@ int main(int argc, char **argv) {
 		);
 
 		// get beam kinetic energy
-		beam_kinetic_before_target = generator.Gaus(389.5, 3.5);
+		event.beam_kinetic_before_target = generator.Gaus(389.5, 3.5);
 		// reaction point depth
-		depth = generator.Rndm();
+		event.depth = generator.Rndm();
 		// consider energy loss in target
-		event.beam_kinetic = c14_target.Energy(
-			depth / cos(event.beam_theta),
-			beam_kinetic_before_target
+		event.beam_kinetic_in_target = c14_target.Energy(
+			event.depth / cos(event.beam_theta),
+			event.beam_kinetic_before_target
 		);
 		// total energy of beam particle
-		double beam_energy = beam_mass + event.beam_kinetic;
+		double beam_energy = beam_mass + event.beam_kinetic_in_target;
 		// get beam excited energy
 		if (run == 0) {
 			if (entry < entries / 3) {
@@ -335,7 +317,7 @@ int main(int argc, char **argv) {
 					15.39 + 0.2 * ((entry / 10'000) % 100);
 			} else {
 				event.beam_excited_energy =
-					18.19 + 0.2 * ((entry / 10'000) % 100);
+					18.20 + 0.2 * ((entry / 10'000) % 100);
 			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;
@@ -368,7 +350,7 @@ int main(int argc, char **argv) {
 			parent_energy, recoil_energy, parent_angle, recoil_angle
 		);
 		event.parent_kinetic = parent_energy - parent_mass;
-		recoil_kinetic_in_target = recoil_energy - target_mass;
+		event.recoil_kinetic_in_target = recoil_energy - target_mass;
 
 		// rotate from beam frame to lab frame
 		Rotate(
@@ -403,12 +385,12 @@ int main(int argc, char **argv) {
 		event.elastic_angle = elastic_angle;
 
 		// consider energy loss of recoil particle in target
-		event.recoil_kinetic = h2_target.Energy(
-			(1.0-depth) / cos(event.recoil_theta),
-			recoil_kinetic_in_target
+		event.recoil_kinetic_after_target = h2_target.Energy(
+			(1.0-event.depth) / cos(event.recoil_theta),
+			event.recoil_kinetic_in_target
 		);
 
-		if (event.recoil_kinetic < 0) {
+		if (event.recoil_kinetic_after_target < 0) {
 			--entry;
 			continue;
 		}
@@ -439,8 +421,10 @@ int main(int argc, char **argv) {
 			event.fragment_theta[1], event.fragment_phi[1]
 		);
 		// calculate kinetic energy for fragments
-		fragment_kinetic_in_target[0] = fragment1_energy - fragment1_mass;
-		fragment_kinetic_in_target[1] = fragment2_energy - fragment2_mass;
+		event.fragment_kinetic_in_target[0] =
+			fragment1_energy - fragment1_mass;
+		event.fragment_kinetic_in_target[1] =
+			fragment2_energy - fragment2_mass;
 
 
 		// get angle of parent relate to recoil
@@ -467,14 +451,14 @@ int main(int argc, char **argv) {
 
 
 		// consider energy loss of fragment1 particle in target
-		event.fragment_kinetic[0] = be10_target.Energy(
-			(1.0-depth) / cos(event.fragment_theta[0]),
-			fragment_kinetic_in_target[0]
+		event.fragment_kinetic_after_target[0] = be10_target.Energy(
+			(1.0-event.depth) / cos(event.fragment_theta[0]),
+			event.fragment_kinetic_in_target[0]
 		);
 		// consider energy loss of fragment1 particle in target
-		event.fragment_kinetic[1] = he4_target.Energy(
-			(1.0-depth) / cos(event.fragment_theta[1]),
-			fragment_kinetic_in_target[1]
+		event.fragment_kinetic_after_target[1] = he4_target.Energy(
+			(1.0-event.depth) / cos(event.fragment_theta[1]),
+			event.fragment_kinetic_in_target[1]
 		);
 
 		for (size_t j = 0; j < 2; ++j) {

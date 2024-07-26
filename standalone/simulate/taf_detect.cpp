@@ -217,13 +217,14 @@ int main(int argc, char **argv) {
 		if (tafd_phi_strip >= 4) csi_index += 1;
 
 		// calculate taf energy
-		double recoil_range = h2_calculator.Range(event.recoil_kinetic);
+		double recoil_range =
+			h2_calculator.Range(event.recoil_kinetic_after_target);
 		double thickness = tafd_thickness[taf_index];
 		int taf_layer;
 		double taf_lost_energy[2];
 		if (recoil_range < thickness / cos(event.recoil_theta)) {
 			taf_layer = 0;
-			taf_lost_energy[0] = event.recoil_kinetic;
+			taf_lost_energy[0] = event.recoil_kinetic_after_target;
 			taf_lost_energy[1] = 0.0;
 		} else {
 			taf_layer = 1;
@@ -231,7 +232,7 @@ int main(int argc, char **argv) {
 				recoil_range - thickness / cos(event.recoil_theta)
 			);
 			taf_lost_energy[0] =
-				event.recoil_kinetic - taf_lost_energy[1];
+				event.recoil_kinetic_after_target - taf_lost_energy[1];
 		}
 
 		// consider energy resolution

@@ -29,6 +29,7 @@ void DetectEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	tree->SetBranchAddress((prefix+"c_kinetic").c_str(), &c_kinetic);
 	tree->SetBranchAddress((prefix+"valid").c_str(), &valid);
 	tree->SetBranchAddress((prefix+"q").c_str(), &q);
+	tree->SetBranchAddress((prefix+"c14_excited").c_str(), &c14_excited);
 }
 
 
@@ -57,6 +58,7 @@ void DetectEvent::SetupOutput(TTree *tree) {
 	tree->Branch("c_kinetic", &c_kinetic, "ck/D");
 	tree->Branch("valid", &valid, "valid/I");
 	tree->Branch("q", &q, "q/D");
+	tree->Branch("c14_excited", &c14_excited, "c14ex/D");
 }
 
 
