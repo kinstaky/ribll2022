@@ -15,3 +15,7 @@ target_link_libraries(check_threebody_info PRIVATE event)
 # check three body time
 add_executable(check_threebody_time check_threebody_time.cpp)
 target_link_libraries(check_threebody_time PRIVATE event ROOT::Graf)
+
+# check angle calculation
+add_executable(check_angle check_angle.cpp)
+target_link_libraries(check_angle PRIVATE event)

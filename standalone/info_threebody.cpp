@@ -218,7 +218,7 @@ double ThreeBodyProcess(ThreeBodyInfoEvent &event, bool vppac = false) {
 
 
 void PrintUsage(const char *name) {
-	std::cout << "Usage: " << name << " [options]\n"
+	std::cout << "Usage: " << name << " [options] run\n"
 		"  run               Set run number.\n"
 		"Options:\n"
 		"  -h                Print this help information.\n"

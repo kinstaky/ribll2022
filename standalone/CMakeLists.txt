@@ -101,9 +101,9 @@ target_link_libraries(info_pd PRIVATE event ROOT::Graf)
 add_executable(info_threebody info_threebody.cpp)
 target_link_libraries(info_threebody PRIVATE event csi_energy_calculator d2_energy_calculator)
 
-# # info-3body-extra
-# add_executable(info_threebody_extra info_threebody_extra.cpp)
-# target_link_libraries(info_threebody_extra PRIVATE event)
+# info-3body-extra
+add_executable(info_threebody_extra info_threebody_extra.cpp)
+target_link_libraries(info_threebody_extra PRIVATE event)
 
 # compare 3body information between 9Be and 10Be
 add_executable(compare_be_info compare_be_info.cpp)
