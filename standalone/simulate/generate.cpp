@@ -19,6 +19,7 @@ using elc::TargetEnergyCalculator;
 constexpr double beam_mass = mass_14c;
 constexpr double target_mass = mass_2h;
 constexpr double fragment2_mass = mass_4he;
+constexpr double target_thickness = 9.53;
 
 
 void InelasticScattering(
@@ -218,10 +219,10 @@ int main(int argc, char **argv) {
 	}
 
 
-	TargetEnergyCalculator c14_target("14C", "CD2", 9.53);
-	TargetEnergyCalculator be10_target("10Be", "CD2", 9.53);
-	TargetEnergyCalculator he4_target("4He", "CD2", 9.53);
-	TargetEnergyCalculator h2_target("2H", "CD2", 9.53);
+	TargetEnergyCalculator c14_target("14C", "CD2", target_thickness);
+	TargetEnergyCalculator be10_target("10Be", "CD2", target_thickness);
+	TargetEnergyCalculator he4_target("4He", "CD2", target_thickness);
+	TargetEnergyCalculator h2_target("2H", "CD2", target_thickness);
 
 	// generate file name
 	TString generate_file_name = TString::Format(

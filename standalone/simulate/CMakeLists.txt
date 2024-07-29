@@ -32,6 +32,10 @@ add_executable(live_time live_time.cpp)
 target_include_directories(live_time PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(live_time PRIVATE ROOT::Core ROOT::RIO ROOT::Graf)
 
+# simulate check momentum
+add_executable(sim_check_momentum simulate_check_momentum.cpp)
+target_link_libraries(sim_check_momentum PRIVATE event ROOT::Graf)
+
 # VME TOF detect
 add_executable(vtof_detect vtof_detect.cpp)
 target_link_libraries(vtof_detect PRIVATE event)
