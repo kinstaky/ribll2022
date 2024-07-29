@@ -215,7 +215,6 @@ int main(int argc, char **argv) {
 		// TAFCsI index
 		int csi_index = 2 * taf_index;
 		if (tafd_phi_strip >= 4) csi_index += 1;
-
 		// calculate taf energy
 		double recoil_range =
 			h2_calculator.Range(event.recoil_kinetic_after_target);
@@ -238,12 +237,14 @@ int main(int argc, char **argv) {
 		// consider energy resolution
 		double tafd_energy = taf_lost_energy[0] + generator.Gaus(0.0, 0.05);
 		double csi_energy = taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
+		// double tafd_energy = taf_lost_energy[0];
+		// double csi_energy = taf_lost_energy[1];
 
 		// convert energy to channel
 		double csi_channel =
-			csi_param[csi_index][0]
-			* pow(csi_energy, csi_param[csi_index][1])
-			+ csi_param[csi_index][2];
+			power_csi_param[csi_index][0]
+			* pow(csi_energy, power_csi_param[csi_index][1])
+			+ power_csi_param[csi_index][2];
 
 		// fill event
 		// fill TAFD merge event
@@ -255,12 +256,21 @@ int main(int argc, char **argv) {
 			tafd_events[taf_index].front_strip[0] = tafd_ring_strip;
 			tafd_events[taf_index].back_strip[0] = tafd_phi_strip;
 			tafd_events[taf_index].energy[0] = tafd_energy;
+// std::cout << "Entry " << entry << ", layer " << taf_layer << ": Generate energy " << event.recoil_kinetic_after_target <<  ", range "
+// 	<< recoil_range << ", taf index " << taf_index << ", csi_index " << csi_index << ", thick " << thickness
+// 	<< ", effect thickness " << thickness / cos(event.recoil_theta) << ", tafd energy " << tafd_energy << ", csi energy " << csi_energy
+// 	<< ", csi channel " << csi_channel << "\n";
+
 		}
 		// fill TAFCsI event
 		if (taf_layer == 1 && csi_channel > csi_threshold[csi_index]) {
 			csi_event.match = true;
 			csi_event.time[csi_index] = 0.0;
 			csi_event.energy[csi_index] = csi_channel;
+// std::cout << "Entry " << entry << ", layer " << taf_layer << ": Generate energy " << event.recoil_kinetic_after_target <<  ", range "
+// 	<< recoil_range << ", taf index " << taf_index << ", csi_index " << csi_index << ", thick " << thickness
+// 	<< ", effect thickness " << thickness / cos(event.recoil_theta)  << ", tafd energy " << tafd_energy << ", csi energy " << csi_energy
+// 	<< ", csi channel " << csi_channel << "\n";
 		}
 
 		// fill to tree
