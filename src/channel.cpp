@@ -743,7 +743,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		ipt->AddFriend(
 			TString::Format("taf%d=tree", i),
 			TString::Format(
-				"%s%staf%d-particle-%sta-%04d.root",
+				"%s%staf%d-particle-%sta-v2-%04d.root",
 				kGenerateDataPath,
 				kParticleDir,
 				i,
@@ -773,7 +773,6 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	bool hole[4];
 	// input TAF particle events
 	ParticleEvent taf[6];
-	int sep_csi_index[6];
 	// input XIA PPAC particle events
 	ParticleEvent xppac;
 	unsigned short xppac_xflag;
@@ -787,10 +786,6 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	ipt->SetBranchAddress("hole", hole);
 	for (int i = 0; i < 6; ++i) {
 		taf[i].SetupInput(ipt, "taf"+std::to_string(i)+".");
-		ipt->SetBranchAddress(
-			TString::Format("taf%d.csi_index", i),
-			sep_csi_index + i
-		);
 	}
 	xppac.SetupInput(ipt, "xppac.");
 	ipt->SetBranchAddress("xppac.xflag", &xppac_xflag);
@@ -958,8 +953,9 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 		channel.entry = entry;
 		t0_index[0] = t0.index[index[0]];
 		t0_index[1] = t0.index[index[1]];
-		csi_index = channel.taf_index < 0 ?
-			-1 : channel.taf_index * 2 + sep_csi_index[channel.taf_index];
+		csi_index = channel.taf_index < 0
+			? -1
+			: channel.taf_index * 2 + taf[channel.taf_index].index[0];
 
 		// only found possible stopped 2H
 		if (channel.taf_index < 0) {

@@ -774,10 +774,8 @@ int Taf::Rebuild() {
 	TTree opt("tree", "taf particles");
 	// output particle event
 	ParticleEvent particle_event;
-	int csi_index;
 	// setup output branches
 	particle_event.SetupOutput(&opt);
-	opt.Branch("csi_index", &csi_index, "ci/I");
 
 	// // read CsI calibrate parameters
 	// if (ReadCsiCalibrateParameters()) {
@@ -817,7 +815,8 @@ int Taf::Rebuild() {
 			// TAFD energy
 			double si_energy = ta_event.energy[0][0];
 			// calculate the first index of CsI calibration paramters
-			csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
+			int csi_index = ta_event.flag[0] == 0x3 ? 0 : 1;
+			particle_event.index[0] = csi_index;
 			// calculate CsI energy from calibrate parameters
 			// double csi_energy = CalibrateCsiEnergy(
 			// 	ta_event.energy[0][1],

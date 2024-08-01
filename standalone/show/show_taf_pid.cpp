@@ -105,6 +105,9 @@ int main(int argc, char **argv) {
 	TChain chain("ta", "ta telescope");
 	for (unsigned int i = run; i <= end_run; ++i) {
 		if (i == 628) continue;
+		if (i > 652 && i < 675) continue;
+		if (i > 716 && i < 739) continue;
+		if (i > 746) continue;
 		chain.AddFile(TString::Format(
 			"%s%staf%d-telescope-%s%04u.root/tree",
 			kGenerateDataPath,
@@ -137,16 +140,6 @@ int main(int argc, char **argv) {
 		"pid", "TAFD-CsI(Tl) #DeltaE-E pid",
 		3000, 0, 30000, 2000, 0, 20.0
 	);
-	// 2D histogram of pid under theta 0.8
-	TH2F pid_l8(
-		"pidl", "TAFD-CsI(Tl) #DeltaE-E pid #theta<0.8",
-		3000, 0, 30000, 2000, 0, 20.0
-	);
-	// 2D histogram of pid above theta 0.8
-	TH2F pid_g8(
-		"pidg", "TAFD-CsI(Tl) #DeltaE-E pid #theta>0.8",
-		3000, 0, 30000, 2000, 0, 20.0
-	);
 	// 2D histogram of pid under theta 0.8 and CsI-A
 	TH2F pid_l8_a(
 		"pidla", "TAFD-CsI(Tl)-A #DeltaE-E pid #theta<0.8",
@@ -167,16 +160,6 @@ int main(int argc, char **argv) {
 		"pidgb", "TAFD-CsI(Tl)-B #DeltaE-E pid #theta>0.8",
 		3000, 0, 30000, 2000, 0, 20.0
 	);
-	// 2D dE-E PID histogram of CsI A
-	TH2F pid_a(
-		"pida", "TAFD-CsI(Tl)-A #DeltaE-E pid",
-		3000, 0, 30000, 2000, 0, 20.0
-	);
-	// 2D dE-E PID histogram of CsI B
-	TH2F pid_b(
-		"pidb", "TAFD-CsI(Tl)-B #DeltaE-E pid",
-		3000, 0, 30000, 2000, 0, 20.0
-	);
 	// 2D dE-E PID histogram of CsI A with thick correctness
 	TH2F pid_a_thick(
 		"pidat", "TAFD-CsI(Tl)-A #DeltaE-E pid thick correctness",
@@ -187,17 +170,16 @@ int main(int argc, char **argv) {
 		"pidbt", "TAFD-CsI(Tl)-B #DeltaE-E pid thick correctness",
 		3000, 0, 30000, 2000, 0, 20.0
 	);
-
-	// 2D calibrated dE-E PID histogram of CsI A
-	TH2F pid_a_calibrated(
-		"pidac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
-		3000, 0, 100, 2000, 0, 20.0
-	);
-	// 2D calibrated dE-E PID histogram of CsI A
-	TH2F pid_g8_a_calibrated(
-		"pidgac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
-		3000, 0, 100, 2000, 0, 20.0
-	);
+	// // 2D calibrated dE-E PID histogram of CsI A
+	// TH2F pid_a_calibrated(
+	// 	"pidac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
+	// 	3000, 0, 100, 2000, 0, 20.0
+	// );
+	// // 2D calibrated dE-E PID histogram of CsI A
+	// TH2F pid_g8_a_calibrated(
+	// 	"pidgac", "TAFD-CsI(Tl)-A #DeltaE-E calibrated",
+	// 	3000, 0, 100, 2000, 0, 20.0
+	// );
 
 	// total number of entries
 	long long entries = chain.GetEntries();
@@ -223,26 +205,20 @@ int main(int argc, char **argv) {
 		if (ta_event.flag[0] == 0x3) {
 			total_pid.Fill(e, de);
 			if (ta_event.theta[0] < 0.8) {
-				pid_l8.Fill(e, de);
 				pid_l8_a.Fill(e, de);
 			} else {
-				pid_g8.Fill(e, de);
 				pid_g8_a.Fill(e, de);
-				pid_g8_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
+				// pid_g8_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 			}
-			pid_a.Fill(e, de);
 			// pid_a_thick.Fill(e+(de-cde)*150.0, cde);
 			pid_a_thick.Fill(e, cde);
-			pid_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
+			// pid_a_calibrated.Fill(pow((e+230.988)/245.278, 1.0/0.945929), de);
 		} else if (ta_event.flag[0] == 0x5) {
 			if (ta_event.theta[0] < 0.8) {
-				pid_l8.Fill(e, de);
 				pid_l8_b.Fill(e, de);
 			} else {
-				pid_g8.Fill(e, de);
 				pid_g8_b.Fill(e, de);
 			}
-			pid_b.Fill(e, de);
 			// pid_b_thick.Fill(e+(de-cde)*150.0, cde);
 			pid_b_thick.Fill(e, cde);
 		}
@@ -252,18 +228,14 @@ int main(int argc, char **argv) {
 
 	// save pid histograms
 	total_pid.Write();
-	pid_l8.Write();
-	pid_g8.Write();
 	pid_l8_a.Write();
 	pid_g8_a.Write();
 	pid_l8_b.Write();
 	pid_g8_b.Write();
-	pid_a.Write();
-	pid_b.Write();
 	pid_a_thick.Write();
 	pid_b_thick.Write();
-	pid_a_calibrated.Write();
-	pid_g8_a_calibrated.Write();
+	// pid_a_calibrated.Write();
+	// pid_g8_a_calibrated.Write();
 	// close files
 	opf.Close();
 	return 0;

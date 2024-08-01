@@ -89,6 +89,9 @@ target_link_libraries(calibrate_result PRIVATE telescopes)
 add_executable(rebuild rebuild.cpp)
 target_link_libraries(rebuild PRIVATE telescopes)
 
+add_executable(taf_rebuild_deutron taf_rebuild_deutron.cpp)
+target_link_libraries(taf_rebuild_deutron PRIVATE event ROOT::Graf)
+
 # coincide
 add_executable(coincide coincide.cpp)
 target_link_libraries(coincide PRIVATE channel)

@@ -144,10 +144,10 @@ int FitPid(int start_run, int end_run) {
 			<< ", C " << f1->GetParameter(2) << "\n";
 	}
 
-	// fit D1D2 PID graph
-	// D1D2 fit range
+	// fit D2D3 PID graph
+	// D2D3 fit range
 	double d2d3_range[5] = {1.2e4, 2.2e4, 2.3e4, 2.6e4, 3e4};
-	// D1D2 initialize energy-fixed-paramter (c)
+	// D2D3 initialize energy-fixed-paramter (c)
 	double d2d3_init_c[5] = {8e3, 1.3e4, 1.5e4, 2.5e4, 2.5e4};
 	std::cout << "D2D3 straight PID parameters.\n";
 	for (int i = 0; i < 5; ++i) {

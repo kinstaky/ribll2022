@@ -71,24 +71,32 @@ double ThreeBodyProcess(const ThreeBodyInfoEvent &event, double csi_energy) {
 }
 
 
-double QFit(double *x, double *par) {
-	return par[0] * exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
-		+ par[3] * exp(-0.5*pow((x[0]-par[4])/par[5], 2.0))
-		+ par[6] * exp(-0.5*pow((x[0]-par[7])/par[8], 2.0));
+
+double QFit1(double *x, double *par) {
+	return par[0] * exp(-0.5*pow((x[0]-par[1]-6.179)/par[2], 2.0))
+		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.811)/par[4], 2.0))
+		+ par[5] * exp(-0.5*pow((x[0]-par[1])/par[6], 2.0));
 }
 
 
-double QFit3(double *x, double *par) {
+double QFit2(double *x, double *par) {
 	return par[0] * exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
 		+ par[3] * exp(-0.5*pow((x[0]-par[1]-2.811)/par[4], 2.0))
 		+ par[5] * exp(-0.5*pow((x[0]-par[6])/par[7], 2.0));
 }
 
 
+double QFit3(double *x, double *par) {
+	return par[0] * exp(-0.5*pow((x[0]-par[1])/par[2], 2.0))
+		+ par[3] * exp(-0.5*pow((x[0]-par[4])/par[5], 2.0))
+		+ par[6] * exp(-0.5*pow((x[0]-par[7])/par[8], 2.0));
+}
+
+
 int main() {
 	// input file name
 	TString input_file_name = TString::Format(
-		"%s%sthreebody.root", kGenerateDataPath, kInformationDir
+		"%s%sthreebody-10Be.root", kGenerateDataPath, kInformationDir
 	);
 	// input file
 	TFile ipf(input_file_name, "read");
@@ -123,6 +131,15 @@ int main() {
 	}
 	// histogram-linear-Q-aligned
 	TH1F hlqa("hlqa", "aligned linear calibrated CsI Q value", 90, -23, -8);
+	// histogram-power-Q
+	TH1F hpq[12];
+	for (int i = 0; i < 12; ++i) {
+		hpq[i] = TH1F(
+			TString::Format("hpq%d", i),
+			"seperated power calibrated CsI Q value",
+			60, -23, -8
+		);
+	}
 	// histogram-power-Q-aligned
 	TH1F hpqa("hpqa", "aligned power calibrated CsI Q value", 90, -23, -8);
 	// histogram-optimized-2-Q-aligned
@@ -270,6 +287,7 @@ int main() {
 		power_q = ThreeBodyProcess(event, power_csi_energy);
 		if (good) {
 			// fill to histogram
+			hpq[event.csi_index].Fill(power_q);
 			hpqa.Fill(power_q - q_offset[event.csi_index]);
 		}
 
@@ -300,7 +318,7 @@ int main() {
 	// loop CsI index
 	for (int i = 0; i < 12; ++i) {
 		TF1 *flcqc = new TF1(
-			TString::Format("flcqc%d", i), QFit3, -23, -8, 8
+			TString::Format("flcqc%d", i), QFit2, -23, -8, 8
 		);
 		// set initial value of parameters
 		double flcqc_init_value[8] = {
@@ -329,8 +347,26 @@ int main() {
 			<< sigma[i][2] << "\n";
 	}
 
+	// // fit power calibrated CsI Q (hpq)
+	// // loop CsI index
+	// for (int i = 0; i < 12; ++i) {
+	// 	TF1 *fpq = new TF1(TString::Format("fpq%d", i), QFit1, -23, -8, 7);
+	// 	// set initial value of parameters
+	// 	double fpq_init_value[8] = {
+	// 		20.0, -18.0, 1.0,
+	// 		20.0, 1.0,
+	// 		10.0, 1.0
+	// 	};
+	// 	fpq->SetParameters(fpq_init_value);
+	// 	// fit
+	// 	hpq[i].Fit(fpq, "QR+");
+	// 	std::cout << "Power CsI parameters fit " << i << ":\n"
+	// 		<< "  " << fpq->GetParameter(1) << ", " << fpq->GetParameter(2) << "\n"
+	// 		<< "  " << fpq->GetParameter(1)+2.811 << ", " << fpq->GetParameter(4) << "\n"
+	// 		<< "  " << fpq->GetParameter(1)+6.179 << ", " << fpq->GetParameter(6) << "\n";
+	// }
 
-	// 4 histograms to fit 
+	// 4 histograms to fit
 	TH1F *fit_hist[3] = {&hlqa, &hpqa, &hoqa};
 	// title to print
 	std::string title[3] = {
@@ -346,7 +382,7 @@ int main() {
 	};
 	// loop and fit 4 histograms
 	for (int i = 0; i < 3; ++i) {
-		TF1 *f = new TF1(TString::Format("f%d", i), QFit, -23, -8, 9);
+		TF1 *f = new TF1(TString::Format("f%d", i), QFit3, -23, -8, 9);
 		// set initial value
 		f->SetParameters(fit_init_value);
 		// fit
@@ -364,6 +400,7 @@ int main() {
 	// save histograms
 	opf.cd();
 	for (auto &hist : hlqc) hist.Write();
+	for (int i = 0; i < 12; ++i) hpq[i].Write();
 	hlqa.Write();
 	hpqa.Write();
 	hoqa.Write();
