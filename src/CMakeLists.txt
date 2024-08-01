@@ -3,11 +3,9 @@ set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 
 add_subdirectory(check)
 add_subdirectory(detector)
-add_subdirectory(event)
 add_subdirectory(mapper)
 add_subdirectory(statistics)
 add_subdirectory(telescope)
-add_subdirectory(calculator)
 
 # alignment
 add_library(

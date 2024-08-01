@@ -58,14 +58,55 @@ endif()
 # find root
 find_package(ROOT 6.26 REQUIRED COMPONENTS Core RIO Tree Hist Graf)
 
-# The complied library code
-add_subdirectory(src)
+option(BUILD_ALL "Builds all parts" ON)
+option(BUILD_ANALYSIS "Builds analysis part" OFF)
+option(BUILD_NUMBERIC_OPTIMIZE "Builds numberic optmization part" OFF)
+option(BUILD_SIMULATION "Builds simulation part" OFF)
 
-# Standalone executable program.
-add_subdirectory(standalone)
+if (BUILD_ALL)
+	set(BUILD_ANALYSIS ON)
+	set(BUILD_NUMBERIC_OPTIMIZE ON)
+	set(BUILD_SIMULATION ON)
+endif()
 
-# # add test
-# if (BUILD_TESTING)
-# 	set(INSTALL_GTEST OFF)
-# 	add_subdirectory(test)
-# endif()
+function(show_config_options)
+	message("")
+	message("Build Properties")
+	message("  c++ compiler.................: " ${CMAKE_CXX_COMPILER})
+	message("  c++ stardard.................: " ${CMAKE_CXX_STANDARD})
+	message("  cmake........................: " ${CMAKE_VERSION})
+	message("  cmake build type.............: " ${CMAKE_BUILD_TYPE})
+	message("")
+	message("Build Options")
+	message("  BUILD_ALL....................: " ${BUILD_ALL})
+	message("  BUILD_ANALYSIS...............: " ${BUILD_ANALYSIS})
+	message("  BUILD_NUMBERIC_OPTIMIZE......: " ${BUILD_NUMBERIC_OPTIMIZE})
+	message("  BUILD_SIMULATION.............: " ${BUILD_SIMULATION})
+endfunction()
+
+show_config_options()
+
+if (BUILD_ANALYSIS)
+	# The complied library code
+	add_subdirectory(src)
+	add_subdirectory(src/event)
+	add_subdirectory(src/calculator)
+	# Standalone executable program.
+	add_subdirectory(standalone)
+endif()
+
+if (BUILD_NUMBERIC_OPTIMIZE)
+	add_subdirectory(standalone/optimize)
+	if (NOT BUILD_ANALYSIS)
+		add_subdirectory(src/event)
+		add_subdirectory(src/calculator)
+	endif()
+endif()
+
+if (BUILD_SIMULATION)
+	add_subdirectory(standalone/simulate)
+	if (NOT BUILD_ANALYSIS AND NOT BUILD_NUMBERIC_OPTIMIZE)
+		add_subdirectory(src/event)
+		add_subdirectory(src/calculator)
+	endif()
+endif()
