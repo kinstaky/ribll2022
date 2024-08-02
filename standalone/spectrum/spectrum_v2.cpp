@@ -15,6 +15,27 @@
 
 using namespace ribll;
 
+constexpr double seperate_q_border[12][6] = {
+	{-20.0, -17.5, -16.8, -14.8, -13.7, -11.0},	// good
+	{-19.4, -17.8, -16.3, -14.5, -13.2, -10.7},	// bad
+	{-19.1, -17.3, -16.0, -14.2, -13.2, -10.8},	// good
+	{-19.2, -16.8, -15.8, -14.2, -13.0, -11.0}, // not so good
+	{-19.0, -16.5, -15.6, -13.4, -12.8, -10.5},	// good
+	{-18.7, -16.7, -15.8, -14.0, -12.8, -10.2},	// not so good
+	{-19.0, -16.7, -15.8, -14.4, -13.5, -10.5},	// not so good
+	{-19.3, -17.4, -15.7, -14.0, -13.4, -10.6}, // not so good
+	{-19.6, -17.5, -15.5, -14.2, -13.0, -11.0},	// bad
+	{-19.8, -17.6, -16.4, -14.8, -13.8, -11.0}, // low statistics
+	{-20.1, -18.4, -16.6, -15.0, -13.8, -11.4},	// bad
+	{-19.5, -17.3, -16.7, -14.8, -13.6, -11.2}	// good
+};
+
+
+constexpr double be_excited_energy[4] = {
+	0.0, 3.368, 6.179, 7.542
+};
+
+
 int main(int argc, char **argv) {
 	std::string suffix = "";
 	if (argc > 1) {
@@ -74,6 +95,7 @@ int main(int argc, char **argv) {
 	double q[4];
 	// 10Be state, under different T0D2 energy method
 	int be_state[4];
+	int sep_be_state[4];
 	// excited energy under different T0D2 energy method
 	double excited_energy[4];
 	// kinetic energy with target energy lost
@@ -81,6 +103,7 @@ int main(int argc, char **argv) {
 	double c_target_kinetic[4];
 	// excited energy with target energy lost
 	double excited_energy_target[4];
+	double sep_ex_target[4];
 	// correct the kinetic based on the simulation result
 	// double be_kinetic_target_correct[3], he_kinetic_target_correct[3];
 	// double excited_energy_target_correct[3];
@@ -97,12 +120,14 @@ int main(int argc, char **argv) {
 	opt.Branch("c_momentum", c_momentum, "cp[4]/D");
 	opt.Branch("q", q, "q[4]/D");
 	opt.Branch("be_state", be_state, "bes[4]/I");
+	opt.Branch("sep_be_state", sep_be_state, "sbes[4]/I");
 	opt.Branch("excited_energy", excited_energy, "ex[4]/D");
 	opt.Branch("be_kinetic_target", be_kinetic_target, "bekt[4]/D");
 	opt.Branch("he_kinetic_target", he_kinetic_target, "hekt[4]/D");
 	opt.Branch("d_kinetic_target", &d_kinetic_target, "dkt/D");
 	opt.Branch("c_target_kinetic", c_target_kinetic, "ckt[4]/D");
 	opt.Branch("excited_energy_target", excited_energy_target, "ext[4]/D");
+	opt.Branch("spe_ex_target", sep_ex_target, "sext[4]/D");
 	// opt.Branch(
 	// 	"be_kinetic_target_correct",
 	// 	be_kinetic_target_correct,
@@ -362,19 +387,35 @@ int main(int argc, char **argv) {
 
 			// three body Q value
 			q[i] = be_kinetic[i] + he_kinetic[i] + d_kinetic - c_kinetic[i];
-			q[i] -= q_correct[event.csi_index];
+			
+			// get seperated Be state
+			sep_be_state[i] = -1;
+			for (int j = 0; j < 3; ++j) {
+				if (
+					q[i] > seperate_q_border[event.csi_index][2*j]
+					&& q[i] < seperate_q_border[event.csi_index][2*j+1]
+				) {
+					sep_be_state[i] = 2-j;
+					break;
+				}
+			}
+			double sep_be_ex = sep_be_state[i] >= 0
+				? be_excited_energy[sep_be_state[i]]
+				: 0.0;
 
+
+			// correct Q
+			q[i] -= q_correct[event.csi_index];
 			// get 10Be state from Q value
 			if (q[i] < -11 && q[i] > -13) be_state[i] = 0;
 			else if (q[i] < -14.5 && q[i] > -16.2) be_state[i] = 1;
 			else if (q[i] < -17.3 && q[i] > -19) be_state[i] = 2;
 			// else if (q[i] < -19 && q[i] > -20.5) be_state[i] = 3;
 			else be_state[i] = -1;
-
-			double be10_excited_energy = 0.0;
-			if (be_state[i] == 1) be10_excited_energy = 3.368;
-			else if (be_state[i] == 2) be10_excited_energy = 6.179;
-			else if (be_state[i] == 3) be10_excited_energy = 7.542;
+			// get 10Be excited energy form state
+			double be10_excited_energy = be_state[i] >= 0
+				? be_excited_energy[be_state[i]]
+				: 0.0;
 
 			// excited 14C momentum vector
 			ROOT::Math::XYZVector p_excited_c = p_be + p_he;
@@ -391,6 +432,7 @@ int main(int argc, char **argv) {
 			// excited energy of 14C
 			excited_energy[i] = excited_c_mass - mass_14c;
 
+		
 
 			// consider energy lost in target
 			// 10Be momentum
@@ -408,6 +450,20 @@ int main(int argc, char **argv) {
 			ROOT::Math::XYZVector p_excited_c_target = p_be_target + p_he_target;
 			// excited 14C momentum
 			double excited_c_momentum_target = p_excited_c_target.R();
+
+
+			// seperated excited 14C total energy in target
+			double sep_ex_c_energy_target =
+				(be_kinetic_target[i] + mass_10be + sep_be_ex)
+				+ (he_kinetic_target[i] + mass_4he);
+			// seperated excited 14C mass
+			double sep_ex_c_mass_target = sqrt(
+				pow(sep_ex_c_energy_target, 2.0)
+				- pow(excited_c_momentum_target, 2.0)
+			);
+			sep_ex_target[i] = sep_ex_c_mass_target - mass_14c;
+
+
 			// excited 14C total energy
 			double excited_c_energy_target =
 				(be_kinetic_target[i] + mass_10be + be10_excited_energy)

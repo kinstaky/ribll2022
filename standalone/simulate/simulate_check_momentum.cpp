@@ -157,12 +157,12 @@ int main() {
 		);
 		be10_direction_info = be10_direction_info.Unit();
 		// 10Be momentum value
-		double be10_momentum_info = MomentumFromKinetic(
-			mass_10be, info.t0_energy[0]
-		);
+		// double be10_momentum_info = MomentumFromKinetic(
+		// 	mass_10be, info.t0_energy[0]
+		// );
 		// 10Be momentum vector
 		ROOT::Math::XYZVector be10_p_info =
-			be10_direction_info * be10_momentum_info;
+			be10_direction_info * be10_momentum_gen;
 
 		// 4He direction
 		ROOT::Math::XYZVector he4_direction_info(
@@ -172,12 +172,12 @@ int main() {
 		);
 		he4_direction_info = he4_direction_info.Unit();
 		// 4He momentum value
-		double he4_momentum_info = MomentumFromKinetic(
-			mass_4he, info.t0_energy[1]
-		);
+		// double he4_momentum_info = MomentumFromKinetic(
+		// 	mass_4he, info.t0_energy[1]
+		// );
 		// 4He momentum vector
 		ROOT::Math::XYZVector he4_p_info =
-			he4_direction_info * he4_momentum_info;
+			he4_direction_info * he4_momentum_gen;
 
 		// calculate 2H momentum
 		ROOT::Math::XYZVector h2_p_calc = c14_p_gen - be10_p_info - he4_p_info;
