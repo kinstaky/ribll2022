@@ -24,8 +24,10 @@ constexpr bool ppac_strips_affect = true;
 constexpr bool t0_energy_affect = true;
 constexpr bool taf_energy_affect = true;
 constexpr bool target_affect = true;
+constexpr bool d_in_t0 = true;
 
 constexpr double state_start[3] = {12.5, 16.0, 18.5};
+constexpr double t0_resolution[7] = {0.2, 0.8, 0.2, 0.1, 0.1, 0.1, 1.0};
 
 double SimpleFit(const double *x, double *y, double &k, double &b) {
 	int n = 3;
@@ -157,30 +159,7 @@ int main(int argc, char **argv) {
 		// get entry
 		generate_tree->GetEntry(entry);
 
-		// calculate taf energy
-		double recoil_kinetic = target_affect
-			? event.recoil_kinetic_after_target
-			: event.recoil_kinetic_in_target;
-		double recoil_range = h2_calculator.Range(recoil_kinetic);
-		if (recoil_range < 150.0 / cos(event.recoil_theta)) {
-			detect.taf_layer = 0;
-			detect.taf_lost_energy[0] = recoil_kinetic;
-			detect.taf_lost_energy[1] = 0.0;
-		} else {
-			detect.taf_layer = 1;
-			detect.taf_lost_energy[1] = h2_calculator.Energy(
-				recoil_range - 150.0 / cos(event.recoil_theta)
-			);
-			detect.taf_lost_energy[0] =
-				recoil_kinetic - detect.taf_lost_energy[1];
-		}
-		// detected energy
-		detect.taf_energy[0] =
-			detect.taf_lost_energy[0] + generator.Gaus(0.0, 0.1);
-		detect.taf_energy[1] =
-			detect.taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
-
-		// calculate t0 energy
+		// calculate t0 energy for Be and He
 		double fragment_kinetic[2];
 		for (int i = 0; i < 2; ++i) {
 			fragment_kinetic[i] = target_affect
@@ -215,56 +194,16 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
-
 		// simulate detected energy
 		for (int i = 0; i < 2; ++i) {
-			detect.t0_energy[i][0] =
-				detect.t0_lost_energy[i][0] + generator.Gaus(0.0, 0.2);
-			detect.t0_energy[i][1] =
-				detect.t0_lost_energy[i][1] + generator.Gaus(0.0, 0.8);
-			detect.t0_energy[i][2] =
-				detect.t0_lost_energy[i][2] + generator.Gaus(0.0, 0.2);
-			detect.t0_energy[i][3] =
-				detect.t0_lost_energy[i][3] + generator.Gaus(0.0, 0.1);
-			detect.t0_energy[i][4] =
-				detect.t0_lost_energy[i][4] + generator.Gaus(0.0, 0.1);
-			detect.t0_energy[i][5] =
-				detect.t0_lost_energy[i][5] + generator.Gaus(0.0, 0.1);
-			detect.t0_energy[i][6] =
-				detect.t0_lost_energy[i][6] + generator.Gaus(0.0, 1.0);
+			for (int j = 0; j < 7; ++j) {
+				detect.t0_energy[i][j] =
+					detect.t0_lost_energy[i][j]
+					+ generator.Gaus(0.0, t0_resolution[j]);
+			}
 		}
 
-		// calculate position
-		// TAF position
-		// tafd strip width
-		double taf_ring_width = (170.5 - 68.0) / 16.0;
-		// taf ring strip
-		int taf_ring_strip = int((event.rr - 68.0) / taf_ring_width);
-		// taf r
-		detect.tafr = (taf_ring_strip + 0.5) * taf_ring_width + 68.0;
-		// a virtual taf index
-		int taf_index = int(((event.recoil_phi / pi) + 1) * 3.0);
-		// effective taf phi, normalized to 0-60 degree
-		double effective_taf_phi =
-			(event.recoil_phi / pi + 1.0) * 180.0 - taf_index * 60.0;
-		// cover range of one phi strip
-		double taf_phi_width = 55.2 / 8.0;
-		// taf phi strip
-		int taf_phi_strip = int((effective_taf_phi - 2.4) / taf_phi_width);
-		// get the phi range
-		double taf_phi = (
-			(taf_phi_strip + 0.5) * taf_phi_width
-			+ 2.4 + taf_index * 60.0 - 180.0
-		) / 180.0 * pi;
-		detect.tafz = event.rz;
-		detect.tafx = detect.tafr * cos(taf_phi);
-		detect.tafy = detect.tafr * sin(taf_phi);
-		if (!taf_strips_affect) {
-			detect.tafx = event.rx;
-			detect.tafy = event.ry;
-		}
-
-		// T0 position
+		// T0 position for He and Be
 		for (size_t i = 0; i < 2; ++i) {
 			// T0D1 position
 			int t0d1_x_strip = int(event.fragment_x[i] + 32.0);
@@ -295,7 +234,116 @@ int main(int argc, char **argv) {
 					pow(detect.t0x[i][j], 2.0) + pow(detect.t0y[i][j], 2.0)
 				);
 			}
+		}		
+
+
+		// calculate taf energy
+		double recoil_kinetic = target_affect
+			? event.recoil_kinetic_after_target
+			: event.recoil_kinetic_in_target;
+		double recoil_range = h2_calculator.Range(recoil_kinetic);
+		if (recoil_range < 150.0 / cos(event.recoil_theta)) {
+			detect.taf_layer = 0;
+			detect.taf_lost_energy[0] = recoil_kinetic;
+			detect.taf_lost_energy[1] = 0.0;
+		} else {
+			detect.taf_layer = 1;
+			detect.taf_lost_energy[1] = h2_calculator.Energy(
+				recoil_range - 150.0 / cos(event.recoil_theta)
+			);
+			detect.taf_lost_energy[0] =
+				recoil_kinetic - detect.taf_lost_energy[1];
 		}
+		// detected energy
+		detect.taf_energy[0] =
+			detect.taf_lost_energy[0] + generator.Gaus(0.0, 0.1);
+		detect.taf_energy[1] =
+			detect.taf_lost_energy[1] + generator.Gaus(0.0, 1.0);
+
+		// calculate TAF position for deutron
+		// tafd strip width
+		double taf_ring_width = (170.5 - 68.0) / 16.0;
+		// taf ring strip
+		int taf_ring_strip = int((event.rr - 68.0) / taf_ring_width);
+		// taf r
+		detect.tafr = (taf_ring_strip + 0.5) * taf_ring_width + 68.0;
+		// a virtual taf index
+		int taf_index = int(((event.recoil_phi / pi) + 1) * 3.0);
+		// effective taf phi, normalized to 0-60 degree
+		double effective_taf_phi =
+			(event.recoil_phi / pi + 1.0) * 180.0 - taf_index * 60.0;
+		// cover range of one phi strip
+		double taf_phi_width = 55.2 / 8.0;
+		// taf phi strip
+		int taf_phi_strip = int((effective_taf_phi - 2.4) / taf_phi_width);
+		// get the phi range
+		double taf_phi = (
+			(taf_phi_strip + 0.5) * taf_phi_width
+			+ 2.4 + taf_index * 60.0 - 180.0
+		) / 180.0 * pi;
+		detect.tafz = event.rz;
+		detect.tafx = detect.tafr * cos(taf_phi);
+		detect.tafy = detect.tafr * sin(taf_phi);
+		if (!taf_strips_affect) {
+			detect.tafx = event.rx;
+			detect.tafy = event.ry;
+		}
+
+		// calculate deutron energy in T0
+		double d_range;
+		double d_residual_energy;
+		for (size_t i = 0; i < 7; ++i) detect.t0_d_lost_energy[i] = 0.0;
+		d_range = h2_calculator.Range(recoil_kinetic);
+		d_residual_energy = recoil_kinetic;
+		for (size_t i = 0; i < 6; ++i) {
+			double thick = t0_thickness[i] / cos(event.recoil_theta);
+			if (d_range < thick) {
+				detect.t0_d_layer = i;
+				detect.t0_d_lost_energy[i] = d_residual_energy;
+				break;
+			} else {
+				detect.t0_d_lost_energy[i] =
+					d_residual_energy
+					- h2_calculator.Energy(d_range - thick);
+				d_range -= thick;
+				d_residual_energy -= detect.t0_d_lost_energy[i];
+				if (i == 5) {
+					detect.t0_d_layer = 6;
+					detect.t0_d_lost_energy[6] = d_residual_energy;
+				}
+			}
+		}
+		// simulate detected energy
+		for (int i = 0; i < 7; ++i) {
+			detect.t0_d_energy[i] =
+				detect.t0_d_lost_energy[i]
+				+ generator.Gaus(0.0, t0_resolution[i]);
+		}
+		// T0 position for deutron
+		int t0d1_d_x_strip = int(event.rx + 32.0);
+		detect.t0dx[0] = double(t0d1_d_x_strip) - 31.5;
+		int t0d1_d_y_strip = int(event.ry + 32.0);
+		detect.t0dy[0] = double(t0d1_d_y_strip) - 31.5;
+		if (!t0_strips_affect) {
+			detect.t0dx[0] = event.rx;
+			detect.t0dy[0] = event.ry;
+		}
+		// T0D2 and T0D3 position for deutron
+		for (size_t i = 1; i < 3; ++i) {
+			double z = i == 1 ? 111.76 : 123.52;
+			double r = z * tan(event.recoil_theta);
+			double x = r * cos(event.recoil_phi) + event.target_x;
+			double y = r * sin(event.recoil_phi) + event.target_y;
+			int xstrip = int((x+32.0)/2.0);
+			int ystrip = int((y+32.0)/2.0);
+			detect.t0dx[i] = double(xstrip)*2.0 - 31.0;
+			detect.t0dy[i] = double(ystrip)*2.0 - 31.0;
+			detect.t0dz[i] = z;
+			detect.t0dr[i] = sqrt(
+				pow(detect.t0dx[i], 2.0) + pow(detect.t0dy[i], 2.0)
+			);
+		}
+
 
 		// PPAC position
 		for (size_t i = 0; i < 3; ++i) {
@@ -335,7 +383,7 @@ int main(int argc, char **argv) {
 			double x =
 				l * tan(event.fragment_theta[i]) * cos(event.fragment_phi[i]);
 			double y =
-				l * tan(event.fragment_theta[i]) * cos(event.fragment_phi[i]);
+				l * tan(event.fragment_theta[i]) * sin(event.fragment_phi[i]);
 			if (
 				detect.t0_layer[i] > 0
 				&& x > -32.0 && x < 32.0
@@ -343,6 +391,17 @@ int main(int argc, char **argv) {
 			) {
 				detect.valid |= 0x1 << (i+1);
 			}
+		}
+		// check T0 deutron geometry range
+		double dl = 100.0 + detect.t0_d_layer * 11.76;
+		double dx = dl * tan(event.recoil_theta) * cos(event.recoil_phi);
+		double dy = dl * tan(event.recoil_theta) * sin(event.recoil_phi);
+		if (
+			detect.t0_d_layer >= 0
+			&& dx > -32.0 && dx < 32.0
+			&& dy > -32.0 && dy < 32.0
+		) {
+			detect.valid |= 0x8;
 		}
 		// check T0 hit same strip
 		// check T0D1, T0D2
@@ -355,7 +414,7 @@ int main(int argc, char **argv) {
 				|| detect.t0y[0][1] == detect.t0y[1][1]
 			)
 		) {
-			detect.valid &= 0x1;
+			detect.valid &= ~0x6;
 		}
 		// check T0D3
 		if (
@@ -365,16 +424,51 @@ int main(int argc, char **argv) {
 				|| detect.t0y[0][2] == detect.t0y[1][2]
 			)
 		) {
-			detect.valid &= 0x1;
+			detect.valid &= ~0x6;
+		}
+		// check deutron
+		for (int i = 0; i < 3; ++i) {
+			if (!d_in_t0) break;
+			if (
+				detect.t0_layer[0] >= i
+				&& detect.t0_d_layer >= i
+				&& (
+					detect.t0x[0][i] == detect.t0dx[i]
+					|| detect.t0y[0][i] == detect.t0dy[i]
+				)
+			) {
+				detect.valid &= ~0xa;
+			}
+			if (
+				detect.t0_layer[1] >= i
+				&& detect.t0_d_layer >= i
+				&& (
+					detect.t0x[1][i] == detect.t0dx[i]
+					|| detect.t0y[1][i] == detect.t0dy[i]
+				)
+			 ) {
+				detect.valid &= ~0xc;
+			}
 		}
 
 		// rebuild kinetic energy
-		if (taf_energy_affect) {
-			detect.d_kinetic = detect.taf_energy[0];
-			detect.d_kinetic +=
-				detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
+		if (!d_in_t0) {
+			if (taf_energy_affect) {
+				detect.d_kinetic = detect.taf_energy[0];
+				detect.d_kinetic +=
+					detect.taf_layer == 1 ? detect.taf_energy[1] : 0.0;
+			} else {
+				detect.d_kinetic = recoil_kinetic;
+			}
 		} else {
-			detect.d_kinetic = recoil_kinetic;
+			if (t0_energy_affect) {
+				detect.d_kinetic = 0.0;
+				for (int i = 0; i < detect.t0_d_layer+1; ++i) {
+					detect.d_kinetic += detect.t0_d_energy[i];
+				}
+			} else {
+				detect.d_kinetic = recoil_kinetic;
+			}
 		}
 		detect.be_kinetic = detect.he_kinetic = 0.0;
 		if (t0_energy_affect) {
@@ -466,7 +560,15 @@ int main(int argc, char **argv) {
 		));
 		if (index >= 0 && index < 100) {
 			generate_counts[state][index]++;
-			if (detect.valid == 7 && rebuild_state != -1) detect_counts[state][index]++;
+			if (!d_in_t0) {
+				if (detect.valid == 7 && rebuild_state != -1) {
+					detect_counts[state][index]++;
+				}
+			} else {
+				if (detect.valid == 0xe && rebuild_state != -1) {
+					detect_counts[state][index]++;
+				}
+			}
 		}
 
 		// fill DSSD offset histograms

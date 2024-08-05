@@ -31,10 +31,15 @@ public:
 	int t0_layer[2];
 	double t0_lost_energy[2][7];
 	double t0_energy[2][7];
+	int t0_d_layer;
+	double t0_d_lost_energy[7];
+	double t0_d_energy[7];
 	// TAF poisition
 	double tafx, tafy, tafz, tafr;
 	// T0 poisition
 	double t0x[2][3], t0y[2][3], t0z[2][3], t0r[2][3];
+	// deutron in T0
+	double t0dx[3], t0dy[3], t0dz[3], t0dr[3];
 	// PPAC position
 	double ppacx[3], ppacy[3];
 	// target x,y from PPAC
