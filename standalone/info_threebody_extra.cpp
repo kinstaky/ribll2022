@@ -613,6 +613,7 @@ int main(int argc, char **argv) {
 	int csi_index;
 	double d_ef, d_sigma;
 	double d_strip_ef, d_strip_sigma;
+	bool narrow_correlation;
 	// setup output branches
 	opt.Branch("valid", &valid, "valid/O");
 	opt.Branch("hole", &hole, "hole/I");
@@ -632,6 +633,7 @@ int main(int argc, char **argv) {
 	opt.Branch("d_sigma", &d_sigma, "ds/D");
 	opt.Branch("d_strip_ef", &d_strip_ef, "dsef/D");
 	opt.Branch("d_strip_sigma", &d_strip_sigma, "dss/D");
+	opt.Branch("narrow_correlation", &narrow_correlation, "nc/O");
 
 	// loop
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -778,6 +780,49 @@ int main(int argc, char **argv) {
 			sqrt(taf_de*taf_e + taf_as*taf_de*taf_de) + taf_bs*taf_e;
 		d_strip_sigma = (d_strip_ef - taf_strip_fit_d[csi_index][taf_fs][0])
 			/ taf_strip_fit_d[csi_index][taf_fs][1];
+
+		narrow_correlation = true;
+		if (event.bind != 0) narrow_correlation = false;
+		if (event.hole[0] || event.hole[1]) narrow_correlation = false;
+		// 10Be
+		if (event.be_x_hit[0] != 1 || event.be_y_hit[0] != 1) {
+			narrow_correlation = false;
+		} else if (
+			event.be_x_channel[0][0] - event.be_y_channel[0][0] < -220
+			|| event.be_x_channel[0][0] - event.be_y_channel[0][0] > 150
+		) {
+			narrow_correlation = false;
+		}
+		if (event.layer[0] == 2) narrow_correlation = false;
+		// 4He T0D1
+		if (event.he_x_hit[0] !=1 || event.he_y_hit[0] != 1) {
+			narrow_correlation = false;
+		} else if (
+			event.he_x_channel[0][0] - event.he_y_channel[0][0] < -274
+			&& event.he_x_channel[0][0] - event.he_y_channel[0][0] > 170
+		) {
+			narrow_correlation = false;
+		}
+		// 4He T0D2
+		if (event.he_x_hit[1] != 1 || event.he_y_hit[1] != 1) {
+			narrow_correlation = false;
+		} else if (
+			event.he_x_channel[1][0] - event.he_y_channel[1][0] < -236
+			|| event.he_x_channel[1][0] - event.he_y_channel[1][0] > 256
+		) {
+			narrow_correlation = false;
+		}
+		// 4He T0D3
+		if (event.layer[1] > 1) {
+			if (event.he_x_hit[2] != 1 || event.he_y_hit[2] != 1) {
+				narrow_correlation = false;
+			} else if (
+				event.he_x_channel[2][0] - event.he_y_channel[2][0] < -64
+				|| event.he_x_channel[2][0] - event.he_y_channel[2][0] > 120 
+			) {
+				narrow_correlation = false;
+			}
+		}
 
 		// fill
 		opt.Fill();

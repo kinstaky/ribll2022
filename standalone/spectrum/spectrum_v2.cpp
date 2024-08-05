@@ -465,12 +465,12 @@ int main(int argc, char **argv) {
 
 
 			// excited 14C total energy
-			double excited_c_energy_target =
+			c_target_kinetic[i] =
 				(be_kinetic_target[i] + mass_10be + be10_excited_energy)
 				+ (he_kinetic_target[i] + mass_4he);
 			// excited 14C mass
 			double excited_c_mass_target = sqrt(
-				pow(excited_c_energy_target, 2.0)
+				pow(c_target_kinetic[i], 2.0)
 				- pow(excited_c_momentum_target, 2.0)
 			);
 			// excited energy of 14C
