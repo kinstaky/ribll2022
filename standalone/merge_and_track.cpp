@@ -621,6 +621,7 @@ void GetBindEvents(
 				if (fabs(de) >= range1) continue;
 				// found
 				DssdMergeEvent merge;
+				merge.case_tag = 0;
 				merge.hit = 2;
 				merge.flag[0] = (0x1<<i) | (0x100<<j);
 				merge.merge_tag[0] = 4;
@@ -634,6 +635,10 @@ void GetBindEvents(
 				T0D1PositionFromStrip(
 					d1fs[i], d1bs[k], merge.x[1], merge.y[1]
 				);
+				merge.z[0] = merge.z[1] = 100.0;
+				merge.time[0] = d1_event.front_time[i];
+				merge.time[1] = d1_event.front_time[i];
+				merge.time_flag[0] = merge.time_flag[1] = 0;
 				d1_merge1.push_back(merge);
 				found_d1_f1b2 = true;
 			}
@@ -669,6 +674,10 @@ void GetBindEvents(
 					T0D1PositionFromStrip(
 						d1fs[j], d1bs[l], merge.x[1], merge.y[1]
 					);
+					merge.z[0] = merge.z[1] = 100.0;
+					merge.time[0] = d1_event.front_time[i];
+					merge.time[1] = d1_event.front_time[j];
+					merge.time_flag[0] = merge.time_flag[1] = 0;
 					d1_merge1.push_back(merge);
 					found_d1_f2ab2 = true;
 				}
@@ -713,6 +722,10 @@ void GetBindEvents(
 				T0D1PositionFromStrip(
 					d1fs[k], d1bs[i], merge.x[1], merge.y[1]
 				);
+				merge.z[0] = merge.z[1] = 100.0;
+				merge.time[0] = d1_event.front_time[j];
+				merge.time[1] = d1_event.front_time[k];
+				merge.time_flag[0] = merge.time_flag[1] = 0;
 				d1_merge2.push_back(merge);
 				found_d1_f2b1 = true;
 			}
@@ -748,6 +761,10 @@ void GetBindEvents(
 					T0D1PositionFromStrip(
 						d1fs[l], d1bs[j], merge.x[1], merge.y[1]
 					);
+					merge.z[0] = merge.z[1] = 100.0;
+					merge.time[0] = d1_event.front_time[k];
+					merge.time[1] = d1_event.front_time[l];
+					merge.time_flag[0] = merge.time_flag[1] = 0;
 					d1_merge2.push_back(merge);
 					found_d1_f2b2a = true;
 				}

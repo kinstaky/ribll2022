@@ -508,7 +508,7 @@ void CenterMomentum(
 	double effect_center_mass = gamma1 * mass1 + gamma2 * mass2;
 	// center of mass velocity
 	ROOT::Math::XYZVector center_velocity =
-		(momentum1 + momentum2) / effect_center_mass;	
+		(momentum1 + momentum2) / effect_center_mass;
 	// gamma of center of mass
 	double center_gamma = 1.0 / sqrt(1.0 - pow(center_velocity.R(), 2.0));
 
@@ -523,7 +523,7 @@ void CenterMomentum(
 		center_velocity.Unit().Dot(momentum2) * center_velocity.Unit();
 	// momentum2 orthometric to center of mass momentum
 	ROOT::Math::XYZVector momentum2_ortho = momentum2 - momentum2_parallel;
-	
+
 	// transmission to center of mass frame
 	ROOT::Math::XYZVector momentum1_center_parallel =
 		(
@@ -620,7 +620,7 @@ int main(int argc, char **argv) {
 	opt.Branch("layer", layer, "layer[2]/I");
 	opt.Branch("cd_angle", &cd_angle, "cda/D");
 	opt.Branch("cd_velocity", &cd_velocity, "cdv/D");
-	opt.Branch("cd_center_velocity", &cd_center_velocity, "cdcv/D");	
+	opt.Branch("cd_center_velocity", &cd_center_velocity, "cdcv/D");
 	opt.Branch("in_target", &in_target, "it/O");
 	opt.Branch("in_center", &in_center, "ic/O");
 	opt.Branch("c14_kinetic_sigma", &c14_kinetic_sigma, "c14ks/D");
@@ -660,7 +660,7 @@ int main(int argc, char **argv) {
 		if (event.taf_flag != 0) valid = false;
 		// check binding events
 		if (event.bind != 0) valid = false;
-		
+
 		if (!valid) {
 			opt.Fill();
 			continue;
@@ -706,7 +706,7 @@ int main(int argc, char **argv) {
 		ROOT::Math::XYZVector p_excited_c = p_be + p_he;
 		// excited 14C momentum
 		double excited_c_momentum = p_excited_c.R();
-		
+
 		// 14C and 2H angle in lab frame
 		cd_angle = acos(p_excited_c.Unit().Dot(p_d.Unit()));
 
@@ -715,7 +715,7 @@ int main(int argc, char **argv) {
 		double velocity_c = VelocityFromMomentum(excited_c_momentum, mass_14c);
 		// excited 14C velocity vector
 		ROOT::Math::XYZVector v_c = p_excited_c.Unit() * velocity_c;
-		
+
 		// 2H velocity value
 		double velocity_d = VelocityFromMomentum(d_momentum, mass_2h);
 		// 2H velocity vector
@@ -737,10 +737,11 @@ int main(int argc, char **argv) {
 		cd_center_velocity = (vcc - vdc).R();
 
 		// check reaction position
+		in_target = (pow(event.xptx-2.0, 2.0) + pow(event.xpty+1.0, 2.0)) < 200.0;
 		in_center =
 			event.xptx > -10 && event.xptx < -5
 			&& event.xpty > -3 && event.xpty < 3;
-		
+
 		// get kinetic energy and momentum
 		double c14_kinetic = spectrum_c_kinetic[3];
 		double c14_momentum = spectrum_c_momentum[3];
@@ -765,7 +766,7 @@ int main(int argc, char **argv) {
 		// straight parameters
 		double taf_a = taf_straight_pars[csi_index][0];
 		double taf_b = taf_straight_pars[csi_index][1];
-		// fixed energy	
+		// fixed energy
 		d_ef =
 			sqrt(taf_cde*taf_e + taf_a*taf_cde*taf_cde) + taf_b*taf_e;
 		// sigma
@@ -818,7 +819,7 @@ int main(int argc, char **argv) {
 				narrow_correlation = false;
 			} else if (
 				event.he_x_channel[2][0] - event.he_y_channel[2][0] < -64
-				|| event.he_x_channel[2][0] - event.he_y_channel[2][0] > 120 
+				|| event.he_x_channel[2][0] - event.he_y_channel[2][0] > 120
 			) {
 				narrow_correlation = false;
 			}

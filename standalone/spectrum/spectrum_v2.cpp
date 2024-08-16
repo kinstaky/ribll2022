@@ -6,6 +6,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TString.h>
+#include <TH1F.h>
 #include <Math/Vector3D.h>
 
 #include "include/event/threebody_info_event.h"
@@ -79,6 +80,17 @@ int main(int argc, char **argv) {
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
+	// histogram of stateless excited energy
+	TH1F hist_stateless_excited_energy[3][11];
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 11; ++j) {
+			hist_stateless_excited_energy[i][j] = TH1F(
+				TString::Format("hs%dq%d", i, j),
+				TString::Format("state %d Q [%d, %d)", i, -21+j, -20+j),
+				150, 12, 27
+			);
+		}
+	}
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
@@ -91,7 +103,7 @@ int main(int argc, char **argv) {
 	double be_kinetic[4], he_kinetic[4], d_kinetic, c_kinetic[4];
 	// momentum value
 	double c_momentum[4];
-	// Q value 
+	// Q value
 	double q[4];
 	// 10Be state, under different T0D2 energy method
 	int be_state[4];
@@ -100,13 +112,14 @@ int main(int argc, char **argv) {
 	double excited_energy[4];
 	// kinetic energy with target energy lost
 	double be_kinetic_target[4], he_kinetic_target[4], d_kinetic_target;
-	double c_target_kinetic[4];
+	double c_kinetic_target[4];
 	// excited energy with target energy lost
 	double excited_energy_target[4];
+	// 14C excited energy considering target lost and seperated CsI
 	double sep_ex_target[4];
-	// correct the kinetic based on the simulation result
-	// double be_kinetic_target_correct[3], he_kinetic_target_correct[3];
-	// double excited_energy_target_correct[3];
+	// excited energy ignore 10Be state
+	double stateless_excited_energy[3][4];
+
 	// setup output branches
 	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
 	opt.Branch("taf_flag", &taf_flag, "tflag/I");
@@ -125,24 +138,12 @@ int main(int argc, char **argv) {
 	opt.Branch("be_kinetic_target", be_kinetic_target, "bekt[4]/D");
 	opt.Branch("he_kinetic_target", he_kinetic_target, "hekt[4]/D");
 	opt.Branch("d_kinetic_target", &d_kinetic_target, "dkt/D");
-	opt.Branch("c_target_kinetic", c_target_kinetic, "ckt[4]/D");
+	opt.Branch("c_kinetic_target", c_kinetic_target, "ckt[4]/D");
 	opt.Branch("excited_energy_target", excited_energy_target, "ext[4]/D");
 	opt.Branch("spe_ex_target", sep_ex_target, "sext[4]/D");
-	// opt.Branch(
-	// 	"be_kinetic_target_correct",
-	// 	be_kinetic_target_correct,
-	// 	"bektc[3]/D"
-	// );
-	// opt.Branch(
-	// 	"he_kinetic_target_correct",
-	// 	he_kinetic_target_correct,
-	// 	"hektc[3]/D"
-	// );
-	// opt.Branch(
-	// 	"excited_energy_target_correct",
-	// 	excited_energy_target_correct,
-	// 	"extc[3]/D"
-	// );
+	opt.Branch(
+		"stateless_excited_energy", stateless_excited_energy, "slext[3][4]/D"
+	);
 
 	// Q value correct
 	constexpr double q_correct[12] = {
@@ -181,7 +182,7 @@ int main(int argc, char **argv) {
 		// target position
 		double tx = event.xptx;
 		double ty = event.xpty;
-		
+
 		// 10Be direction vector
 		ROOT::Math::XYZVector d_be(
 			event.be_x[0] - tx,
@@ -345,6 +346,10 @@ int main(int argc, char **argv) {
 				he4_target.Energy(-0.5/cos(d_he.Theta()), he_kinetic[2]);
 		}
 
+		// get target flag
+		target_flag = 0;
+		if (pow(calc_tx, 2.0) + pow(calc_ty, 2.0) < 200.0) target_flag |= 1;
+
 		// with calculation if hole
 		be_kinetic[1] = event.hole[0] ? be_kinetic[2] : be_kinetic[0];
 		be_kinetic[3] = be_kinetic[2];
@@ -352,7 +357,7 @@ int main(int argc, char **argv) {
 		he_kinetic[1] = event.hole[1] ? he_kinetic[2] : he_kinetic[0];
 		he_kinetic[3] = he_kinetic[0];
 
-	
+
 
 		be_kinetic_target[1] =
 			event.hole[0] ? be_kinetic_target[2] : be_kinetic_target[0];
@@ -387,7 +392,7 @@ int main(int argc, char **argv) {
 
 			// three body Q value
 			q[i] = be_kinetic[i] + he_kinetic[i] + d_kinetic - c_kinetic[i];
-			
+
 			// get seperated Be state
 			sep_be_state[i] = -1;
 			for (int j = 0; j < 3; ++j) {
@@ -407,7 +412,7 @@ int main(int argc, char **argv) {
 			// correct Q
 			q[i] -= q_correct[event.csi_index];
 			// get 10Be state from Q value
-			if (q[i] < -11 && q[i] > -13) be_state[i] = 0;
+			if (q[i] < -11 && q[i] > -14) be_state[i] = 0;
 			else if (q[i] < -14.5 && q[i] > -16.2) be_state[i] = 1;
 			else if (q[i] < -17.3 && q[i] > -19) be_state[i] = 2;
 			// else if (q[i] < -19 && q[i] > -20.5) be_state[i] = 3;
@@ -432,12 +437,13 @@ int main(int argc, char **argv) {
 			// excited energy of 14C
 			excited_energy[i] = excited_c_mass - mass_14c;
 
-		
+
 
 			// consider energy lost in target
 			// 10Be momentum
-			double be_momentum_target =
-				MomentumFromKinetic(mass_10be, be_kinetic_target[i]);
+			double be_momentum_target = MomentumFromKinetic(
+				mass_10be+be10_excited_energy, be_kinetic_target[i]
+			);
 			ROOT::Math::XYZVector p_be_target = d_be * be_momentum_target;
 
 			// 4He momentum
@@ -450,7 +456,10 @@ int main(int argc, char **argv) {
 			ROOT::Math::XYZVector p_excited_c_target = p_be_target + p_he_target;
 			// excited 14C momentum
 			double excited_c_momentum_target = p_excited_c_target.R();
-
+			// 14C kinematic energy in target
+			c_kinetic_target[i] = sqrt(
+				pow(excited_c_momentum_target, 2.0) + pow(mass_14c, 2.0)
+			) - mass_14c;
 
 			// seperated excited 14C total energy in target
 			double sep_ex_c_energy_target =
@@ -465,81 +474,77 @@ int main(int argc, char **argv) {
 
 
 			// excited 14C total energy
-			c_target_kinetic[i] =
+			double excited_c_energy_target =
 				(be_kinetic_target[i] + mass_10be + be10_excited_energy)
 				+ (he_kinetic_target[i] + mass_4he);
 			// excited 14C mass
 			double excited_c_mass_target = sqrt(
-				pow(c_target_kinetic[i], 2.0)
+				pow(excited_c_energy_target, 2.0)
 				- pow(excited_c_momentum_target, 2.0)
 			);
 			// excited energy of 14C
 			excited_energy_target[i] = excited_c_mass_target - mass_14c;
+
+			// ignore state
+			for (int j = 0; j < 3; ++j) {
+				double stateless_be10_ex = be_excited_energy[j];
+				// 10Be momentum
+				double be_momentum_stateless = MomentumFromKinetic(
+					mass_10be+stateless_be10_ex, be_kinetic_target[i]
+				);
+				ROOT::Math::XYZVector p_be_stateless =
+					d_be * be_momentum_stateless;
+				// 4He momentum
+				double he_momentum_stateless = MomentumFromKinetic(
+					mass_4he, he_kinetic_target[i]
+				);
+				ROOT::Math::XYZVector p_he_stateless =
+					d_he * he_momentum_stateless;
+
+				// excited 14C momentum vector
+				ROOT::Math::XYZVector p_excited_c_stateless =
+					p_be_stateless + p_he_stateless;
+				// excited 14C momentum
+				double excited_c_momentum_stateless =
+					p_excited_c_stateless.R();
+
+				// excited 14C total energy
+				double excited_c_energy_stateless =
+					(be_kinetic_target[i] + mass_10be + stateless_be10_ex)
+					+ (he_kinetic_target[i] + mass_4he);
+				// excited 14C mass
+				double excited_c_mass_stateless = sqrt(
+					pow(excited_c_energy_stateless, 2.0)
+					- pow(excited_c_momentum_stateless, 2.0)
+				);
+				// excited energy of 14C
+				stateless_excited_energy[j][i] =
+					excited_c_mass_stateless - mass_14c;
+			}
 		}
 
-
-		// // energy lost in target and correct
-		// if (event.layer[0] == 1) {
-		// 	be_kinetic_target_correct[0] = be_kinetic_target[0] - 1.72;
-		// 	be_kinetic_target_correct[2] = be_kinetic_target[2] - 0.4;
-		// } else if (event.layer[0] == 2) {
-		// 	be_kinetic_target_correct[0] = be_kinetic_target[0] - 1.39;
-		// 	be_kinetic_target_correct[2] = be_kinetic_target[2] - 0.84;
-		// }
-		// be_kinetic_target_correct[1] = event.hole[0]
-		// 	? be_kinetic_target_correct[2]
-		// 	: be_kinetic_target_correct[0];
-		// if (event.layer[1] == 1) {
-		// 	he_kinetic_target_correct[0] = he_kinetic_target[0] - 0.51;
-		// 	he_kinetic_target_correct[2] = he_kinetic_target[2] + 0.56;
-		// } else if (event.layer[1] == 2) {
-		// 	he_kinetic_target_correct[0] = he_kinetic_target[0] - 0.39;
-		// 	he_kinetic_target_correct[2] = he_kinetic_target[2] + 0.16;
-		// } else if (event.layer[1] > 2) {
-		// 	he_kinetic_target_correct[0] = he_kinetic_target[0] - 0.31;
-		// 	he_kinetic_target_correct[2] = he_kinetic_target[2] - 0.20;
-		// }
-		// he_kinetic_target_correct[1] = event.hole[1]
-		// 	? he_kinetic_target_correct[2]
-		// 	: he_kinetic_target_correct[0];
-		// for (int i = 0; i < 3; ++i) {
-		// 	// 10Be momentum
-		// 	double be_momentum =
-		// 		MomentumFromKinetic(mass_10be, be_kinetic_target_correct[i]);
-		// 	ROOT::Math::XYZVector p_be = d_be * be_momentum;
-
-		// 	// 4He momentum
-		// 	double he_momentum =
-		// 		MomentumFromKinetic(mass_4he, he_kinetic_target_correct[i]);
-		// 	ROOT::Math::XYZVector p_he = d_he * he_momentum;
-
-		// 	double be10_excited_energy = 0.0;
-		// 	if (be_state[i] == 1) be10_excited_energy = 3.368;
-		// 	else if (be_state[i] == 2) be10_excited_energy = 6.179;
-		// 	else if (be_state[i] == 3) be10_excited_energy = 7.542;
-
-		// 	// excited 14C momentum vector
-		// 	ROOT::Math::XYZVector p_excited_c = p_be + p_he;
-		// 	// excited 14C momentum
-		// 	double excited_c_momentum = p_excited_c.R();
-		// 	// excited 14C total energy
-		// 	double excited_c_energy =
-		// 		(be_kinetic_target_correct[i]+mass_10be+be10_excited_energy)
-		// 		+ (he_kinetic_target_correct[i] + mass_4he);
-		// 	// excited 14C mass
-		// 	double excited_c_mass = sqrt(
-		// 		pow(excited_c_energy, 2.0) - pow(excited_c_momentum, 2.0)
-		// 	);
-		// 	// excited energy of 14C
-		// 	excited_energy_target_correct[i] = excited_c_mass - mass_14c;
-		// }
+		for (int i = 0; i < 3; ++i) {
+			if (pow(event.xptx, 2.0) + pow(event.xpty, 2.0) >= 200.0) continue;
+			// q index
+			int q_index = int(q[3]+21.0);
+			if (q_index >= 0 && q_index <= 10) {
+				hist_stateless_excited_energy[i][q_index].Fill(
+					stateless_excited_energy[i][3]
+				);
+			}
+		}
 
 		// fill to tree
 		opt.Fill();
 	}
-	
-	// save tree
+
+	// save
 	opf.cd();
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 11; ++j) {
+			hist_stateless_excited_energy[i][j].Write();
+		}
+	}
 	opt.Write();
 	// close files
 	opf.Close();
