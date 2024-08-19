@@ -15,6 +15,16 @@ target_link_libraries(
 	event d2_energy_calculator target_energy_calculator
 )
 
+# roofit spectrum
+add_executable(roofit_spectrum roofit_spectrum.cpp)
+target_link_libraries(
+	roofit_spectrum
+	PRIVATE
+	ROOT::Hist ROOT::RooFit ROOT::Gpad
+	event d2_energy_calculator target_energy_calculator
+)
+
+
 # spectrum 3a
 add_executable(spectrum_3a spectrum_3a.cpp)
 target_link_libraries(spectrum_3a PRIVATE event ROOT::Hist)
