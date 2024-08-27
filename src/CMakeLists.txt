@@ -6,6 +6,7 @@ add_subdirectory(detector)
 add_subdirectory(mapper)
 add_subdirectory(statistics)
 add_subdirectory(telescope)
+add_subdirectory(spectrum)
 
 # alignment
 add_library(

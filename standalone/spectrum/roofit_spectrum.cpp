@@ -20,6 +20,7 @@
 #include <RooSimultaneous.h>
 
 #include "include/defs.h"
+#include "include/spectrum/asymmetric_voigt.h"
 
 #define VOIGT
 
@@ -38,6 +39,9 @@ double inline Resolution1(double x) {
 double inline Resolution2(double x) {
 	return -1.100 + 0.403 * log(x);
 }
+
+
+
 
 constexpr double sigma_range = 0.1;
 
@@ -137,6 +141,22 @@ int main() {
 
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write(TString::Format("ho%d", i));
 
+
+	// test asymmetric voigt
+	RooRealVar test_x("tx", "test x", 12.0, 27.0);
+	RooRealVar test_mean("tmean", "test  mean", 14.0);
+	RooRealVar test_g("tg", "test g", 0.5);
+	RooRealVar test_sigma("tsigma", "test sigma", 0.3);
+	AsymmetricVoigtian test_avoigt(
+		"tav", "test asym voigt",
+		test_x, test_mean, test_g, test_sigma,
+		12.0125
+	);
+	RooPlot *test_frame = test_x.frame();
+	test_avoigt.plotOn(
+		test_frame,
+		RooFit::LineColor(kBlue)
+	);
 
 	// RooFit
 	// get data
@@ -837,13 +857,12 @@ int main() {
 		);
 	}
 
-	// close files
+	// save
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write();
 	frame0->Write("rh0");
 	frame1->Write("rh1");
 	frame2->Write("rh2");
-
-	// save
+	// three lines graph
 	gStyle->SetPadBorderMode(0);
 	TCanvas *c1 = new TCanvas("c1", "", 1920, 1080);
 	// build pads
@@ -875,6 +894,13 @@ int main() {
 		TString::Format("%simage/rootfit-result.png", kGenerateDataPath)
 	);
 	c1->Write("c1");
+
+	TCanvas *c2 = new TCanvas("c2", "", 1920, 1080);
+	test_frame->Draw();
+	c2->SaveAs(
+		TString::Format("%simage/test-asym-voigt.png", kGenerateDataPath)
+	);
+	c2->Write("tc");
 
 	opf.Close();
 	ipf.Close();

@@ -22,6 +22,7 @@ target_link_libraries(
 	PRIVATE
 	ROOT::Hist ROOT::RooFit ROOT::Gpad
 	event d2_energy_calculator target_energy_calculator
+	asymmetric_voigt
 )
 
 
