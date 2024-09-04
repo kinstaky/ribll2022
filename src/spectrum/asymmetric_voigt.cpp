@@ -45,6 +45,10 @@ double AsymmetricVoigtian::evaluate() const {
 	double coef = -0.5 / (s * s);
 	double arg = x_ - mean_;
 
+	// trunc, failed
+	// if (arg > 2*w) return 0.0;
+	// if (arg < -2*w) return 0.0;
+
 	// return constant for zero width and sigma
 	if (s == 0.0 && w == 0.0) return 1.0;
 	// Breit-Wigner for zero sigma
