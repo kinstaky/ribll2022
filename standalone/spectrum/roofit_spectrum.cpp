@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <map>
 
 #include <TString.h>
 #include <TFile.h>
@@ -27,20 +28,13 @@
 
 using namespace ribll;
 
-double inline Resolution0(double x) {
-	return -0.649 + 0.290 * log(x);
-}
 
-
-double inline Resolution1(double x) {
-	return -0.749 + 0.305 * log(x);
-}
-
-
-double inline Resolution2(double x) {
-	return -1.100 + 0.403 * log(x);
-}
-
+struct VoigtInfo {
+	RooRealVar *mean;
+	RooRealVar *gamma;
+	RooConstVar *sigma;
+	double threshold;
+};
 
 constexpr double threshold[3] = {12.01, 15.38, 18.19};
 constexpr double res_correct = 1.0;
@@ -94,6 +88,17 @@ int main() {
 	ipt->SetBranchAddress("excited_energy_target", excited_energy_target);
 	ipt->SetBranchAddress("stateless_excited_energy", stateless_excited_energy);
 
+	// efficiency file name
+	TString efficiency_file_name = TString::Format(
+		"%s%sefficiency-good-0002.root", kGenerateDataPath, kSimulateDir
+	);
+	// efficiency file
+	TFile efficiency_file(efficiency_file_name, "read");
+	// efficiency graphs
+	TGraph *g_efficiency[3];
+	g_efficiency[0] = (TGraph*)efficiency_file.Get("g0");
+	g_efficiency[1] = (TGraph*)efficiency_file.Get("g1");
+	g_efficiency[2] = (TGraph*)efficiency_file.Get("g2");
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -152,13 +157,16 @@ int main() {
 	AsymmetricVoigtian test_avoigt(
 		"tav", "test asym voigt",
 		test_x, test_mean, test_g, test_sigma,
-		12.0125
+		12.0125, g_efficiency[0]
 	);
 	RooPlot *test_frame = test_x.frame();
 	test_avoigt.plotOn(
 		test_frame,
 		RooFit::LineColor(kBlue)
 	);
+
+	// fitting function information
+	std::map<std::string, VoigtInfo> info_map[3];
 
 	// RooFit
 	// get data
@@ -213,7 +221,7 @@ int main() {
 	// variable name
 	const std::string name0[16] = {
 		"136", "149", "154", "165",	// 13.6, 14.9, 15.4, 16.5
-		"172", "185", "193",	// 17.2, 17.7, 18.5, 19.3
+		"177", "185", "193",	// 17.2, 17.7, 18.5, 19.3
 		"201", "214", "224", // 20.1, 21.4, 22.4, 23.0
 		"238", "245", "259",		// 23.8, 24.5, 25.9
 	};
@@ -237,18 +245,6 @@ int main() {
 	// P.D.F
 	RooAbsPdf *pdf0[16];
 	// create RooAbsPdf
-	// peak at 13.6 MeV
-	// mean0[0] = new RooRealVar(
-	// 	"mean136", "mean",
-	// 	mean0_value[0][0], mean0_value[0][1], mean0_value[0][2]
-	// );
-	// sigma0[0] = new RooConstVar(
-	// 	"sigma136", "sigma", sigma0_value[0]
-	// );
-	// pdf0[0] = new RooGaussian(
-	// 	"gaus136", "gaus", x, *mean0[0], *sigma0[0]
-	// );
-	// peak at other energy
 	for (size_t i = 0; i < n0; ++i) {
 		mean0[i] = new RooRealVar(
 			("mean"+name0[i]).c_str(), "mean",
@@ -264,8 +260,15 @@ int main() {
 		);
 		pdf0[i] = new AsymmetricVoigtian(
 			("voigt"+name0[i]).c_str(), "voigt",
-			x, *mean0[i], *gamma0[i], *sigma0[i], threshold0[i]
+			x, *mean0[i], *gamma0[i], *sigma0[i],
+			threshold0[i], g_efficiency[0]
 		);
+		VoigtInfo info;
+		info.mean = mean0[i];
+		info.gamma = gamma0[i];
+		info.sigma = sigma0[i];
+		info.threshold = threshold0[i];
+		info_map[0].insert(std::make_pair(name0[i], info));
 	}
 	// add fraction
 	RooRealVar* frac0[16];
@@ -342,17 +345,20 @@ int main() {
 		threshold[2], threshold[2], threshold[2]
 	};
 	// mean variable
-	RooRealVar *mean1[16] = {
-		nullptr, mean0[4], mean0[5], mean0[6],
-		mean0[7], mean0[8], mean0[9],
-		nullptr, mean0[11], mean0[12],
-	};
+	RooRealVar *mean1[16];
 	// g factor variable
-	RooRealVar *gamma1[16] = {
-		nullptr, gamma0[4], gamma0[5], gamma0[6],
-		gamma0[7], gamma0[8], gamma0[9],
-		nullptr, gamma0[11], gamma0[12],
-	};
+	RooRealVar *gamma1[16];
+	// search from info0
+	for (size_t i = 0; i < n1; ++i) {
+		auto search = info_map[0].find(name1[i]);
+		if (search == info_map[0].end()) {
+			mean1[i] = nullptr;
+			gamma1[i] = nullptr;
+		} else {
+			mean1[i] = search->second.mean;
+			gamma1[i] = search->second.gamma;
+		}
+	}
 	// sigma variable
 	RooConstVar *sigma1[16];
 	// P.D.F.
@@ -377,8 +383,15 @@ int main() {
 		);
 		pdf1[i] = new AsymmetricVoigtian(
 			("voigt"+name1[i]).c_str(), "voigt",
-			x, *mean1[i], *gamma1[i], *sigma1[i], threshold1[i]
+			x, *mean1[i], *gamma1[i], *sigma1[i],
+			threshold1[i], g_efficiency[1]
 		);
+		VoigtInfo info;
+		info.mean = mean1[i];
+		info.gamma = gamma1[i];
+		info.sigma = sigma1[i];
+		info.threshold = threshold1[i];
+		info_map[1].insert(std::make_pair(name1[i], info));
 	}
 	// add fraction
 	RooRealVar* frac1[16];
@@ -410,6 +423,7 @@ int main() {
 		{0.0, 1.0, -1.0},		// 22.4
 		// {0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
+								// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
 		{0.0, 1.0, -1.0},		// 25.9
 	};
@@ -441,15 +455,26 @@ int main() {
 		threshold[2], threshold[2], threshold[2]
 	};
 	// mean variable
-	RooRealVar *mean2[16] = {
-		mean0[7], mean0[8], mean0[9],
-		mean1[7], mean0[11], mean0[12],
-	};
+	RooRealVar *mean2[16];
 	// g factor variable
-	RooRealVar *gamma2[16] = {
-		gamma0[7], gamma0[8], gamma0[9],
-		gamma1[7], gamma0[11], gamma0[12],
-	};
+	RooRealVar *gamma2[16];
+	// search from info0 and info1
+	for (size_t i = 0; i < n2; ++i) {
+		auto search0 = info_map[0].find(name2[i]);
+		if (search0 == info_map[0].end()) {
+			auto search1 = info_map[1].find(name2[i]);
+			if (search1 == info_map[1].end()) {
+				mean2[i] = nullptr;
+				gamma2[i] = nullptr;
+			} else {
+				mean2[i] = search1->second.mean;
+				gamma2[i] = search1->second.gamma;
+			}
+		} else {
+			mean2[i] = search0->second.mean;
+			gamma2[i] = search0->second.gamma;
+		}
+	}
 	// sigma variable
 	RooConstVar *sigma2[16];
 	// P.D.F.
@@ -474,8 +499,15 @@ int main() {
 		);
 		pdf2[i] = new AsymmetricVoigtian(
 			("voigt"+name2[i]).c_str(), "voigt",
-			x, *mean2[i], *gamma2[i], *sigma2[i], threshold2[i]
+			x, *mean2[i], *gamma2[i], *sigma2[i],
+			threshold2[i], g_efficiency[2]
 		);
+		VoigtInfo info;
+		info.mean = mean2[i];
+		info.gamma = gamma2[i];
+		info.sigma = sigma2[i];
+		info.threshold = threshold2[i];
+		info_map[2].insert(std::make_pair(name2[i], info));
 	}
 	// add fraction
 	RooRealVar* frac2[16];
@@ -543,51 +575,31 @@ int main() {
 		2, 0, 1, 2,
 		0, 1, 2,
 	};
-	RooRealVar *print_mean[print_n] = {
-		mean0[1], mean0[2], mean0[3], mean0[4],
-		mean0[4], mean0[5], mean0[5], mean0[6],
-		mean0[6], mean0[7], mean0[7], mean0[7],
-		mean0[8], mean0[8], mean0[8], mean0[9],
-		mean0[9], mean0[9], mean0[10], mean1[7],
-		mean1[7], mean0[11], mean0[11], mean0[11],
-		mean0[12], mean0[12], mean0[12]
-	};
-	RooRealVar *print_gamma[print_n] = {
-		gamma0[1], gamma0[2], gamma0[3], gamma0[4],
-		gamma0[4], gamma0[5], gamma0[5], gamma0[6],
-		gamma0[6], gamma0[7], gamma0[7], gamma0[7],
-		gamma0[8], gamma0[8], gamma0[8], gamma0[9],
-		gamma0[9], gamma0[9], gamma0[10], gamma1[7],
-		gamma1[7], gamma0[11], gamma0[11], gamma0[11],
-		gamma0[12], gamma0[12], gamma0[12]
-	};
-	RooConstVar *print_sigma[print_n] = {
-		sigma0[1], sigma0[2], sigma0[3], sigma0[4],
-		sigma1[1], sigma0[5], sigma1[2], sigma0[6],
-		sigma1[3], sigma0[7], sigma1[4], sigma2[0],
-		sigma0[8], sigma1[5], sigma2[1], sigma0[9],
-		sigma1[6], sigma2[2], sigma0[10], sigma1[7],
-		sigma2[3], sigma0[11], sigma1[8], sigma2[4],
-		sigma0[12], sigma1[9], sigma2[5]
-	};
-	double print_thres[print_n] = {
-		threshold[0], threshold[0], threshold[0], threshold[1],
-		threshold[1], threshold[1], threshold[1], threshold[1],
-		threshold[1], threshold[2], threshold[2], threshold[2],
-		threshold[2], threshold[2], threshold[2], threshold[2],
-		threshold[2], threshold[2], threshold[2], threshold[2],
-		threshold[2], threshold[2], threshold[2], threshold[2],
-		threshold[2], threshold[2], threshold[2],
+	std::string print_name[print_n] = {
+		"149", "154", "165", "177",
+		"177", "185", "185", "193",
+		"193", "201", "201", "201",
+		"214", "214", "214", "224",
+		"224", "224", "238", "235",
+		"235", "245", "245", "245",
+		"259", "259", "259"
 	};
 	for (size_t i = 0; i < print_n; ++i) {
-		double mean = print_mean[i]->getVal();
-		double g = print_gamma[i]->getVal();
-		double thres = print_thres[i];
+		int state = print_state[i];
+		auto search = info_map[state].find(print_name[i]);
+		if (search == info_map[state].end()) {
+			std::cerr << "Error: Could not find "
+				<< print_name[i] << " in state " << state << "\n";
+		}
+		auto &info = search->second;
+		double mean = info.mean->getVal();
+		double g = info.gamma->getVal();
+		double thres = info.threshold;
 		double gamma = g * sqrt(mean - thres);
 		std::cout << std::setw(6) << print_state[i]
 			<< std::setw(16) << mean
 			<< std::setw(16) << gamma
-			<< std::setw(16) << print_sigma[i]->getVal() << "\n";
+			<< std::setw(16) << info.sigma->getVal() << "\n";
 	}
 
 	// be quiet

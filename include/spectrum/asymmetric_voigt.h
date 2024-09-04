@@ -21,6 +21,7 @@ public:
 	/// @param[in] g width parameter of the distribution, Gamma = g*sqrt(E-Er)
 	/// @param[in] sigma resolution width
 	/// @param[in] threshold threshold to breakup
+	/// @param[in] efficiency efficiency graph
 	///
 	AsymmetricVoigtian(
 		const char *name,
@@ -29,7 +30,8 @@ public:
 		RooAbsReal &mean,
 		RooAbsReal &g,
 		RooAbsReal &sigma,
-		double threshold
+		double threshold,
+		TGraph *efficiency
 	);
 
 
@@ -57,6 +59,7 @@ protected:
 	RooRealProxy g_;
 	RooRealProxy sigma_;
 	double threshold_;
+	TGraph *efficiency_;
 
 	double evaluate() const override;
 };

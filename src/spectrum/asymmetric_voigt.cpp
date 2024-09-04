@@ -4,6 +4,7 @@
 #include <complex>
 
 #include <RooMath.h>
+#include <TGraph.h>
 
 namespace ribll {
 
@@ -14,14 +15,16 @@ AsymmetricVoigtian::AsymmetricVoigtian(
 	RooAbsReal &mean,
 	RooAbsReal &g,
 	RooAbsReal &sigma,
-	double threshold
+	double threshold,
+	TGraph *efficiency
 )
 : RooAbsPdf(name, title)
 , x_("x", "Dependent", this, x)
 , mean_("mean", "Mean", this, mean)
 , g_("width", "Breit-Wigner width factor", this, g)
 , sigma_("sigma", "Resolution", this, sigma)
-, threshold_(threshold) {}
+, threshold_(threshold)
+, efficiency_(efficiency) {}
 
 
 AsymmetricVoigtian::AsymmetricVoigtian(
@@ -33,7 +36,8 @@ AsymmetricVoigtian::AsymmetricVoigtian(
 , mean_("mean", this, other.mean_)
 , g_("width", this, other.g_)
 , sigma_("sigma", this, other.sigma_)
-, threshold_(other.threshold_) {}
+, threshold_(other.threshold_)
+, efficiency_(other.efficiency_) {}
 
 
 double AsymmetricVoigtian::evaluate() const {
@@ -65,7 +69,7 @@ double AsymmetricVoigtian::evaluate() const {
 
 	v = RooMath::faddeeva(z);
 
-	return c * v.real();
+	return c * v.real() * efficiency_->Eval(x_);
 }
 
 
