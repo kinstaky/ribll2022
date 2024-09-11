@@ -24,6 +24,7 @@
 
 #include "include/defs.h"
 #include "include/spectrum/asymmetric_voigt.h"
+#include "include/spectrum/background_poly.h"
 
 
 using namespace ribll;
@@ -174,67 +175,73 @@ int main() {
 	RooDataHist hist0("dh0", "excited energy", x, hist_ex);
 	// RooDataSet set0("s0", "excited energy", fit_tree[0], RooArgSet(x));
 	// number of peaks
-	size_t n0 = 13;
+	size_t n0 = 14;
 	// mean value
 	const double mean0_value[16][3] = {
 		{13.65, 13.6, 13.7},	// 13.6
 		{14.9, 14.5, 15.0},		// 14.9
 		{15.4, 15.3, 15.8},		// 15.4
 		{16.4, 16.2, 16.6},		// 16.5
-		// {17.2, 17.0, 17.3},		// 17.2
 		{17.7, 17.4, 17.8},		// 17.7
 		{18.5, 18.0, 18.7},		// 18.5
 		{19.3, 19.2, 19.6},		// 19.3
 		{20.1, 19.8, 20.4},		// 20.1
 		{21.0, 20.5, 21.7},		// 21.4
 		{22.4, 22.0, 22.8},		// 22.4
-		// {23.0, 22.8, 23.5},		// 23.0
-		{23.8, 23.5, 24.0},		// 23.8
+		{23.5, 23.3, 23.8},		// 23.5
+		{24.0, 23.8, 24.2}, 	// 24.0
 		{24.5, 24.2, 24.7},		// 24.5
 		{25.9, 25.0, 26.4},		// 25.9
 	};
 	// g factor value
 	const double gamma0_value[16][3] = {
-		{0.05, 0.0, 1.0},		// 13.6
-		{0.06, 0.0, 1.0},		// 14.9
-		{0.1, 0.0, 1.0},		// 15.4
-		{0.1, 0.0, 1.0},		// 16.5
-		// {0.05, 0.0, 1.0},		// 17.2
-		{0.05, 0.0, 1.0},		// 17.7
-		{0.05, 0.0, 1.0},		// 18.5
-		{0.05, 0.0, 1.0},		// 19.3
-		{0.02, 0.0, 1.0},		// 20.1
-		{0.05, 0.0, 1.0},		// 21.4
-		{0.02, 0.0, 1.0},		// 22.4
-		// {0.02, 0.0, 1.0},		// 23.0
-		{0.02, 0.0, 1.0},		// 23.8
-		{0.02, 0.0, 1.0},		// 24.5
-		{0.02, 0.0, 1.0},		// 25.9
+		{0.05, 0.0, 0.2},		// 13.6
+		{0.06, 0.0, 0.2},		// 14.9
+		{0.1, 0.0, 0.2},		// 15.4
+		{0.1, 0.0, 0.2},		// 16.5
+		{0.05, 0.0, 0.2},		// 17.7
+		{0.05, 0.0, 0.2},		// 18.5
+		{0.05, 0.0, 0.2},		// 19.3
+		{0.02, 0.0, 0.2},		// 20.1
+		{0.05, 0.0, 0.2},		// 21.4
+		{0.02, 0.0, 0.2},		// 22.4
+		{0.02, 0.0, 0.2},		// 23.5
+		{0.02, 0.0, 0.2},		// 24.0
+		{0.02, 0.0, 0.2},		// 24.5
+		{0.02, 0.0, 0.5},		// 25.9
 	};
 	// sigma value
 	const double sigma0_value[16] = {
-		0.2, 0.24, 0.26, 0.31,	// 13.6, 14.9, 15.4, 16.5
-		0.32, 0.36, 0.38,	// 17.2, 17.7, 18.5, 19.3
-		0.39, 0.4, 0.41,	// 20.1, 21.4, 22.4, 23.0
-		0.42, 0.43, 0.44, 		// 23.8, 24.5, 25.9
+		// 13.6, 14.9, 15.4, 16.5
+		0.2, 0.24, 0.26, 0.31,
+		// 17.7, 18.5, 19.3, 20.1
+		0.34, 0.35, 0.37, 0.39,
+		// 21.4, 22.4, 23.5, 24.0
+		0.4, 0.41, 0.42, 0.43,
+		// 24.5, 25.9
+		0.44, 0.47,
 	};
 	// variable name
 	const std::string name0[16] = {
-		"136", "149", "154", "165",	// 13.6, 14.9, 15.4, 16.5
-		"177", "185", "193",	// 17.2, 17.7, 18.5, 19.3
-		"201", "214", "224", // 20.1, 21.4, 22.4, 23.0
-		"238", "245", "259",		// 23.8, 24.5, 25.9
+		// 13.6, 14.9, 15.4, 16.5
+		"136", "149", "154", "165",
+		// 17.7, 18.5, 19.3, 20.1
+		"177", "185", "193", "201",
+		// 21.4, 22.4, 23.5, 24.0
+		"214", "224", "235", "240",
+		// 24.5, 25.9
+		"245", "259",
 	};
 	// threshold
 	const double threshold0[16] = {
 		// 13.6, 14.9, 15.4, 16.5
 		threshold[0], threshold[0], threshold[0], threshold[0],
-		// 17.2, 17.7, 18.5, 19.3
-		threshold[1], threshold[1], threshold[1],
-		// 20.1, 21.4, 22.4, 23.0
-		threshold[2], threshold[2], threshold[2],
-		// 23.8, 24.5, 25.9
-		threshold[2], threshold[2], threshold[2]
+		// 17.7, 18.5, 19.3, 20.1
+		threshold[1], threshold[1], threshold[2], threshold[2],
+		// 21.4, 22.4, 23.5, 24.0
+		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 24.5, 25.9
+		threshold[2], threshold[2],
 	};
 	// mean variable
 	RooRealVar *mean0[16];
@@ -255,11 +262,11 @@ int main() {
 			gamma0_value[i][0], gamma0_value[i][1], gamma0_value[i][2]
 		);
 		sigma0[i] = new RooConstVar(
-			("sigma"+name0[i]).c_str(), "sigma",
+			("sigma0_"+name0[i]).c_str(), "sigma",
 			sigma0_value[i]
 		);
 		pdf0[i] = new AsymmetricVoigtian(
-			("voigt"+name0[i]).c_str(), "voigt",
+			("voigt0_"+name0[i]).c_str(), "voigt",
 			x, *mean0[i], *gamma0[i], *sigma0[i],
 			threshold0[i], g_efficiency[0]
 		);
@@ -270,6 +277,16 @@ int main() {
 		info.threshold = threshold0[i];
 		info_map[0].insert(std::make_pair(name0[i], info));
 	}
+	RooRealVar gsigma0_259("gsigma0_259", "sigma", 0.2, 0.01, 0.5);
+	delete pdf0[n0-1];
+	pdf0[n0-1] = new RooGaussian(
+		"gaus0_259", "gaus", x, *mean0[n0-1], gsigma0_259
+	);
+	// background
+	RooRealVar bkg0_p1("bkg0_p1", "p1", 40, 30, 60);
+	RooRealVar bkg0_p0("bkg0_p0", "p0", -300, -1000, 0.0);
+	BackgroundPoly bkg0("bkg0", "bkg", x, bkg0_p1, bkg0_p0);
+
 	// add fraction
 	RooRealVar* frac0[16];
 	// add result
@@ -287,6 +304,13 @@ int main() {
 			*frac0[i-1]
 		);
 	}
+	RooRealVar frac_bkg0("frac_bkg0", "frac", 0.95, 0.5, 1.0);
+	model0[n0] = new RooAddPdf(
+		TString::Format("model0_%ld", n0), "model",
+		RooArgList(*model0[n0-1], bkg0),
+		frac_bkg0
+	);
+	++n0;
 
 
 	// 10Be 3.5 MeV
@@ -294,7 +318,7 @@ int main() {
 	RooDataHist hist1("dh1", "excited energy", x, hist_ex+1);
 	// RooDataSet set1("s1", "excited energy", fit_tree[1], RooArgSet(x1));
 	// number of peaks
-	size_t n1 = 10;
+	size_t n1 = 11;
 	// mean value
 	const double mean1_value[16][3] = {
 		{17.2, 17.0, 17.3},		// 17.2
@@ -304,8 +328,7 @@ int main() {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.4
-		// {0.0, 1.0, -1.0},		// 23.0
-		{23.6, 23.4, 23.9},		// 23.5
+		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.5
 		{0.0, 1.0, -1.0},		// 25.9
 	};
@@ -318,31 +341,36 @@ int main() {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.4
-		// {0.0, 1.0, -1.0},		// 23.0
-		{0.02, 0.0, 1.0},		// 23.5
+		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.5
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// sigma value
 	const double sigma1_value[16] = {
-		0.209, 0.24, 0.28, 0.31,	// 17.2, 17.7, 18.5, 19.3
-		0.34, 0.36, 0.38,	// 20.1, 21.4, 22.4, 23.0
-		0.41, 0.42, 0.43,		// 23.5, 24.5, 25.9
+		// 17.2, 17.7, 18.5, 19.3
+		0.209, 0.24, 0.28, 0.31,
+		// 20.1, 21.4, 22.4, 23.5
+		0.34, 0.36, 0.38, 0.41,
+		// 24.0, 24.5, 25.9
+		0.42, 0.43, 0.45,
 	};
 	// variable names
 	const std::string name1[16] = {
-		"172", "177", "185", "193",	// 17.3, 17.7, 18.5, 19.3
-		"201", "214", "224", // 20.1, 21.4, 22.4, 23.0
-		"235", "245", "259",		// 23.5, 24.5, 25.9
+		// 17.3, 17.7, 18.5, 19.3
+		"172", "177", "185", "193",
+		// 20.1, 21.4, 22.4, 23.5
+		"201", "214", "224", "235",
+		// 24.0, 24.5, 25.9
+		"240", "245", "259",
 	};
 	// threshold
 	const double threshold1[16] = {
 		// 17.2, 17.7, 18.5, 19.3
-		threshold[1], threshold[1], threshold[1], threshold[1],
-		// 20.1, 21.4, 22.4, 23.0
+		threshold[1], threshold[1], threshold[1], threshold[2],
+		// 20.1, 21.4, 22.4, 23.5
+		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 24.0, 24.5, 25.9
 		threshold[2], threshold[2], threshold[2],
-		// 23.5, 24.5, 25.9
-		threshold[2], threshold[2], threshold[2]
 	};
 	// mean variable
 	RooRealVar *mean1[16];
@@ -378,11 +406,11 @@ int main() {
 			);
 		}
 		sigma1[i] = new RooConstVar(
-			("sigma"+name1[i]).c_str(), "sigma",
+			("sigma1_"+name1[i]).c_str(), "sigma",
 			sigma1_value[i]
 		);
 		pdf1[i] = new AsymmetricVoigtian(
-			("voigt"+name1[i]).c_str(), "voigt",
+			("voigt1_"+name1[i]).c_str(), "voigt",
 			x, *mean1[i], *gamma1[i], *sigma1[i],
 			threshold1[i], g_efficiency[1]
 		);
@@ -393,6 +421,15 @@ int main() {
 		info.threshold = threshold1[i];
 		info_map[1].insert(std::make_pair(name1[i], info));
 	}
+	RooRealVar gsigma1_259("gsigma1_259", "sigma", 0.2, 0.01, 0.5);
+	delete pdf1[n1-1];
+	pdf1[n1-1] = new RooGaussian(
+		"gaus1_259", "gaus", x, *mean1[n1-1], gsigma1_259
+	);
+	// background
+	RooRealVar bkg1_p1("bkg1_p1", "p1", 46, 35, 60);
+	RooRealVar bkg1_p0("bkg1_p0", "p0", -450, -1000, 0.0);
+	BackgroundPoly bkg1("bkg1", "bkg", x, bkg1_p1, bkg1_p0);
 	// add fraction
 	RooRealVar* frac1[16];
 	// add result
@@ -410,20 +447,26 @@ int main() {
 			*frac1[i-1]
 		);
 	}
+	RooRealVar frac_bkg1("frac_bkg1", "frac", 0.95, 0.5, 1.0);
+	model1[n1] = new RooAddPdf(
+		TString::Format("model1_%ld", n1), "model",
+		RooArgList(*model1[n1-1], bkg1),
+		frac_bkg1
+	);
+	++n1;
 
 	// 10Be 6 MeV
 	RooDataHist hist2("dh2", "excited energy", RooArgList(x), hist_ex+2);
 	// RooDataSet set2("s2", "excited energy", fit_tree[2], RooArgSet(x));
 	// number of peaks
-	size_t n2 = 6;
+	size_t n2 = 7;
 	// mean value
 	const double mean2_value[16][3] = {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.4
-		// {0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
-								// 24.0
+		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
 		{0.0, 1.0, -1.0},		// 25.9
 	};
@@ -432,27 +475,32 @@ int main() {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.4
-		// {0.0, 1.0, -1.0},		// 23.0
+		{0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
+		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// sigma value
 	const double sigma2_value[16] = {
-		0.3, 0.32, 0.34,	// 20.1, 21.4, 22.4, 23.0
-		0.36, 0.37, 0.38,		// 23.5, 24.5, 25.9
+		// 20.1, 21.4, 22.4, 23.5
+		0.3, 0.32, 0.34, 0.36,
+		// 24.0, 24.5, 25.9
+		0.37, 0.38, 0.42,
 	};
 	// variable name
 	const std::string name2[16] = {
-		"201", "214", "224", // 20.1, 21.4, 22.4, 23.0
-		"235", "245", "259",		// 23.5, 24.5, 25.9
+		// 20.1, 21.4, 22.4, 23.5
+		"201", "214", "224", "235",
+		// 23.5, 24.0, 24.5, 25.9
+		"240", "245", "259",
 	};
 	// threshold
 	const double threshold2[16] = {
-		// 20.1, 21.4, 22.4, 23.0
+		// 20.1, 21.4, 22.4, 23.5
+		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 24.0, 24.5, 25.9
 		threshold[2], threshold[2], threshold[2],
-		// 23.8, 24.5, 25.9
-		threshold[2], threshold[2], threshold[2]
 	};
 	// mean variable
 	RooRealVar *mean2[16];
@@ -494,11 +542,11 @@ int main() {
 			);
 		}
 		sigma2[i] = new RooConstVar(
-			("sigma"+name2[i]).c_str(), "sigma",
+			("sigma2_"+name2[i]).c_str(), "sigma",
 			sigma2_value[i]
 		);
 		pdf2[i] = new AsymmetricVoigtian(
-			("voigt"+name2[i]).c_str(), "voigt",
+			("voigt2_"+name2[i]).c_str(), "voigt",
 			x, *mean2[i], *gamma2[i], *sigma2[i],
 			threshold2[i], g_efficiency[2]
 		);
@@ -509,6 +557,15 @@ int main() {
 		info.threshold = threshold2[i];
 		info_map[2].insert(std::make_pair(name2[i], info));
 	}
+	RooRealVar gsigma2_259("gsigma2_259", "sigma", 0.2, 0.01, 0.5);
+	delete pdf2[n2-1];
+	pdf2[n2-1] = new RooGaussian(
+		"gaus2_259", "gaus", x, *mean2[n2-1], gsigma2_259
+	);
+	// background
+	RooRealVar bkg2_p1("bkg2_p1", "p1", 46, 40, 60);
+	RooRealVar bkg2_p0("bkg2_p0", "p0", -520, -1000, 0.0);
+	BackgroundPoly bkg2("bkg2", "bkg", x, bkg2_p1, bkg2_p0);
 	// add fraction
 	RooRealVar* frac2[16];
 	// add result
@@ -526,6 +583,13 @@ int main() {
 			*frac2[i-1]
 		);
 	}
+	RooRealVar frac_bkg2("frac_bkg2", "frac", 0.95, 0.5, 1.0);
+	model2[n2] = new RooAddPdf(
+		TString::Format("model2_%ld", n2), "model",
+		RooArgList(*model2[n2-1], bkg2),
+		frac_bkg2
+	);
+	++n2;
 
 
 	// simultaneous fitting
@@ -565,7 +629,7 @@ int main() {
 		<< std::setw(16) << "mean"
 		<< std::setw(16) << "Gamma"
 		<< std::setw(16) << "sigma" << "\n";
-	const size_t print_n = 27;
+	const size_t print_n = 30;
 	int print_state[print_n] = {
 		0, 0, 0, 0,
 		1, 0, 1, 0,
@@ -573,16 +637,18 @@ int main() {
 		0, 1, 2, 0,
 		1, 2, 0, 1,
 		2, 0, 1, 2,
-		0, 1, 2,
+		0, 1, 2, 0,
+		1, 2,
 	};
 	std::string print_name[print_n] = {
 		"149", "154", "165", "177",
 		"177", "185", "185", "193",
 		"193", "201", "201", "201",
 		"214", "214", "214", "224",
-		"224", "224", "238", "235",
-		"235", "245", "245", "245",
-		"259", "259", "259"
+		"224", "224", "235", "235",
+		"235", "240", "240", "240",
+		"245", "245", "245", "259",
+		"259", "259"
 	};
 	for (size_t i = 0; i < print_n; ++i) {
 		int state = print_state[i];
@@ -601,7 +667,6 @@ int main() {
 			<< std::setw(16) << gamma
 			<< std::setw(16) << info.sigma->getVal() << "\n";
 	}
-
 	// be quiet
 	RooMsgService::instance().setGlobalKillBelow(RooFit::WARNING);
 	// plot
@@ -620,13 +685,20 @@ int main() {
 		RooFit::ProjWData(state, combined_hist),
 		RooFit::LineColor(kRed)
 	);
-	for (size_t i = 0; i < n0; ++i) {
+	for (size_t i = 0; i < n0-1; ++i) {
 		PlotPdf(
 			simultaneous_model, frame0,
 			state, "0",
 			combined_hist, *pdf0[i]
 		);
 	}
+	simultaneous_model.plotOn(
+		frame0,
+		RooFit::Slice(state, "0"),
+		RooFit::ProjWData(state, combined_hist),
+		RooFit::LineColor(kOrange),
+		RooFit::Components(bkg0)
+	);
 
 	// frame 1
 	RooPlot *frame1 = x.frame();
@@ -643,13 +715,21 @@ int main() {
 		RooFit::ProjWData(state, combined_hist),
 		RooFit::LineColor(kRed)
 	);
-	for (size_t i = 0; i < n1; ++i) {
+	for (size_t i = 0; i < n1-1; ++i) {
 		PlotPdf(
 			simultaneous_model, frame1,
 			state, "1",
 			combined_hist, *pdf1[i]
 		);
 	}
+	simultaneous_model.plotOn(
+		frame1,
+		RooFit::Slice(state, "1"),
+		RooFit::ProjWData(state, combined_hist),
+		RooFit::LineColor(kOrange),
+		RooFit::Components(bkg1)
+	);
+
 
 	// frame 2
 	RooPlot *frame2 = x.frame();
@@ -666,13 +746,21 @@ int main() {
 		RooFit::ProjWData(state, combined_hist),
 		RooFit::LineColor(kRed)
 	);
-	for (size_t i = 0; i < n2; ++i) {
+	for (size_t i = 0; i < n2-1; ++i) {
 		PlotPdf(
 			simultaneous_model, frame2,
 			state, "2",
 			combined_hist, *pdf2[i]
 		);
 	}
+	simultaneous_model.plotOn(
+		frame2,
+		RooFit::Slice(state, "2"),
+		RooFit::ProjWData(state, combined_hist),
+		RooFit::LineColor(kOrange),
+		RooFit::Components(bkg2)
+	);
+
 
 	// save
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write();
@@ -680,17 +768,17 @@ int main() {
 	frame1->Write("rh1");
 	frame2->Write("rh2");
 	// graph of resolution
-	for (size_t i = 0; i < n0; ++i) {
+	for (size_t i = 0; i < n0-1; ++i) {
 		graph_resolution[0].AddPoint(
 			mean0[i]->getVal(), sigma0_value[i]
 		);
 	}
-	for (size_t i = 0; i < n1; ++i) {
+	for (size_t i = 0; i < n1-1; ++i) {
 		graph_resolution[1].AddPoint(
 			mean1[i]->getVal(), sigma1_value[i]
 		);
 	}
-	for (size_t i = 0; i < n2; ++i) {
+	for (size_t i = 0; i < n2-1; ++i) {
 		graph_resolution[2].AddPoint(
 			mean2[i]->getVal(), sigma2_value[i]
 		);
@@ -742,15 +830,15 @@ int main() {
 	ipf.Close();
 
 	// clean
-	for (size_t i = 1; i < n0; ++i) {
+	for (size_t i = 1; i < n0-1; ++i) {
 		delete frac0[i-1];
 		delete model0[i];
 	}
-	for (size_t i = 1; i < n1; ++i) {
+	for (size_t i = 1; i < n1-1; ++i) {
 		delete frac1[i-1];
 		delete model1[i];
 	}
-	for (size_t i = 1; i < n2; ++i) {
+	for (size_t i = 1; i < n2-1; ++i) {
 		delete frac2[i-1];
 		delete model2[i];
 	}

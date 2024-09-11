@@ -69,7 +69,11 @@ double AsymmetricVoigtian::evaluate() const {
 
 	v = RooMath::faddeeva(z);
 
-	return c * v.real() * efficiency_->Eval(x_);
+	if (efficiency_) {
+		return c * v.real() * efficiency_->Eval(x_);
+	} else {
+		return c * v.real();
+	}
 }
 
 

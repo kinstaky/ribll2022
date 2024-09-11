@@ -31,13 +31,13 @@ public:
 		RooAbsReal &g,
 		RooAbsReal &sigma,
 		double threshold,
-		TGraph *efficiency
+		TGraph *efficiency = nullptr
 	);
 
 
 	/// @brief copy constructor
 	/// @param[in] other the other voigt to copy
-	/// @param[in] name title
+	/// @param[in] name P.D.F. name
 	///
 	AsymmetricVoigtian(
 		const AsymmetricVoigtian &other,
