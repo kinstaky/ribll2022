@@ -175,9 +175,9 @@ int main() {
 	RooDataHist hist0("dh0", "excited energy", x, hist_ex);
 	// RooDataSet set0("s0", "excited energy", fit_tree[0], RooArgSet(x));
 	// number of peaks
-	size_t n0 = 14;
+	size_t n0 = 16;
 	// mean value
-	const double mean0_value[16][3] = {
+	const double mean0_value[32][3] = {
 		{13.65, 13.6, 13.7},	// 13.6
 		{14.9, 14.5, 15.0},		// 14.9
 		{15.4, 15.3, 15.8},		// 15.4
@@ -187,14 +187,16 @@ int main() {
 		{19.3, 19.2, 19.6},		// 19.3
 		{20.1, 19.8, 20.4},		// 20.1
 		{21.0, 20.5, 21.7},		// 21.4
-		{22.4, 22.0, 22.8},		// 22.4
+		{22.0, 21.8, 22.2},		// 22.0
+		{22.6, 22.4, 22.8},		// 22.6
 		{23.5, 23.3, 23.8},		// 23.5
 		{24.0, 23.8, 24.2}, 	// 24.0
 		{24.5, 24.2, 24.7},		// 24.5
-		{25.9, 25.0, 26.4},		// 25.9
+		{25.4, 25.0, 25.7},		// 25.4
+		{25.9, 25.7, 26.4},		// 25.9
 	};
 	// g factor value
-	const double gamma0_value[16][3] = {
+	const double gamma0_value[32][3] = {
 		{0.05, 0.0, 0.2},		// 13.6
 		{0.06, 0.0, 0.2},		// 14.9
 		{0.1, 0.0, 0.2},		// 15.4
@@ -204,53 +206,55 @@ int main() {
 		{0.05, 0.0, 0.2},		// 19.3
 		{0.02, 0.0, 0.2},		// 20.1
 		{0.05, 0.0, 0.2},		// 21.4
-		{0.02, 0.0, 0.2},		// 22.4
+		{0.05, 0.0, 0.2},		// 22.0
+		{0.02, 0.0, 0.2},		// 22.6
 		{0.02, 0.0, 0.2},		// 23.5
 		{0.02, 0.0, 0.2},		// 24.0
 		{0.02, 0.0, 0.2},		// 24.5
+		{0.02, 0.0, 0.2},		// 25.4
 		{0.02, 0.0, 0.5},		// 25.9
 	};
 	// sigma value
-	const double sigma0_value[16] = {
+	const double sigma0_value[32] = {
 		// 13.6, 14.9, 15.4, 16.5
 		0.2, 0.24, 0.26, 0.31,
 		// 17.7, 18.5, 19.3, 20.1
 		0.34, 0.35, 0.37, 0.39,
-		// 21.4, 22.4, 23.5, 24.0
+		// 21.4, 22.0, 22.6, 23.5
 		0.4, 0.41, 0.42, 0.43,
-		// 24.5, 25.9
-		0.44, 0.47,
+		// 24.0, 24.5, 25.4, 25.9
+		0.44, 0.44, 0.45, 0.45
 	};
 	// variable name
-	const std::string name0[16] = {
+	const std::string name0[32] = {
 		// 13.6, 14.9, 15.4, 16.5
 		"136", "149", "154", "165",
 		// 17.7, 18.5, 19.3, 20.1
 		"177", "185", "193", "201",
-		// 21.4, 22.4, 23.5, 24.0
-		"214", "224", "235", "240",
-		// 24.5, 25.9
-		"245", "259",
+		// 21.4, 22.0, 22.6, 23.5
+		"214", "220", "226", "235",
+		// 24.0, 24.5, 25.4, 25.9
+		"240", "245", "254", "259",
 	};
 	// threshold
-	const double threshold0[16] = {
+	const double threshold0[32] = {
 		// 13.6, 14.9, 15.4, 16.5
 		threshold[0], threshold[0], threshold[0], threshold[0],
 		// 17.7, 18.5, 19.3, 20.1
 		threshold[1], threshold[1], threshold[2], threshold[2],
-		// 21.4, 22.4, 23.5, 24.0
+		// 21.4, 22.0, 22.4, 23.5
 		threshold[2], threshold[2], threshold[2], threshold[2],
-		// 24.5, 25.9
-		threshold[2], threshold[2],
+		// 24.0, 24.5, 25.4, 25.9
+		threshold[2], threshold[2], threshold[2], threshold[2]
 	};
 	// mean variable
-	RooRealVar *mean0[16];
+	RooRealVar *mean0[32];
 	// g factor variable
-	RooRealVar *gamma0[16];
+	RooRealVar *gamma0[32];
 	// sigma variable
-	RooConstVar *sigma0[16];
+	RooConstVar *sigma0[32];
 	// P.D.F
-	RooAbsPdf *pdf0[16];
+	RooAbsPdf *pdf0[32];
 	// create RooAbsPdf
 	for (size_t i = 0; i < n0; ++i) {
 		mean0[i] = new RooRealVar(
@@ -288,9 +292,9 @@ int main() {
 	BackgroundPoly bkg0("bkg0", "bkg", x, bkg0_p1, bkg0_p0);
 
 	// add fraction
-	RooRealVar* frac0[16];
+	RooRealVar* frac0[32];
 	// add result
-	RooAbsPdf* model0[16];
+	RooAbsPdf* model0[32];
 	// add gaussian
 	model0[0] = pdf0[0];
 	for (size_t i = 1; i < n0; ++i) {
@@ -318,64 +322,74 @@ int main() {
 	RooDataHist hist1("dh1", "excited energy", x, hist_ex+1);
 	// RooDataSet set1("s1", "excited energy", fit_tree[1], RooArgSet(x1));
 	// number of peaks
-	size_t n1 = 11;
+	size_t n1 = 13;
 	// mean value
-	const double mean1_value[16][3] = {
+	const double mean1_value[32][3] = {
 		{17.2, 17.0, 17.3},		// 17.2
 		{0.0, 1.0, -1.0},		// 17.7
 		{0.0, 1.0, -1.0},		// 18.5
 		{0.0, 1.0, -1.0},		// 19.3
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
-		{0.0, 1.0, -1.0},		// 22.4
+		{0.0, 1.0, -1.0},		// 22.0
+		{0.0, 1.0, -1.0},		// 22.6
 		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.5
+		{0.0, 1.0, -1.0},		// 25.4
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// g factor value
-	const double gamma1_value[16][3] = {
+	const double gamma1_value[32][3] = {
 		{0.05, 0.0, 1.0},		// 17.2
 		{0.0, 1.0, -1.0},		// 17.7
 		{0.0, 1.0, -1.0},		// 18.5
 		{0.0, 1.0, -1.0},		// 19.3
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
-		{0.0, 1.0, -1.0},		// 22.4
+		{0.0, 1.0, -1.0},		// 22.0
+		{0.0, 1.0, -1.0},		// 22.6
 		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.5
+		{0.0, 1.0, -1.0},		// 25.4
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// sigma value
-	const double sigma1_value[16] = {
+	const double sigma1_value[32] = {
 		// 17.2, 17.7, 18.5, 19.3
 		0.209, 0.24, 0.28, 0.31,
-		// 20.1, 21.4, 22.4, 23.5
-		0.34, 0.36, 0.38, 0.41,
-		// 24.0, 24.5, 25.9
-		0.42, 0.43, 0.45,
+		// 20.1, 21.4, 22.0, 22.6
+		0.34, 0.36, 0.37, 0.39,
+		// 23.5, 24.0, 24.5, 25.4
+		0.41, 0.42, 0.43, 0.45,
+		// 25.9
+		0.46
 	};
 	// variable names
-	const std::string name1[16] = {
+	const std::string name1[32] = {
 		// 17.3, 17.7, 18.5, 19.3
 		"172", "177", "185", "193",
-		// 20.1, 21.4, 22.4, 23.5
-		"201", "214", "224", "235",
-		// 24.0, 24.5, 25.9
-		"240", "245", "259",
+		// 20.1, 21.4, 22.0, 22.6
+		"201", "214", "220", "226",
+		// 23.5, 24.0, 24.5, 25.4
+		"235", "240", "245", "254",
+		// 25.9s
+		"259",
 	};
 	// threshold
-	const double threshold1[16] = {
+	const double threshold1[32] = {
 		// 17.2, 17.7, 18.5, 19.3
 		threshold[1], threshold[1], threshold[1], threshold[2],
-		// 20.1, 21.4, 22.4, 23.5
+		// 20.1, 21.4, 22.0, 22.6
 		threshold[2], threshold[2], threshold[2], threshold[2],
-		// 24.0, 24.5, 25.9
-		threshold[2], threshold[2], threshold[2],
+		// 23.5, 24.0, 24.5, 25.4
+		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 25.9
+		threshold[2],
 	};
 	// mean variable
-	RooRealVar *mean1[16];
+	RooRealVar *mean1[32];
 	// g factor variable
-	RooRealVar *gamma1[16];
+	RooRealVar *gamma1[32];
 	// search from info0
 	for (size_t i = 0; i < n1; ++i) {
 		auto search = info_map[0].find(name1[i]);
@@ -388,9 +402,9 @@ int main() {
 		}
 	}
 	// sigma variable
-	RooConstVar *sigma1[16];
+	RooConstVar *sigma1[32];
 	// P.D.F.
-	RooAbsPdf *pdf1[16];
+	RooAbsPdf *pdf1[32];
 	// peak at other energy
 	for (size_t i = 0; i < n1; ++i) {
 		if (!mean1[i]) {
@@ -459,48 +473,58 @@ int main() {
 	RooDataHist hist2("dh2", "excited energy", RooArgList(x), hist_ex+2);
 	// RooDataSet set2("s2", "excited energy", fit_tree[2], RooArgSet(x));
 	// number of peaks
-	size_t n2 = 7;
+	size_t n2 = 9;
 	// mean value
 	const double mean2_value[16][3] = {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
-		{0.0, 1.0, -1.0},		// 22.4
+		{0.0, 1.0, -1.0},		// 22.0
+		{0.0, 1.0, -1.0},		// 22.6
 		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
+		{0.0, 1.0, -1.0},		// 25.4
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// g factor value
 	const double gamma2_value[16][3] = {
 		{0.0, 1.0, -1.0},		// 20.1
 		{0.0, 1.0, -1.0},		// 21.4
+		{0.0, 1.0, -1.0},		// 22.0
 		{0.0, 1.0, -1.0},		// 22.4
 		{0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
+		{0.0, 1.0, -1.0},		// 25.4
 		{0.0, 1.0, -1.0},		// 25.9
 	};
 	// sigma value
 	const double sigma2_value[16] = {
-		// 20.1, 21.4, 22.4, 23.5
+		// 20.1, 21.4, 22.0, 22.4,
 		0.3, 0.32, 0.34, 0.36,
-		// 24.0, 24.5, 25.9
-		0.37, 0.38, 0.42,
+		// 23.5, 24.0, 24.5, 25.4
+		0.38, 0.39, 0.40, 0.41,
+		// 25.9
+		0.42,
 	};
 	// variable name
 	const std::string name2[16] = {
-		// 20.1, 21.4, 22.4, 23.5
-		"201", "214", "224", "235",
-		// 23.5, 24.0, 24.5, 25.9
-		"240", "245", "259",
+		// 20.1, 21.4, 22.0, 22.6,
+		"201", "214", "220", "226",
+		// 23.5, 24.0, 24.5, 25.4
+		"235", "240", "245", "254",
+		// 25.9
+		"259",
 	};
 	// threshold
 	const double threshold2[16] = {
-		// 20.1, 21.4, 22.4, 23.5
+		// 20.1, 21.4, 22.0, 22.6,
 		threshold[2], threshold[2], threshold[2], threshold[2],
-		// 24.0, 24.5, 25.9
-		threshold[2], threshold[2], threshold[2],
+		// 23.5, 24.0, 24.5, 25.4
+		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 25.9
+		threshold[2]
 	};
 	// mean variable
 	RooRealVar *mean2[16];
@@ -629,7 +653,7 @@ int main() {
 		<< std::setw(16) << "mean"
 		<< std::setw(16) << "Gamma"
 		<< std::setw(16) << "sigma" << "\n";
-	const size_t print_n = 30;
+	const size_t print_n = 33;
 	int print_state[print_n] = {
 		0, 0, 0, 0,
 		1, 0, 1, 0,
@@ -638,17 +662,19 @@ int main() {
 		1, 2, 0, 1,
 		2, 0, 1, 2,
 		0, 1, 2, 0,
-		1, 2,
+		1, 2, 0, 1,
+		2
 	};
 	std::string print_name[print_n] = {
 		"149", "154", "165", "177",
 		"177", "185", "185", "193",
 		"193", "201", "201", "201",
-		"214", "214", "214", "224",
-		"224", "224", "235", "235",
+		"214", "214", "214", "226",
+		"226", "226", "235", "235",
 		"235", "240", "240", "240",
-		"245", "245", "245", "259",
-		"259", "259"
+		"245", "245", "245", "254",
+		"254", "254", "259", "259",
+		"259"
 	};
 	for (size_t i = 0; i < print_n; ++i) {
 		int state = print_state[i];
