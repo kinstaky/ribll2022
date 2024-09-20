@@ -29,6 +29,11 @@
 
 using namespace ribll;
 
+constexpr double threshold[3] = {12.01, 15.38, 18.19};
+constexpr double res_correct = 1.0;
+constexpr double sigma_range = 0.0;
+constexpr int calc_index = 0;
+
 
 struct VoigtInfo {
 	RooRealVar *mean;
@@ -37,9 +42,6 @@ struct VoigtInfo {
 	double threshold;
 };
 
-constexpr double threshold[3] = {12.01, 15.38, 18.19};
-constexpr double res_correct = 1.0;
-constexpr double sigma_range = 0.0;
 
 void PlotPdf(
 	const RooAbsPdf &pdf,
@@ -73,7 +75,7 @@ int main() {
 		return -1;
 	}
 	// input data
-	int ppac_flag, taf_flag, target_flag, bind, hole;
+	int ppac_flag, taf_flag, target_flag, bind, hole, straight[2];
 	double q[4];
 	int be_state[4];
 	double excited_energy_target[4];
@@ -84,6 +86,7 @@ int main() {
 	ipt->SetBranchAddress("target_flag", &target_flag);
 	ipt->SetBranchAddress("bind", &bind);
 	ipt->SetBranchAddress("hole", &hole);
+	ipt->SetBranchAddress("straight", straight);
 	ipt->SetBranchAddress("q", q);
 	ipt->SetBranchAddress("be_state", be_state);
 	ipt->SetBranchAddress("excited_energy_target", excited_energy_target);
@@ -130,19 +133,47 @@ int main() {
 		if ((target_flag & 1) == 0) continue;
 		if (bind != 0) continue;
 		if (hole > 0) continue;
-		if (q[3] < -10 && q[3] > -14) {
-			hist_ex[0].Fill(stateless_excited_energy[0][3]);
-			fit_ex[0] = stateless_excited_energy[0][3];
+		// straight PID
+		// if (straight[0] != 3 || straight[1] != 3) continue;
+		if (straight[0] != 3) continue;
+		// if (
+		// 	q[0] < -10 && q[0] > -14
+		// 	&& q[2] < -10.15 && q[2] > -14.15
+		// 	&& q[3] < -10 && q[3] > -14
+		// ) {
+		// 	hist_ex[0].Fill(stateless_excited_energy[0][calc_index]);
+		// 	fit_ex[0] = stateless_excited_energy[0][calc_index];
+		// 	fit_tree[0]->Fill();
+		// }
+		// if (
+		// 	q[0] < -14.5 && q[0] > -16
+		// 	&& q[2] < -14.65 && q[2] > -16.15
+		// 	&& q[3] < -14.5 && q[3] > -16
+		// ) {
+		// 	hist_ex[1].Fill(stateless_excited_energy[1][calc_index]);
+		// 	fit_ex[1] = stateless_excited_energy[1][calc_index];
+		// 	fit_tree[1]->Fill();
+		// }
+		// if (
+		// 	q[0] < -17.5 && q[0] > -20.0
+		// 	&& q[2] < -17.65 && q[2] > -20.15
+		// 	&& q[3] < -17.5 && q[3] > -20.0
+		// ) {
+		// 	hist_ex[2].Fill(stateless_excited_energy[2][calc_index]);
+		// 	fit_ex[2] = stateless_excited_energy[2][calc_index];
+		// 	fit_tree[2]->Fill();
+		// }
+		if (q[calc_index] < -11 && q[calc_index] > -14) {
+			hist_ex[0].Fill(stateless_excited_energy[0][calc_index]);
+			fit_ex[0] = stateless_excited_energy[0][calc_index];
 			fit_tree[0]->Fill();
-		}
-		if (q[3] < -14.5 && q[3] > -16) {
-			hist_ex[1].Fill(stateless_excited_energy[1][3]);
-			fit_ex[1] = stateless_excited_energy[1][3];
+		} else if (q[calc_index] < -14.5 && q[calc_index] > -16) {
+			hist_ex[1].Fill(stateless_excited_energy[1][calc_index]);
+			fit_ex[1] = stateless_excited_energy[1][calc_index];
 			fit_tree[1]->Fill();
-		}
-		if (q[3] < -17.5 && q[3] > -20.0) {
-			hist_ex[2].Fill(stateless_excited_energy[2][3]);
-			fit_ex[2] = stateless_excited_energy[2][3];
+		} else if (q[calc_index] < -17.5 && q[calc_index] > -20) {
+			hist_ex[2].Fill(stateless_excited_energy[2][calc_index]);
+			fit_ex[2] = stateless_excited_energy[2][calc_index];
 			fit_tree[2]->Fill();
 		}
 	}
@@ -175,25 +206,27 @@ int main() {
 	RooDataHist hist0("dh0", "excited energy", x, hist_ex);
 	// RooDataSet set0("s0", "excited energy", fit_tree[0], RooArgSet(x));
 	// number of peaks
-	size_t n0 = 16;
+	size_t n0 = 18;
 	// mean value
 	const double mean0_value[32][3] = {
 		{13.65, 13.6, 13.7},	// 13.6
 		{14.9, 14.5, 15.0},		// 14.9
 		{15.4, 15.3, 15.8},		// 15.4
 		{16.4, 16.2, 16.6},		// 16.5
+		{17.2, 17.0, 17.5},		// 17.2
 		{17.7, 17.4, 17.8},		// 17.7
 		{18.5, 18.0, 18.7},		// 18.5
-		{19.3, 19.2, 19.6},		// 19.3
-		{20.1, 19.8, 20.4},		// 20.1
-		{21.0, 20.5, 21.7},		// 21.4
-		{22.0, 21.8, 22.2},		// 22.0
-		{22.6, 22.4, 22.8},		// 22.6
+		{19.3, 19.0, 19.6},		// 19.3
+		{20.1, 19.7, 20.2},		// 20.1
+		{20.5, 20.3, 20.8},		// 20.5
+		{21.4, 21.0, 21.7},		// 21.4
+		{22.0, 21.8, 22.5},		// 22.0
+		{23.0, 22.7, 23.3},		// 23.0
 		{23.5, 23.3, 23.8},		// 23.5
 		{24.0, 23.8, 24.2}, 	// 24.0
 		{24.5, 24.2, 24.7},		// 24.5
-		{25.4, 25.0, 25.7},		// 25.4
-		{25.9, 25.7, 26.4},		// 25.9
+		{25.0, 24.8, 25.2},		// 25.0
+		{26.0, 25.7, 26.4},		// 26.0
 	};
 	// g factor value
 	const double gamma0_value[32][3] = {
@@ -201,47 +234,49 @@ int main() {
 		{0.06, 0.0, 0.2},		// 14.9
 		{0.1, 0.0, 0.2},		// 15.4
 		{0.1, 0.0, 0.2},		// 16.5
+		{0.1, 0.0, 0.2},		// 17.2
 		{0.05, 0.0, 0.2},		// 17.7
 		{0.05, 0.0, 0.2},		// 18.5
 		{0.05, 0.0, 0.2},		// 19.3
-		{0.02, 0.0, 0.2},		// 20.1
-		{0.05, 0.0, 0.2},		// 21.4
+		{0.02, 0.0, 0.15},		// 20.1
+		{0.02, 0.0, 0.2},		// 20.5
+		{0.05, 0.0, 0.1},		// 21.4
 		{0.05, 0.0, 0.2},		// 22.0
-		{0.02, 0.0, 0.2},		// 22.6
-		{0.02, 0.0, 0.2},		// 23.5
-		{0.02, 0.0, 0.2},		// 24.0
+		{0.02, 0.0, 0.1},		// 23.0
+		{0.02, 0.0, 0.15},		// 23.5
+		{0.02, 0.0, 0.1},		// 24.0
 		{0.02, 0.0, 0.2},		// 24.5
-		{0.02, 0.0, 0.2},		// 25.4
-		{0.02, 0.0, 0.5},		// 25.9
+		{0.02, 0.0, 0.2},		// 25.0
+		{0.02, 0.0, 0.2},		// 26.0
 	};
 	// sigma value
 	const double sigma0_value[32] = {
-		// 13.6, 14.9, 15.4, 16.5
-		0.2, 0.24, 0.26, 0.31,
-		// 17.7, 18.5, 19.3, 20.1
-		0.34, 0.35, 0.37, 0.39,
-		// 21.4, 22.0, 22.6, 23.5
-		0.4, 0.41, 0.42, 0.43,
-		// 24.0, 24.5, 25.4, 25.9
-		0.44, 0.44, 0.45, 0.45
+		// 13.6, 14.9, 15.4, 16.5, 17.2
+		0.2, 0.24, 0.26, 0.28, 0.3,
+		// 17.7, 18.5, 19.3, 20.1, 20.5
+		0.3, 0.31, 0.31, 0.31, 0.31,
+		// 21.4, 22.0, 23.0, 23.5
+		0.32, 0.32, 0.32, 0.32,
+		// 24.0, 24.5, 25.0, 26.0
+		0.33, 0.33, 0.33, 0.33
 	};
 	// variable name
 	const std::string name0[32] = {
-		// 13.6, 14.9, 15.4, 16.5
-		"136", "149", "154", "165",
+		// 13.6, 14.9, 15.4, 16.5, 17.2
+		"136", "149", "154", "165", "172",
 		// 17.7, 18.5, 19.3, 20.1
-		"177", "185", "193", "201",
-		// 21.4, 22.0, 22.6, 23.5
-		"214", "220", "226", "235",
-		// 24.0, 24.5, 25.4, 25.9
-		"240", "245", "254", "259",
+		"177", "185", "193", "201", "205",
+		// 21.4, 22.0, 23.0, 23.5
+		"214", "220", "230", "235",
+		// 24.0, 24.5, 25.0, 26.0
+		"240", "245", "250", "260",
 	};
 	// threshold
 	const double threshold0[32] = {
-		// 13.6, 14.9, 15.4, 16.5
-		threshold[0], threshold[0], threshold[0], threshold[0],
-		// 17.7, 18.5, 19.3, 20.1
-		threshold[1], threshold[1], threshold[2], threshold[2],
+		// 13.6, 14.9, 15.4, 16.5, 17.2
+		threshold[0], threshold[0], threshold[0], threshold[0], threshold[1],
+		// 17.7, 18.5, 19.3, 20.1, 20.5
+		threshold[1], threshold[1], threshold[2], threshold[2], threshold[2],
 		// 21.4, 22.0, 22.4, 23.5
 		threshold[2], threshold[2], threshold[2], threshold[2],
 		// 24.0, 24.5, 25.4, 25.9
@@ -281,7 +316,7 @@ int main() {
 		info.threshold = threshold0[i];
 		info_map[0].insert(std::make_pair(name0[i], info));
 	}
-	RooRealVar gsigma0_259("gsigma0_259", "sigma", 0.2, 0.01, 0.5);
+	RooRealVar gsigma0_259("gsigma0_259", "sigma", 0.2, 0.01, 1.0);
 	delete pdf0[n0-1];
 	pdf0[n0-1] = new RooGaussian(
 		"gaus0_259", "gaus", x, *mean0[n0-1], gsigma0_259
@@ -308,7 +343,7 @@ int main() {
 			*frac0[i-1]
 		);
 	}
-	RooRealVar frac_bkg0("frac_bkg0", "frac", 0.95, 0.5, 1.0);
+	RooRealVar frac_bkg0("frac_bkg0", "frac", 0.95, 0.9, 1.0);
 	model0[n0] = new RooAddPdf(
 		TString::Format("model0_%ld", n0), "model",
 		RooArgList(*model0[n0-1], bkg0),
@@ -322,7 +357,7 @@ int main() {
 	RooDataHist hist1("dh1", "excited energy", x, hist_ex+1);
 	// RooDataSet set1("s1", "excited energy", fit_tree[1], RooArgSet(x1));
 	// number of peaks
-	size_t n1 = 13;
+	size_t n1 = 14;
 	// mean value
 	const double mean1_value[32][3] = {
 		{17.2, 17.0, 17.3},		// 17.2
@@ -330,13 +365,15 @@ int main() {
 		{0.0, 1.0, -1.0},		// 18.5
 		{0.0, 1.0, -1.0},		// 19.3
 		{0.0, 1.0, -1.0},		// 20.1
+		{0.0, 1.0, -1.0},		// 20.5
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.0
-		{0.0, 1.0, -1.0},		// 22.6
+		{0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
+		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
-		{0.0, 1.0, -1.0},		// 25.4
-		{0.0, 1.0, -1.0},		// 25.9
+		{0.0, 1.0, -1.0},		// 25.0
+		{0.0, 1.0, -1.0},		// 26.0
 	};
 	// g factor value
 	const double gamma1_value[32][3] = {
@@ -345,45 +382,47 @@ int main() {
 		{0.0, 1.0, -1.0},		// 18.5
 		{0.0, 1.0, -1.0},		// 19.3
 		{0.0, 1.0, -1.0},		// 20.1
+		{0.0, 1.0, -1.0},		// 20.5
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.0
-		{0.0, 1.0, -1.0},		// 22.6
+		{0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
+		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
-		{0.0, 1.0, -1.0},		// 25.4
-		{0.0, 1.0, -1.0},		// 25.9
+		{0.0, 1.0, -1.0},		// 25.0
+		{0.0, 1.0, -1.0},		// 26.0
 	};
 	// sigma value
 	const double sigma1_value[32] = {
 		// 17.2, 17.7, 18.5, 19.3
-		0.209, 0.24, 0.28, 0.31,
-		// 20.1, 21.4, 22.0, 22.6
-		0.34, 0.36, 0.37, 0.39,
-		// 23.5, 24.0, 24.5, 25.4
-		0.41, 0.42, 0.43, 0.45,
-		// 25.9
-		0.46
+		0.209, 0.22, 0.24, 0.24,
+		// 20.1, 20.5, 21.4, 22.0,
+		0.25, 0.25, 0.26, 0.26,
+		// 23.0, 23.5, 24.0, 24.5, 25.0
+		0.27, 0.27, 0.27, 0.28, 0.28,
+		// 26.0
+		0.28
 	};
 	// variable names
 	const std::string name1[32] = {
 		// 17.3, 17.7, 18.5, 19.3
 		"172", "177", "185", "193",
-		// 20.1, 21.4, 22.0, 22.6
-		"201", "214", "220", "226",
-		// 23.5, 24.0, 24.5, 25.4
-		"235", "240", "245", "254",
+		// 20.1, 20.5, 21.4, 22.0, 23.0
+		"201", "205", "214", "220", "230",
+		// 23.5, 24.0, 24.5, 25.0
+		"235", "240", "245", "250",
 		// 25.9s
-		"259",
+		"260",
 	};
 	// threshold
 	const double threshold1[32] = {
 		// 17.2, 17.7, 18.5, 19.3
 		threshold[1], threshold[1], threshold[1], threshold[2],
-		// 20.1, 21.4, 22.0, 22.6
+		// 20.1, 20.5, 21.4, 22.0, 23.0
+		threshold[2], threshold[2], threshold[2], threshold[2], threshold[2],
+		// 23.5, 24.0, 24.5, 25.0
 		threshold[2], threshold[2], threshold[2], threshold[2],
-		// 23.5, 24.0, 24.5, 25.4
-		threshold[2], threshold[2], threshold[2], threshold[2],
-		// 25.9
+		// 26.0
 		threshold[2],
 	};
 	// mean variable
@@ -435,13 +474,13 @@ int main() {
 		info.threshold = threshold1[i];
 		info_map[1].insert(std::make_pair(name1[i], info));
 	}
-	RooRealVar gsigma1_259("gsigma1_259", "sigma", 0.2, 0.01, 0.5);
+	RooRealVar gsigma1_259("gsigma1_259", "sigma", 0.2, 0.01, 1.0);
 	delete pdf1[n1-1];
 	pdf1[n1-1] = new RooGaussian(
 		"gaus1_259", "gaus", x, *mean1[n1-1], gsigma1_259
 	);
 	// background
-	RooRealVar bkg1_p1("bkg1_p1", "p1", 46, 35, 60);
+	RooRealVar bkg1_p1("bkg1_p1", "p1", 46, 35, 50);
 	RooRealVar bkg1_p0("bkg1_p0", "p0", -450, -1000, 0.0);
 	BackgroundPoly bkg1("bkg1", "bkg", x, bkg1_p1, bkg1_p0);
 	// add fraction
@@ -461,7 +500,7 @@ int main() {
 			*frac1[i-1]
 		);
 	}
-	RooRealVar frac_bkg1("frac_bkg1", "frac", 0.95, 0.5, 1.0);
+	RooRealVar frac_bkg1("frac_bkg1", "frac", 0.95, 0.9, 1.0);
 	model1[n1] = new RooAddPdf(
 		TString::Format("model1_%ld", n1), "model",
 		RooArgList(*model1[n1-1], bkg1),
@@ -473,54 +512,55 @@ int main() {
 	RooDataHist hist2("dh2", "excited energy", RooArgList(x), hist_ex+2);
 	// RooDataSet set2("s2", "excited energy", fit_tree[2], RooArgSet(x));
 	// number of peaks
-	size_t n2 = 9;
+	size_t n2 = 10;
 	// mean value
 	const double mean2_value[16][3] = {
 		{0.0, 1.0, -1.0},		// 20.1
+		{0.0, 1.0, -1.0},		// 20.5
 		{0.0, 1.0, -1.0},		// 21.4
 		{0.0, 1.0, -1.0},		// 22.0
-		{0.0, 1.0, -1.0},		// 22.6
-		{0.0, 1.0, -1.0},		// 23.5
-		{0.0, 1.0, -1.0},		// 24.0
-		{0.0, 1.0, -1.0},		// 24.5
-		{0.0, 1.0, -1.0},		// 25.4
-		{0.0, 1.0, -1.0},		// 25.9
-	};
-	// g factor value
-	const double gamma2_value[16][3] = {
-		{0.0, 1.0, -1.0},		// 20.1
-		{0.0, 1.0, -1.0},		// 21.4
-		{0.0, 1.0, -1.0},		// 22.0
-		{0.0, 1.0, -1.0},		// 22.4
 		{0.0, 1.0, -1.0},		// 23.0
 		{0.0, 1.0, -1.0},		// 23.5
 		{0.0, 1.0, -1.0},		// 24.0
 		{0.0, 1.0, -1.0},		// 24.5
-		{0.0, 1.0, -1.0},		// 25.4
-		{0.0, 1.0, -1.0},		// 25.9
+		{0.0, 1.0, -1.0},		// 25.0
+		{0.0, 1.0, -1.0},		// 26.0
+	};
+	// g factor value
+	const double gamma2_value[16][3] = {
+		{0.0, 1.0, -1.0},		// 20.1
+		{0.0, 1.0, -1.0},		// 20.5
+		{0.0, 1.0, -1.0},		// 21.4
+		{0.0, 1.0, -1.0},		// 22.0
+		{0.0, 1.0, -1.0},		// 23.0
+		{0.0, 1.0, -1.0},		// 23.5
+		{0.0, 1.0, -1.0},		// 24.0
+		{0.0, 1.0, -1.0},		// 24.5
+		{0.0, 1.0, -1.0},		// 25.0
+		{0.0, 1.0, -1.0},		// 26.0
 	};
 	// sigma value
 	const double sigma2_value[16] = {
-		// 20.1, 21.4, 22.0, 22.4,
-		0.3, 0.32, 0.34, 0.36,
-		// 23.5, 24.0, 24.5, 25.4
-		0.38, 0.39, 0.40, 0.41,
-		// 25.9
-		0.42,
+		// 20.1, 20.5, 21.4, 22.0, 23.0,
+		0.24, 0.25, 0.27, 0.28, 0.3,
+		// 23.5, 24.0, 24.5, 25.0
+		0.3, 0.31, 0.31, 0.31,
+		// 26.0
+		0.31,
 	};
 	// variable name
 	const std::string name2[16] = {
-		// 20.1, 21.4, 22.0, 22.6,
-		"201", "214", "220", "226",
-		// 23.5, 24.0, 24.5, 25.4
-		"235", "240", "245", "254",
-		// 25.9
-		"259",
+		// 20.1, 20.5, 21.4, 22.0, 22.6,
+		"201", "205", "214", "220", "230",
+		// 23.5, 24.0, 24.5, 25.0
+		"235", "240", "245", "250",
+		// 26.0
+		"260",
 	};
 	// threshold
 	const double threshold2[16] = {
-		// 20.1, 21.4, 22.0, 22.6,
-		threshold[2], threshold[2], threshold[2], threshold[2],
+		// 20.1, 20.5, 21.4, 22.0, 22.6,
+		threshold[2], threshold[2], threshold[2], threshold[2], threshold[2],
 		// 23.5, 24.0, 24.5, 25.4
 		threshold[2], threshold[2], threshold[2], threshold[2],
 		// 25.9
@@ -581,7 +621,7 @@ int main() {
 		info.threshold = threshold2[i];
 		info_map[2].insert(std::make_pair(name2[i], info));
 	}
-	RooRealVar gsigma2_259("gsigma2_259", "sigma", 0.2, 0.01, 0.5);
+	RooRealVar gsigma2_259("gsigma2_259", "sigma", 0.2, 0.01, 1.0);
 	delete pdf2[n2-1];
 	pdf2[n2-1] = new RooGaussian(
 		"gaus2_259", "gaus", x, *mean2[n2-1], gsigma2_259
@@ -607,7 +647,7 @@ int main() {
 			*frac2[i-1]
 		);
 	}
-	RooRealVar frac_bkg2("frac_bkg2", "frac", 0.95, 0.5, 1.0);
+	RooRealVar frac_bkg2("frac_bkg2", "frac", 0.95, 0.9, 1.0);
 	model2[n2] = new RooAddPdf(
 		TString::Format("model2_%ld", n2), "model",
 		RooArgList(*model2[n2-1], bkg2),
@@ -653,7 +693,7 @@ int main() {
 		<< std::setw(16) << "mean"
 		<< std::setw(16) << "Gamma"
 		<< std::setw(16) << "sigma" << "\n";
-	const size_t print_n = 33;
+	const size_t print_n = 36;
 	int print_state[print_n] = {
 		0, 0, 0, 0,
 		1, 0, 1, 0,
@@ -663,18 +703,18 @@ int main() {
 		2, 0, 1, 2,
 		0, 1, 2, 0,
 		1, 2, 0, 1,
-		2
+		2, 0, 1, 2,
 	};
 	std::string print_name[print_n] = {
 		"149", "154", "165", "177",
 		"177", "185", "185", "193",
 		"193", "201", "201", "201",
-		"214", "214", "214", "226",
-		"226", "226", "235", "235",
-		"235", "240", "240", "240",
-		"245", "245", "245", "254",
-		"254", "254", "259", "259",
-		"259"
+		"205", "205", "205", "214",
+		"214", "214", "230", "230",
+		"230", "235", "235", "235",
+		"240", "240", "240", "245",
+		"245", "245", "250", "250",
+		"250", "260", "260", "260"
 	};
 	for (size_t i = 0; i < print_n; ++i) {
 		int state = print_state[i];
@@ -829,14 +869,21 @@ int main() {
 	pads[1]->SetBottomMargin(0);
 	pads[2]->SetTopMargin(0);
 	pads[0]->cd();
-	gStyle->SetOptStat(0);
+	// gStyle->SetOptStat(0);
 	gStyle->SetOptTitle(0);
+	// hist_ex[0].GetYaxis()->SetLabelSize(0.15);
+	// hist_ex[0].Draw();
 	frame0->GetYaxis()->SetLabelSize(0.15);
 	frame0->Draw();
 	pads[1]->cd();
+	// hist_ex[1].GetYaxis()->SetLabelSize(0.15);
+	// hist_ex[1].Draw();
 	frame1->Draw();
 	frame1->GetYaxis()->SetLabelSize(0.15);
 	pads[2]->cd();
+	// hist_ex[2].GetXaxis()->SetLabelSize(0.12);
+	// hist_ex[2].GetYaxis()->SetLabelSize(0.15);
+	// hist_ex[2].Draw();
 	frame2->Draw();
 	frame2->GetXaxis()->SetLabelSize(0.12);
 	frame2->GetYaxis()->SetLabelSize(0.15);

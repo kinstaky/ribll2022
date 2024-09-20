@@ -119,7 +119,7 @@ int FitPid(int start_run, int end_run) {
 					);
 				}
 			}
-		}		
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -235,7 +235,7 @@ int StraightPid(int start_run, int end_run, double *parameters) {
 	// projected D1D2 corrected energy
 	TH1F d1d2ef("hd1d2ef", "D1D2 particle fixed energy", 3000, 0, 60000);
 	// projected D2D3 corrected energy
-	TH1F d2d3ef("hd2d3ef", "D2D3 particle fixed energy", 2000, 0, 40000); 
+	TH1F d2d3ef("hd2d3ef", "D2D3 particle fixed energy", 2000, 0, 40000);
 
 	double a12 = parameters[0];
 	double b12 = parameters[1];
@@ -276,7 +276,7 @@ int StraightPid(int start_run, int end_run, double *parameters) {
 				d2d3_straight_pid.Fill(e, ef);
 				if (e > 500) d2d3ef.Fill(ef);
 			}
-		}		
+		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
@@ -321,7 +321,7 @@ int StraightPid(int start_run, int end_run, double *parameters) {
 		<< d2d3_be_fit.GetParameter(2) << "\n"
 		<< d2d3_be_fit.GetParameter(4) << ", "
 		<< d2d3_be_fit.GetParameter(5) << "\n";
-	
+
 
 	// save histograms
 	d1d2_pid.Write();
@@ -338,7 +338,7 @@ int StraightPid(int start_run, int end_run, double *parameters) {
 
 
 /// @brief print program usage
-/// @param[in] name program name 
+/// @param[in] name program name
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] start_run end_run\n"
 		"  start_run         Set run number.\n"

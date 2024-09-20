@@ -74,7 +74,7 @@ int main() {
 	TH1F h_d3_bek0("hbek0l2", "10Be stop in D3, fk[0]-bek[0]", 100, -10, 10);
 	// 4He stop in T0D2
 	TH1F h_d2_hek0("hhek0l1", "4He stop in D2, fk[1]-hek[0]", 100, -10, 10);
-	// 4He stop in T0D3 
+	// 4He stop in T0D3
 	TH1F h_d3_hek0("hhek0l2", "4He stop in D3, fk[1]-hek[0]", 100, -10, 10);
 	// 4He stop in SSD
 	TH1F h_ssd_hek0("hhek0l3", "4He stop in SSD, fk[1]-hek[0]", 100, -10, 10);
@@ -90,7 +90,7 @@ int main() {
 	TH1F h_d3_bek2("hbek2l2", "10Be stop in D3, fk[0]-bek[2]", 100, -10, 10);
 	// 4He stop in T0D2
 	TH1F h_d2_hek2("hhek2l1", "4He stop in D2, fk[1]-hek[2]", 100, -10, 10);
-	// 4He stop in T0D3 
+	// 4He stop in T0D3
 	TH1F h_d3_hek2("hhek2l2", "4He stop in D3, fk[1]-hek[2]", 100, -10, 10);
 	// 4He stop in SSD
 	TH1F h_ssd_hek2("hhek2l3", "4He stop in SSD, fk[1]-hek[2]", 100, -10, 10);
@@ -118,7 +118,7 @@ int main() {
 	// histogram of difference between generated and measured
 	TH1F h_ex0("hex0", "c14ex-ex[0]", 100, -10, 10);
 	TH1F h_ex2("hex2", "c14ex-ex[2]", 100, -10, 10);
-	
+
 
 	// total number of entries
 	long long entries = ipt->GetEntries();

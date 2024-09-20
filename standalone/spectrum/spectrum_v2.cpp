@@ -7,6 +7,8 @@
 #include <TTree.h>
 #include <TString.h>
 #include <TH1F.h>
+#include <TH2F.h>
+#include <TF1.h>
 #include <Math/Vector3D.h>
 
 #include "include/event/threebody_info_event.h"
@@ -35,6 +37,18 @@ constexpr double seperate_q_border[12][6] = {
 constexpr double be_excited_energy[4] = {
 	0.0, 3.368, 6.179, 7.542
 };
+
+
+// straight parameters
+constexpr double sa12 = 0.47;
+constexpr double sb12 = -0.042;
+constexpr double sa23 = 0.59;
+constexpr double sb23 = -0.042;
+
+
+inline double Straight(double de, double e, double a, double b) {
+	return sqrt(de*e + a*de*de) + b*e;
+}
 
 
 int main(int argc, char **argv) {
@@ -91,10 +105,27 @@ int main(int argc, char **argv) {
 			);
 		}
 	}
+	// PID
+	TH2F pid_d1d2("hpd1d2", "D1-D2 PID", 1000, 0, 250, 1000, 0, 200);
+	TH2F pid_d2d3("hpd2d3", "D2-D3 PID", 1000, 0, 150, 1000, 0, 250);
+	TH2F pid_d1d2_calc("hpd1d2c", "D1-D2 calculated PID", 1000, 0, 250, 1000, 0, 200);
+	TH2F pid_d2d3_calc("hpd2d3c", "D2-D3 calculated PID", 1000, 0, 150, 1000, 0, 250);
+	// straight PID
+	TH1F pid_d1d2_straight("hpd1d2s", "D1-D2 straight PID", 3000, 0, 30000);
+	TH1F pid_d2d3_straight("hpd2d3s", "D2-D3 straight PID", 2000, 0, 40000);
+	TH1F pid_d1d2_calc_straight("hpd1d2cs", "D1-D2 calculated straight PID", 3000, 0, 30000);
+	TH1F pid_d2d3_calc_straight("hpd2d3cs", "D2-D3 calculated straight PID", 2000, 0, 40000);
+	// Q value spectrum
+	TH1F hq[4];
+	for (int i = 0; i < 4; ++i) {
+		hq[i] = TH1F(TString::Format("hq%d", i), "Q value", 70, -23, -8);
+	}
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
 	int ppac_flag, taf_flag, bind, hole, target_flag;
+	// PID in correct range? index 0 for origin, 1 for calculated 
+	int straight[2];
 	// kinetic energy of particles, indexes for
 	// 0: without calculation
 	// 1: only calculate the hole part
@@ -126,6 +157,7 @@ int main(int argc, char **argv) {
 	opt.Branch("bind", &bind, "bind/I");
 	opt.Branch("hole", &hole, "hole/I");
 	opt.Branch("target_flag", &target_flag, "tarflag/I");
+	opt.Branch("straight", &straight, "straight[2]/I");
 	opt.Branch("be_kinetic", be_kinetic, "bek[4]/D");
 	opt.Branch("he_kinetic", he_kinetic, "hek[4]/D");
 	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
@@ -172,6 +204,7 @@ int main(int argc, char **argv) {
 		bind = event.bind;
 		hole = int(event.hole[0]) + (int(event.hole[1]) << 1);
 		target_flag = event.target_flag;
+		straight[0] = straight[1] = 0;
 
 		// ignore special events
 		if (taf_flag != 0 || (ppac_flag & 1) == 0) {
@@ -534,9 +567,203 @@ int main(int argc, char **argv) {
 			}
 		}
 
+
+		// fill histogram to compare different methods
+		if (
+			(event.ppac_flag & 1) == 1
+			&& event.taf_flag == 0
+			&& (event.target_flag & 1) == 1
+			&& bind == 0
+			&& hole == 0
+		) {
+			// fill PID
+			pid_d1d2.Fill(be_d2_energy, be_d1_energy);
+			pid_d1d2_calc.Fill(calc_be_d2_energy, be_d1_energy);
+			pid_d1d2.Fill(he_d2_energy, he_d1_energy);
+			pid_d1d2_calc.Fill(calc_he_d2_energy, he_d1_energy);
+			if (event.layer[0] >= 2) {
+				pid_d2d3.Fill(be_d3_energy, be_d2_energy);
+				pid_d2d3_calc.Fill(be_d3_energy, calc_be_d2_energy);
+			}
+			if (event.layer[1] >= 2) {
+				pid_d2d3.Fill(he_d3_energy, he_d2_energy);
+				pid_d2d3_calc.Fill(he_d3_energy, calc_he_d2_energy);
+			}
+
+			// fill straight PID
+			if (event.layer[0] == 1) {
+				double ef = Straight(
+					(be_d1_energy - t0_param[0][0]) / t0_param[0][1],
+					(be_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					sa12, sb12
+				);
+				pid_d1d2_straight.Fill(ef);
+				if (ef > 20200 && ef < 21200) straight[0] |= 1;
+				double ef_calc = Straight(
+					(be_d1_energy - t0_param[0][0]) / t0_param[0][1],
+					(calc_be_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					sa12, sb12
+				);
+				pid_d1d2_calc_straight.Fill(ef_calc);
+				if (ef_calc > 20200 && ef_calc < 21200) straight[1] |= 1;
+			}
+			if (event.layer[1] == 1) {
+				double ef = Straight(
+					(he_d1_energy - t0_param[0][0]) / t0_param[0][1],
+					(he_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					sa12, sb12
+				);
+				pid_d1d2_straight.Fill(ef);
+				if (ef > 6100 && ef < 6600) straight[0] |= 2;
+				double ef_calc = Straight(
+					(he_d1_energy - t0_param[0][0]) / t0_param[0][1],
+					(calc_he_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					sa12, sb12
+				);
+				pid_d1d2_calc_straight.Fill(ef_calc);
+				if (ef_calc > 6100 && ef_calc < 6600) straight[1] |= 2;
+			}
+			if (event.layer[0] == 2) {
+				double ef = Straight(
+					(be_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					(be_d3_energy - t0_param[2][0]) / t0_param[2][1],
+					sa23, sb23
+				);
+				pid_d2d3_straight.Fill(ef);
+				if (ef > 24000 && ef < 25000) straight[0] |= 1;
+				double ef_calc = Straight(
+					(calc_be_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					(be_d3_energy - t0_param[2][0]) / t0_param[2][1],
+					sa23, sb23
+				);
+				pid_d2d3_calc_straight.Fill(ef_calc);
+				if (ef_calc > 24000 && ef_calc < 25000) straight[1] |= 1;
+			}
+			if (event.layer[1] == 2) {
+				double ef = Straight(
+					(he_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					(he_d3_energy - t0_param[2][0]) / t0_param[2][1],
+					sa23, sb23
+				);
+				pid_d2d3_straight.Fill(ef);
+				if (ef > 7000 && ef < 8000) straight[0] |= 2;
+				double ef_calc = Straight(
+					(calc_he_d2_energy - t0_param[1][0]) / t0_param[1][1],
+					(he_d3_energy - t0_param[2][0]) / t0_param[2][1],
+					sa23, sb23
+				);
+				pid_d2d3_calc_straight.Fill(ef_calc);
+				if (ef_calc > 7000 && ef_calc < 8000) straight[1] |= 2;
+			}
+			if (event.layer[1] > 2) {
+				straight[0] |= 2;
+				straight[1] |= 2;
+			}
+
+			// fill Q values
+			for (size_t i = 0; i < 4; ++i) hq[i].Fill(q[i]);
+		}
+
 		// fill to tree
 		opt.Fill();
 	}
+
+	// fit D1D2-straight
+	TF1 *fd1d2 = new TF1("fd1d2", "gaus(0)+gaus(3)", 5000, 25000);
+	constexpr double d1d2_init_param[6] = {
+		100, 6500, 100,
+		200, 21000, 100
+	};
+	fd1d2->SetParameters(d1d2_init_param);
+	fd1d2->SetParLimits(2, 0, 1000);
+	fd1d2->SetParLimits(5, 0, 1000);
+	fd1d2->SetNpx(1000);
+	pid_d1d2_straight.Fit(fd1d2, "RQ+");
+	std::cout << "D1D2 straight "
+		<< fd1d2->GetParameter(1) << ", " << fd1d2->GetParameter(2) << ", "
+		<< fd1d2->GetParameter(4) << ", " << fd1d2->GetParameter(5) << "\n";
+
+	// fit D1D2-calculated-straight
+	TF1 *fd1d2c = new TF1("fd1d2c", "gaus(0)+gaus(3)", 5000, 25000);
+	fd1d2c->SetParameters(d1d2_init_param);
+	fd1d2c->SetNpx(1000);
+	fd1d2c->SetParLimits(2, 0, 1000);
+	fd1d2c->SetParLimits(5, 0, 1000);
+	pid_d1d2_calc_straight.Fit(fd1d2c, "RQ+");
+	std::cout << "D1D2 calculated straight "
+		<< fd1d2c->GetParameter(1) << ", " << fd1d2c->GetParameter(2) << ", "
+		<< fd1d2c->GetParameter(4) << ", " << fd1d2c->GetParameter(5) << "\n";
+
+	// fit D2D3-straight
+	TF1 *fd2d3 = new TF1("fd2d3", "gaus(0)+gaus(3)", 5000, 30000);
+	constexpr double d2d3_init_param[6] = {
+		100, 7500, 150,
+		20, 24500, 300
+	};
+	fd2d3->SetParameters(d2d3_init_param);
+	fd2d3->SetParLimits(2, 0, 1000);
+	fd2d3->SetParLimits(5, 0, 1000);
+	fd2d3->SetNpx(1000);
+	pid_d2d3_straight.Fit(fd2d3, "RQ+");
+	std::cout << "D2D3 straight "
+		<< fd2d3->GetParameter(1) << ", " << fd2d3->GetParameter(2) << ", "
+		<< fd2d3->GetParameter(4) << ", " << fd2d3->GetParameter(5) << "\n";
+
+	// fit D2D3-calculated-straight
+	TF1 *fd2d3c = new TF1("fd2d3c", "gaus(0)+gaus(3)", 5000, 30000);
+	constexpr double d2d3_calc_init_param[6] = {
+		200, 7500, 100,
+		60, 24500, 300
+	};
+	fd2d3c->SetParameters(d2d3_calc_init_param);
+	fd2d3c->SetParLimits(2, 0, 1000);
+	fd2d3c->SetParLimits(5, 0, 1000);
+	fd2d3c->SetNpx(1000);
+	pid_d2d3_calc_straight.Fit(fd2d3c, "RQ+");
+	std::cout << "D2D3 calculated straight "
+		<< fd2d3c->GetParameter(1) << ", " << fd2d3c->GetParameter(2) << ", "
+		<< fd2d3c->GetParameter(4) << ", " << fd2d3c->GetParameter(5) << "\n";
+
+	// fit Q0 spectrum
+	TF1 *fq0 = new TF1("fq0", "gaus(0)+gaus(3)+gaus(6)", -23, -8);
+	constexpr double q_init_param[9] = {
+		50, -12, 2,
+		180, -15.5, 2,
+		140, -18, 2
+	};
+	fq0->SetParameters(q_init_param);
+	fq0->SetParLimits(2, 0, 10);
+	fq0->SetParLimits(5, 0, 10);
+	fq0->SetParLimits(8, 0, 10);
+	hq[0].Fit(fq0, "QR+");
+	std::cout << "Q0 "
+		<< fq0->GetParameter(1) << ", " << fq0->GetParameter(2) << ", "
+		<< fq0->GetParameter(4) << ", " << fq0->GetParameter(5) << ", "
+		<< fq0->GetParameter(7) << ", " << fq0->GetParameter(8) << "\n";
+
+	// fit Q2 spectrum
+	TF1 *fq2 = new TF1("fq2", "gaus(0)+gaus(3)+gaus(6)", -23, -8);
+	fq2->SetParameters(q_init_param);
+	fq2->SetParLimits(2, 0, 10);
+	fq2->SetParLimits(5, 0, 10);
+	fq2->SetParLimits(8, 0, 10);
+	hq[2].Fit(fq2, "QR+");
+	std::cout << "Q2 "
+		<< fq2->GetParameter(1) << ", " << fq2->GetParameter(2) << ", "
+		<< fq2->GetParameter(4) << ", " << fq2->GetParameter(5) << ", "
+		<< fq2->GetParameter(7) << ", " << fq2->GetParameter(8) << "\n";
+
+	// fit Q3 spectrum
+	TF1 *fq3 = new TF1("fq3", "gaus(0)+gaus(3)+gaus(6)", -23, -8);
+	fq3->SetParameters(q_init_param);
+	fq3->SetParLimits(2, 0, 10);
+	fq3->SetParLimits(5, 0, 10);
+	fq3->SetParLimits(8, 0, 10);
+	hq[3].Fit(fq3, "QR+");
+	std::cout << "Q3 "
+		<< fq3->GetParameter(1) << ", " << fq3->GetParameter(2) << ", "
+		<< fq3->GetParameter(4) << ", " << fq3->GetParameter(5) << ", "
+		<< fq3->GetParameter(7) << ", " << fq3->GetParameter(8) << "\n";
 
 	// save
 	opf.cd();
@@ -545,6 +772,16 @@ int main(int argc, char **argv) {
 			hist_stateless_excited_energy[i][j].Write();
 		}
 	}
+	// fill spectrums
+	pid_d1d2.Write();
+	pid_d2d3.Write();
+	pid_d1d2_calc.Write();
+	pid_d2d3_calc.Write();
+	pid_d1d2_straight.Write();
+	pid_d2d3_straight.Write();
+	pid_d1d2_calc_straight.Write();
+	pid_d2d3_calc_straight.Write();
+	for (size_t i = 0; i < 4; ++i) hq[i].Write();
 	opt.Write();
 	// close files
 	opf.Close();

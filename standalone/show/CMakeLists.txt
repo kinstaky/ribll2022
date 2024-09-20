@@ -186,7 +186,7 @@ target_link_libraries(
 # show calculate T0D2 energy
 add_executable(show_calculate_t0d2 show_calculate_t0d2.cpp)
 target_link_libraries(
-	show_calculate_t0d2 PRIVATE event d2_energy_calculator
+	show_calculate_t0d2 PRIVATE event d2_energy_calculator target_energy_calculator
 )
 
 # show T0 PID with angle
