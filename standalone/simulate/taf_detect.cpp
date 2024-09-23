@@ -34,6 +34,10 @@ constexpr double csi_threshold[12] = {
 	1100.0, 1200.0
 };
 
+// whether CsI-9 is in low statistics like experiment
+// if true, only 20% data of CsI-9 will be kept
+constexpr double low_csi9 = true;
+
 int main(int argc, char **argv) {
 	int run = 0;
 	if (argc > 1) {
@@ -128,6 +132,9 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < 12; ++i) {
 		csi_event.decode_entry[i] = 0;
 	}
+
+	// pseudo random for CsI-9
+	int csi_9_random = 0; 
 
 	// show start
 	printf("Simulating TAF detect   0%%");
@@ -264,9 +271,21 @@ int main(int argc, char **argv) {
 		}
 		// fill TAFCsI event
 		if (taf_layer == 1 && csi_channel > csi_threshold[csi_index]) {
-			csi_event.match = true;
-			csi_event.time[csi_index] = 0.0;
-			csi_event.energy[csi_index] = csi_channel;
+			if (low_csi9 && csi_index == 9) {
+				if (csi_9_random == 4) {
+					csi_event.match = true;
+					csi_9_random = 0;
+				} else {
+					csi_event.match = false;
+					++csi_9_random;
+				}
+			} else {
+				csi_event.match = true;
+			}
+			if (csi_event.match) {
+				csi_event.time[csi_index] = 0.0;
+				csi_event.energy[csi_index] = csi_channel;
+			}
 // std::cout << "Entry " << entry << ", layer " << taf_layer << ": Generate energy " << event.recoil_kinetic_after_target <<  ", range "
 // 	<< recoil_range << ", taf index " << taf_index << ", csi_index " << csi_index << ", thick " << thickness
 // 	<< ", effect thickness " << thickness / cos(event.recoil_theta)  << ", tafd energy " << tafd_energy << ", csi energy " << csi_energy

@@ -218,6 +218,7 @@ int main(int argc, char **argv) {
 			<< "  run        run number, default is 0\n";
 	}
 
+	std::cout << "Start to simulate run " << run << "\n";
 
 	TargetEnergyCalculator c14_target("14C", "CD2", target_thickness);
 	TargetEnergyCalculator be10_target("10Be", "CD2", target_thickness);
@@ -267,7 +268,16 @@ int main(int argc, char **argv) {
 
 
 	constexpr int entries = 3'000'000;
+	// 1/100 of total number of entries, for showing process
+	int entry100 = entries / 100 + 1;
+	// show start
+	printf("Generating data   1%%");
+	fflush(stdout);
 	for (int entry = 0; entry < entries; ++entry) {
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3d%%", entry / entry100);
+			fflush(stdout);
+		}
 		// get reaction point x
 		event.target_x = generator.Gaus(0.0, 6.0);
 		// get reaction point y
@@ -481,6 +491,8 @@ int main(int argc, char **argv) {
 		// fill to tree
 		tree.Fill();
 	}
+	// show finished
+	printf("\b\b\b\b100%%\n");
 
 	// save histograms
 	dist_scatter_angle.Write();

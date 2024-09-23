@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 
 #include <TF1.h>
 #include <TFile.h>
@@ -33,6 +34,24 @@ constexpr double t0_energy_threshold[6] = {
 constexpr double thickness[6] = {
 	1010.0, 1504.0, 1501.0, 1480.0, 1500.0, 1650.0
 };
+// bad strips
+std::set<int> bad_strips[3][2];
+
+/// @brief check whether the strip is bad
+/// @param[in] detector detector index, 0-T0D1, 1-T0D2, 2-T0D3
+/// @param[in] side 0-front, 1-back
+/// @param[in] strip strip index, start from 0
+/// @returns true if it's bad, false for good
+///
+bool IsBadStrip(
+	int detector,
+	int side,
+	int strip
+) {
+	auto search = bad_strips[detector][side].find(strip);
+	return search != bad_strips[detector][side].end();
+}
+
 
 int main(int argc, char **argv) {
 	int run = 0;
@@ -43,6 +62,13 @@ int main(int argc, char **argv) {
 		std::cout << "Usage: " << argv[0] << "[run]\n"
 			<< "  run        run number, default is 0\n";
 	}
+
+	// initialize bad strips
+	for (int i = 0; i < 3; ++i) {
+		bad_strips[i][0].clear();
+		bad_strips[i][1].clear();
+	}
+	bad_strips[1][1].insert(17);
 
 	// input generate data file name
 	TString generate_file_name = TString::Format(
@@ -374,35 +400,40 @@ int main(int argc, char **argv) {
 				int t0d1_x_strip = int(event.fragment_x[i] + 32.0);
 				int t0d1_y_strip = int(event.fragment_y[i] + 32.0);
 
-				// fill T0D1 front information
-				bool t0d1_front_fill = false;
-				for (int j = 0; j < dssd_events[0].front_hit; ++j) {
-					if (dssd_events[0].front_strip[j] == t0d1_y_strip) {
-						dssd_events[0].front_energy[j] += t0_front_channel[i][0];
-						t0d1_front_fill = true;
-						break;
+				if (!IsBadStrip(0, 0, t0d1_y_strip)) {
+					// fill T0D1 front information
+					bool t0d1_front_fill = false;
+					for (int j = 0; j < dssd_events[0].front_hit; ++j) {
+						if (dssd_events[0].front_strip[j] == t0d1_y_strip) {
+							dssd_events[0].front_energy[j] += t0_front_channel[i][0];
+							t0d1_front_fill = true;
+							break;
+						}
+					}
+					if (!t0d1_front_fill) {
+						int &j = dssd_events[0].front_hit;
+						dssd_events[0].front_strip[j] = t0d1_y_strip;
+						dssd_events[0].front_energy[j] = t0_front_channel[i][0];
+						++j;
 					}
 				}
-				if (!t0d1_front_fill) {
-					int &j = dssd_events[0].front_hit;
-					dssd_events[0].front_strip[j] = t0d1_y_strip;
-					dssd_events[0].front_energy[j] = t0_front_channel[i][0];
-					++j;
-				}
-				// fill T0D1 back information
-				bool t0d1_back_fill = false;
-				for (int j = 0; j < dssd_events[0].back_hit; ++j) {
-					if (dssd_events[0].back_strip[j] == t0d1_x_strip) {
-						dssd_events[0].back_energy[j] += t0_back_channel[i][0];
-						t0d1_back_fill = true;
-						break;
+
+				if (!IsBadStrip(0, 1, t0d1_x_strip)) {
+					// fill T0D1 back information
+					bool t0d1_back_fill = false;
+					for (int j = 0; j < dssd_events[0].back_hit; ++j) {
+						if (dssd_events[0].back_strip[j] == t0d1_x_strip) {
+							dssd_events[0].back_energy[j] += t0_back_channel[i][0];
+							t0d1_back_fill = true;
+							break;
+						}
 					}
-				}
-				if (!t0d1_back_fill) {
-					int &j = dssd_events[0].back_hit;
-					dssd_events[0].back_strip[j] = t0d1_x_strip;
-					dssd_events[0].back_energy[j] = t0_back_channel[i][0];
-					++j;
+					if (!t0d1_back_fill) {
+						int &j = dssd_events[0].back_hit;
+						dssd_events[0].back_strip[j] = t0d1_x_strip;
+						dssd_events[0].back_energy[j] = t0_back_channel[i][0];
+						++j;
+					}
 				}
 			} else {
 				dssd_flag[0] = -2;
@@ -430,36 +461,40 @@ int main(int argc, char **argv) {
 				int xstrip = int((x+32.0)/2.0);
 				int ystrip = int((y+32.0)/2.0);
 
-				// fill T0Dx front information
-				bool front_fill = false;
-				for (int k = 0; k < dssd_events[j].front_hit; ++k) {
-					if (dssd_events[j].front_strip[k] == xstrip) {
-						dssd_events[j].front_energy[k] += t0_front_channel[i][j];
-						front_fill = true;
-						break;
+				if (!IsBadStrip(j, 0, xstrip)) {
+					// fill T0Dx front information
+					bool front_fill = false;
+					for (int k = 0; k < dssd_events[j].front_hit; ++k) {
+						if (dssd_events[j].front_strip[k] == xstrip) {
+							dssd_events[j].front_energy[k] += t0_front_channel[i][j];
+							front_fill = true;
+							break;
+						}
 					}
-				}
-				if (!front_fill) {
-					int &k = dssd_events[j].front_hit;
-					dssd_events[j].front_strip[k] = xstrip;
-					dssd_events[j].front_energy[k] = t0_front_channel[i][j];
-					++k;
+					if (!front_fill) {
+						int &k = dssd_events[j].front_hit;
+						dssd_events[j].front_strip[k] = xstrip;
+						dssd_events[j].front_energy[k] = t0_front_channel[i][j];
+						++k;
+					}
 				}
 
-				// fill T0Dx back information
-				bool back_fill = false;
-				for (int k = 0; k < dssd_events[j].back_hit; ++k) {
-					if (dssd_events[j].back_strip[k] == ystrip) {
-						dssd_events[j].back_energy[k] += t0_back_channel[i][j];
-						back_fill = true;
-						break;
+				if (!IsBadStrip(j, 1, ystrip)) {
+					// fill T0Dx back information
+					bool back_fill = false;
+					for (int k = 0; k < dssd_events[j].back_hit; ++k) {
+						if (dssd_events[j].back_strip[k] == ystrip) {
+							dssd_events[j].back_energy[k] += t0_back_channel[i][j];
+							back_fill = true;
+							break;
+						}
 					}
-				}
-				if (!back_fill) {
-					int &k = dssd_events[j].back_hit;
-					dssd_events[j].back_strip[k] = ystrip;
-					dssd_events[j].back_energy[k] = t0_back_channel[i][j];
-					++k;
+					if (!back_fill) {
+						int &k = dssd_events[j].back_hit;
+						dssd_events[j].back_strip[k] = ystrip;
+						dssd_events[j].back_energy[k] = t0_back_channel[i][j];
+						++k;
+					}
 				}
 			}
 		}
@@ -538,9 +573,7 @@ int main(int argc, char **argv) {
 				if (delta_strip == 1) front_flag = 1;
 				else front_flag = 0;
 			} else {
-				std::cerr << "Error: Contradict T0 flag and front hit: entry "
-					<< entry << " T0D" << i+1 << "\n";
-				return -1;
+				front_flag = 0;
 			}
 			// back side flag
 			int back_flag = -1;
@@ -556,9 +589,7 @@ int main(int argc, char **argv) {
 				if (delta_strip == 1) back_flag = 1;
 				else back_flag = 0;
 			} else {
-				std::cerr << "Error: Contradict T0 flag and back hit: entry "
-					<< entry << " T0D" << i+1 << "\n";
-				return -1;
+				back_flag = 0;
 			}
 			dssd_flag[i] = front_flag*3 + back_flag + 2;
 		}

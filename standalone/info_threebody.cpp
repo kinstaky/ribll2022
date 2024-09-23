@@ -318,13 +318,23 @@ int main(int argc, char **argv) {
 	unsigned int sim_run = sim ? atoi(argv[pos_start]) : -1;
 
 	// output file name
-	TString output_file_name = TString::Format(
-		"%sinfo/threebody%s%s%s.root",
-		kGenerateDataPath,
-		argc == 1 ? "" : TString::Format("-%dH", recoil_mass).Data(),
-		sim ? "-sim" : "",
-		calc ? "-calc" : ""
-	);
+	TString output_file_name;
+	if (sim) {
+		output_file_name.Form(
+			"%s%sthreebody-sim-%04d.root",
+			kGenerateDataPath,
+			kInformationDir,
+			sim_run
+		);
+	} else {
+		output_file_name.Form(
+			"%s%sthreebody%s%s.root",
+			kGenerateDataPath,
+			kInformationDir,
+			argc == 1 ? "" : TString::Format("-%dH", recoil_mass).Data(),
+			calc ? "-calc" : ""
+		);
+	}
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// output tree
@@ -588,12 +598,12 @@ int main(int argc, char **argv) {
 				opt.Fill();
 				continue;
 			} else if (taf_indexes[i] == -4) {
-				event.taf_flag = 4;
+				event.taf_flag = 5;
 				++t0_valid_count;
 				opt.Fill();
 				continue;
 			} else if (taf_indexes[i] == -6) {
-				event.taf_flag = 4;
+				event.taf_flag = 6;
 				opt.Fill();
 				continue;
 			}
@@ -937,8 +947,8 @@ int main(int argc, char **argv) {
 			event.d_x_time = tafd[taf_indexes[i]].front_time[0];
 			event.d_y_time = tafd[taf_indexes[i]].back_time[0];
 			// strip
-			event.d_x_strip = tafd[taf_indexes[i]].front_strip[0];
-			event.d_y_strip = tafd[taf_indexes[i]].back_strip[0];
+			event.d_x_strip = taf[taf_indexes[i]].front_strip[0];
+			event.d_y_strip = taf[taf_indexes[i]].back_strip[0];
 
 			// PPAC
 			vppac_num = vppac.num;
