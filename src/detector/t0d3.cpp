@@ -6,6 +6,7 @@ namespace ribll {
 
 // center of t0d3, in mm
 const ROOT::Math::XYZVector t0d3_center{-0.95, -0.8, 123.52};
+// const ROOT::Math::XYZVector t0d3_center{-0.95, -0.8, 125.00};
 // x range of t0d3, in mm
 const std::pair<double, double> t0d3_x_range{-32.0, 32.0};
 // y range of t0d3, in mm
