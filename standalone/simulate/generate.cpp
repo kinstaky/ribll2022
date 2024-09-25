@@ -402,9 +402,12 @@ int main(int argc, char **argv) {
 		);
 
 		if (event.recoil_kinetic_after_target < 0) {
-			--entry;
-			continue;
+			event.recoil_kinetic_after_target = 0.0;
 		}
+		// if (event.recoil_kinetic_after_target < 0) {
+		// 	--entry;
+		// 	continue;
+		// }
 
 		event.rz = 135.0;
 		event.rr = event.rz * tan(event.recoil_theta);

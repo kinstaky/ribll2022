@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 	}
 
 	// pseudo random for CsI-9
-	int csi_9_random = 0; 
+	int csi_9_random = 0;
 
 	// show start
 	printf("Simulating TAF detect   0%%");
