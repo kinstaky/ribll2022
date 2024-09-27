@@ -62,7 +62,6 @@ int main(int argc, char **argv) {
 		suffix = std::string(argv[1]);
 	}
 
-
 	// input file name
 	TString input_file_name = TString::Format(
 		"%s%sthreebody%s.root",
@@ -124,7 +123,7 @@ int main(int argc, char **argv) {
 	TTree opt("tree", "spectrum");
 	// output data
 	int ppac_flag, taf_flag, bind, hole, target_flag;
-	// PID in correct range? index 0 for origin, 1 for calculated 
+	// PID in correct range? index 0 for origin, 1 for calculated
 	int straight[2];
 	// kinetic energy of particles, indexes for
 	// 0: without calculation

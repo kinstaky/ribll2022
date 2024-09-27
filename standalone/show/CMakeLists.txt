@@ -229,3 +229,8 @@ target_link_libraries(show_pixel_energy PRIVATE event ROOT::Core ROOT::RIO ROOT:
 # show T0D2 calculated energy resolution
 add_executable(show_d2_calculate_resolution show_d2_calculate_resolution.cpp)
 target_link_libraries(show_d2_calculate_resolution PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
+
+# show spectrum V2
+add_executable(show_spectrum_v2 show_spectrum_v2.cpp)
+target_include_directories(show_spectrum_v2 PRIVATE ROOT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR})
+target_link_libraries(show_spectrum_v2 PRIVATE ROOT::Core ROOT::RIO ROOT::Hist ROOT::Gpad)
