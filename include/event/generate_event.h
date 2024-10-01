@@ -57,6 +57,7 @@ public:
 	double elastic_angle;
 	double parent_recoil_angle;
 	double breakup_angle;
+	double fragment_phi_center;
 	double fragment_fragment_angle;
 };
 
