@@ -6,6 +6,8 @@
 #include <TGraph.h>
 #include <TFitResult.h>
 
+#include "include/calculator/range_energy_calculator.h"
+
 namespace ribll {
 
 const ROOT::Math::Polar3DVector tafd_center(135.0, 0.0, 0.0);
@@ -30,6 +32,8 @@ const std::pair<double, double> tafd_phi_ranges[6] = {
 const unsigned int alpha_calibration_run[6] = {816, 816, 825, 825, 825, 825};
 // energy of alpha source, in MeV
 const double alpha_energy[3] = {5.157, 5.486, 5.805};
+// thickness of dead layer (Al), in um
+const double dead_layer_thickness = 0.5;
 // histogram range of alpha source peaks
 const double alpha_hist_range[6][3] = {
 	{500, 1700, 2200},
@@ -269,7 +273,7 @@ int Tafd::Calibrate() {
 			"%s%s%s-map-%04u.root",
 			kGenerateDataPath,
 			kMappingDir,
-			(name_.substr(0, 3) + "d" + name_[3]).c_str(),
+			name_.c_str(),
 			alpha_calibration_run[index_]
 		);
 		// input file
@@ -350,6 +354,8 @@ int Tafd::Calibrate() {
 		}
 	}
 
+	elc::RangeEnergyCalculator he4_calculaotr("4He", "Al");
+
 	// calibrate
 	TGraph gcali[16];
 	// calibrate results
@@ -357,7 +363,18 @@ int Tafd::Calibrate() {
 	// loop to calibrate
 	for (size_t i = 0; i < 16; ++i) {
 		for (size_t j = 0; j < 3; ++j) {
-			gcali[i].AddPoint(fit_result[i][j]->Parameter(1), alpha_energy[j]);
+			// consider dead layer
+			double radius = (radius_range_.second - radius_range_.first) / FrontStrip();
+			radius = radius * (i+0.5) + radius_range_.first + 34.4;
+			double theta = atan(radius / tafd_center.Z());
+std::cout << i << ": " << theta / 3.1415926 * 180.0 << "\n";
+			// range in Al
+			double range = he4_calculaotr.Range(alpha_energy[j]);
+			// remove dead layer thickness
+			range -= dead_layer_thickness / cos(theta);
+			// residual energy
+			double energy = he4_calculaotr.Energy(range);
+			gcali[i].AddPoint(fit_result[i][j]->Parameter(1), energy);
 		}
 		TF1 fcali(
 			"fcali", "pol1",
