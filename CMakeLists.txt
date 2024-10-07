@@ -7,7 +7,7 @@ project(
 	Ribll2022
 	VERSION 0.1.0
 	DESCRIPTION "A project to analysis data from ribll 1 experiment in 2022 by PKU"
-	LANGUAGES CXX CUDA
+	LANGUAGES CXX
 )
 
 
@@ -40,13 +40,6 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
 	# Let's nicely support folders in IDE's
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-	# check CUDA
-	include(CheckLanguage)
-	check_language(CUDA)
-
-	# set 70-real for native TITANV GPU
-	set(CMAKE_CUDA_ARCHITECTURES 70-real)
 endif()
 
 # find root
