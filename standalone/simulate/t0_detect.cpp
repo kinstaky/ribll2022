@@ -169,30 +169,30 @@ int main(int argc, char **argv) {
 	// T0 detect tree
 	TTree opt("tree", "T0 detect information");
 	// output position DSSD flag
-	// -4: 1 particle, cut by energy threshold
-	// -3: 2 particle, cut by energy threshold
-	// -2: out of range
-	// -1: cannot reach this layer
-	// 0: nothing, invalid
-	// 1: 1 particle
-	// 2: 2 seperated strip in both sides
-	// 3: 2 seperated strip in front side, 2 adjacent strips in back side
-	// 4: 2 seperated strip in front side, 1 same strip in back side
-	// 5: 2 adjacent strips in front side, 2 seperated strip in back side
-	// 6: 2 adjacent strips in both sides
-	// 7: 2 adjacent strips in front side, 1 same strip in back side
-	// 8: 1 same strip in front side, 2 seperated strip in back side
-	// 9: 1 same strip in front side, 2 adjacent strips in back side
-	// 10: 1 same strip in both sides
+	// 	-4: 1 particle, cut by energy threshold
+	// 	-3: 2 particle, cut by energy threshold
+	// 	-2: out of range
+	// 	-1: cannot reach this layer
+	// 	 0: nothing, invalid
+	// 	 1: 1 particle
+	// 	 2: 2 seperated strip in both sides
+	// 	 3: 2 seperated strip in front side, 2 adjacent strips in back side
+	// 	 4: 2 seperated strip in front side, 1 same strip in back side
+	// 	 5: 2 adjacent strips in front side, 2 seperated strip in back side
+	// 	 6: 2 adjacent strips in both sides
+	// 	 7: 2 adjacent strips in front side, 1 same strip in back side
+	// 	 8: 1 same strip in front side, 2 seperated strip in back side
+	// 	 9: 1 same strip in front side, 2 adjacent strips in back side
+	// 	10: 1 same strip in both sides
 	int dssd_flag[3];
 
 	// output position T0 flag
-	// 0: impossible t0 rebuild
-	// 1: only 2 strips events
-	// 2: 2 strips events, includes adjacent strips
-	// 3: includes 1 strip in one side, 2 seperated strip in the other side
-	// 4: includes 1 strip in one side, 2 adjacent strips in the other side
-	// 5: includes 1 strip in both side
+	// 	0: impossible t0 rebuild
+	// 	1: only 2 strips events
+	// 	2: 2 strips events, includes adjacent strips
+	// 	3: includes 1 strip in one side, 2 seperated strip in the other side
+	// 	4: includes 1 strip in one side, 2 adjacent strips in the other side
+	// 	5: includes 1 strip in both side
 	int t0_flag;
 
 	// times cut by energy threshold
@@ -261,8 +261,6 @@ int main(int argc, char **argv) {
 	// includes 1-1 events, flag 10 events
 	// 1 strip in both sides
 	int t0_both_one_count = 0;
-
-
 
 	// initialize useless variables
 	for (int i = 0; i < 3; ++i) {
