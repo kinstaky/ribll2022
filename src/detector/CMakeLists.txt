@@ -23,7 +23,7 @@ add_library(
 	${DETECTOR_INCLUDE_DIR}/adssd.h ${DETECTOR_INCLUDE_DIR}/tafd.h
 	${DETECTOR_INCLUDE_DIR}/tabd.h
 )
-target_link_libraries(adssd PUBLIC detector event dssd)
+target_link_libraries(adssd PUBLIC detector event dssd range_energy_calculator)
 
 #csi library
 add_library(csi csi.cpp ${DETECTOR_INCLUDE_DIR}/csi.h)

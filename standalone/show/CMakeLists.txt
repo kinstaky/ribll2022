@@ -236,5 +236,5 @@ target_include_directories(show_spectrum_v2 PRIVATE ROOT_INCLUDE_DIRS ${PROJECT_
 target_link_libraries(show_spectrum_v2 PRIVATE ROOT::Core ROOT::RIO ROOT::Hist ROOT::Gpad)
 
 # show TAFD energy threshold
-add_executable(show_tafde_threshold show_tafde_threshold.cpp)
-target_link_libraries(show_tafde_threshold PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
+add_executable(show_taf_threshold show_taf_threshold.cpp)
+target_link_libraries(show_taf_threshold PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
