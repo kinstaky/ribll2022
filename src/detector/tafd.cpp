@@ -329,7 +329,7 @@ int Tafd::Calibrate() {
 		"%s%s%s-alpha-cali-param.txt",
 		kGenerateDataPath,
 		kCalibrationDir,
-		(name_.substr(0, 3) + "d" + name_[3]).c_str()
+		name_.c_str()
 	);
 	std::ofstream fout(param_file_name.Data());
 	if (!fout.good()) {
@@ -367,7 +367,6 @@ int Tafd::Calibrate() {
 			double radius = (radius_range_.second - radius_range_.first) / FrontStrip();
 			radius = radius * (i+0.5) + radius_range_.first + 34.4;
 			double theta = atan(radius / tafd_center.Z());
-std::cout << i << ": " << theta / 3.1415926 * 180.0 << "\n";
 			// range in Al
 			double range = he4_calculaotr.Range(alpha_energy[j]);
 			// remove dead layer thickness

@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 		hist_tafde[i] = TH1F(
 			TString::Format("hd%d", i),
 			TString::Format("strip %d TAFD energy", i),
-			100, 0, 5
+			100, 0, 1
 		);
 		hist_csie[0][i] = TH1F(
 			TString::Format("hac%d", i),

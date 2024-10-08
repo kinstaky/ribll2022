@@ -238,3 +238,7 @@ target_link_libraries(show_spectrum_v2 PRIVATE ROOT::Core ROOT::RIO ROOT::Hist R
 # show TAFD energy threshold
 add_executable(show_taf_threshold show_taf_threshold.cpp)
 target_link_libraries(show_taf_threshold PRIVATE event ROOT::Core ROOT::RIO ROOT::Hist)
+
+# show TAFD alpha peaks
+add_executable(show_tafd_alpha_source show_tafd_alpha_source.cpp)
+target_link_libraries(show_tafd_alpha_source PRIVATE event ROOT::Core ROOT::RIO ROOT::Gpad)
