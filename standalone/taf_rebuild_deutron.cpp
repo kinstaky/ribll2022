@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 
 #include <TString.h>
 #include <TFile.h>
@@ -448,7 +449,8 @@ constexpr double taf_strip_fit_d[12][16][2] = {
 		{85, 3},			// bad
 	}
 };
-
+// bad strips
+std::set<int> bad_strips[6];
 
 void PrintUsage(const char *name) {
 	std::cout << "Usage: " << name << " [options] run taf_index\n"
@@ -499,6 +501,19 @@ int ParseArguments(
 		}
 	}
 	return result;
+}
+
+/// @brief check whether the strip is bad
+/// @param[in] index TAFD index 0-5
+/// @param[in] strip strip index, start from 0
+/// @returns true if it's bad, false for good
+///
+bool IsBadStrip(
+	int index,
+	int strip
+) {
+	auto search = bad_strips[index].find(strip);
+	return search != bad_strips[index].end();
 }
 
 int main(int argc, char **argv) {
@@ -585,6 +600,15 @@ int main(int argc, char **argv) {
 	// setup output branches
 	particle.SetupOutput(&opt);
 
+	// initialize bad strips
+	bad_strips[1].insert(0);
+	bad_strips[1].insert(4);
+	bad_strips[1].insert(9);
+	bad_strips[1].insert(13);
+	bad_strips[2].insert(12);
+	bad_strips[3].insert(1);
+	bad_strips[5].insert(11);
+
 	// loop
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
 		// get data
@@ -612,6 +636,11 @@ int main(int argc, char **argv) {
 			taf_event.front_strip[0] >= 14
 			|| (taf_index == 5 && taf_event.front_strip[0] <= 3)
 		) {
+			opt.Fill();
+			continue;
+		}
+		// check bad strips
+		if (IsBadStrip(taf_index, taf_event.front_strip[0])) {
 			opt.Fill();
 			continue;
 		}
@@ -653,7 +682,7 @@ int main(int argc, char **argv) {
 
 		hist_d_sigma.Fill((ef-mean)/sigma);
 	}
-	
+
 	// save tree
 	hist_d_sigma.Write();
 	opt.Write();

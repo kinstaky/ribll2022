@@ -7,10 +7,6 @@ target_link_libraries(sim_transfer PRIVATE ROOT::Core ROOT::Graf ROOT::RIO)
 add_executable(generate generate.cpp)
 target_link_libraries(generate PRIVATE event target_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf)
 
-# generate simualated data with CUDA
-add_executable(generate_cuda generate.cu)
-target_link_libraries(generate_cuda PRIVATE event target_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf)
-
 # simulate detecting generated data
 add_executable(detect detect.cpp)
 target_link_libraries(detect PRIVATE event range_energy_calculator ROOT::Core ROOT::RIO ROOT::Graf)

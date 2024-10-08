@@ -19,3 +19,8 @@ target_link_libraries(check_threebody_time PRIVATE event ROOT::Graf)
 # check angle calculation
 add_executable(check_angle check_angle.cpp)
 target_link_libraries(check_angle PRIVATE event)
+
+# check TAFCsI shape
+add_executable(check_tafcsi_shape check_tafcsi_shape.cpp)
+target_include_directories(check_tafcsi_shape PRIVATE ROOT_INCLUDE_DIRS)
+target_link_libraries(check_tafcsi_shape PRIVATE ROOT::Core ROOT::Graf)
