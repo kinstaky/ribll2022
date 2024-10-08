@@ -14,7 +14,7 @@
 #include <TRandom3.h>
 
 #include "include/event/dssd_event.h"
-#include "include/event/ssd_event.h" 
+#include "include/event/ssd_event.h"
 #include "include/event/t0_event.h"
 
 using namespace ribll;
@@ -135,11 +135,11 @@ public:
 
 
 /// @brief get all possible merged events from fundamental events
-/// @param[in] event DSSD fundamental event 
-/// @param[in] range front-back correlation, energy difference in range 
-/// @param[in] positionFromStrip function to calculate postion from strip 
+/// @param[in] event DSSD fundamental event
+/// @param[in] range front-back correlation, energy difference in range
+/// @param[in] positionFromStrip function to calculate postion from strip
 /// @param[in] hole T0D2 hole flag
-/// @param[out] result DSSD merge events  
+/// @param[out] result DSSD merge events
 /// @param[out] hole wheter this merged event includes hole pixel
 ///
 void GetMergeEvents(
@@ -279,7 +279,7 @@ void GetMergeEvents(
 		root.flag = merge_events[i].flag;
 		root.leaf = true;
 		nodes.push_back(root);
-		
+
 		// new nodes will be add to tree later
 		std::vector<MergeEventNode> new_nodes;
 		// check all nodes and append this event as new child if possible
@@ -322,7 +322,7 @@ void GetMergeEvents(
 	// branch is subset of other branch ?
 	std::vector<bool> subset;
 	for (size_t i = 0; i < branches.size(); ++i) {
-		bool found_superset = false;		
+		bool found_superset = false;
 		for (size_t j = i+1; j < branches.size(); ++j) {
 			// the superset must have more elements than the subset
 			if (branches[j].size() <= branches[i].size()) continue;
@@ -405,7 +405,7 @@ void GetMergeEvents(
 				<< merge.y << ", "
 				<< merge.energy << "\n";
 		}
-		
+
 		std::cout << "---------- Nodes ----------\n"
 			<< "index, prev, num, flag, leaf\n";
 		for (const auto &node : nodes) {
@@ -471,12 +471,12 @@ void T0D3PositionFromStrip(
 
 
 /// @brief search for T0D2 f2b1 binding events
-/// @param[in] d2_event T0D2 fundamental event 
+/// @param[in] d2_event T0D2 fundamental event
 /// @param[in] range T0D2 front-back correlation energy range
 /// @param[in] hole T0D2 hole flag
-/// @param[out] d2_merge T0D2 merge events  
+/// @param[out] d2_merge T0D2 merge events
 /// @returns true if T0D2 binding events is found
-/// 
+///
 bool SearchD2Front2Back1(
 	const DssdFundamentalEvent &d2_event,
 	const double range,
@@ -524,12 +524,12 @@ bool SearchD2Front2Back1(
 
 
 /// @brief search for T0D2 f1b2 binding events
-/// @param[in] d2_event T0D2 fundamental event 
+/// @param[in] d2_event T0D2 fundamental event
 /// @param[in] range T0D2 front-back correlation energy range
 /// @param[in] hole T0D2 hole flag
-/// @param[out] d2_merge T0D2 merge events  
+/// @param[out] d2_merge T0D2 merge events
 /// @returns true if T0D2 binding events is found
-/// 
+///
 bool SearchD2Front1Back2(
 	const DssdFundamentalEvent &d2_event,
 	const double range,
@@ -1363,7 +1363,7 @@ void PickSliceGroup(
 				max_count = groups[i].count;
 				used_slices = slice_num;
 				found_index = i;
-			}			
+			}
 		}
 		if (print_debug) {
 			std::cout << "found index " << found_index
@@ -1438,7 +1438,7 @@ int SliceTrack(
 	// loop possible events
 	for (size_t i = 0; i < d1_events.size(); ++i) {
 		for (size_t j = 0; j < d2_events.size(); ++j) {
-			for (size_t k = 0; k < d3_events.size(); ++k) {				
+			for (size_t k = 0; k < d3_events.size(); ++k) {
 				// used events
 				const DssdMergeEvent *used_d1_event = &(d1_events[i]);
 				const DssdMergeEvent *used_d2_event = &(d2_events[j]);
@@ -1516,7 +1516,7 @@ int SliceTrack(
 	for (size_t i = 0; i < d1_bind_events1.size(); ++i) {
 		if (found_behe_times > 0) break;
 		for (size_t j = 0; j < d2_bind_events1.size(); ++j) {
-			for (size_t k = 0; k < d3_events.size(); ++k) {				
+			for (size_t k = 0; k < d3_events.size(); ++k) {
 				// used events
 				const DssdMergeEvent *used_d1_event = &(d1_bind_events1[i]);
 				const DssdMergeEvent *used_d2_event = &(d2_bind_events1[j]);
@@ -1584,7 +1584,7 @@ int SliceTrack(
 	for (size_t i = 0; i < d1_bind_events2.size(); ++i) {
 		if (found_behe_times > 0) break;
 		for (size_t j = 0; j < d2_bind_events2.size(); ++j) {
-			for (size_t k = 0; k < d3_events.size(); ++k) {				
+			for (size_t k = 0; k < d3_events.size(); ++k) {
 				// used events
 				const DssdMergeEvent *used_d1_event = &(d1_bind_events2[i]);
 				const DssdMergeEvent *used_d2_event = &(d2_bind_events2[j]);
@@ -1813,7 +1813,7 @@ int main(int argc, char **argv) {
 		kGenerateDataPath,
 		kNormalizeDir,
 		tag.empty() ? "" : (tag+"-").c_str(),
-		run 
+		run
 	);
 	// T0D1 normalize result file
 	TFile d1_file(d1_file_name, "read");
@@ -1913,7 +1913,7 @@ int main(int argc, char **argv) {
 	if (run == 2) {
 		hole_info.simulate = true;
 		hole_info.generator = new TRandom3(201);
-		
+
 		// T0D2 average hole possibility file name
 		TString hole_possibility_file_name = TString::Format(
 			"%s%saverage-hole.root", kGenerateDataPath, kHoleDir
@@ -1961,7 +1961,7 @@ int main(int argc, char **argv) {
 		}
 		hole_flag_file.Close();
 	}
-	
+
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -1989,7 +1989,7 @@ int main(int argc, char **argv) {
 			kMergeDir,
 			i+1,
 			tag.empty() ? "" : (tag+"-").c_str(),
-			run 
+			run
 		);
 	}
 	// output merge file
@@ -2003,7 +2003,7 @@ int main(int argc, char **argv) {
 		merge_tree[i] = new TTree("tree", "merge-track middle result");
 		merge_event[i].SetupOutput(merge_tree[i]);
 	}
-	
+
 	// T0 cuts
 	T0Cut t0_cut;
 
@@ -2101,7 +2101,7 @@ int main(int argc, char **argv) {
 	// ChenYing's cuts for 16C run
 	// t0_cut.s2s3_cuts.push_back({2, 4, ReadCut("t0-s2s3-cy-4He")});
 	// t0_cut.s2s3_cuts.push_back({2, 6, ReadCut("t0-s2s3-cy-6He")});
-	
+
 	// T0S2-S3 pass cuts
 	t0_cut.s2s3_tail_cuts.push_back({2, 4, ReadCut("t0-s2s3-tail-p1i1-4He")});
 	t0_cut.s2s3_tail_cuts.push_back({2, 6, ReadCut("t0-s2s3-tail-p1i1-6He")});
@@ -2139,7 +2139,7 @@ int main(int argc, char **argv) {
 	// statistics
 	int found_behe_counts[4];
 	for (int i = 0; i < 4; ++i) found_behe_counts[i] = 0;
-	
+
 	// // time statistics
 	// std::chrono::duration<double, std::milli> get_data_time =
 	// 	std::chrono::duration<double, std::milli>::zero();
@@ -2162,7 +2162,7 @@ int main(int argc, char **argv) {
 			fflush(stdout);
 		}
 
-		// const auto start_time_point =	
+		// const auto start_time_point =
 		// 	std::chrono::high_resolution_clock::now();
 
 		// get data
@@ -2332,12 +2332,12 @@ int main(int argc, char **argv) {
 
 		// for (auto &m : d1_merge) {
 		// 	for (int i = 0; i < m.hit; ++i) {
-		// 		m.energy[i] = cy_param[0][0] + cy_param[0][1] * m.energy[i]; 
+		// 		m.energy[i] = cy_param[0][0] + cy_param[0][1] * m.energy[i];
 		// 	}
 		// }
 		// for (auto &m : d2_merge) {
 		// 	for (int i = 0; i < m.hit; ++i) {
-		// 		m.energy[i] = cy_param[1][0] + cy_param[1][1] * m.energy[i]; 
+		// 		m.energy[i] = cy_param[1][0] + cy_param[1][1] * m.energy[i];
 		// 	}
 		// }
 		// for (auto &m : d3_merge) {
@@ -2376,7 +2376,7 @@ int main(int argc, char **argv) {
 		}
 		// if (found_behe_times > 0) std::cout << entry << "\n";
 
-		// const auto track_time_point = 
+		// const auto track_time_point =
 		// 	std::chrono::high_resolution_clock::now();
 		// track_time += track_time_point - d3_merge_time_point;
 
