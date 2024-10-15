@@ -77,4 +77,4 @@ double AsymmetricVoigtian::evaluate() const {
 }
 
 
-};
+}
