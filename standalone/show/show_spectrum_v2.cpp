@@ -11,7 +11,10 @@
 using namespace ribll;
 
 constexpr int bins = 50;
-constexpr double step = 0.1;
+constexpr double step = 0.01;
+constexpr size_t ex0_count = 7;
+constexpr size_t ex1_count = 8;
+constexpr size_t ex2_count = 12;
 
 int main(int argc, char **argv) {
 	std::string suffix = "";
@@ -68,147 +71,92 @@ int main(int argc, char **argv) {
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// ground state excited energy spectrum, change Q range and start point
-	TH1F hist_ex0_qs[5][8][8];
-	TH1F hist_ex1_qs[5][8][8];
-	TH1F hist_ex2_qs[5][8][8];
-	// ground state excited energy spectrum, fix Q, change start point
-	TH1F hist_ex0_s[4][8];
-	TH1F hist_ex1_s[4][8];
-	TH1F hist_ex2_s[4][8];
+	TH1F hist_ex0_qs[ex0_count][32];
+	TH1F hist_ex1_qs[ex1_count][32];
+	TH1F hist_ex2_qs[ex2_count][32];
 
 	// set histograms parameters, changes Q range and start point
 	// ground state
-	double ex0_qs_range[5];
-	double ex0_qs_min[5][8];
-	double ex0_qs_max[5][8];
-	for (int i = 0; i < 5; ++i) {
-		ex0_qs_range[i] = 4.0 - i * 0.5;
-		for (int j = 0; j < i+1; ++j) {
-			ex0_qs_min[i][j] = -14.0 + 0.5*j;
-			ex0_qs_max[i][j] = ex0_qs_min[i][j] + ex0_qs_range[i];
-		}
-	}
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex0_qs[i][j][k] = TH1F(
-					TString::Format("hex0r%dq%de%d", i, j, k),
-					TString::Format(
-						"ex0 Q %lf to %lf, ex %lf to %lf",
-						ex0_qs_min[i][j],
-						ex0_qs_min[i][j]+ex0_qs_range[i],
-						12.0+0.05*k,
-						27.0+0.05*k
-					),
-					bins, 12.0+0.05*k, 27.0+0.05*k
-				);
-			}
-		}
-	}
-	// first excited state
-	double ex1_qs_range[5];
-	double ex1_qs_min[5][8];
-	double ex1_qs_max[5][8];
-	for (int i = 0; i < 5; ++i) {
-		ex1_qs_range[i] = 3.0 - i * 0.5;
-		for (int j = 0; j < i+1; ++j) {
-			ex1_qs_min[i][j] = -17.0 + 0.5*j;
-			ex1_qs_max[i][j] = ex1_qs_min[i][j] + ex1_qs_range[i];
-		}
-	}
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex1_qs[i][j][k] = TH1F(
-					TString::Format("hex1r%dq%de%d", i, j, k),
-					TString::Format(
-						"ex1 Q %lf to %lf, ex %lf to %lf",
-						ex1_qs_min[i][j],
-						ex1_qs_min[i][j]+ex1_qs_range[i],
-						12.0+0.05*k,
-						27.0+0.05*k
-					),
-					bins, 12.0+0.05*k, 27.0+0.05*k
-				);
-			}
-		}
-	}
-	// 6MeV state
-	double ex2_qs_range[5];
-	double ex2_qs_min[5][8];
-	double ex2_qs_max[5][8];
-	for (int i = 0; i < 5; ++i) {
-		ex2_qs_range[i] = 3.0 - i * 0.5;
-		for (int j = 0; j < i+1; ++j) {
-			ex2_qs_min[i][j] = -20.0 + 0.5*j;
-			ex2_qs_max[i][j] = ex2_qs_min[i][j] + ex2_qs_range[i];
-		}
-	}
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex2_qs[i][j][k] = TH1F(
-					TString::Format("hex2r%dq%de%d", i, j, k),
-					TString::Format(
-						"ex2 Q %lf to %lf, ex %lf to %lf",
-						ex2_qs_min[i][j],
-						ex2_qs_min[i][j]+ex2_qs_range[i],
-						12.0+0.05*k,
-						27.0+0.05*k
-					),
-					bins, 12.0+0.05*k, 27.0+0.05*k
-				);
-			}
-		}
-	}
-
-	// set histograms parameters, fix Q range and change start point
-	// ground state
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 8; ++j) {
-			hist_ex0_s[i][j] = TH1F(
-				TString::Format("hex0b%de%d", i, j),
+	std::pair<double, double> ex0_qs_range[ex0_count] = {
+		{-13.0, -11.0},
+		{-13.0, -11.2},
+		{-13.0, -10.8},
+		{-13.0, -10.0},
+		{-13.5, -11.0},
+		{-14.0, -11.0},
+		{-14.0, -10.0}
+	};
+	for (size_t i = 0; i < ex0_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex0_qs[i][j] = TH1F(
+				TString::Format("hex0q%lde%d", i, j),
 				TString::Format(
-					"ex0 Q -13.0 to -11.0, %d bins, ex %lf to %lf",
-					50 + 10 * i,
-					12.0 + 0.05 * j,
-					27.0 + 0.05 * j
+					"ex0 Q %.2lf to %.2lf, ex %.2lf to %.2lf",
+					ex0_qs_range[i].first,
+					ex0_qs_range[i].second,
+					12.0 + step*j,
+					27.0 + step*j
 				),
-				50+10*i, 12.0+0.05*j, 27.0+0.05*j
+				bins, 12.0 + step*j, 27.0 + step*j
 			);
 		}
 	}
-	// // first excited state
-	// for (int i = 0; i < 4; ++i) {
-	// 	for (int j = 0; j < 8; ++j) {
-	// 		hist_ex1_s[i][j] = TH1F(
-	// 			TString::Format("hex1b%de%d", i, j),
-	// 			TString::Format(
-	// 				"ex1 Q -16.5 to -14.5, %d bins, ex %lf to %lf",
-	// 				50 + 10 * i,
-	// 				12.0 + 0.05 * j,
-	// 				27.0 + 0.05 * j
-	// 			),
-	// 			50+10*i, 12.0+0.05*j, 27.0+0.05*j
-	// 		);
-	// 	}
-	// }
-	// // 6MeV state
-	// for (int i = 0; i < 4; ++i) {
-	// 	for (int j = 0; j < 8; ++j) {
-	// 		hist_ex2_s[i][j] = TH1F(
-	// 			TString::Format("hex2b%de%d", i, j),
-	// 			TString::Format(
-	// 				"ex0 Q -13.0 to -11.0, %d bins, ex %lf to %lf",
-	// 				50 + 10 * i,
-	// 				12.0 + 0.05 * j,
-	// 				27.0 + 0.05 * j
-	// 			),
-	// 			50+10*i, 12.0+0.05*j, 27.0+0.05*j
-	// 		);
-	// 	}
-	// }
-
+	// first excited state
+	std::pair<double, double> ex1_qs_range[ex1_count] = {
+		{-16.5, -14.5},
+		{-16.0, -14.5},
+		{-15.5, -14.5},
+		{-16.2, -14.5},
+		{-15.7, -14.5},
+		{-16.5, -15.0},
+		{-16.0, -15.0},
+		{-15.5, -15.0}
+	};
+	for (size_t i = 0; i < ex1_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex1_qs[i][j] = TH1F(
+				TString::Format("hex1q%lde%d", i, j),
+				TString::Format(
+					"ex1 Q %.2lf to %.2lf, ex %.2lf to %.2lf",
+					ex1_qs_range[i].first,
+					ex1_qs_range[i].second,
+					12.0 + step*j,
+					27.0 + step*j
+				),
+				bins, 12.0+step*j, 27.0+step*j
+			);
+		}
+	}
+	// 6MeV state
+	std::pair<double, double> ex2_qs_range[ex2_count] = {
+		{-20.0, -17.0},
+		{-19.5, -17.0},
+		{-19.0, -17.0},
+		{-18.5, -17.0},
+		{-20.0, -17.5},
+		{-19.5, -17.5},
+		{-19.0, -17.5},
+		{-18.5, -17.5},
+		{-20.0, -18.0},
+		{-19.5, -18.0},
+		{-19.0, -18.0},
+		{-18.5, -18.0}
+	};
+	for (size_t i = 0; i < ex2_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex2_qs[i][j] = TH1F(
+				TString::Format("hex2q%lde%d", i, j),
+				TString::Format(
+					"ex2 Q %.2lf to %.2lf, ex %.2lf to %.2lf",
+					ex2_qs_range[i].first,
+					ex2_qs_range[i].second,
+					12.0 + step*j,
+					27.0 + step*j
+				),
+				bins, 12.0+step*j, 27.0+step*j
+			);
+		}
+	}
 
 	// loop and fill events
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -223,70 +171,45 @@ int main(int argc, char **argv) {
 		if (straight[0] != 3) continue;
 
 		// ground state
-		for (int i = 0; i < 5; ++i) {
-			for (int j = 0; j < i+1; ++j) {
-				if (q[0] < ex0_qs_min[i][j]) continue;
-				if (q[0] > ex0_qs_max[i][j]) continue;
-				for (int k = 0; k < 6; ++k) {
-					hist_ex0_qs[i][j][k].Fill(stateless_excited_energy[0][0]);
-				}
+		for (size_t i = 0; i < ex0_count; ++i) {
+			if (q[0] < ex0_qs_range[i].first) continue;
+			if (q[0] > ex0_qs_range[i].second) continue;
+			for (int j = 0; j < 30; ++j) {
+				hist_ex0_qs[i][j].Fill(stateless_excited_energy[0][0]);
 			}
 		}
 		// first excited state
-		for (int i = 0; i < 5; ++i) {
-			for (int j = 0; j < i+1; ++j) {
-				if (q[0] < ex1_qs_min[i][j]) continue;
-				if (q[0] > ex1_qs_max[i][j]) continue;
-				for (int k = 0; k < 6; ++k) {
-					hist_ex1_qs[i][j][k].Fill(stateless_excited_energy[1][0]);
-				}
+		for (size_t i = 0; i < ex1_count; ++i) {
+			if (q[0] < ex1_qs_range[i].first) continue;
+			if (q[0] > ex1_qs_range[i].second) continue;
+			for (int j = 0; j < 30; ++j) {
+				hist_ex1_qs[i][j].Fill(stateless_excited_energy[1][0]);
 			}
 		}
 		// 6MeV state
-		for (int i = 0; i < 5; ++i) {
-			for (int j = 0; j < i+1; ++j) {
-				if (q[0] < ex2_qs_min[i][j]) continue;
-				if (q[0] > ex2_qs_max[i][j]) continue;
-				for (int k = 0; k < 6; ++k) {
-					hist_ex2_qs[i][j][k].Fill(stateless_excited_energy[2][0]);
-				}
-			}
-		}
-
-		// ground state
-		for (int i = 0; i < 4; ++i) {
-			for (int j = 0; j < 8; ++j) {
-				if (q[0] < -13.0 || q[0] > -11.0) continue;
-				hist_ex0_s[i][j].Fill(stateless_excited_energy[0][0]);
+		for (size_t i = 0; i < ex2_count; ++i) {
+			if (q[0] < ex2_qs_range[i].first) continue;
+			if (q[0] > ex2_qs_range[i].second) continue;
+			for (int j = 0; j < 30; ++j) {
+				hist_ex2_qs[i][j].Fill(stateless_excited_energy[2][0]);
 			}
 		}
 	}
 
 	// save images
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex0_qs[i][j][k].Write();
-			}
+	for (size_t i = 0; i < ex0_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex0_qs[i][j].Write();
 		}
 	}
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex1_qs[i][j][k].Write();
-			}
+	for (size_t i = 0; i < ex1_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex1_qs[i][j].Write();
 		}
 	}
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex2_qs[i][j][k].Write();
-			}
-		}
-	}
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 8; ++j) {
-			hist_ex0_s[i][j].Write();
+	for (size_t i = 0; i < ex2_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex2_qs[i][j].Write();
 		}
 	}
 
@@ -299,12 +222,10 @@ int main(int argc, char **argv) {
 		suffix.empty() ? "" : ("-"+suffix).c_str()
 	);
 	c1->Print(pdf_file_name_0+"[");
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex0_qs[i][j][k].Draw();
-				c1->Print(pdf_file_name_0);
-			}
+	for (size_t i = 0; i < ex0_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex0_qs[i][j].Draw();
+			c1->Print(pdf_file_name_0);
 		}
 	}
 	c1->Print(pdf_file_name_0+"]");
@@ -316,12 +237,10 @@ int main(int argc, char **argv) {
 		suffix.empty() ? "" : ("-"+suffix).c_str()
 	);
 	c1->Print(pdf_file_name_1+"[");
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex1_qs[i][j][k].Draw();
-				c1->Print(pdf_file_name_1);
-			}
+	for (size_t i = 0; i < ex1_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex1_qs[i][j].Draw();
+			c1->Print(pdf_file_name_1);
 		}
 	}
 	c1->Print(pdf_file_name_1+"]");
@@ -333,32 +252,13 @@ int main(int argc, char **argv) {
 		suffix.empty() ? "" : ("-"+suffix).c_str()
 	);
 	c1->Print(pdf_file_name_2+"[");
-	for (int i = 0; i < 5; ++i) {
-		for (int j = 0; j < i+1; ++j) {
-			for (int k = 0; k < 6; ++k) {
-				hist_ex2_qs[i][j][k].Draw();
-				c1->Print(pdf_file_name_2);
-			}
+	for (size_t i = 0; i < ex2_count; ++i) {
+		for (int j = 0; j < 30; ++j) {
+			hist_ex2_qs[i][j].Draw();
+			c1->Print(pdf_file_name_2);
 		}
 	}
 	c1->Print(pdf_file_name_2+"]");
-
-	// ground state, -13.0 to -11.0 MeV
-	c1->cd();
-	TString pdf_file_name_0s = TString::Format(
-		"%simage/show-spectrum2%s-ex0-s.pdf",
-		kGenerateDataPath,
-		suffix.empty() ? "" : ("-"+suffix).c_str()
-	);
-	c1->Print(pdf_file_name_0s+"[");
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 8; ++j) {
-			hist_ex0_s[i][j].Draw();
-			c1->Print(pdf_file_name_0s);
-		}
-	}
-	c1->Print(pdf_file_name_0s+"]");
-
 
 	// close files
 	opf.Close();

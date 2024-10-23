@@ -112,6 +112,10 @@ target_link_libraries(info_threebody_extra PRIVATE event)
 add_executable(compare_be_info compare_be_info.cpp)
 target_link_libraries(compare_be_info PRIVATE event d2_energy_calculator)
 
+# angle correlation
+add_executable(angle_correlate angle_correlate.cpp)
+target_link_libraries(angle_correlate PRIVATE event ROOT::Gpad ROOT::Graf)
+
 
 add_subdirectory(calculate)
 add_subdirectory(check)

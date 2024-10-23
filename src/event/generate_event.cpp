@@ -100,14 +100,53 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 		(prefix+"elastic_angle").c_str(), &elastic_angle
 	);
 	tree->SetBranchAddress(
+		(prefix+"breakup_angle").c_str(), &breakup_angle
+	);
+	tree->SetBranchAddress(
 		(prefix+"parent_recoil_angle").c_str(), &parent_recoil_angle
 	);
 	tree->SetBranchAddress(
-		(prefix+"breakup_angle").c_str(), &breakup_angle
+		(prefix+"fragment_phi_center").c_str(), &fragment_phi_center
 	);
 	tree->SetBranchAddress(
 		(prefix+"fragment_fragment_angle").c_str(), &fragment_fragment_angle
 	);
+	tree->SetBranchAddress(
+        (prefix+"angle_theta_star").c_str(), &angle_theta_star
+    );
+	tree->SetBranchAddress(
+        (prefix+"angle_psi").c_str(), &angle_psi
+    );
+	tree->SetBranchAddress(
+        (prefix+"angle_chi").c_str(), &angle_chi
+    );
+	tree->SetBranchAddress(
+		(prefix+"recoil_vx").c_str(), &recoil_vx
+	);
+	tree->SetBranchAddress(
+        (prefix+"recoil_vy").c_str(), &recoil_vy
+    );
+	tree->SetBranchAddress(
+        (prefix+"recoil_vz").c_str(), &recoil_vz
+    );
+	tree->SetBranchAddress(
+		(prefix+"parent_vx").c_str(), &parent_vx
+	);
+	tree->SetBranchAddress(
+        (prefix+"parent_vy").c_str(), &parent_vy
+    );
+	tree->SetBranchAddress(
+        (prefix+"parent_vz").c_str(), &parent_vz
+    );
+	tree->SetBranchAddress(
+		(prefix+"fragment_vx").c_str(), fragment_vx
+	);
+	tree->SetBranchAddress(
+        (prefix+"fragment_vy").c_str(), fragment_vy
+    );
+	tree->SetBranchAddress(
+        (prefix+"fragment_vz").c_str(), &fragment_vz
+    );
 }
 
 
@@ -162,9 +201,22 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("fragment_z", fragment_z, "fz[2]/D");
 	tree->Branch("fragment_r", fragment_r, "fr[2]/D");
 	tree->Branch("elastic_angle", &elastic_angle, "ea/D");
-	tree->Branch("parent_recoil_angle", &parent_recoil_angle, "pra/D");
 	tree->Branch("breakup_angle", &breakup_angle, "ba/D");
+	tree->Branch("parent_recoil_angle", &parent_recoil_angle, "pra/D");
+	tree->Branch("fragment_phi_center", &fragment_phi_center, "fpc/D");
 	tree->Branch("fragment_fragment_angle", &fragment_fragment_angle, "ffa/D");
+	tree->Branch("angle_theta_star", &angle_theta_star, "athetas/D");
+	tree->Branch("angle_psi", &angle_psi, "apsi/D");
+	tree->Branch("angle_chi", &angle_chi, "achi/D");
+	tree->Branch("recoil_vx", &recoil_vx, "rvx/D");
+	tree->Branch("recoil_vy", &recoil_vy, "rvy/D");
+	tree->Branch("recoil_vz", &recoil_vz, "rvz/D");
+	tree->Branch("parent_vx", &parent_vx, "pvx/D");
+	tree->Branch("parent_vy", &parent_vy, "pvy/D");
+	tree->Branch("parent_vz", &parent_vz, "pvz/D");
+	tree->Branch("fragment_vx", fragment_vx, "fvx[2]/D");
+	tree->Branch("fragment_vy", fragment_vy, "fvy[2]/D");
+	tree->Branch("fragment_vz", fragment_vz, "fvz[2]/D");
 }
 
 }	// namespace

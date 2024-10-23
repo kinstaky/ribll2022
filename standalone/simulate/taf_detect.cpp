@@ -32,6 +32,12 @@ constexpr double tafd_threshold[16] = {
 	0.84, 0.9, 0.95, 0.99,
 	1.07, 1.25, 1.1, 1.1
 };
+// constexpr double tafd_threshold[16] = {
+// 	0.6, 0.6, 0.63, 0.63,
+// 	0.65, 0.65, 0.65, 0.65,
+// 	0.67, 0.67, 0.67, 0.67,
+// 	0.7, 0.7, 1.1, 1.1
+// };
 constexpr double csi_threshold[12] = {
 	1200.0, 1200.0,
 	1200.0, 1200.0,
@@ -451,6 +457,7 @@ int main(int argc, char **argv) {
 		double recoil_range =
 			h2_si_calculator.Range(event.recoil_kinetic_after_target);
 		double thickness = tafd_thickness[taf_index];
+		// double thickness = 140.0;
 		int taf_layer;
 		double taf_lost_energy[2];
 		if (recoil_range < thickness / cos(event.recoil_theta)) {
