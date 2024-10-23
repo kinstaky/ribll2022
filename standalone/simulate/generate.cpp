@@ -22,6 +22,17 @@ constexpr double fragment2_mass = mass_4he;
 constexpr double target_thickness = 9.53;
 
 
+/// @brief simulate process of inelastic scattering
+/// @param[in] beam_mass mass of beam particles
+/// @param[in] target_mass mass of target particle
+/// @param[in] beam_energy full energy of beam particle
+/// @param[in] excited_energy excited energy of beam particle after reaction
+/// @param[in] theta elastic angle in center of mass coordinate
+/// @param[out] exit_energy full energy of excited beam particle
+/// @param[out] recoil_energy full energy of recoil particle
+/// @param[out] exit_angle angle of excited beam particle in lab frame
+/// @param[out] recoil_angle angle of recoil particle in lab frame
+///
 void InelasticScattering(
 	double beam_mass,
 	double target_mass,
@@ -102,6 +113,17 @@ void InelasticScattering(
 }
 
 
+/// @brief simulate breakup reaction process
+/// @param[in] parent_mass mass of parent particle
+/// @param[in] fragment1_mass mass of fragment particle 1
+/// @param[in] fragment2_mass mass of fragment particle 2
+/// @param[in] parent_energy full energy of parent particle
+/// @param[in] theta breakup angle in center of mass coordinate
+/// @param[out] fragment1_energy full energy of fragment particle 1
+/// @param[out] fragment2_energy full energy of fragment particle 2
+/// @param[out] fragment1_angle angle of fragment particle 1 in lab frame
+/// @param[out] fragment2_angle angle of fragment particle 2 in lab frame
+///
 void BreakupReaction(
 	double parent_mass,
 	double fragment1_mass,
@@ -334,7 +356,7 @@ int main(int argc, char **argv) {
 		double parent_mass = beam_mass + event.beam_excited_energy;
 
 		// get elastic angle theta
-		double elastic_angle = dist_scatter_angle.GetRandom();
+		event.elastic_angle = dist_scatter_angle.GetRandom();
 		// get breakup angle phi
 		double parent_phi = generator.Rndm() * 2.0 * pi;
 		double recoil_phi = parent_phi - pi;
@@ -351,13 +373,13 @@ int main(int argc, char **argv) {
 		}
 		double fragment1_mass = mass_10be + event.fragment_excited_energy;
 		// get breakup angle theta
-		double breakup_angle = dist_breakup_angle.GetRandom();
+		event.breakup_angle = dist_breakup_angle.GetRandom();
 		// get breakup angle phi
 		double fragment_phi_center = generator.Rndm() * 2.0 * pi;
 
 		InelasticScattering(
 			beam_mass, target_mass,
-			beam_energy, event.beam_excited_energy, elastic_angle,
+			beam_energy, event.beam_excited_energy, event.elastic_angle,
 			parent_energy, recoil_energy, parent_angle, recoil_angle
 		);
 		event.parent_kinetic = parent_energy - parent_mass;
@@ -376,24 +398,35 @@ int main(int argc, char **argv) {
 		);
 
 		// get angle of parent relate to recoil
+		// parent particle velocity
 		ROOT::Math::XYZVector v_parent(
 			sin(parent_angle)*cos(parent_phi),
 			sin(parent_angle)*sin(parent_phi),
 			cos(parent_angle)
 		);
 		v_parent *= sqrt(pow(parent_energy, 2.0) - pow(parent_mass, 2.0))
-			/ sqrt(pow(parent_energy, 2.0) + pow(parent_mass, 2.0));
-
+			/ parent_energy;
+		// recoil particle velocity
 		ROOT::Math::XYZVector v_recoil(
 			sin(recoil_angle)*cos(recoil_phi),
 			sin(recoil_angle)*sin(recoil_phi),
 			cos(recoil_angle)
 		);
 		v_recoil *= sqrt(pow(recoil_energy, 2.0) - pow(target_mass, 2.0))
-			/ sqrt(pow(recoil_energy, 2.0) + pow(target_mass, 2.0));
-
+			/ recoil_energy;
+		// angle between two velocity
 		event.parent_recoil_angle = (v_parent - v_recoil).Theta();
-		event.elastic_angle = elastic_angle;
+		// beam direction
+		ROOT::Math::XYZVector beam_direction(
+			sin(event.beam_theta)*cos(event.beam_phi),
+			sin(event.beam_theta)*sin(event.beam_phi),
+			cos(event.beam_theta)
+		);
+		// velocity angle between relative velocity and beam
+		// 母核、反冲核的相对速度矢量与入射束流方向矢量的夹角，韩家兴论文里的 θ*
+		// event.angle_theta_star =
+		// 	acos((v_parent - v_recoil).Unit().Dot(beam_direction));
+		event.angle_theta_star = event.elastic_angle;
 
 		// consider energy loss of recoil particle in target
 		event.recoil_kinetic_after_target = h2_target.Energy(
@@ -413,7 +446,7 @@ int main(int argc, char **argv) {
 
 		BreakupReaction(
 			parent_mass, fragment1_mass, fragment2_mass,
-			parent_energy, breakup_angle,
+			parent_energy, event.breakup_angle,
 			fragment1_energy, fragment2_energy,
 			fragment1_angle, fragment2_angle
 		);
@@ -438,6 +471,7 @@ int main(int argc, char **argv) {
 
 
 		// get angle of parent relate to recoil
+		// fragment1 velocity
 		ROOT::Math::XYZVector v_fragment1(
 			sin(fragment1_angle)*cos(fragment_phi_center),
 			sin(fragment1_angle)*sin(fragment_phi_center),
@@ -445,8 +479,8 @@ int main(int argc, char **argv) {
 		);
 		v_fragment1 *=
 			sqrt(pow(fragment1_energy, 2.0) - pow(fragment1_mass, 2.0))
-			/ sqrt(pow(fragment1_energy, 2.0) + pow(fragment1_mass, 2.0));
-
+			/ fragment1_energy;
+		// fragment2 velocity
 		ROOT::Math::XYZVector v_fragment2(
 			sin(fragment2_angle)*cos(fragment_phi_center-pi),
 			sin(fragment2_angle)*sin(fragment_phi_center-pi),
@@ -454,11 +488,30 @@ int main(int argc, char **argv) {
 		);
 		v_fragment2 *=
 			sqrt(pow(fragment2_energy, 2.0) - pow(fragment2_mass, 2.0))
-			/ sqrt(pow(fragment2_energy, 2.0) + pow(fragment2_mass, 2.0));
-
+			/ fragment2_energy;
+		// angle between fragment1 and fragment2 velocity
 		event.fragment_fragment_angle = (v_fragment1 - v_fragment2).Theta();
-		event.breakup_angle = breakup_angle;
+		// angle between fragments relative velocity and beam direction
+		// 衰变子核的相对速度矢量和入射束流方向的夹角，韩家兴论文里的 Psi 角
+		// event.angle_psi =
+        //     acos((v_fragment1 - v_fragment2).Unit().Dot(beam_direction));
+		event.angle_psi = event.breakup_angle;
 
+		// 反应平面和衰变平面的夹角，即两个平面的法向量的夹角
+		// event.angle_chi = acos(
+		// 	(v_parent - v_recoil).Cross(beam_direction).Unit().Dot(
+		// 		(v_fragment1 - v_fragment2).Cross(beam_direction).Unit()
+		// 	)
+		// );
+		double frag_direction_theta, frag_direction_phi;
+		Rotate(
+			event.elastic_angle, parent_phi,
+			event.breakup_angle, fragment_phi_center,
+			frag_direction_theta, frag_direction_phi
+		);
+		event.angle_chi = fabs(frag_direction_phi - parent_phi);
+		while (event.angle_chi < 0.0) event.angle_chi += pi;
+		while (event.angle_chi > pi) event.angle_chi -= pi;
 
 		// consider energy loss of fragment1 particle in target
 		event.fragment_kinetic_after_target[0] = be10_target.Energy(
@@ -470,6 +523,20 @@ int main(int argc, char **argv) {
 			(1.0-event.depth) / cos(event.fragment_theta[1]),
 			event.fragment_kinetic_in_target[1]
 		);
+
+		// save velocity
+		event.recoil_vx = v_recoil.X();
+		event.recoil_vy = v_recoil.Y();
+		event.recoil_vz = v_recoil.Z();
+		event.parent_vx = v_parent.X();
+		event.parent_vy = v_parent.Y();
+		event.parent_vz = v_parent.Z();
+		event.fragment_vx[0] = v_fragment1.X();
+		event.fragment_vy[0] = v_fragment1.Y();
+		event.fragment_vz[0] = v_fragment1.Z();
+		event.fragment_vx[1] = v_fragment2.X();
+		event.fragment_vy[1] = v_fragment2.Y();
+		event.fragment_vz[1] = v_fragment2.Z();
 
 		for (size_t j = 0; j < 2; ++j) {
 			event.fragment_z[j] = 100.0;

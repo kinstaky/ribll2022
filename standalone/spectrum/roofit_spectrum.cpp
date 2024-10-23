@@ -96,7 +96,7 @@ int main() {
 
 	// efficiency file name
 	TString efficiency_file_name = TString::Format(
-		"%s%sefficiency-good-0002.root", kGenerateDataPath, kSimulateDir
+		"%s%sefficiency-0002.root", kGenerateDataPath, kSimulateDir
 	);
 	// efficiency file
 	TFile efficiency_file(efficiency_file_name, "read");
@@ -1053,13 +1053,13 @@ int main() {
 	// plot
 	// frame 0
 	RooPlot *frame0 = x.frame();
-	// combined_hist.plotOn(
-	// 	frame0,
-	// 	RooFit::Cut("state==state::0"),
-	// 	RooFit::DrawOption("B"),
-	// 	RooFit::FillColor(kCyan),
-	// 	RooFit::DataError(RooAbsData::None)
-	// );
+	combined_hist.plotOn(
+		frame0,
+		RooFit::Cut("state==state::0"),
+		RooFit::DrawOption("0"),
+		// RooFit::FillColor(kCyan),
+		RooFit::DataError(RooAbsData::None)
+	);
 	simultaneous_model.plotOn(
 		frame0,
 		RooFit::Slice(state, "0"),
@@ -1086,8 +1086,8 @@ int main() {
 	combined_hist.plotOn(
 		frame1,
 		RooFit::Cut("state==state::1"),
-		RooFit::DrawOption("B"),
-		RooFit::FillColor(kCyan),
+		RooFit::DrawOption("0"),
+		// RooFit::FillColor(kCyan),
 		RooFit::DataError(RooAbsData::None)
 	);
 	simultaneous_model.plotOn(
@@ -1116,8 +1116,8 @@ int main() {
 	combined_hist.plotOn(
 		frame2,
 		RooFit::Cut("state==state::2"),
-		RooFit::DrawOption("B"),
-		RooFit::FillColor(kCyan),
+		RooFit::DrawOption("0"),
+		// RooFit::FillColor(kCyan),
 		RooFit::DataError(RooAbsData::None)
 	);
 	simultaneous_model.plotOn(
@@ -1140,6 +1140,22 @@ int main() {
 		RooFit::LineColor(kOrange),
 		RooFit::Components(bkg2)
 	);
+
+	// printable efficiency
+	TGraph print_efficiency[3];
+	const double efficiency_factor[3] = {
+		180.0, 300.0, 400.0
+	};
+	for (int i = 0; i < 3; ++i) {
+		print_efficiency[i].SetLineWidth(2);
+		print_efficiency[i].SetLineStyle(7);
+		for (int j = 0; j < g_efficiency[i]->GetN(); ++j) {
+			print_efficiency[i].AddPoint(
+				g_efficiency[i]->GetPointX(j),
+				g_efficiency[i]->GetPointY(j) * efficiency_factor[i]
+			);
+		}
+	}
 
 	// save
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write();
@@ -1190,22 +1206,28 @@ int main() {
 	pads[0]->cd();
 	// gStyle->SetOptStat(0);
 	gStyle->SetOptTitle(0);
-	// frame0->GetYaxis()->SetLabelSize(0.15);
+	frame0->GetYaxis()->SetLabelSize(0.15);
 	frame0->Draw();
 	hist_ex[0].GetYaxis()->SetLabelSize(0.15);
+	hist_ex[0].SetLineColor(kBlack);
 	hist_ex[0].Draw("same");
+	print_efficiency[0].Draw("same");
 	pads[1]->cd();
-	// hist_ex[1].GetYaxis()->SetLabelSize(0.15);
-	// hist_ex[1].Draw();
 	frame1->Draw();
 	frame1->GetYaxis()->SetLabelSize(0.15);
+	hist_ex[1].SetLineColor(kBlack);
+	hist_ex[1].GetYaxis()->SetLabelSize(0.15);
+	hist_ex[1].Draw("same");
+	print_efficiency[1].Draw("same");
 	pads[2]->cd();
-	// hist_ex[2].GetXaxis()->SetLabelSize(0.12);
-	// hist_ex[2].GetYaxis()->SetLabelSize(0.15);
-	// hist_ex[2].Draw();
 	frame2->Draw();
 	frame2->GetXaxis()->SetLabelSize(0.12);
 	frame2->GetYaxis()->SetLabelSize(0.15);
+	hist_ex[2].SetLineColor(kBlack);
+	hist_ex[2].GetXaxis()->SetLabelSize(0.12);
+	hist_ex[2].GetYaxis()->SetLabelSize(0.15);
+	hist_ex[2].Draw("same");
+	print_efficiency[2].Draw("same");
 	c1->SaveAs(
 		TString::Format("%simage/rootfit-result.png", kGenerateDataPath)
 	);

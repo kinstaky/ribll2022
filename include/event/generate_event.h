@@ -55,10 +55,17 @@ public:
 	double fragment_r[2];
 	// other information
 	double elastic_angle;
-	double parent_recoil_angle;
 	double breakup_angle;
+	double parent_recoil_angle;
 	double fragment_phi_center;
 	double fragment_fragment_angle;
+	double angle_theta_star;
+	double angle_psi;
+	double angle_chi;
+	// velocity information
+	double recoil_vx, recoil_vy, recoil_vz;
+	double parent_vx, parent_vy, parent_vz;
+	double fragment_vx[2], fragment_vy[2], fragment_vz[2];
 };
 
 }	// ribll2022

@@ -50,6 +50,7 @@ const char* const kSimulateDir = "simulate/";
 const char* const kInformationDir = "info/";
 const char* const kOptimizeDir = "opt/";
 const char* const kHoleDir = "hole/";
+const char* const kImageDir = "image/";
 
 //-----------------------------------------------------------------------------
 //								xia vme alignment

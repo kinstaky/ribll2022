@@ -6,19 +6,6 @@ void ThreeBodyInfoEvent::SetupInput(
 	TTree *tree,
 	const std::string &prefix
 ) {
-	// tree->SetBranchAddress((prefix+"beam_theta").c_str(), &beam_theta);
-	// tree->SetBranchAddress((prefix+"beam_phi").c_str(), &beam_phi);
-	// tree->SetBranchAddress((prefix+"be_theta").c_str(), &be_theta);
-	// tree->SetBranchAddress((prefix+"be_phi").c_str(), &be_phi);
-	// tree->SetBranchAddress((prefix+"he_theta").c_str(), &he_theta);
-	// tree->SetBranchAddress((prefix+"he_phi").c_str(), &he_phi);
-	// tree->SetBranchAddress((prefix+"d_theta").c_str(), &d_theta);
-	// tree->SetBranchAddress((prefix+"d_phi").c_str(), &d_phi);
-	// tree->SetBranchAddress((prefix+"be_beam_angle").c_str(), &be_beam_angle);
-	// tree->SetBranchAddress((prefix+"he_beam_angle").c_str(), &he_beam_angle);
-	// tree->SetBranchAddress((prefix+"d_beam_angle").c_str(), &d_beam_angle);
-	// tree->SetBranchAddress((prefix+"behe_angle").c_str(), &behe_angle);
-	// tree->SetBranchAddress((prefix+"cd_angle").c_str(), &cd_angle);
 	tree->SetBranchAddress((prefix+"csi_index").c_str(), &csi_index);
 	tree->SetBranchAddress((prefix+"layer").c_str(), layer);
 	tree->SetBranchAddress((prefix+"taf_flag").c_str(), &taf_flag);
@@ -90,19 +77,6 @@ void ThreeBodyInfoEvent::SetupInput(
 
 
 void ThreeBodyInfoEvent::SetupOutput(TTree *tree) {
-	// tree->Branch("beam_theta", &beam_theta, "ctheta/D");
-	// tree->Branch("beam_phi", &beam_phi, "cphi/D");
-	// tree->Branch("be_theta", &be_theta, "betheta/D");
-	// tree->Branch("be_phi", &be_phi, "bephi/D");
-	// tree->Branch("he_theta", &he_theta, "hetheta/D");
-	// tree->Branch("he_phi", &he_phi, "hephi/D");
-	// tree->Branch("d_theta", &d_theta, "dtheta/D");
-	// tree->Branch("d_phi", &d_phi, "dphi/D");
-	// tree->Branch("be_beam_angle", &be_beam_angle, "bea/D");
-	// tree->Branch("he_beam_angle", &he_beam_angle, "hea/D");
-	// tree->Branch("d_beam_angle", &d_beam_angle, "da/D");
-	// tree->Branch("behe_angle", &behe_angle, "behea/D");
-	// tree->Branch("cd_angle", &cd_angle, "cda/D");
 	tree->Branch("csi_index", &csi_index, "ci/I");
 	tree->Branch("layer", layer, "layer[2]/I");
 	tree->Branch("taf_flag", &taf_flag, "tafflag/I");
