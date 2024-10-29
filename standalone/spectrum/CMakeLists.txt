@@ -4,7 +4,7 @@ target_link_libraries(spectrum PRIVATE event ROOT::Hist d2_energy_calculator)
 
 # spectrum V2
 add_executable(spectrum_v2 spectrum_v2.cpp)
-target_link_libraries(spectrum_v2 PRIVATE event ROOT::Hist d2_energy_calculator target_energy_calculator)
+target_link_libraries(spectrum_v2 PRIVATE event ROOT::Hist ROOT::Graf ROOT::Gpad d2_energy_calculator target_energy_calculator)
 
 # fit spectrum
 add_executable(fit_spectrum fit_spectrum.cpp)
