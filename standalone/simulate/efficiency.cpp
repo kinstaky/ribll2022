@@ -103,16 +103,13 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (ipt->GetEntries() != 3'000'000) {
-		std::cerr << "Error: entries != 3,000,000\n";
-		return -1;
-	}
+	long long entries = ipt->GetEntries();
 	// 1/100 of total entries, for showing process
-	long long entry100 = 30'000;
+	long long entry100 = entries / 100;
 	// show start
 	printf("Getting efficiency   0%%");
 	fflush(stdout);
-	for (long long entry = 0; entry < 3'000'000; ++entry) {
+	for (long long entry = 0; entry < entries; ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -123,8 +120,8 @@ int main(int argc, char **argv) {
 		ipt->GetEntry(entry);
 
 		// index
-		int i1 = entry / 1'000'000;
-		int i2 = (entry % 1'000'000) / 10'000;
+		int i1 = entry / (entries / 3);
+		int i2 = (entry % (entries / 3)) / (entries / 300);
 
 		// calculate straight_cut flag
 		straight_cut = 0;
@@ -210,33 +207,45 @@ int main(int argc, char **argv) {
 		for (int j = 0; j < 100; ++j) {
 			double energy = energy_base[i] + 0.2 * j;
 			graph_t0_position_efficiency[i].AddPoint(
-				energy, t0_position_count[i][j] / 10000.0
+				energy, t0_position_count[i][j] / double(entries / 300)
 			);
 			graph_t0_not_hole_efficiency[i].AddPoint(
-				energy, t0_not_hole_count[i][j] / 10000.0
+				energy, t0_not_hole_count[i][j] / double(entries / 300)
 			);
 			graph_t0_not_bind_efficiency[i].AddPoint(
-				energy, t0_not_bind_count[i][j] / 10000.0
+				energy, t0_not_bind_count[i][j] / double(entries / 300)
 			);
 			graph_t0_straight_cut_efficiency[i].AddPoint(
-				energy, t0_straight_cut_count[i][j] / 10000.0
+				energy, t0_straight_cut_count[i][j] / double(entries / 300)
 			);
 			graph_t0_efficiency[i].AddPoint(
-				energy, t0_valid_count[i][j] / 10000.0
+				energy, t0_valid_count[i][j] / double(entries / 300)
 			);
 			graph_taf_efficiency[i].AddPoint(
-				energy, taf_valid_count[i][j] / 10000.0
+				energy, taf_valid_count[i][j] / double(entries / 300)
 			);
 			graph_xppac_efficiency[i].AddPoint(
-				energy, xppac_valid_count[i][j] / 10000.0
+				energy, xppac_valid_count[i][j] / double(entries / 300)
 			);
 			graph_target_efficiency[i].AddPoint(
-				energy, target_valid_count[i][j] / 10000.0
-			);
-			graph_efficiency[i].AddPoint(
-				energy, valid_count[i][j] / 10000.0
+				energy, target_valid_count[i][j] / double(entries / 300)
 			);
 		}
+		graph_efficiency[i].AddPoint(
+			energy_base[i],
+			valid_count[i][0] / double(entries / 300)
+		);
+		for (int j = 1; j < 99; ++j) {
+			graph_efficiency[i].AddPoint(
+				energy_base[i] + 0.2 * j,
+				(valid_count[i][j-1] + valid_count[i][j] + valid_count[i][j+1])
+					/ double(entries / 100)
+			);
+		}
+		graph_efficiency[i].AddPoint(
+			energy_base[i] + 0.2 * 99,
+			valid_count[i][99] / double(entries / 300)
+		);
 	}
 
 	// save graphs

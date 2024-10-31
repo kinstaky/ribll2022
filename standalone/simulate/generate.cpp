@@ -344,13 +344,13 @@ int main(int argc, char **argv) {
 		} else if (run == 1 || run == 2) {
 			if (entry < entries / 3) {
 				event.beam_excited_energy =
-					12.02 + 0.2 * ((entry / 10'000) % 100);
+					12.02 + 0.2 * ((entry / (entries / 300)) % 100);
 			} else if (entry < entries / 3 * 2) {
 				event.beam_excited_energy =
-					15.39 + 0.2 * ((entry / 10'000) % 100);
+					15.39 + 0.2 * ((entry / (entries / 300)) % 100);
 			} else {
 				event.beam_excited_energy =
-					18.20 + 0.2 * ((entry / 10'000) % 100);
+					18.20 + 0.2 * ((entry / (entries / 300)) % 100);
 			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;
