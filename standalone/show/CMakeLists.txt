@@ -242,3 +242,7 @@ target_link_libraries(show_taf_threshold PRIVATE event ROOT::Core ROOT::RIO ROOT
 # show TAFD alpha peaks
 add_executable(show_tafd_alpha_source show_tafd_alpha_source.cpp)
 target_link_libraries(show_tafd_alpha_source PRIVATE event ROOT::Core ROOT::RIO ROOT::Gpad)
+
+# show TAF coincide number
+add_executable(show_taf_coincident_number show_taf_coincident_number.cpp)
+target_link_libraries(show_taf_coincident_number PRIVATE event ROOT::RIO)

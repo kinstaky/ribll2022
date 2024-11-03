@@ -678,7 +678,7 @@ int StraightPid(int start_run, int end_run) {
 				f1->SetParameter(1, 60);
 				f1->SetParameter(4, 80);
 				f1->SetParameter(7, 95);
-				if (j >= 8) {
+				if (!(i == 7 && j == 10) && j >= 8) {
 					f1->SetParameter(1, 65);
 					f1->SetParameter(4, 85);
 					f1->SetParameter(7, 100);
@@ -688,11 +688,6 @@ int StraightPid(int start_run, int end_run) {
 				f1->SetParameter(4, 85);
 				f1->SetParameter(7, 100);
 			}
-			// else if (i == 5) {
-			// 	f1->SetParameter(1, 60);
-			// 	f1->SetParameter(4, 80);
-			// 	f1->SetParameter(7, 95);
-			// }
 
 			hist_strip_ef[i][j].Fit(f1, "RQ+");
 			for (int k = 0; k < 3; ++k) {
@@ -703,8 +698,8 @@ int StraightPid(int start_run, int end_run) {
 				f2->SetParameters(f1->GetParameters()+k*3);
 				hist_strip_ef[i][j].GetListOfFunctions()->Add(f2);
 			}
-			std::cout << f1->GetParameter(4) << ", "
-				<< f1->GetParameter(5) << "\n";
+			std::cout << f1->GetParameter(1) << ", "
+				<< f1->GetParameter(2) << "\n";
 		}
 	}
 

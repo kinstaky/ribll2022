@@ -37,3 +37,7 @@ target_link_libraries(spectrum_2a PRIVATE event ROOT::Hist)
 # spectrum 9Be
 add_executable(spectrum_be9 spectrum_be9.cpp)
 target_link_libraries(spectrum_be9 PRIVATE event ROOT::Hist)
+
+# TAF edge spectrum
+add_executable(taf_edge_spectrum taf_edge_spectrum.cpp)
+target_link_libraries(taf_edge_spectrum PRIVATE event csi_energy_calculator ROOT::RIO)
