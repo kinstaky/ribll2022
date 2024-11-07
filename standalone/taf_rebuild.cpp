@@ -882,16 +882,13 @@ int main(int argc, char **argv) {
 			opt.Fill();
 			continue;
 		}
-		// check flag
-		if (taf_event.flag[0] != 0x3 && taf_event.flag[0] != 0x5) {
-			opt.Fill();
-			continue;
-		}
+		// // check flag
+		// if (taf_event.flag[0] != 0x3 && taf_event.flag[0] != 0x5) {
+		// 	opt.Fill();
+		// 	continue;
+		// }
 		// check strips
-		if (
-			taf_event.front_strip[0] >= 14
-			|| (taf_index == 5 && taf_event.front_strip[0] <= 3)
-		) {
+		if (taf_index == 5 && taf_event.front_strip[0] <= 3) {
 			opt.Fill();
 			continue;
 		}
@@ -912,24 +909,44 @@ int main(int argc, char **argv) {
 		double sigma_h = taf_strip_fit_h[taf_index*2+csi_index][fs][1];
 		double mean_d = taf_strip_fit_d[taf_index*2+csi_index][fs][0];
 		double sigma_d = taf_strip_fit_d[taf_index*2+csi_index][fs][1];
-		if (
-			(fabs((ef - mean_h) / sigma_h) < 2.0)
-			|| (fabs((ef - mean_d) / sigma_d) < 2.0)
-		) {
+
+		int mass = -1;
+		if (taf_event.flag[0] != 0x1 && fs <= 13) {
+			if (fabs((ef - mean_h) / sigma_h) < 2.0) mass = 1;
+			else if (fabs((ef - mean_d) / sigma_d) < 2.0) mass = 2;
+		} else {
+			if (fs >= 12) mass = 0;
+		}
+
+		if (mass == 1 || mass == 2) {
 			particle.num = 1;
 			// charge and mass
+			particle.mass[0] = mass;
 			particle.charge[0] = 1;
-			if (fabs((ef - mean_h) / sigma_h) < 2.0) {
-				particle.mass[0] = 1;
-			} else {
-				particle.mass[0] = 2;
-			}
 			// energy
 			double a0 = power_csi_param[taf_index*2+csi_index][0];
 			double a1 = power_csi_param[taf_index*2+csi_index][1];
 			double a2 = power_csi_param[taf_index*2+csi_index][2];
 			double csi_energy = pow((e - a2 ) / a0, 1.0 / a1);
 			particle.energy[0] = de + csi_energy;
+			// time
+			particle.time[0] = taf_event.time[0][0];
+			// position
+			ROOT::Math::Polar3DVector position(
+				taf_event.radius[0], taf_event.theta[0], taf_event.phi[0]
+			);
+			particle.x[0] = position.X();
+			particle.y[0] = position.Y();
+			particle.z[0] = position.Z();
+			// index
+			particle.index[0] = csi_index;
+		} else if (mass == 0) {
+			particle.num = 1;
+			// charge and mass
+			particle.mass[0] = mass;
+			particle.charge[0] = 1;
+			// energy
+			particle.energy[0] = de;
 			// time
 			particle.time[0] = taf_event.time[0][0];
 			// position
@@ -949,6 +966,7 @@ int main(int argc, char **argv) {
 	}
 
 	// save tree
+	opf.cd();
 	hist_d_sigma.Write();
 	opt.Write();
 	// close files

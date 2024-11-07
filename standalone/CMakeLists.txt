@@ -97,6 +97,10 @@ target_link_libraries(taf_rebuild PRIVATE event ROOT::Graf)
 add_executable(coincide coincide.cpp)
 target_link_libraries(coincide PRIVATE channel)
 
+# coincide V2
+add_executable(coincide_v2 coincide_v2.cpp)
+target_link_libraries(coincide_v2 PRIVATE channel_v2_event ROOT::RIO csi_energy_calculator)
+
 # info-pd
 add_executable(info_pd info_pd.cpp)
 target_link_libraries(info_pd PRIVATE event ROOT::Graf)

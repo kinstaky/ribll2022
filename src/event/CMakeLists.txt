@@ -54,3 +54,11 @@ target_include_directories(
 	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
 )
 target_link_libraries(event PUBLIC ROOT::Tree)
+
+# channel-v2 event
+add_library(channel_v2_event channel_v2_event.cpp)
+target_include_directories(
+	channel_v2_event
+	PUBLIC ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR
+)
+target_link_libraries(channel_v2_event PUBLIC event ROOT::Tree)

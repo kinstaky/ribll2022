@@ -50,7 +50,7 @@ const char* const kSimulateDir = "simulate/";
 const char* const kInformationDir = "info/";
 const char* const kOptimizeDir = "opt/";
 const char* const kHoleDir = "hole/";
-const char* const kImageDir = "image/";
+const char* const kImageDir = "images/";
 
 //-----------------------------------------------------------------------------
 //								xia vme alignment
@@ -160,6 +160,16 @@ constexpr double mass_15c = u * 15.0073077289;
 ///
 inline double MomentumFromKinetic(double mass, double kinematic) {
 	return sqrt((2.0 * mass + kinematic) * kinematic);
+}
+
+
+/// @brief get kinetic energy from momentum
+/// @param[in] mass mass of particle
+/// @param[in] momentum momentum of particle
+/// @returns kinetic energy of particle
+///
+inline double KineticFromMomentum(double mass, double momentum) {
+	return sqrt(pow(momentum, 2.0) + pow(mass, 2.0)) - mass;
 }
 
 

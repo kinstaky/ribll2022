@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
 
 		// get target flag
 		target_flag = 0;
-		if (pow(calc_tx, 2.0) + pow(calc_ty, 2.0) < 200.0) target_flag |= 1;
+		if (pow(calc_tx-2.5, 2.0) + pow(calc_ty+2.0, 2.0) < 196.0) target_flag |= 1;
 
 		// with calculation if hole
 		be_kinetic[1] = event.hole[0] ? be_kinetic[2] : be_kinetic[0];
@@ -556,7 +556,6 @@ int main(int argc, char **argv) {
 		}
 
 		for (int i = 0; i < 3; ++i) {
-			if (pow(event.xptx, 2.0) + pow(event.xpty, 2.0) >= 200.0) continue;
 			// q index
 			int q_index = int(q[3]+21.0);
 			if (q_index >= 0 && q_index <= 10) {

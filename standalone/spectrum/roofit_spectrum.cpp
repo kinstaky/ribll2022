@@ -190,9 +190,47 @@ int main() {
 			fit_tree[2]->Fill();
 		}
 	}
-
+	
+	opf.cd();
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write(TString::Format("ho%d", i));
 
+
+	// spectrum V3 file
+	TString v3_file_name = TString::Format(
+		"%s%sC14-10Be-4He-2H-v3.root", kGenerateDataPath, kSpectrumDir
+	);
+	// input file
+	TFile v3_ipf(v3_file_name, "read");
+	// input tree
+	TTree *v3_ipt = (TTree*)v3_ipf.Get("tree");
+	if (!v3_ipt) {
+		std::cerr << "Error: Get tree from "
+			<< v3_file_name << " failed.\n";
+		return -1;
+	}
+	// input data
+	int v3_valid, v3_be_state;
+	double v3_excited_energy;
+	// setup input branches
+	v3_ipt->SetBranchAddress("valid", &v3_valid);
+	v3_ipt->SetBranchAddress("be_state", &v3_be_state);
+	v3_ipt->SetBranchAddress("excited_energy_target", &v3_excited_energy);
+
+	// loop
+	for (long long entry = 0; entry < v3_ipt->GetEntriesFast(); ++entry) {
+		v3_ipt->GetEntry(entry);
+
+		if (v3_valid != 0) continue;
+
+		if (v3_be_state >= 0) {
+			hist_ex[v3_be_state].Fill(v3_excited_energy);
+			fit_ex[v3_be_state] = v3_excited_energy;
+			fit_tree[v3_be_state]->Fill();
+		}
+	}
+
+	opf.cd();
+	for (int i = 0; i < 3; ++i) hist_ex[i].Write(TString::Format("hoe%d", i));
 
 	// test asymmetric voigt
 	RooRealVar test_x("tx", "test x", 12.0, 27.0);
@@ -1158,6 +1196,7 @@ int main() {
 	}
 
 	// save
+	opf.cd();
 	for (int i = 0; i < 3; ++i) hist_ex[i].Write();
 	frame0->Write("rh0");
 	frame1->Write("rh1");
@@ -1269,6 +1308,7 @@ int main() {
 
 	opf.Close();
 	ipf.Close();
+	v3_ipf.Close();
 
 	// clean
 
