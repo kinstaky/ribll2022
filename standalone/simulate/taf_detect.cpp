@@ -49,13 +49,21 @@ constexpr double csi_threshold[12] = {
 
 // CsI geometry parameters
 // range from most distant point to z-axis (mm)
-constexpr double csi_r = 174.4;
+constexpr double csi_r = 180.58;
+// CsI high
+constexpr double csi_high = 110.0;
+// CsI side length
+constexpr double csi_side = 113.54;
 // bottom angle (alpha) of trapezoidal-shape surface
-const double bottom_angle = asin(104.0 / 107.35);
+const double bottom_angle = asin(csi_high / csi_side);
 // CsI range
 constexpr double csi_distance = 151.8;
 // CsI thickness
 constexpr double csi_thickness = 31.0;
+// outer vertex x, csi_r * sin(alpha)
+constexpr double outer_vertex_x = 67.33;
+// outer vertex y, csi_r * cos(alpha)
+constexpr double outer_vertex_y = 163.35;
 
 // whether CsI-9 is in low statistics like experiment
 // if true, only 20% data of CsI-9 will be kept
@@ -235,6 +243,8 @@ int main(int argc, char **argv) {
 	double csi_ideal_energy;
 	// CsI real energy, consider size of CsI
 	double csi_real_energy;
+	// energy valid
+	bool energy_valid;
 	// setup output branches
 	detect_tree.Branch("taf_index", &taf_index, "tafi/I");
 	detect_tree.Branch("csi_index", &csi_index, "ci/I");
@@ -252,6 +262,7 @@ int main(int argc, char **argv) {
 	detect_tree.Branch("range", &range, "range/D");
 	detect_tree.Branch("csi_ideal_energy", &csi_ideal_energy, "cie/D");
 	detect_tree.Branch("csi_real_energy", &csi_real_energy, "cre/D");
+	detect_tree.Branch("energy_valid", &energy_valid, "evalid/O");
 
 	// initialize random number generator
 	TRandom3 generator(0);
@@ -274,7 +285,6 @@ int main(int argc, char **argv) {
 	// pseudo random for CsI-9
 	int csi_9_random = 0;
 
-	
 	// upper surface vertex
 	ROOT::Math::XYZVector upper_surface_vertex[12];
 	// upper surface normal vector
@@ -320,9 +330,11 @@ int main(int argc, char **argv) {
 		);
 		// outer surface
 		double outer_vertex_angle = i % 2 == 0
-			? atan(64.33/157.94) + pi * (0.5 - (i/2)/3.0)
-			: atan(157.94/64.33) - pi * (i/2)/3.0;
-		double outer_vertex_r = sqrt(64.33*64.33 + 157.94*157.94);
+			? atan(outer_vertex_x/outer_vertex_y) + pi * (0.5 - (i/2)/3.0)
+			: atan(outer_vertex_y/outer_vertex_x) - pi * (i/2)/3.0;
+		double outer_vertex_r = sqrt(
+			outer_vertex_x*outer_vertex_x + outer_vertex_y*outer_vertex_y
+		);
 		outer_surface_vertex[i] = ROOT::Math::XYZVector(
 			outer_vertex_r * cos(outer_vertex_angle),
 			outer_vertex_r * sin(outer_vertex_angle),
@@ -339,8 +351,8 @@ int main(int argc, char **argv) {
 
 		// bottom vertex
 		inner_bottom_vertex[i] = ROOT::Math::XYZVector(
-			(csi_r - 107.35) * cos(upper_vertex_angle),
-			(csi_r - 107.35) * sin(upper_vertex_angle),
+			(csi_r - csi_side) * cos(upper_vertex_angle),
+			(csi_r - csi_side) * sin(upper_vertex_angle),
 			csi_distance
 		);
 		ROOT::Math::XYZVector outer_bottom_vertex =	inner_bottom_vertex[i]
@@ -386,6 +398,7 @@ int main(int argc, char **argv) {
 			csi_event.time[i] = -1e5;
 			csi_event.energy[i] = 0.0;
 		}
+		energy_valid = false;
 
 		// TAF position
 		ROOT::Math::XYZVector taf_position(
@@ -420,6 +433,7 @@ int main(int argc, char **argv) {
 		) {
 			for (int i = 0; i < 6; ++i) tafd_trees[i]->Fill();
 			csi_tree.Fill();
+			tafd_xstrip = -1;
 			stop_status = -1;
 			detect_tree.Fill();
 			continue;
@@ -573,6 +587,8 @@ int main(int argc, char **argv) {
 			* pow(csi_energy, power_csi_param[csi_index][1])
 			+ power_csi_param[csi_index][2];
 
+		energy_valid = true;
+
 		// fill event
 		// fill TAFD merge event
 		if (tafd_energy > tafd_threshold[tafd_ring_strip]) {
@@ -588,6 +604,8 @@ int main(int argc, char **argv) {
 // 	<< ", effect thickness " << thickness / cos(event.recoil_theta) << ", tafd energy " << tafd_energy << ", csi energy " << csi_energy
 // 	<< ", csi channel " << csi_channel << "\n";
 
+		} else {
+			energy_valid = false;
 		}
 		// fill TAFCsI event
 		if (taf_layer == 1 && csi_channel > csi_threshold[csi_index]) {
@@ -605,6 +623,8 @@ int main(int argc, char **argv) {
 			if (csi_event.match) {
 				csi_event.time[csi_index] = 0.0;
 				csi_event.energy[csi_index] = csi_channel;
+			} else {
+				energy_valid = false;
 			}
 // std::cout << "Entry " << entry << ", layer " << taf_layer << ": Generate energy " << event.recoil_kinetic_after_target <<  ", range "
 // 	<< recoil_range << ", taf index " << taf_index << ", csi_index " << csi_index << ", thick " << thickness
