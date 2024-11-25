@@ -122,6 +122,7 @@ int main(int argc, char **argv) {
 	// output tree
 	TTree opt("tree", "spectrum");
 	// output data
+	int valid;
 	int ppac_flag, taf_flag, bind, hole, target_flag;
 	// PID in correct range? index 0 for origin, 1 for calculated
 	int straight[2];
@@ -151,6 +152,7 @@ int main(int argc, char **argv) {
 	double stateless_excited_energy[3][4];
 
 	// setup output branches
+	opt.Branch("valid", &valid, "v/I");
 	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
 	opt.Branch("taf_flag", &taf_flag, "tflag/I");
 	opt.Branch("bind", &bind, "bind/I");
@@ -197,16 +199,28 @@ int main(int argc, char **argv) {
 		// get data
 		ipt->GetEntry(entry);
 
+		valid = 0;
 		// get flags
 		taf_flag = event.taf_flag;
-		ppac_flag = event.ppac_flag;
+		ppac_flag = 0;
+		if ((event.ppac_flag & 1) == 1) {
+			if (event.xppac_track[0] >= 2 && event.xppac_track[1] >= 2) {
+				ppac_flag = 2;
+			} else if (event.xppac_track[0] >= 1 && event.xppac_track[1] >= 1) {
+				ppac_flag = 1;
+			}
+		}
 		bind = event.bind;
 		hole = int(event.hole[0]) + (int(event.hole[1]) << 1);
 		target_flag = event.target_flag;
 		straight[0] = straight[1] = 0;
 
+		if (ppac_flag == 0) valid |= 1;
+		if (taf_flag != 0) valid |= 2;
+		if (bind != 0 || hole != 0) valid |= 4;
+
 		// ignore special events
-		if (taf_flag != 0 || (ppac_flag & 1) == 0) {
+		if (taf_flag != 0 || ppac_flag == 0) {
 			opt.Fill();
 			continue;
 		}
@@ -661,6 +675,10 @@ int main(int argc, char **argv) {
 			// fill Q values
 			for (size_t i = 0; i < 4; ++i) hq[i].Fill(q[i]);
 		}
+
+		if ((target_flag & 1) == 0) valid |= 8;
+		if (straight[0] != 3) valid |= 16;
+		if (c_kinetic[0] < 360.0) valid |= 32;
 
 		// fill to tree
 		opt.Fill();

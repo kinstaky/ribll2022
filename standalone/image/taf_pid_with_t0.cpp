@@ -5,7 +5,7 @@
 #include <TH2F.h>
 #include <TCanvas.h>
 
-#include "include/event/dssd_event.h"
+#include "include/event/particle_event.h"
 #include "include/event/ta_event.h"
 
 using namespace ribll;
@@ -41,8 +41,8 @@ int main(int argc, char **argv) {
 			<< target << "\n";
 		return -1;
 	}
-	// T0D1 chain
-	TChain d1_chain("t0d1", "t0d1");
+	// T0 chain
+	TChain t0_chain("t0", "t0");
 	// TAF chain
 	TChain taf_chain[6] = {
 		TChain{"taf0", "taf0"},
@@ -56,10 +56,10 @@ int main(int argc, char **argv) {
 	int end_run = target == "cd2" ? 746 : 732;
 	for (int run = start_run; run <= end_run; ++run) {
 		if (!CheckTarget(run, target)) continue;
-		d1_chain.AddFile(TString::Format(
-			"%s%st0d1-merge-ta-%04d.root/tree",
+		t0_chain.AddFile(TString::Format(
+			"%s%st0-particle-ta-v2-%04d.root/tree",
 			kGenerateDataPath,
-			kMergeDir,
+			kParticleDir,
 			run
 		));
 		for (int i = 0; i < 6; ++i) {
@@ -74,23 +74,23 @@ int main(int argc, char **argv) {
 	}
 	// add friends
 	for (int i = 0; i < 6; ++i) {
-		d1_chain.AddFriend(taf_chain+i, TString::Format("taf%d", i));
+		t0_chain.AddFriend(taf_chain+i, TString::Format("taf%d", i));
 	}
-	// input T0D1 event
-	DssdMergeEvent d1_event;
+	// input T0 event
+	ParticleEvent t0_event;
 	// input TAF event
 	TaEvent taf_event[6];
 	// setup input branches
-	d1_event.SetupInput(&d1_chain);
+	t0_event.SetupInput(&t0_chain);
 	for (int i = 0; i < 6; ++i) {
 		taf_event[i].SetupInput(
-			&d1_chain, TString::Format("taf%d.", i).Data()
+			&t0_chain, TString::Format("taf%d.", i).Data()
 		);
 	}
 
 	// output histograms
 	TH2F pid_all_strips[12];
-	TH2F pid_single_strip[12][16];
+	// TH2F pid_single_strip[12][16];
 	for (int i = 0; i < 12; ++i) {
 		pid_all_strips[i] = TH2F(
 			TString::Format("hc%d", i),
@@ -100,20 +100,20 @@ int main(int argc, char **argv) {
 			),
 			1000, 0, 100, 1000, 0, 20
 		);
-		for (int j = 0; j < 16; ++j) {
-			pid_single_strip[i][j] = TH2F(
-				TString::Format("hc%ds%d", i, j),
-				TString::Format(
-					"TAF%d-CsI%d strip %d PID target %s",
-					i/2, i, j, target.c_str()
-				),
-				1000, 0, 100, 1000, 0, 20
-			);
-		}
+		// for (int j = 0; j < 16; ++j) {
+		// 	pid_single_strip[i][j] = TH2F(
+		// 		TString::Format("hc%ds%d", i, j),
+		// 		TString::Format(
+		// 			"TAF%d-CsI%d strip %d PID target %s",
+		// 			i/2, i, j, target.c_str()
+		// 		),
+		// 		1000, 0, 100, 1000, 0, 20
+		// 	);
+		// }
 	}
 
 	// total number of entries
-	long long entries = d1_chain.GetEntries();
+	long long entries = t0_chain.GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -127,8 +127,20 @@ int main(int argc, char **argv) {
 			fflush(stdout);
 		}
 		// get event
-		d1_chain.GetEntry(entry);
-		if (d1_event.hit == 0) continue;
+		t0_chain.GetEntry(entry);
+
+		bool found_be10 = false;
+		bool found_he4 = false;
+		for (int i = 0; i < t0_event.num; ++i) {
+			if (t0_event.charge[i] == 4 && t0_event.mass[i] == 10) {
+				found_be10 = true;
+			} else if (t0_event.charge[i] == 2 && t0_event.mass[i] == 4) {
+				found_he4 = true;
+			}
+		}
+
+		if (!found_be10 || !found_he4) continue;
+
 
 		for (int i = 0; i < 6; ++i) {
 			if (taf_event[i].num == 0) continue;
@@ -149,8 +161,8 @@ int main(int argc, char **argv) {
 			// fill to total histogram
 			pid_all_strips[csi_index].Fill(e, de);
 			// fill to single strip histogram
-			unsigned short &fs = taf_event[i].front_strip[0];
-			pid_single_strip[csi_index][fs].Fill(e, de);
+			// unsigned short &fs = taf_event[i].front_strip[0];
+			// pid_single_strip[csi_index][fs].Fill(e, de);
 		}
 	}
 	// show finish
@@ -162,7 +174,7 @@ int main(int argc, char **argv) {
 
 	// output pdf file name
 	TString pdf_file_name = TString::Format(
-		"%s%staf-pid-%s.pdf",
+		"%s%staf-pid-with-t0-%s.pdf",
 		kGenerateDataPath,
 		kImageDir,
 		target.c_str()
@@ -170,7 +182,9 @@ int main(int argc, char **argv) {
 	// print to pdf
 	c1->Print(pdf_file_name+"[");
 	for (int i = 0; i < 12; ++i) {
-		pid_all_strips[i].Draw("colz");
+		pid_all_strips[i].Draw(
+			target == "cd2" ? "colz" : "*"
+		);
 		c1->Print(pdf_file_name);
 	}
 	// for (int i = 0; i < 12; ++i) {

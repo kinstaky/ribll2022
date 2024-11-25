@@ -147,30 +147,28 @@ int main(int argc, char **argv) {
 		valid = 0;
 		taf_flag = 0;
 		if (recoil_name == "2H") {
-			if (channel.tafcsi_valid) taf_flag |= 1;
-		} else {
-			if (!channel.tafcsi_valid) taf_flag |= 1;
+			if (!channel.tafcsi_valid && channel.tafd_front_strip >= 13) {
+				taf_flag = 1;
+			} else if (channel.tafcsi_valid && channel.tafd_front_strip <= 13) {
+				taf_flag = 2;
+			}
+		} else if (recoil_name == "1H") {
+			if (channel.tafcsi_valid && channel.tafd_front_strip >= 12) {
+				taf_flag = 1;
+			}
 		}
-		if (channel.tafd_front_strip < 13) taf_flag |= 2;
 		ppac_flag = 0;
+		if (channel.ppac_xnum >= 2 && channel.ppac_ynum >= 2) {
+			ppac_flag = 2;
+		} else if (channel.ppac_xnum >= 1 && channel.ppac_ynum >= 1) {
+			ppac_flag = 1;
+		}
 		if (pow(channel.tx-2.5, 2.0) + pow(channel.ty+2.0, 2.0) < 196.0) {
 			target_flag = 1;
 		} else {
 			target_flag = 0;
 		}
 		straight[0] = straight[1] = 0;
-
-
-		if (ppac_flag != 0) valid |= 1;
-		if (taf_flag != 0) valid |= 2;
-		if (!channel.t0_valid) valid |= 4;
-		if (target_flag == 0) valid |= 8;
-		
-		// ignore special events
-		if (valid != 0) {
-			opt.Fill();
-			continue;
-		}
 
 		double &tx = channel.tx;
 		double &ty = channel.ty;
@@ -211,69 +209,78 @@ int main(int argc, char **argv) {
 			he4_target.Energy(-0.5/cos(d_he.Theta()), he_kinetic);
 
 		// deutron kinetic energy
-		double tafd_energy = channel.tafd_energy;
-		double csi_energy = h2_csi.Energy(
-			d_d.Theta(), tafd_energy, correct_tafd_thickness[channel.taf_index]
-		);
-		double d_kinetic = tafd_energy + csi_energy;
+		double d_kinetic = 0.0;
+		if (taf_flag == 1) {
+			double tafd_energy = channel.tafd_energy;
+			double csi_energy = h2_csi.Energy(
+				d_d.Theta(), tafd_energy, correct_tafd_thickness[channel.taf_index]
+			);
+			d_kinetic = tafd_energy + csi_energy;
+		} else if (taf_flag == 2) {
+			d_kinetic = channel.recoil_energy;
+		}
 		// consider energy lost in target
 		d_kinetic_target =
 			h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
 
-		// // calculate energy
-		// double using_ppac_xz[3] = {ppac_xz[0], ppac_xz[1], ppac_xz[2]};
-		// double using_ppac_yz[3] = {ppac_yz[0], ppac_yz[1], ppac_yz[2]};
-		// if (channel.run >= ppac_change_run) {
-		// 	using_ppac_xz[0] = all_ppac_xz[1];
-		// 	using_ppac_yz[0] = all_ppac_yz[1];
-		// }
-		// double iter_tx, iter_ty;
-		// for (int i = 0; i < 2; ++i) {
-		// 	// calculate iteration reaction point
-		// 	TrackPpac(
-		// 		channel.ppac_xflag, using_ppac_xz, channel.ppac_x,
-		// 		be_kinetic, he_kinetic, d_kinetic,
-		// 		channel.fragment_x[0], channel.fragment_x[1],
-		// 		channel.recoil_x, channel.recoil_y,
-		// 		iter_tx
-		// 	);
-		// 	TrackPpac(
-		// 		channel.ppac_yflag, using_ppac_yz, channel.ppac_y,
-		// 		be_kinetic, he_kinetic, d_kinetic,
-		// 		channel.fragment_y[0], channel.fragment_y[1],
-		// 		channel.recoil_y, channel.recoil_x,
-		// 		iter_ty
-		// 	);
+		// calculate energy
+		double using_ppac_xz[3] = {ppac_xz[0], ppac_xz[1], ppac_xz[2]};
+		double using_ppac_yz[3] = {ppac_yz[0], ppac_yz[1], ppac_yz[2]};
+		if (channel.run >= ppac_change_run) {
+			using_ppac_xz[0] = all_ppac_xz[1];
+			using_ppac_yz[0] = all_ppac_yz[1];
+		}
+		double iter_tx, iter_ty;
+		for (int i = 0; i < 2; ++i) {
+			// calculate iterate reaction point
+			TrackPpac(
+				channel.ppac_xflag, using_ppac_xz, channel.ppac_x,
+				be_kinetic, he_kinetic, d_kinetic,
+				channel.fragment_x[0], channel.fragment_x[1],
+				channel.recoil_x, channel.recoil_y,
+				iter_tx
+			);
+			TrackPpac(
+				channel.ppac_yflag, using_ppac_yz, channel.ppac_y,
+				be_kinetic, he_kinetic, d_kinetic,
+				channel.fragment_y[0], channel.fragment_y[1],
+				channel.recoil_y, channel.recoil_x,
+				iter_ty
+			);
 
-		// 	// calculate again
-		// 	// 10Be direction vector
-		// 	d_be = ROOT::Math::XYZVector(
-		// 		channel.fragment_x[0] - iter_tx,
-		// 		channel.fragment_y[0] - iter_ty,
-		// 		100.0
-		// 	).Unit();
-		// 	// 4He direction vector
-		// 	d_he = ROOT::Math::XYZVector(
-		// 		channel.fragment_x[1] - iter_tx,
-		// 		channel.fragment_y[1] - iter_ty,
-		// 		100.0
-		// 	).Unit();
-		// 	// 2H direction vector
-		// 	d_d = ROOT::Math::XYZVector(
-		// 		channel.recoil_x - iter_tx,
-		// 		channel.recoil_y - iter_ty,
-		// 		135.0
-		// 	).Unit();
+			// calculate again
+			// 10Be direction vector
+			d_be = ROOT::Math::XYZVector(
+				channel.fragment_x[0] - iter_tx,
+				channel.fragment_y[0] - iter_ty,
+				100.0
+			).Unit();
+			// 4He direction vector
+			d_he = ROOT::Math::XYZVector(
+				channel.fragment_x[1] - iter_tx,
+				channel.fragment_y[1] - iter_ty,
+				100.0
+			).Unit();
+			// 2H direction vector
+			d_d = ROOT::Math::XYZVector(
+				channel.recoil_x - iter_tx,
+				channel.recoil_y - iter_ty,
+				135.0
+			).Unit();
 
-		// 	// calculated recoil kinetic
-		// 	d_kinetic = tafde + h2_calculator.Energy(
-		// 		d_d.Theta(), tafde,
-		// 		correct_tafd_thickness[channel.taf_index]
-		// 	);
-		// 	d_kinetic_target = 
-		// 		h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
-		// }
-
+			// calculated recoil kinetic
+			d_kinetic = channel.tafd_energy + h2_csi.Energy(
+				d_d.Theta(), channel.tafd_energy,
+				correct_tafd_thickness[channel.taf_index]
+			);
+			d_kinetic_target = 
+				h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
+		}
+		if (pow(iter_tx-2.5, 2.0) + pow(iter_ty+2.0, 2.0) < 196.0) {
+			target_flag = 1;
+		} else {
+			target_flag = 0;
+		}
 
 		// 10Be momentum
 		double be_momentum= MomentumFromKinetic(mass_10be, be_kinetic_target);
@@ -327,9 +334,17 @@ int main(int argc, char **argv) {
 		// excited energy of 14C
 		excited_energy_target = excited_c_mass - mass_14c;
 
-		// fill Q spectrum
-		hq_taf[channel.taf_index].Fill(q - q_correct[channel.taf_index]);
-		hq.Fill(q);
+		if (ppac_flag == 0) valid |= 1;
+		if (taf_flag == 0) valid |= 2;
+		if (!channel.t0_valid) valid |= 4;
+		if (target_flag == 0) valid |= 8;
+		if (c_kinetic_target < 360.0) valid |= 32;
+
+		if (valid == 0 && taf_flag == 1) {
+			// fill Q spectrums
+			hq_taf[channel.taf_index].Fill(q - q_correct[channel.taf_index]);
+			hq.Fill(q);
+		}
 
 		// fill to tree
 		opt.Fill();
@@ -345,6 +360,9 @@ int main(int argc, char **argv) {
 	// fit TAF Q spectrum
 	TF1 *fq = new TF1("fq", "gaus(0)+gaus(3)+gaus(6)+gaus(9)", -23, -8);
 	fq->SetParameters(q_init_param);
+	fq->SetParLimits(4, -14, -11);
+	fq->SetParLimits(7, -17, -14);
+	fq->SetParLimits(10, -19, -17);
 	hq.Fit(fq, "QR+");
 	std::cout << fq->GetParameter(1) << ", "
 		<< fq->GetParameter(4) << ", "

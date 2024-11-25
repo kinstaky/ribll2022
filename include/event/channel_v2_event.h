@@ -22,7 +22,8 @@ public:
 	///
 	virtual void SetupOutput(TTree *tree) override;
 
-	// valid flag
+	// valid flags
+	// valid bits: 0: T0, 1: TAF, 2: PPAC
 	int valid;
 	bool ppac_valid;
 	int hole;

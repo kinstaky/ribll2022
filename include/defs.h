@@ -24,7 +24,7 @@ const char* const kCrate3Path = "/data/d1/RIBLL_2022_C/DecodeFile/VME/";
 const char* const kCrate3FileName = "vmedata";
 
 // generate data
-const char* const kGenerateDataPath = "/mnt/d/data/ribll2022/";
+const char* const kGenerateDataPath = "/data/d1/pwl/ribll2022/";
 const char* const kMappingDir = "map/";
 const char* const kDecodeDir = "decode/";
 const char* const kAlignDir = "align/";

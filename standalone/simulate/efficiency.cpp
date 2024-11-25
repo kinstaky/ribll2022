@@ -6,6 +6,7 @@
 #include <TGraph.h>
 
 #include "include/event/threebody_info_event.h"
+#include "include/event/channel_v2_event.h"
 
 using namespace ribll;
 
@@ -200,6 +201,74 @@ int main(int argc, char **argv) {
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
+	// close file
+	ipf.Close();
+
+
+	// fill channel-V2 events
+	TString v2_file_name = TString::Format(
+		"%s%sC14-10Be-4He-2H-v2-sim.root",
+		kGenerateDataPath,
+		kChannelDir
+	);
+	// input file
+	TFile v2_ipf(v2_file_name, "read");
+	// input tree
+	TTree *v2_ipt = (TTree*)v2_ipf.Get("tree");
+	if (!v2_ipt) {
+		std::cerr << "Error: Get tree from "
+			<< v2_file_name << " failed.\n";
+		return -1;
+	}
+	// input event
+	ChannelV2Event v2_event;
+	// setup input branches
+	v2_event.SetupInput(v2_ipt);
+	// show start
+	printf("Getting v2 efficiency   0%%");
+	fflush(stdout);
+	// total number of entries
+	long long v2_entries = v2_ipt->GetEntries();
+	entry100 = v2_entries / 100 + 1;
+	for (long long entry = 0; entry < v2_entries; ++entry) {
+		// show process
+		if (entry % entry100 == 0) {
+			printf("\b\b\b\b%3lld%%", entry / entry100);
+			fflush(stdout);
+		}
+
+		// get data
+		v2_ipt->GetEntry(entry);
+
+		// index
+		int i1 = v2_event.entry / (entries / 3);
+		int i2 = (v2_event.entry % (entries / 3)) / (entries / 300);
+
+		// TAF valid
+		if (!v2_event.tafcsi_valid && v2_event.tafd_front_strip >= 13) {
+			++taf_valid_count[i1][i2];
+		}
+
+		int target_flag = 0;
+		if (pow(v2_event.tx-2.5, 2.0) + pow(v2_event.ty+2.0, 2.0) < 196.0) {
+			target_flag = 1;
+		}
+		// All valid
+		if (
+			v2_event.valid == 0
+			&& !v2_event.tafcsi_valid
+			&& v2_event.tafd_front_strip >= 13
+			&& v2_event.ppac_xnum >= 1
+			&& v2_event.ppac_ynum >= 1
+			&& target_flag == 1
+		) {
+			++valid_count[i1][i2];
+		}
+	}
+	// show finish
+	printf("\b\b\b\b100%%\n");
+	// close file
+	v2_ipf.Close();
 
 	const double energy_base[3] = {12.02, 15.39, 18.20};
 	// fill to graph
@@ -249,6 +318,7 @@ int main(int argc, char **argv) {
 	}
 
 	// save graphs
+	opf.cd();
 	for (int i = 0; i < 3; ++i) {
 		graph_t0_position_efficiency[i].Write(TString::Format("t0pg%d", i));
 	}
@@ -280,6 +350,5 @@ int main(int argc, char **argv) {
 	}
 	// close file
 	opf.Close();
-	ipf.Close();
 	return 0;
 }

@@ -6,13 +6,13 @@ BackgroundPoly::BackgroundPoly(
 	const char *name,
 	const char *title,
 	RooAbsReal &x,
-	RooAbsReal &p1,
-	RooAbsReal &p0
+	RooAbsReal &root0,
+	RooAbsReal &root1
 )
 : RooAbsPdf(name, title)
 , x_("x", "Dependent", this, x)
-, p1_("p1", "p1", this, p1)
-, p0_("p0", "p0", this, p0) {}
+, root0_("root0", "root0", this, root0)
+, root1_("root1", "root1", this, root1) {}
 
 
 BackgroundPoly::BackgroundPoly(
@@ -21,13 +21,13 @@ BackgroundPoly::BackgroundPoly(
 )
 : RooAbsPdf(other, name)
 , x_("x", this, other.x_)
-, p1_("p1", this, other.p1_)
-, p0_("p0", this, other.p0_) {}
+, root0_("root0", this, other.root0_)
+, root1_("root1", this, other.root1_) {}
 
 
 double BackgroundPoly::evaluate() const {
 	double x = x_;
-	double result = -x*x + p1_*x + p0_;
+	double result = -(x-root0_) * (x-root1_);
 	if (result <= 0.0) return 0.0;
 	return result;
 }

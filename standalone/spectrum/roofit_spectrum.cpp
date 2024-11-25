@@ -8,6 +8,7 @@
 #include <TH1F.h>
 #include <TF1.h>
 #include <TGraph.h>
+#include <TLine.h>
 #include <TCanvas.h>
 #include <TPad.h>
 #include <TStyle.h>
@@ -32,7 +33,7 @@
 using namespace ribll;
 
 constexpr double threshold[3] = {12.01, 15.38, 18.19};
-constexpr double resolution_fraction = 1.2;
+constexpr double resolution_fraction = 1.4;
 constexpr double sigma_range = 0.0;
 constexpr int calc_index = 0;
 
@@ -62,7 +63,28 @@ void PlotPdf(
 	);
 }
 
-int main() {
+struct SpectrumV2Event {
+	int ppac_flag, taf_flag, target_flag, bind, hole, straight[2];
+	double c_kinetic[4], q[4];
+	int be_state[4];
+	double excited_energy_target[4];
+	double stateless_excited_energy[3][4];
+};
+
+
+struct SpectrumV3Event {
+	int valid, ppac_flag, taf_flag;
+	int be_state;
+	double excited_energy;
+};
+
+
+int FillFromSpectrumV2(
+	TH1F *hist,
+	TH1F *hist_ppac,
+	double *tree_ex,
+	TTree **tree	
+) {
 	// input file name
 	TString input_file_name = TString::Format(
 		"%s%sthreebody-10Be-dv2-2.root", kGenerateDataPath, kSpectrumDir
@@ -77,24 +99,111 @@ int main() {
 		return -1;
 	}
 	// input data
-	int ppac_flag, taf_flag, target_flag, bind, hole, straight[2];
-	double q[4];
-	int be_state[4];
-	double excited_energy_target[4];
-	double stateless_excited_energy[3][4];
+	SpectrumV2Event event;
 	// setup input branches
-	ipt->SetBranchAddress("ppac_flag", &ppac_flag);
-	ipt->SetBranchAddress("taf_flag", &taf_flag);
-	ipt->SetBranchAddress("target_flag", &target_flag);
-	ipt->SetBranchAddress("bind", &bind);
-	ipt->SetBranchAddress("hole", &hole);
-	ipt->SetBranchAddress("straight", straight);
-	ipt->SetBranchAddress("q", q);
-	ipt->SetBranchAddress("be_state", be_state);
-	ipt->SetBranchAddress("excited_energy_target", excited_energy_target);
-	ipt->SetBranchAddress("stateless_excited_energy", stateless_excited_energy);
+	ipt->SetBranchAddress("ppac_flag", &event.ppac_flag);
+	ipt->SetBranchAddress("taf_flag", &event.taf_flag);
+	ipt->SetBranchAddress("target_flag", &event.target_flag);
+	ipt->SetBranchAddress("bind", &event.bind);
+	ipt->SetBranchAddress("hole", &event.hole);
+	ipt->SetBranchAddress("straight", event.straight);
+	ipt->SetBranchAddress("c_kinetic", event.c_kinetic);
+	ipt->SetBranchAddress("q", event.q);
+	ipt->SetBranchAddress("be_state", event.be_state);
+	ipt->SetBranchAddress("excited_energy_target", event.excited_energy_target);
+	ipt->SetBranchAddress("stateless_excited_energy", event.stateless_excited_energy);
 
-	// efficiency file name
+	// loop
+	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
+		ipt->GetEntry(entry);
+		if (event.ppac_flag  == 0) continue;
+		if (event.taf_flag != 0) continue;
+		if ((event.target_flag & 1) == 0) continue;
+		if (event.bind != 0) continue;
+		if (event.hole > 0) continue;
+		// straight PID
+		if (event.straight[0] != 3) continue;
+		// beam kinetic energy
+		if (event.c_kinetic[0] < 360.0) continue;
+
+		double ex = -1.0;
+		int index = -1;
+		if (event.q[calc_index] < -11 && event.q[calc_index] > -13) {
+			ex = event.stateless_excited_energy[0][calc_index];
+			index = 0;
+		} else if (event.q[calc_index] < -14.5 && event.q[calc_index] > -16) {
+			ex = event.stateless_excited_energy[1][calc_index];
+			index = 1;
+		} else if (event.q[calc_index] < -17 && event.q[calc_index] > -20) {
+			ex = event.stateless_excited_energy[2][calc_index];
+			index = 2;
+		}
+		if (ex > 0) {
+			hist[index].Fill(ex);
+			tree_ex[index] = ex;
+			tree[index]->Fill();
+			if (event.ppac_flag == 2) {
+				hist_ppac[index].Fill(ex);
+			}
+		}
+	}
+
+	// close file
+	ipf.Close();
+	return 0;
+}
+
+
+int FillFromSpectrumV3(
+	TH1F *hist,
+	TH1F *hist_ppac,
+	double *tree_ex,
+	TTree **tree
+) {
+	// spectrum V3 file
+	TString input_file_name = TString::Format(
+		"%s%sC14-10Be-4He-2H-v3.root", kGenerateDataPath, kSpectrumDir
+	);
+	// input file
+	TFile ipf(input_file_name, "read");
+	// input tree
+	TTree *ipt = (TTree*)ipf.Get("tree");
+	if (!ipt) {
+		std::cerr << "Error: Get tree from "
+			<< input_file_name << " failed.\n";
+		return -1;
+	}
+	// input data
+	SpectrumV3Event event;
+	// setup input branches
+	ipt->SetBranchAddress("valid", &event.valid);
+	ipt->SetBranchAddress("ppac_flag", &event.ppac_flag);
+	ipt->SetBranchAddress("taf_flag", &event.taf_flag);
+	ipt->SetBranchAddress("be_state", &event.be_state);
+	ipt->SetBranchAddress("excited_energy_target", &event.excited_energy);
+
+	// loop
+	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
+		ipt->GetEntry(entry);
+
+		if (event.valid != 0) continue;
+		if (event.taf_flag != 1) continue;
+
+		if (event.be_state >= 0) {
+			hist[event.be_state].Fill(event.excited_energy);
+			tree_ex[event.be_state] = event.excited_energy;
+			tree[event.be_state]->Fill();
+			if (event.ppac_flag == 2) {
+				hist_ppac[event.be_state].Fill(event.excited_energy);
+			}
+		}
+	}
+
+	ipf.Close();
+	return 0;
+}
+
+int main() {	// efficiency file name
 	TString efficiency_file_name = TString::Format(
 		"%s%sefficiency-0002.root", kGenerateDataPath, kSimulateDir
 	);
@@ -112,21 +221,29 @@ int main() {
 	);
 	// output file
 	TFile opf(output_file_name, "recreate");
+	// histogram of all valid PPAC events
 	TH1F hist_ex[3];
-	hist_ex[0] = TH1F("h0", "excited energy", 50, 12.10, 27.10);
-	hist_ex[1] = TH1F("h1", "excited energy", 50, 12.10, 27.10);
-	hist_ex[2] = TH1F("h2", "excited energy", 50, 12.10, 27.10);
+	hist_ex[0] = TH1F("h0", "excited energy", 50, 12.12, 27.12);
+	hist_ex[1] = TH1F("h1", "excited energy", 50, 12.12, 27.12);
+	hist_ex[2] = TH1F("h2", "excited energy", 50, 12.12, 27.12);
+	TH1F hist_ppac_ex[3] = {
+		TH1F{"hp0", "excited energy (multiple PPAC)", 50, 12.12, 27.12},
+		TH1F{"hp1", "excited energy (multiple PPAC)", 50, 12.12, 27.12},
+		TH1F{"hp2", "excited energy (multiple PPAC)", 50, 12.12, 27.12}
+	};
+	// 分辨率
 	TGraph graph_resolution[3];
+	// 分支比
 	TH1F relative_bar[3];
-	relative_bar[0] = TH1F("hb0", "relative events", 13, 0, 13);
+	relative_bar[0] = TH1F("hb0", "relative events", 15, 0, 15);
 	relative_bar[0].SetBarOffset(0.55);
 	relative_bar[0].SetBarWidth(0.3);
 	relative_bar[0].SetFillColor(kBlue);
-	relative_bar[1] = TH1F("hb1", "relative events", 13, 0, 13);
+	relative_bar[1] = TH1F("hb1", "relative events", 15, 0, 15);
 	relative_bar[1].SetBarOffset(0.85);
 	relative_bar[1].SetBarWidth(0.3);
 	relative_bar[1].SetFillColor(kGreen);
-	relative_bar[2] = TH1F("hb2", "relative events", 13, 0, 13);
+	relative_bar[2] = TH1F("hb2", "relative events", 15, 0, 15);
 	relative_bar[2].SetBarOffset(1.15);
 	relative_bar[2].SetBarWidth(0.3);
 	relative_bar[2].SetFillColor(kRed);
@@ -138,99 +255,28 @@ int main() {
 		fit_tree[i]->Branch("ex", fit_ex+i, "ex/D");
 	}
 
-	// loop
-	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
-		ipt->GetEntry(entry);
-		if ((ppac_flag & 1) != 1) continue;
-		if (taf_flag != 0) continue;
-		if ((target_flag & 1) == 0) continue;
-		if (bind != 0) continue;
-		if (hole > 0) continue;
-		// straight PID
-		// if (straight[0] != 3 || straight[1] != 3) continue;
-		if (straight[0] != 3) continue;
-		// if (
-		// 	q[0] < -10 && q[0] > -14
-		// 	&& q[2] < -10.15 && q[2] > -14.15
-		// 	&& q[3] < -10 && q[3] > -14
-		// ) {
-		// 	hist_ex[0].Fill(stateless_excited_energy[0][calc_index]);
-		// 	fit_ex[0] = stateless_excited_energy[0][calc_index];
-		// 	fit_tree[0]->Fill();
-		// }
-		// if (
-		// 	q[0] < -14.5 && q[0] > -16
-		// 	&& q[2] < -14.65 && q[2] > -16.15
-		// 	&& q[3] < -14.5 && q[3] > -16
-		// ) {
-		// 	hist_ex[1].Fill(stateless_excited_energy[1][calc_index]);
-		// 	fit_ex[1] = stateless_excited_energy[1][calc_index];
-		// 	fit_tree[1]->Fill();
-		// }
-		// if (
-		// 	q[0] < -17.5 && q[0] > -20.0
-		// 	&& q[2] < -17.65 && q[2] > -20.15
-		// 	&& q[3] < -17.5 && q[3] > -20.0
-		// ) {
-		// 	hist_ex[2].Fill(stateless_excited_energy[2][calc_index]);
-		// 	fit_ex[2] = stateless_excited_energy[2][calc_index];
-		// 	fit_tree[2]->Fill();
-		// }
-		if (q[calc_index] < -11 && q[calc_index] > -13) {
-			hist_ex[0].Fill(stateless_excited_energy[0][calc_index]);
-			fit_ex[0] = stateless_excited_energy[0][calc_index];
-			fit_tree[0]->Fill();
-		} else if (q[calc_index] < -14.5 && q[calc_index] > -16) {
-			hist_ex[1].Fill(stateless_excited_energy[1][calc_index]);
-			fit_ex[1] = stateless_excited_energy[1][calc_index];
-			fit_tree[1]->Fill();
-		} else if (q[calc_index] < -17 && q[calc_index] > -20) {
-			hist_ex[2].Fill(stateless_excited_energy[2][calc_index]);
-			fit_ex[2] = stateless_excited_energy[2][calc_index];
-			fit_tree[2]->Fill();
-		}
-	}
-	
-	opf.cd();
-	for (int i = 0; i < 3; ++i) hist_ex[i].Write(TString::Format("ho%d", i));
-
-
-	// spectrum V3 file
-	TString v3_file_name = TString::Format(
-		"%s%sC14-10Be-4He-2H-v3.root", kGenerateDataPath, kSpectrumDir
-	);
-	// input file
-	TFile v3_ipf(v3_file_name, "read");
-	// input tree
-	TTree *v3_ipt = (TTree*)v3_ipf.Get("tree");
-	if (!v3_ipt) {
-		std::cerr << "Error: Get tree from "
-			<< v3_file_name << " failed.\n";
+	if (FillFromSpectrumV2(hist_ex, hist_ppac_ex, fit_ex, fit_tree) != 0) {
 		return -1;
 	}
-	// input data
-	int v3_valid, v3_be_state;
-	double v3_excited_energy;
-	// setup input branches
-	v3_ipt->SetBranchAddress("valid", &v3_valid);
-	v3_ipt->SetBranchAddress("be_state", &v3_be_state);
-	v3_ipt->SetBranchAddress("excited_energy_target", &v3_excited_energy);
-
-	// loop
-	for (long long entry = 0; entry < v3_ipt->GetEntriesFast(); ++entry) {
-		v3_ipt->GetEntry(entry);
-
-		if (v3_valid != 0) continue;
-
-		if (v3_be_state >= 0) {
-			hist_ex[v3_be_state].Fill(v3_excited_energy);
-			fit_ex[v3_be_state] = v3_excited_energy;
-			fit_tree[v3_be_state]->Fill();
-		}
-	}
 
 	opf.cd();
-	for (int i = 0; i < 3; ++i) hist_ex[i].Write(TString::Format("hoe%d", i));
+	for (int i = 0; i < 3; ++i) {
+		hist_ex[i].Write(TString::Format("ho%d", i));
+	}
+	for (int i = 0; i < 3; ++i) {
+		hist_ppac_ex[i].Write(TString::Format("hp%d", i));
+	}
+
+	if (FillFromSpectrumV3(hist_ex, hist_ppac_ex, fit_ex, fit_tree) != 0) {
+		return -1;
+	}
+	opf.cd();
+	for (int i = 0; i < 3; ++i) {
+		hist_ex[i].Write(TString::Format("hoe%d", i));
+	}
+	for (int i = 0; i < 3; ++i) {
+		hist_ppac_ex[i].Write(TString::Format("hpe%d", i));
+	}
 
 	// test asymmetric voigt
 	RooRealVar test_x("tx", "test x", 12.0, 27.0);
@@ -253,7 +299,7 @@ int main() {
 
 	// RooFit
 	// get data
-	RooRealVar x("ex", "excited energy", 12.10, 27.10);
+	RooRealVar x("ex", "excited energy", 12.12, 27.12);
 
 	RooDataHist hist0("dh0", "excited energy", x, hist_ex);
 	// RooDataSet set0("s0", "excited energy", fit_tree[0], RooArgSet(x));
@@ -263,161 +309,161 @@ int main() {
 		"136",
 		VoigtInfo {
 			new RooRealVar("mean136", "mean", 13.65, 13.6, 13.7),
-			new RooRealVar("gamma136", "gamma", 0.05, 0.0, 0.2),
+			new RooRealVar("gamma136", "gamma", 4e-6, 1e-6, 5e-6),
 			new RooConstVar("sigma0_136", "sigma", 0.1*resolution_fraction),
 			threshold[0],
-			new RooRealVar("num0_136", "num", 1, 0.01, 10)
+			new RooRealVar("num0_136", "num", 3, 1, 5)
 		}
 	));
+	// 14.4
+	info_map[0].insert(std::make_pair(
+        "144",
+        VoigtInfo {
+            new RooRealVar("mean144", "mean", 14.34, 14.33, 14.35),
+            new RooRealVar("gamma144", "gamma", 3e-6, 1e-6, 5e-6),
+            new RooConstVar("sigma0_144", "sigma", 0.12*resolution_fraction),
+            threshold[0],
+			new RooRealVar("num0_144", "num", 9, 8, 10)
+        }
+    ));
 	// 14.9
 	info_map[0].insert(std::make_pair(
         "149",
         VoigtInfo {
-            new RooRealVar("mean149", "mean", 14.9, 14.5, 15.2),
-            new RooRealVar("gamma149", "gamma", 0.06, 0.0, 0.2),
+            new RooRealVar("mean149", "mean", 14.97, 14.96, 14.98),
+            new RooRealVar("gamma149", "gamma", 0.02, 1e-6, 0.03),
             new RooConstVar("sigma0_149", "sigma", 0.14*resolution_fraction),
             threshold[0],
-			new RooRealVar("num0_149", "num", 10, 0.01, 50)
+			new RooRealVar("num0_149", "num", 32, 10, 35)
         }
     ));
-	// 15.4
+	// 15.6
 	info_map[0].insert(std::make_pair(
-        "154",
+        "156",
         VoigtInfo {
-            new RooRealVar("mean154", "mean", 15.4, 15.3, 15.8),
-            new RooRealVar("gamma154", "gamma", 0.1, 0.0, 0.2),
+            new RooRealVar("mean154", "mean", 15.64, 15.63, 15.65),
+            new RooRealVar("gamma154", "gamma", 0.16, 0.14, 0.18),
             new RooConstVar("sigma0_154", "sigma", 0.14*resolution_fraction),
             threshold[0],
-			new RooRealVar("num0_154", "num", 15, 0.01, 50)
+			new RooRealVar("num0_154", "num", 83, 50, 85)
         }
     ));
     // 16.5
     info_map[0].insert(std::make_pair(
         "165",
         VoigtInfo {
-            new RooRealVar("mean165", "mean", 16.5, 16.0, 17.0),
-			new RooRealVar("gamma165", "gamma", 0.06, 0.0, 0.2),
+            new RooRealVar("mean165", "mean", 16.45, 16.4, 16.5),
+			new RooRealVar("gamma165", "gamma", 0.18, 0.15, 0.2),
             new RooConstVar("sigma0_165", "sigma", 0.16*resolution_fraction),
             threshold[0],
-			new RooRealVar("num0_165", "num", 15, 0.01, 50)
+			new RooRealVar("num0_165", "num", 80, 50, 90)
 		}
 	));
 	// 17.2
 	info_map[0].insert(std::make_pair(
         "172",
         VoigtInfo {
-            new RooRealVar("mean172", "mean", 17.2, 17.0, 17.5),
-            new RooRealVar("gamma172", "gamma", 0.1, 0.0, 0.4),
+            new RooRealVar("mean172", "mean", 17.25, 17.18, 17.3),
+            new RooRealVar("gamma172", "gamma", 0.4, 1e-6, 1.0),
             new RooConstVar("sigma0_172", "sigma", 0.18*resolution_fraction),
             threshold[1],
-			new RooRealVar("num0_172", "num", 20, 0.01, 50)
+			new RooRealVar("num0_172", "num", 10, 0.01, 50)
         }
     ));
-    // // 17.7
-    // info_map[0].insert(std::make_pair(
-    //     "177",
-    //     VoigtInfo {
-    //         new RooRealVar("mean177", "mean", 17.7, 17.4, 17.8),
-    //         new RooRealVar("gamma177", "gamma", 0.05, 0.0, 0.2),
-	// 		new RooConstVar("sigma0_177", "sigma", 0.19*resolution_fraction),
-    //         threshold[1],
-	// 		new RooRealVar("num0_136", "num", 1, 0.01, 10)
-	// 	}
-	// ));
-	// 18.5
-	info_map[0].insert(std::make_pair(
-        "185",
+    // 17.5
+    info_map[0].insert(std::make_pair(
+        "175",
         VoigtInfo {
-            new RooRealVar("mean185", "mean", 18.5, 18.0, 18.6),
-            new RooRealVar("gamma185", "gamma", 0.05, 0.0, 0.2),
-            new RooConstVar("sigma0_185", "sigma", 0.2*resolution_fraction),
+            new RooRealVar("mean175", "mean", 17.5, 17.2, 17.8),
+            new RooRealVar("gamma175", "gamma", 0.2, 1e-6, 0.6),
+			new RooConstVar("sigma0_175", "sigma", 0.19*resolution_fraction),
             threshold[1],
-			new RooRealVar("num0_185", "num", 30, 0.01, 100)
+			new RooRealVar("num0_175", "num", 50, 30, 80)
+		}
+	));
+	// 18.3
+	info_map[0].insert(std::make_pair(
+        "183",
+        VoigtInfo {
+            new RooRealVar("mean183", "mean", 18.25, 18.2, 18.3),
+            new RooRealVar("gamma183", "gamma", 0.05, 1e-6, 0.2),
+            new RooConstVar("sigma0_183", "sigma", 0.2*resolution_fraction),
+            threshold[1],
+			new RooRealVar("num0_183", "num", 115, 40, 150)
         }
     ));
 	// 19.0
 	info_map[0].insert(std::make_pair(
-        "190",
+        "192",
         VoigtInfo {
-            new RooRealVar("mean190", "mean", 19.0, 18.5, 19.2),
-            new RooRealVar("gamma190", "gamma", 0.05, 0.0, 0.4),
-            new RooConstVar("sigma0_190", "sigma", 0.2*resolution_fraction),
+            new RooRealVar("mean192", "mean", 19.25, 19.1, 19.3),
+            new RooRealVar("gamma192", "gamma", 0.3, 0.15, 0.4),
+            new RooConstVar("sigma0_192", "sigma", 0.2*resolution_fraction),
             threshold[1],
-			new RooRealVar("num0_190", "num", 1, 0.01, 10)
+			new RooRealVar("num0_192", "num", 100, 0.01, 200)
         }
     ));
-    // 19.3
-    info_map[0].insert(std::make_pair(
-        "193",
-        VoigtInfo {
-            new RooRealVar("mean193", "mean", 19.3, 19.1, 19.6),
-            new RooRealVar("gamma193", "gamma", 0.05, 0.0, 0.2),
-			new RooConstVar("sigma0_193", "sigma", 0.21*resolution_fraction),
-			threshold[2],
-			new RooRealVar("num0_193", "num", 30, 0.01, 100)
-		}
-	));
-	// 20.1
+	// 19.8
 	info_map[0].insert(std::make_pair(
-        "201",
+        "198",
         VoigtInfo {
-            new RooRealVar("mean201", "mean", 20.1, 19.7, 20.2),
-            new RooRealVar("gamma201", "gamma", 0.02, 0.0, 0.4),
-            new RooConstVar("sigma0_201", "sigma", 0.22*resolution_fraction),
-            threshold[2],
-			new RooRealVar("num0_201", "num", 20, 0.01, 50)
+            new RooRealVar("mean198", "mean", 19.7, 19.65, 20.1),
+            new RooRealVar("gamma198", "gamma", 1e-4, 1e-6, 0.1),
+            new RooConstVar("sigma0_198", "sigma", 0.21*resolution_fraction),
+            threshold[1],
+			new RooRealVar("num0_198", "num", 10, 2, 20)
         }
     ));
-    // 20.5
-    info_map[0].insert(std::make_pair(
-        "205",
-        VoigtInfo {
-            new RooRealVar("mean205", "mean", 20.5, 20.3, 20.7),
-            new RooRealVar("gamma205", "gamma", 0.02, 0.0, 0.4),
-			new RooConstVar("sigma0_205", "sigma", 0.23*resolution_fraction),
-			threshold[2],
-			new RooRealVar("num0_205", "num", 30, 0.01, 50)
-		}
-	));
-	// 20.9
+	// 20.2
 	info_map[0].insert(std::make_pair(
-		"209",
-		VoigtInfo {
-			new RooRealVar("mean209", "mean", 20.9, 20.7, 21.3),
-            new RooRealVar("gamma209", "gamma", 0.05, 0.0, 0.2),
-            new RooConstVar("sigma0_209", "sigma", 0.23*resolution_fraction),
+        "202",
+        VoigtInfo {
+            new RooRealVar("mean202", "mean", 20.4, 20.2, 20.4),
+            new RooRealVar("gamma202", "gamma", 0.04, 1e-6, 0.1),
+            new RooConstVar("sigma0_202", "sigma", 0.22*resolution_fraction),
             threshold[2],
-			new RooRealVar("num0_209", "num", 15, 0.01, 50)
+			new RooRealVar("num0_202", "num", 50, 20, 100)
+        }
+    ));
+    // 20.7
+    info_map[0].insert(std::make_pair(
+        "207",
+        VoigtInfo {
+            new RooRealVar("mean207", "mean", 20.6, 20.5, 20.7),
+            new RooRealVar("gamma207", "gamma", 0.2, 0.12, 0.3),
+			new RooConstVar("sigma0_207", "sigma", 0.23*resolution_fraction),
+			threshold[2],
+			new RooRealVar("num0_207", "num", 1, 0.01, 30)
 		}
 	));
 	// 21.6
 	info_map[0].insert(std::make_pair(
 		"216",
 		VoigtInfo {
-            new RooRealVar("mean216", "mean", 21.6, 21.3, 21.8),
-            new RooRealVar("gamma216", "gamma", 0.05, 0.0, 0.2),
+            new RooRealVar("mean216", "mean", 21.4, 21.3, 21.7),
+            new RooRealVar("gamma216", "gamma", 0.12, 0.1, 0.5),
             new RooConstVar("sigma0_216", "sigma", 0.24*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_216", "num", 15, 0.01, 50)
+			new RooRealVar("num0_216", "num", 50, 0.01, 100)
 		}
 	));
 	// 22.3
 	info_map[0].insert(std::make_pair(
 		"223",
 		VoigtInfo {
-            new RooRealVar("mean223", "mean", 22.3, 22.0, 22.6),
-            new RooRealVar("gamma223", "gamma", 0.05, 0.0, 0.2),
+            new RooRealVar("mean223", "mean", 22.25, 22.2, 22.3),
+            new RooRealVar("gamma223", "gamma", 0.6, 0.2, 0.8),
             new RooConstVar("sigma0_223", "sigma", 0.25*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_223", "num", 5, 0.01, 20)
+			new RooRealVar("num0_223", "num", 10, 0.01, 40)
 		}
 	));
 	// 22.8
 	info_map[0].insert(std::make_pair(
 		"228",
 		VoigtInfo {
-            new RooRealVar("mean228", "mean", 22.8, 22.7, 23.1),
-            new RooRealVar("gamma228", "gamma", 0.05, 0.0, 0.2),
+            new RooRealVar("mean228", "mean", 22.7, 22.7, 22.8),
+            new RooRealVar("gamma228", "gamma", 0.05, 1e-6, 0.1),
             new RooConstVar("sigma0_228", "sigma", 0.26*resolution_fraction),
 			threshold[2],
 			new RooRealVar("num0_228", "num", 20, 0.01, 50)
@@ -427,55 +473,66 @@ int main() {
 	info_map[0].insert(std::make_pair(
 		"232",
 		VoigtInfo {
-            new RooRealVar("mean232", "mean", 23.2, 23.0, 23.5),
-            new RooRealVar("gamma232", "gamma", 0.02, 0.0, 0.2),
+            new RooRealVar("mean232", "mean", 23.1, 23.0, 23.2),
+            new RooRealVar("gamma232", "gamma", 1e-5, 1e-6, 1e-3),
             new RooConstVar("sigma0_232", "sigma", 0.26*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_232", "num", 5, 0.01, 50)
+			new RooRealVar("num0_232", "num", 10, 0.01, 50)
 		}
 	));
-	// 23.6
+	// 23.7
 	info_map[0].insert(std::make_pair(
-		"236",
+		"237",
 		VoigtInfo {
-            new RooRealVar("mean236", "mean", 23.6, 23.3, 24.0),
-            new RooRealVar("gamma236", "gamma", 0.02, 0.0, 0.2),
-            new RooConstVar("sigma0_236", "sigma", 0.27*resolution_fraction),
+            new RooRealVar("mean237", "mean", 23.7, 23.6, 23.8),
+            new RooRealVar("gamma237", "gamma", 0.1, 0.01, 0.5),
+            new RooConstVar("sigma0_237", "sigma", 0.27*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_236", "num", 10, 0.01, 50)
+			new RooRealVar("num0_237", "num", 20, 0.01, 50)
 		}
 	));
-	// 24.5
+	// 24.0
 	info_map[0].insert(std::make_pair(
-		"245",
+		"240",
 		VoigtInfo {
-            new RooRealVar("mean245", "mean", 24.5, 24.2, 24.7),
-            new RooRealVar("gamma245", "gamma", 0.02, 0.0, 0.2),
-            new RooConstVar("sigma0_245", "sigma", 0.28*resolution_fraction),
+            new RooRealVar("mean240", "mean", 24.0, 24.0, 24.1),
+            new RooRealVar("gamma240", "gamma", 1e-6, 1e-6, 1e-3),
+            new RooConstVar("sigma0_240", "sigma", 0.27*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_245", "num", 1, 0.01, 10)
+			new RooRealVar("num0_240", "num", 5, 0.01, 20)
 		}
 	));
-	// 25.4
+	// 24.7
 	info_map[0].insert(std::make_pair(
-		"254",
+		"247",
 		VoigtInfo {
-            new RooRealVar("mean254", "mean", 25.4, 25.2, 25.7),
-            new RooRealVar("gamma254", "gamma", 0.02, 0.0, 1.0),
-            new RooConstVar("sigma0_254", "sigma", 0.28*resolution_fraction),
+            new RooRealVar("mean247", "mean", 24.5, 24.3, 24.8),
+            new RooRealVar("gamma247", "gamma", 0.01, 1e-6, 0.2),
+            new RooConstVar("sigma0_247", "sigma", 0.29*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_254", "num", 1, 0.01, 10)
+			new RooRealVar("num0_247", "num", 1, 0.01, 10)
 		}
 	));
+	// // 25.4
+	// info_map[0].insert(std::make_pair(
+	// 	"254",
+	// 	VoigtInfo {
+    //         new RooRealVar("mean254", "mean", 25.4, 25.2, 25.7),
+    //         new RooRealVar("gamma254", "gamma", 0.02, 0.0, 1.0),
+    //         new RooConstVar("sigma0_254", "sigma", 0.28*resolution_fraction),
+	// 		threshold[2],
+	// 		new RooRealVar("num0_254", "num", 1, 0.01, 10)
+	// 	}
+	// ));
 	// 26.0
 	info_map[0].insert(std::make_pair(
 		"260",
 		VoigtInfo {
-            new RooRealVar("mean260", "mean", 26.2, 26.0, 26.4),
-            new RooRealVar("gamma260", "gamma", 0.02, 0.0, 1.0),
+            new RooRealVar("mean260", "mean", 26.1, 26.0, 26.2),
+            new RooRealVar("gamma260", "gamma", 0.5, 1e-6, 2.0),
             new RooConstVar("sigma0_260", "sigma", 0.31*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num0_260", "num", 1, 0.01, 10)
+			new RooRealVar("num0_260", "num", 4, 0.01, 20)
 		}
 	));
 
@@ -524,9 +581,9 @@ int main() {
 		model0_list.add(*extend_pdf0[i]);
 	}
 	// background
-	RooRealVar bkg0_p1("bkg0_p1", "p1", 40, 30, 60);
-	RooRealVar bkg0_p0("bkg0_p0", "p0", -300, -1000, 0.0);
-	BackgroundPoly bkg0("bkg0", "bkg", x, bkg0_p1, bkg0_p0);
+	RooRealVar bkg0_root0("bkg0_root0", "root0", 14.0, 14.0, 16.0);
+	RooRealVar bkg0_root1("bkg0_root1", "root1", 26.0, 25.0, 27.0);
+	BackgroundPoly bkg0("bkg0", "bkg", x, bkg0_root0, bkg0_root1);
 	// background events' number
 	RooRealVar num_bkg0("num_bkg0", "num", 10, 0, 100);
 	RooExtendPdf ext_bkg0("ext_bkg0", "extend", bkg0, num_bkg0);
@@ -548,87 +605,87 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_172", "sigma", 0.11*resolution_fraction),
             threshold[1],
-			new RooRealVar("num1_172", "num", 5, 0.1, 20)
+			new RooRealVar("num1_172", "num", 50, 30, 70)
 		}
 	));
-	// // 17.7
-	// info_map[1].insert(std::make_pair(
-	// 	"177",
-	// 	VoigtInfo{
-	// 		nullptr,
-	// 		nullptr,
-	// 		new RooConstVar("sigma1_177", "sigma", 0.12*resolution_fraction),
-    //         threshold[1],
-			// new RooRealVar("num1_177", "num", 5, 0.1, 20)
-	// 	}
-	// ));
-	// 18.5
+	// 17.5
 	info_map[1].insert(std::make_pair(
-		"185",
+		"175",
 		VoigtInfo{
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma1_185", "sigma", 0.13*resolution_fraction),
+			new RooConstVar("sigma1_175", "sigma", 0.12*resolution_fraction),
             threshold[1],
-			new RooRealVar("num1_185", "num", 10, 0.1, 50)
+			new RooRealVar("num1_175", "num", 5, 0.01, 50)
+		}
+	));
+	// 18.5
+	info_map[1].insert(std::make_pair(
+		"183",
+		VoigtInfo{
+			nullptr,
+			nullptr,
+			new RooConstVar("sigma1_183", "sigma", 0.13*resolution_fraction),
+            threshold[1],
+			new RooRealVar("num1_183", "num", 100, 20, 150)
 		}
 	));
 	// 19.0
 	info_map[1].insert(std::make_pair(
-        "190",
+        "192",
         VoigtInfo {
 			nullptr,
 			nullptr,
-            new RooConstVar("sigma1_190", "sigma", 0.15*resolution_fraction),
+            new RooConstVar("sigma1_192", "sigma", 0.15*resolution_fraction),
             threshold[1],
-			new RooRealVar("num1_190", "num", 20, 0.1, 50)
+			new RooRealVar("num1_192", "num", 150, 50, 400)
         }
     ));
-	// 19.3
+	// 19.8
 	info_map[1].insert(std::make_pair(
-		"193",
+        "198",
+        VoigtInfo {
+			nullptr,
+			nullptr,
+            new RooConstVar("sigma1_198", "sigma", 0.16*resolution_fraction),
+            threshold[1],
+			new RooRealVar("num1_198", "num", 100, 50, 150)
+        }
+    ));
+	// 20.2
+	info_map[1].insert(std::make_pair(
+		"202",
 		VoigtInfo{
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma1_193", "sigma", 0.16*resolution_fraction),
+			new RooConstVar("sigma1_202", "sigma", 0.17*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_193", "num", 40, 0.1, 100)
+			new RooRealVar("num1_202", "num", 20, 2, 30)
 		}
 	));
-	// 20.1
+	// // 20.5
+	// info_map[1].insert(std::make_pair(
+	// 	"205",
+	// 	VoigtInfo{
+	// 		nullptr,
+	// 		nullptr,
+	// 		new RooConstVar("sigma1_205", "sigma", 0.18*resolution_fraction),
+    //         threshold[2],
+	// 		new RooRealVar("num1_205", "num", 60, 0.1, 200)
+	// 	}
+	// ));
+	// 20.7
 	info_map[1].insert(std::make_pair(
-		"201",
+		"207",
 		VoigtInfo{
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma1_201", "sigma", 0.17*resolution_fraction),
+			new RooConstVar("sigma1_207", "sigma", 0.18*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_201", "num", 30, 0.1, 100)
+			new RooRealVar("num1_207", "num", 100, 50, 200)
 		}
 	));
-	// 20.5
-	info_map[1].insert(std::make_pair(
-		"205",
-		VoigtInfo{
-			nullptr,
-			nullptr,
-			new RooConstVar("sigma1_205", "sigma", 0.18*resolution_fraction),
-            threshold[2],
-			new RooRealVar("num1_205", "num", 60, 0.1, 200)
-		}
-	));
-	// 20.9
-	info_map[1].insert(std::make_pair(
-		"209",
-		VoigtInfo{
-			nullptr,
-			nullptr,
-			new RooConstVar("sigma1_209", "sigma", 0.18*resolution_fraction),
-            threshold[2],
-			new RooRealVar("num1_209", "num", 15, 0.1, 100)
-		}
-	));
-	// 216
+	// 21.6
 	info_map[1].insert(std::make_pair(
 		"216",
 		VoigtInfo{
@@ -636,10 +693,10 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_216", "sigma", 0.19*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_216", "num", 50, 0.1, 200)
+			new RooRealVar("num1_216", "num", 50, 20, 120)
 		}
 	));
-	// 223
+	// 22.3
 	info_map[1].insert(std::make_pair(
 		"223",
 		VoigtInfo{
@@ -647,10 +704,10 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_223", "sigma", 0.20*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_223", "num", 25, 0.1, 100)
+			new RooRealVar("num1_223", "num", 5, 0.1, 100)
 		}
 	));
-	// 228
+	// 22.8
 	info_map[1].insert(std::make_pair(
 		"228",
 		VoigtInfo{
@@ -658,10 +715,10 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_228", "sigma", 0.21*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_228", "num", 25, 0.1, 100)
+			new RooRealVar("num1_228", "num", 70, 5, 140)
 		}
 	));
-	// 232
+	// 23.2
 	info_map[1].insert(std::make_pair(
 		"232",
 		VoigtInfo{
@@ -669,42 +726,53 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_232", "sigma", 0.21*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_232", "num", 25, 0.1, 100)
+			new RooRealVar("num1_232", "num", 10, 0.1, 50)
 		}
 	));
-	// 236
+	// 23.7
 	info_map[1].insert(std::make_pair(
-		"236",
+		"237",
 		VoigtInfo{
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma1_236", "sigma", 0.21*resolution_fraction),
+			new RooConstVar("sigma1_237", "sigma", 0.21*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_236", "num", 25, 0.1, 100)
+			new RooRealVar("num1_237", "num", 30, 10, 70)
 		}
 	));
-	// 245
+	// 24.0
 	info_map[1].insert(std::make_pair(
-		"245",
+		"240",
 		VoigtInfo{
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma1_245", "sigma", 0.22*resolution_fraction),
+			new RooConstVar("sigma1_240", "sigma", 0.23*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_245", "num", 35, 0.1, 100)
+			new RooRealVar("num1_240", "num", 25, 0.1, 100)
+		}
+	));
+	// 24.7
+	info_map[1].insert(std::make_pair(
+		"247",
+		VoigtInfo{
+			nullptr,
+			nullptr,
+			new RooConstVar("sigma1_247", "sigma", 0.23*resolution_fraction),
+            threshold[2],
+			new RooRealVar("num1_247", "num", 25, 0.1, 100)
 		}
 	));
 	// 254
-	info_map[1].insert(std::make_pair(
-		"254",
-		VoigtInfo{
-			nullptr,
-			nullptr,
-			new RooConstVar("sigma1_254", "sigma", 0.23*resolution_fraction),
-            threshold[2],
-			new RooRealVar("num1_254", "num", 25, 0.1, 100)
-		}
-	));
+	// info_map[1].insert(std::make_pair(
+	// 	"254",
+	// 	VoigtInfo{
+	// 		nullptr,
+	// 		nullptr,
+	// 		new RooConstVar("sigma1_254", "sigma", 0.23*resolution_fraction),
+    //         threshold[2],
+	// 		new RooRealVar("num1_254", "num", 25, 0.1, 100)
+	// 	}
+	// ));
 	// 260
 	info_map[1].insert(std::make_pair(
 		"260",
@@ -713,7 +781,7 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma1_260", "sigma", 0.25*resolution_fraction),
             threshold[2],
-			new RooRealVar("num1_260", "num", 25, 0.1, 100)
+			new RooRealVar("num1_260", "num", 100, 0.1, 200)
 		}
 	));
 	// P.D.F.
@@ -766,9 +834,9 @@ int main() {
 		model1_list.add(*extend_pdf1[i]);
 	}
 	// background
-	RooRealVar bkg1_p1("bkg1_p1", "p1", 46, 35, 50);
-	RooRealVar bkg1_p0("bkg1_p0", "p0", -450, -1000, 0.0);
-	BackgroundPoly bkg1("bkg1", "bkg", x, bkg1_p1, bkg1_p0);
+	RooRealVar bkg1_root0("bkg1_root0", "root0", 17, 16, 18);
+	RooRealVar bkg1_root1("bkg1_root1", "root1", 26, 25, 27);
+	BackgroundPoly bkg1("bkg1", "bkg", x, bkg1_root0, bkg1_root1);
 	// background events' number
 	RooRealVar num_bkg1("num_bkg1", "num", 10, 0, 100);
 	RooExtendPdf ext_bkg1("ext_bkg1", "extend", bkg1, num_bkg1);
@@ -781,37 +849,37 @@ int main() {
 	RooDataHist hist2("dh2", "excited energy", RooArgList(x), hist_ex+2);
 	// RooDataSet set2("s2", "excited energy", fit_tree[2], RooArgSet(x));
 	// construct P.D.F. information
-	// 20.1
+	// 19.8
 	info_map[2].insert(std::make_pair(
-		"201",
+		"198",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_201", "sigma", 0.11*resolution_fraction),
+			new RooConstVar("sigma2_198", "sigma", 0.11*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_201", "num", 15, 0.1, 100)
+			new RooRealVar("num2_198", "num", 30, 25, 60)
 		}
 	));
-	// 20.5
+	// 20.2
 	info_map[2].insert(std::make_pair(
-		"205",
+		"202",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_205", "sigma", 0.12*resolution_fraction),
+			new RooConstVar("sigma2_202", "sigma", 0.11*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_205", "num", 50, 0.1, 150)
+			new RooRealVar("num2_202", "num", 5, 1, 20)
 		}
 	));
-	// 20.9
+	// 20.7
 	info_map[2].insert(std::make_pair(
-		"209",
+		"207",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_209", "sigma", 0.13*resolution_fraction),
+			new RooConstVar("sigma2_207", "sigma", 0.11*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_209", "num", 40, 0.1, 150)
+			new RooRealVar("num2_207", "num", 80, 50, 150)
 		}
 	));
 	// 21.6
@@ -833,7 +901,7 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma2_223", "sigma", 0.15*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_223", "num", 120, 0.1, 300)
+			new RooRealVar("num2_223", "num", 200, 0.1, 400)
 		}
 	));
 	// 22.8
@@ -844,7 +912,7 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma2_228", "sigma", 0.17*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_228", "num", 10, 0.1, 200)
+			new RooRealVar("num2_228", "num", 10, 0.1, 50)
 		}
 	));
 	// 23.2
@@ -855,42 +923,53 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma2_232", "sigma", 0.17*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_232", "num", 50, 0.1, 200)
+			new RooRealVar("num2_232", "num", 50, 20, 100)
 		}
 	));
 	// 23.6
 	info_map[2].insert(std::make_pair(
-		"236",
+		"237",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_236", "sigma", 0.18*resolution_fraction),
+			new RooConstVar("sigma2_237", "sigma", 0.18*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_236", "num", 50, 0.1, 200)
+			new RooRealVar("num2_237", "num", 1, 0.01, 10)
 		}
 	));
-	// 24.5
+	// 24.0
 	info_map[2].insert(std::make_pair(
-		"245",
+		"240",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_245", "sigma", 0.19*resolution_fraction),
+			new RooConstVar("sigma2_240", "sigma", 0.18*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_245", "num", 50, 0.1, 200)
+			new RooRealVar("num2_240", "num", 60, 40, 100)
 		}
 	));
-	// 25.4
+	// 24.7
 	info_map[2].insert(std::make_pair(
-		"254",
+		"247",
 		VoigtInfo {
 			nullptr,
 			nullptr,
-			new RooConstVar("sigma2_254", "sigma", 0.20*resolution_fraction),
+			new RooConstVar("sigma2_247", "sigma", 0.20*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_254", "num", 30, 0.1, 200)
+			new RooRealVar("num2_247", "num", 50, 0.1, 200)
 		}
 	));
+	// // 25.4
+	// info_map[2].insert(std::make_pair(
+	// 	"254",
+	// 	VoigtInfo {
+	// 		nullptr,
+	// 		nullptr,
+	// 		new RooConstVar("sigma2_254", "sigma", 0.20*resolution_fraction),
+	// 		threshold[2],
+	// 		new RooRealVar("num2_254", "num", 30, 0.1, 200)
+	// 	}
+	// ));
 	// 26.0
 	info_map[2].insert(std::make_pair(
 		"260",
@@ -899,9 +978,10 @@ int main() {
 			nullptr,
 			new RooConstVar("sigma2_260", "sigma", 0.21*resolution_fraction),
 			threshold[2],
-			new RooRealVar("num2_260", "num", 30, 0.1, 200)
+			new RooRealVar("num2_260", "num", 100, 0.1, 200)
 		}
 	));
+
 	// P.D.F.
 	std::vector<RooAbsPdf*> pdf2;
 	// extended P.D.F.
@@ -912,6 +992,12 @@ int main() {
 		if (search != info_map[0].end()) {
 			value.mean = search->second.mean;
 			value.gamma = search->second.gamma;
+		} else {
+			auto search1 = info_map[1].find(key);
+			if (search1 != info_map[1].end()) {
+				value.mean = search1->second.mean;
+				value.gamma = search1->second.gamma;
+			}
 		}
 		// check
 		if (!value.mean || !value.gamma || !value.sigma) {
@@ -952,11 +1038,11 @@ int main() {
 		model2_list.add(*extend_pdf2[i]);
 	}
 	// background
-	RooRealVar bkg2_p1("bkg2_p1", "p1", 46, 40, 60);
-	RooRealVar bkg2_p0("bkg2_p0", "p0", -520, -1000, 0.0);
-	BackgroundPoly bkg2("bkg2", "bkg", x, bkg2_p1, bkg2_p0);
+	RooRealVar bkg2_root0("bkg2_root0", "root0", 20.0, 19.5, 21.0);
+	RooRealVar bkg2_root1("bkg2_root1", "root1", 26.0, 25.0, 27.0);
+	BackgroundPoly bkg2("bkg2", "bkg", x, bkg2_root0, bkg2_root1);
 	// background events' number
-	RooRealVar num_bkg2("num_bkg2", "num", 10, 0, 100);
+	RooRealVar num_bkg2("num_bkg2", "num", 10, 0, 50);
 	RooExtendPdf ext_bkg2("ext_bkg2", "extend", bkg2, num_bkg2);
 	model2_list.add(ext_bkg2);
 	// model0
@@ -1001,9 +1087,10 @@ int main() {
 
 	// show bar
 	std::vector<std::string> bar_names = {
-		"172", "185", "190", "193",
-		"201", "205", "216", "223",
-		"228", "232", "236", "245"
+		"172", "175", "183", "192",
+		"198", "202", "207", "216",
+		"223", "228", "232", "237",
+		"240", "247"
 	};
 	for (size_t i = 0; i < bar_names.size(); ++i) {
 		for (int state = 0; state < 3; ++state) {
@@ -1027,49 +1114,61 @@ int main() {
 		<< std::setw(16) << "sigma"
 		<< std::setw(16) << "events"
 		<< std::setw(16) << "relative events" << "\n";
-	const size_t print_n = 45;
-	int print_state[print_n] = {
-		0, 0, 0, 0,
-		0, 1,
-		0, 1,
-		0, 1,
-		0, 1,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
-		0, 1, 2,
+	std::vector<std::pair<int, std::string>> print_info = {
+		{0, "136"},
+		{0, "144"},
+		{0, "149"},
+		{0, "156"},
+		{0, "165"},
+		{0, "172"},
+		{1, "172"},
+		{0, "175"},
+		{1, "175"},
+		{0, "183"},
+		{1, "183"},
+		{0, "192"},
+		{1, "192"},
+		{0, "198"},
+		{1, "198"},
+		{2, "198"},
+		{0, "202"},
+		{1, "202"},
+		{2, "202"},
+		{0, "207"},
+		{1, "207"},
+		{2, "207"},
+		{0, "216"},
+		{1, "216"},
+		{2, "216"},
+		{0, "223"},
+		{1, "223"},
+		{2, "223"},
+		{0, "228"},
+		{1, "228"},
+		{2, "228"},
+		{0, "232"},
+		{1, "232"},
+		{2, "232"},
+		{0, "237"},
+		{1, "237"},
+		{2, "237"},
+		{0, "240"},
+		{1, "240"},
+		{2, "240"},
+		{0, "247"},
+		{1, "247"},
+		{2, "247"},
+		{0, "260"},
+		{1, "260"},
+		{2, "260"},
 	};
-	std::string print_name[print_n] = {
-		"136", "149", "154", "165",
-		"172", "172",
-		"185", "185",
-		"190", "190",
-		"193", "193",
-		"201", "201", "201",
-		"205", "205", "205",
-		"209", "209", "209",
-		"216", "216", "216",
-		"223", "223", "223",
-		"228", "228", "228",
-		"232", "232", "232",
-		"236", "236", "236",
-		"245", "245", "245",
-		"254", "254", "254",
-		"260", "260", "260"
-	};
-	for (size_t i = 0; i < print_n; ++i) {
-		int state = print_state[i];
-		auto search = info_map[state].find(print_name[i]);
+
+	for (size_t i = 0; i < print_info.size(); ++i) {
+		int state = print_info[i].first;
+		auto search = info_map[state].find(print_info[i].second);
 		if (search == info_map[state].end()) {
 			std::cerr << "Error: Could not find "
-				<< print_name[i] << " in state " << state << "\n";
+				<< print_info[i].second << " in state " << state << "\n";
 			continue;
 		}
 		auto &info = search->second;
@@ -1079,7 +1178,7 @@ int main() {
 		double gamma = g * sqrt(mean - thres);
 		double event = info.num->getVal();
 		double relative_event = event / g_efficiency[state]->Eval(mean);
-		std::cout << std::setw(6) << print_state[i]
+		std::cout << std::setw(6) << print_info[i].first
 			<< std::setw(16) << mean
 			<< std::setw(16) << gamma
 			<< std::setw(16) << info.sigma->getVal()
@@ -1250,7 +1349,15 @@ int main() {
 	hist_ex[0].GetYaxis()->SetLabelSize(0.15);
 	hist_ex[0].SetLineColor(kBlack);
 	hist_ex[0].Draw("same");
+	for (const auto &[key, value] : info_map[0]) {
+		TLine *line = new TLine(
+			value.mean->getVal(), 0.0, value.mean->getVal(), 45.0
+		);
+		line->SetLineStyle(2);
+		line->Draw("same");
+	}
 	print_efficiency[0].Draw("same");
+
 	pads[1]->cd();
 	frame1->Draw();
 	frame1->GetYaxis()->SetLabelSize(0.15);
@@ -1258,6 +1365,14 @@ int main() {
 	hist_ex[1].GetYaxis()->SetLabelSize(0.15);
 	hist_ex[1].Draw("same");
 	print_efficiency[1].Draw("same");
+	for (const auto &[key, value] : info_map[1]) {
+		TLine *line = new TLine(
+			value.mean->getVal(), 0.0, value.mean->getVal(), 100.0
+		);
+		line->SetLineStyle(2);
+		line->Draw("same");
+	}
+
 	pads[2]->cd();
 	frame2->Draw();
 	frame2->GetXaxis()->SetLabelSize(0.12);
@@ -1267,15 +1382,23 @@ int main() {
 	hist_ex[2].GetYaxis()->SetLabelSize(0.15);
 	hist_ex[2].Draw("same");
 	print_efficiency[2].Draw("same");
+	for (const auto &[key, value] : info_map[2]) {
+		TLine *line = new TLine(
+			value.mean->getVal(), 0.0, value.mean->getVal(), 80.0
+		);
+		line->SetLineStyle(2);
+		line->Draw("same");
+	}
+
 	c1->SaveAs(
-		TString::Format("%simage/rootfit-result.png", kGenerateDataPath)
+		TString::Format("%s%sroofit-result.png", kGenerateDataPath, kImageDir)
 	);
 	c1->Write("c1");
 
 	TCanvas *c2 = new TCanvas("c2", "", 1920, 1080);
 	test_frame->Draw();
 	c2->SaveAs(
-		TString::Format("%simage/test-asym-voigt.png", kGenerateDataPath)
+		TString::Format("%s%stest-asym-voigt.png", kGenerateDataPath, kImageDir)
 	);
 	c2->Write("tc");
 
@@ -1287,12 +1410,14 @@ int main() {
 		auto search = info_map[0].find(bar_names[i]);
 		if (search == info_map[0].end()) continue;
 		double mean = search->second.mean->getVal();
-		xaxis->SetNdivisions(13);
+		xaxis->SetNdivisions(bar_names.size()+1);
 		xaxis->ChangeLabel(
 			i+2, -1, -1, -1, -1, -1,
 			TString::Format("%.1lf", mean)
 		);
 	}
+	xaxis->ChangeLabel(1, -1, 0, -1, -1, -1, "");
+	xaxis->ChangeLabel(bar_names.size()+2, -1, 0, -1, -1, -1, "");
 	relative_bar[2].Draw("bar");
 	relative_bar[1].Draw("bar, same");
 	relative_bar[0].Draw("bar, same");
@@ -1302,15 +1427,11 @@ int main() {
 	legend->AddEntry(relative_bar+2, "~6MeV state", "f");
 	legend->Draw();
 	c3->SaveAs(
-		TString::Format("%simage/relative-events.png", kGenerateDataPath)
+		TString::Format("%s%srelative-events.png", kGenerateDataPath, kImageDir)
 	);
 	c3->Write("barc");
 
 	opf.Close();
-	ipf.Close();
-	v3_ipf.Close();
-
-	// clean
 
 	return 0;
 }

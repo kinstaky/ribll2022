@@ -18,15 +18,15 @@ public:
 	/// @param[in] name P.D.F. name
 	/// @param[in] title P.D.F. title
 	/// @param[in] x observable
-	/// @param[in] p1 parameter for x^1
-	/// @param[in] p0 parameter for x^0
+	/// @param[in] root0 the first root
+	/// @param[in] root1 the second root
 	///
 	BackgroundPoly(
 		const char *name,
 		const char *title,
 		RooAbsReal &x,
-		RooAbsReal &p1,
-		RooAbsReal &p0
+		RooAbsReal &root0,
+		RooAbsReal &root1
 	);
 
 
@@ -50,8 +50,8 @@ public:
 
 protected:
 	RooRealProxy x_;
-	RooRealProxy p1_;
-	RooRealProxy p0_;
+	RooRealProxy root0_;
+	RooRealProxy root1_;
 
 	double evaluate() const override;
 };

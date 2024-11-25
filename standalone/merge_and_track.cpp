@@ -1965,7 +1965,7 @@ int main(int argc, char **argv) {
 
 	// output file name
 	TString output_file_name = TString::Format(
-		"%s%st0-telescope-%s%04d.root",
+		"%s%st0-telescope-%sv2-%04d.root",
 		kGenerateDataPath,
 		kTelescopeDir,
 		tag.empty() ? "" : (tag+"-").c_str(),

@@ -723,7 +723,7 @@ int C14ToBe10He4ThreeBodyChannel::Coincide() {
 	// t0 particle file name
 	TString t0_file_name;
 	t0_file_name.Form(
-		"%s%st0-particle-%sta-%04d.root",
+		"%s%st0-particle-%sta-v2-%04d.root",
 		kGenerateDataPath,
 		kParticleDir,
 		simulate_ ? "sim-" : "",

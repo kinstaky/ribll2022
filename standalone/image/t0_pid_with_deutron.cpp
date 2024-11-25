@@ -5,8 +5,8 @@
 #include <TH2F.h>
 #include <TCanvas.h>
 
-#include "include/event/dssd_event.h"
-#include "include/event/ta_event.h"
+#include "include/event/t0_event.h"
+#include "include/event/particle_event.h"
 
 using namespace ribll;
 
@@ -26,7 +26,6 @@ bool CheckTarget(int run, const std::string target) {
 	return false;
 }
 
-
 int main(int argc, char **argv) {
 	if (argc > 2 || (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'h')) {
 		std::cout << "Usage: " << argv[0] << " [target].\n"
@@ -41,8 +40,9 @@ int main(int argc, char **argv) {
 			<< target << "\n";
 		return -1;
 	}
-	// T0D1 chain
-	TChain d1_chain("t0d1", "t0d1");
+
+	// T0 chain
+	TChain t0_chain("t0", "t0");
 	// TAF chain
 	TChain taf_chain[6] = {
 		TChain{"taf0", "taf0"},
@@ -56,17 +56,17 @@ int main(int argc, char **argv) {
 	int end_run = target == "cd2" ? 746 : 732;
 	for (int run = start_run; run <= end_run; ++run) {
 		if (!CheckTarget(run, target)) continue;
-		d1_chain.AddFile(TString::Format(
-			"%s%st0d1-merge-ta-%04d.root/tree",
+		t0_chain.AddFile(TString::Format(
+			"%s%st0-telescope-ta-%04d.root/tree",
 			kGenerateDataPath,
-			kMergeDir,
+			kTelescopeDir,
 			run
 		));
 		for (int i = 0; i < 6; ++i) {
 			taf_chain[i].AddFile(TString::Format(
-				"%s%staf%d-telescope-ta-%04d.root/tree",
+				"%s%staf%d-particle-ta-v2-%04d.root/tree",
 				kGenerateDataPath,
-				kTelescopeDir,
+				kParticleDir,
 				i,
 				run
 			));
@@ -74,46 +74,29 @@ int main(int argc, char **argv) {
 	}
 	// add friends
 	for (int i = 0; i < 6; ++i) {
-		d1_chain.AddFriend(taf_chain+i, TString::Format("taf%d", i));
+		t0_chain.AddFriend(taf_chain+i, TString::Format("taf%d", i));
 	}
-	// input T0D1 event
-	DssdMergeEvent d1_event;
+	// input T0 event
+	T0Event t0_event;
 	// input TAF event
-	TaEvent taf_event[6];
+	ParticleEvent taf_event[6];
 	// setup input branches
-	d1_event.SetupInput(&d1_chain);
+	t0_event.SetupInput(&t0_chain);
 	for (int i = 0; i < 6; ++i) {
 		taf_event[i].SetupInput(
-			&d1_chain, TString::Format("taf%d.", i).Data()
+			&t0_chain, TString::Format("taf%d.", i).Data()
 		);
 	}
 
 	// output histograms
-	TH2F pid_all_strips[12];
-	TH2F pid_single_strip[12][16];
-	for (int i = 0; i < 12; ++i) {
-		pid_all_strips[i] = TH2F(
-			TString::Format("hc%d", i),
-			TString::Format(
-				"TAF%d-CsI%d all strips PID, target %s",
-				i/2, i, target.c_str()
-			),
-			1000, 0, 100, 1000, 0, 20
-		);
-		for (int j = 0; j < 16; ++j) {
-			pid_single_strip[i][j] = TH2F(
-				TString::Format("hc%ds%d", i, j),
-				TString::Format(
-					"TAF%d-CsI%d strip %d PID target %s",
-					i/2, i, j, target.c_str()
-				),
-				1000, 0, 100, 1000, 0, 20
-			);
-		}
-	}
+	TH2F d1d2_pid("d1d2", "T0 D1-D2 PID", 1000, 0, 40000, 1000, 0, 60000);
+	TH2F d2d3_pid("d2d3", "T0 D2-D3 PID", 1000, 0, 30000, 1000, 0, 40000);
+
+	// statistics
+	int multiple_deutron = 0;
 
 	// total number of entries
-	long long entries = d1_chain.GetEntries();
+	long long entries = t0_chain.GetEntries();
 	// 1/100 of entries
 	long long entry100 = entries / 100 + 1;
 	// show start
@@ -127,59 +110,63 @@ int main(int argc, char **argv) {
 			fflush(stdout);
 		}
 		// get event
-		d1_chain.GetEntry(entry);
-		if (d1_event.hit == 0) continue;
+		t0_chain.GetEntry(entry);
 
+		int deutron_num = 0;
 		for (int i = 0; i < 6; ++i) {
-			if (taf_event[i].num == 0) continue;
-			if (
-				taf_event[i].flag[0] != 0x3
-				&& taf_event[i].flag[0] != 0x5
-			) continue;
-			int csi_index = taf_event[i].flag[0] == 0x3 ? i*2 : i*2+1;
-			// TAFD energy
-			double de = taf_event[i].energy[0][0];
-			// TAF CsI energy
-			double e = taf_event[i].energy[0][1];
-			// calibrate CsI energy
-			double a0 = power_csi_param[csi_index][0];
-			double a1 = power_csi_param[csi_index][1];
-			double a2 = power_csi_param[csi_index][2];
-			e = pow((e-a2)/a0, 1.0/a1);
-			// fill to total histogram
-			pid_all_strips[csi_index].Fill(e, de);
-			// fill to single strip histogram
-			unsigned short &fs = taf_event[i].front_strip[0];
-			pid_single_strip[csi_index][fs].Fill(e, de);
+			for (int j = 0; j < taf_event[i].num; ++j) {
+				if (taf_event[i].charge[i] == 1 && taf_event[i].mass[i] == 2) {
+					++deutron_num;
+				}	
+			}
+		}
+		// check deutron number
+		if (deutron_num > 1) {
+			++multiple_deutron;
+			continue;
+		}
+		if (deutron_num == 0) continue;
+		// fill T0 particles
+		for (int i = 0; i < t0_event.num; ++i) {
+			if ((t0_event.flag[i] & 0x3) == 0x3) {
+				d1d2_pid.Fill(t0_event.energy[i][1], t0_event.energy[i][0]);
+			}
+			if ((t0_event.flag[i] & 0x7) == 0x7) {
+				d2d3_pid.Fill(t0_event.energy[i][2], t0_event.energy[i][1]);
+			}
 		}
 	}
 	// show finish
 	printf("\b\b\b\b100%%\n");
 
+	std::cout << "Multiple deutron events " << multiple_deutron << "\n";
+
 	// canvas
 	TCanvas *c1 = new TCanvas("c1", "c1", 1920, 1080);
 	c1->cd();
 
-	// output pdf file name
-	TString pdf_file_name = TString::Format(
-		"%s%staf-pid-%s.pdf",
+	// d1d2 image name
+	TString d1d2_image_name = TString::Format(
+		"%s%st0-pid-with-deutron-d1d2-%s.png",
 		kGenerateDataPath,
 		kImageDir,
 		target.c_str()
 	);
+	d1d2_pid.Draw("colz");
 	// print to pdf
-	c1->Print(pdf_file_name+"[");
-	for (int i = 0; i < 12; ++i) {
-		pid_all_strips[i].Draw("colz");
-		c1->Print(pdf_file_name);
-	}
-	// for (int i = 0; i < 12; ++i) {
-	// 	for (int j = 0; j < 16; ++j) {
-	// 		pid_single_strip[i][j].Draw("colz");
-	// 		c1->Print(pdf_file_name);
-	// 	}
-	// }
-	c1->Print(pdf_file_name+"]");
+	c1->Print(d1d2_image_name);
+
+	// d2d3 image name
+	TString d2d3_image_name = TString::Format(
+		"%s%st0-pid-with-deutron-d2d3-%s.png",
+		kGenerateDataPath,
+		kImageDir,
+		target.c_str()
+	);
+	c1->cd();
+	d2d3_pid.Draw("colz");
+	// print to pdf
+	c1->Print(d2d3_image_name);
 
 	return 0;
 }
