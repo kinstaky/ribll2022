@@ -8,8 +8,10 @@
 #include <TString.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TLine.h>
 #include <TF1.h>
 #include <Math/Vector3D.h>
+#include <TCanvas.h>
 
 #include "include/event/threebody_info_event.h"
 #include "include/calculator/d2_energy_calculator.h"
@@ -781,6 +783,23 @@ int main(int argc, char **argv) {
 		<< fq3->GetParameter(4) << ", " << fq3->GetParameter(5) << ", "
 		<< fq3->GetParameter(7) << ", " << fq3->GetParameter(8) << "\n";
 
+
+	std::vector<TLine> q_lines;
+	q_lines.push_back(TLine(-20.0, 0.0, -20.0, 160.0));
+	q_lines.push_back(TLine(-17.0, 0.0, -17.0, 160.0));
+	q_lines.push_back(TLine(-16.0, 0.0, -16.0, 160.0));
+	q_lines.push_back(TLine(-14.5, 0.0, -14.5, 160.0));
+	q_lines.push_back(TLine(-13.0, 0.0, -13.0, 160.0));
+	q_lines.push_back(TLine(-11.0, 0.0, -11.0, 160.0));
+	TCanvas *c1 = new TCanvas("c1", "c1", 1920, 1080);
+	c1->cd();
+	hq[0].Draw();
+	for (auto &line : q_lines) {
+		line.SetLineStyle(2);
+		line.Draw();
+	}
+	c1->Write();
+
 	// save
 	opf.cd();
 	for (int i = 0; i < 3; ++i) {
@@ -798,6 +817,7 @@ int main(int argc, char **argv) {
 	pid_d1d2_calc_straight.Write();
 	pid_d2d3_calc_straight.Write();
 	for (size_t i = 0; i < 4; ++i) hq[i].Write();
+	c1->Write();
 	opt.Write();
 	// close files
 	opf.Close();

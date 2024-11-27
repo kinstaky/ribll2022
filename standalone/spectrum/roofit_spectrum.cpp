@@ -281,7 +281,7 @@ int main() {	// efficiency file name
 	// test asymmetric voigt
 	RooRealVar test_x("tx", "test x", 12.0, 27.0);
 	RooRealVar test_mean("tmean", "test  mean", 16.0);
-	RooRealVar test_g("tg", "test g", 1.0);
+	RooRealVar test_g("tg", "test g", 0.2);
 	RooRealVar test_sigma("tsigma", "test sigma", 0.3);
 	AsymmetricVoigtian test_avoigt(
 		"tav", "test asym voigt",

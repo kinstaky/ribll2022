@@ -201,13 +201,13 @@ int main(int argc, char **argv) {
 			double ppacx =
 				ppac_xz[i] * tan(event.beam_theta) * cos(event.beam_phi)
 				+ event.target_x;
-			// consdier strips
+			// consider strips
 			ppacx = int(ppacx + 50.5) - 50.0 + generator.Gaus(0.0, 0.35);
 			// Y position
 			double ppacy =
 				ppac_yz[i] * tan(event.beam_theta) * sin(event.beam_phi)
 				+ event.target_y;
-			// consdier strips
+			// consider strips
 			ppacy = int(ppacy + 50.5) - 50.0 + generator.Gaus(0.0, 0.35);
 
 			// efficiency check
