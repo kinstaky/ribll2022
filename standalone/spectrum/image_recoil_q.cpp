@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 	// get image recoil mass
 	int image_recoil_mass =
 		pos_start + 1 == argc ?  2 : atoi(argv[pos_start+1]);
-	
+
 	if (image_recoil_mass != 1 && image_recoil_mass != 2) {
 		std::cerr << "Error: Invalid image recoil mass number, "
 			<< image_recoil_mass << "\n";
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
 			recoil_kinetic = recoil_calculator.Energy(
 				recoil_direction.Theta(),
 				channel.tafd_energy,
-				tafd_thickness[channel.taf_index] 
+				tafd_thickness[channel.taf_index]
 			);
 		}
 		double recoil_momentum = MomentumFromKinetic(

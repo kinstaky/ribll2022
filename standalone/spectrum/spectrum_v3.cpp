@@ -113,6 +113,8 @@ int main(int argc, char **argv) {
 	int be_state;
 	// excited energy with target energy lost
 	double excited_energy_target;
+	// image 1H part
+	double image_q;
 
 	// setup output branches
 	opt.Branch("valid", &valid, "valid/I");
@@ -128,6 +130,7 @@ int main(int argc, char **argv) {
 	opt.Branch("q", &q, "q/D");
 	opt.Branch("be_state", &be_state, "bes/I");
 	opt.Branch("excited_energy_target", &excited_energy_target, "ext/D");
+	opt.Branch("image_q", &image_q, "imq/D");
 
 	// target energy calculator
 	elc::TargetEnergyCalculator be10_target("10Be", "CD2", 9.53);
@@ -135,6 +138,7 @@ int main(int argc, char **argv) {
 	elc::TargetEnergyCalculator h2_target("2H", "CD2", 9.53);
 	// CsI energy calculator
 	elc::CsiEnergyCalculator h2_csi("2H");
+	elc::CsiEnergyCalculator h1_csi("1H");
 
 
 	// loop to process
@@ -273,7 +277,7 @@ int main(int argc, char **argv) {
 				d_d.Theta(), channel.tafd_energy,
 				correct_tafd_thickness[channel.taf_index]
 			);
-			d_kinetic_target = 
+			d_kinetic_target =
 				h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
 		}
 		if (pow(iter_tx-2.5, 2.0) + pow(iter_ty+2.0, 2.0) < 196.0) {
@@ -345,6 +349,31 @@ int main(int argc, char **argv) {
 			hq_taf[channel.taf_index].Fill(q - q_correct[channel.taf_index]);
 			hq.Fill(q);
 		}
+
+		// image 1H part
+		// calculated recoil kinetic
+		double image_p_kinetic = channel.tafd_energy + h1_csi.Energy(
+			d_d.Theta(), channel.tafd_energy,
+			correct_tafd_thickness[channel.taf_index]
+		);
+		double image_p_kinetic_target =
+			h2_target.Energy(-0.5/cos(d_d.Theta()), image_p_kinetic);
+		// 2H momentum
+		double image_p_momentum =
+			MomentumFromKinetic(mass_1h, image_p_kinetic_target);
+		ROOT::Math::XYZVector image_p_p = d_d * image_p_momentum;
+		// beam 14C momentum vector
+		ROOT::Math::XYZVector image_p_c = p_be + p_he + image_p_p;
+		// 14C momentum
+		double image_c_momentum_target = image_p_c.R();
+		// 14C kinematic energy
+		double image_c_kinetic_target =
+			sqrt(pow(image_c_momentum_target, 2.0)
+			+ pow(mass_14c, 2.0)) - mass_14c;
+		// three body Q value
+		image_q = be_kinetic_target + he_kinetic_target
+			+ image_p_kinetic_target - image_c_kinetic_target;
+		if (image_q > 1) valid |= 64;
 
 		// fill to tree
 		opt.Fill();
