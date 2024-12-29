@@ -83,7 +83,7 @@ int FillFromSpectrumV2(
 	TH1F *hist,
 	TH1F *hist_ppac,
 	double *tree_ex,
-	TTree **tree	
+	TTree **tree
 ) {
 	// input file name
 	TString input_file_name = TString::Format(
@@ -305,21 +305,21 @@ int main() {	// efficiency file name
 	// RooDataSet set0("s0", "excited energy", fit_tree[0], RooArgSet(x));
 	// construct P.D.F. information
 	// 13.6
-	info_map[0].insert(std::make_pair(
-		"136",
-		VoigtInfo {
-			new RooRealVar("mean136", "mean", 13.65, 13.6, 13.7),
-			new RooRealVar("gamma136", "gamma", 4e-6, 1e-6, 5e-6),
-			new RooConstVar("sigma0_136", "sigma", 0.1*resolution_fraction),
-			threshold[0],
-			new RooRealVar("num0_136", "num", 3, 1, 5)
-		}
-	));
+	// info_map[0].insert(std::make_pair(
+	// 	"136",
+	// 	VoigtInfo {
+	// 		new RooRealVar("mean136", "mean", 13.65, 13.6, 13.7),
+	// 		new RooRealVar("gamma136", "gamma", 4e-6, 1e-6, 5e-6),
+	// 		new RooConstVar("sigma0_136", "sigma", 0.1*resolution_fraction),
+	// 		threshold[0],
+	// 		new RooRealVar("num0_136", "num", 3, 1, 5)
+	// 	}
+	// ));
 	// 14.4
 	info_map[0].insert(std::make_pair(
         "144",
         VoigtInfo {
-            new RooRealVar("mean144", "mean", 14.34, 14.33, 14.35),
+            new RooRealVar("mean144", "mean", 14.4, 14.3, 14.5),
             new RooRealVar("gamma144", "gamma", 3e-6, 1e-6, 5e-6),
             new RooConstVar("sigma0_144", "sigma", 0.12*resolution_fraction),
             threshold[0],
@@ -330,8 +330,8 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
         "149",
         VoigtInfo {
-            new RooRealVar("mean149", "mean", 14.97, 14.96, 14.98),
-            new RooRealVar("gamma149", "gamma", 0.02, 1e-6, 0.03),
+            new RooRealVar("mean149", "mean", 14.9, 14.8, 15.0),
+            new RooRealVar("gamma149", "gamma", 0.059, 0.02, 0.07),
             new RooConstVar("sigma0_149", "sigma", 0.14*resolution_fraction),
             threshold[0],
 			new RooRealVar("num0_149", "num", 32, 10, 35)
@@ -341,8 +341,8 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
         "156",
         VoigtInfo {
-            new RooRealVar("mean154", "mean", 15.64, 15.63, 15.65),
-            new RooRealVar("gamma154", "gamma", 0.16, 0.14, 0.18),
+            new RooRealVar("mean154", "mean", 15.5, 15.6, 15.7),
+            new RooRealVar("gamma154", "gamma", 0.095, 0.07, 0.12),
             new RooConstVar("sigma0_154", "sigma", 0.14*resolution_fraction),
             threshold[0],
 			new RooRealVar("num0_154", "num", 83, 50, 85)
@@ -352,8 +352,8 @@ int main() {	// efficiency file name
     info_map[0].insert(std::make_pair(
         "165",
         VoigtInfo {
-            new RooRealVar("mean165", "mean", 16.45, 16.4, 16.5),
-			new RooRealVar("gamma165", "gamma", 0.18, 0.15, 0.2),
+            new RooRealVar("mean165", "mean", 16.3, 16.4, 16.5),
+			new RooRealVar("gamma165", "gamma", 0.06, 0.05, 0.07),
             new RooConstVar("sigma0_165", "sigma", 0.16*resolution_fraction),
             threshold[0],
 			new RooRealVar("num0_165", "num", 80, 50, 90)
@@ -363,29 +363,29 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
         "172",
         VoigtInfo {
-            new RooRealVar("mean172", "mean", 17.25, 17.18, 17.3),
-            new RooRealVar("gamma172", "gamma", 0.4, 1e-6, 1.0),
+            new RooRealVar("mean172", "mean", 17.2, 17.3, 17.4),
+            new RooRealVar("gamma172", "gamma", 0.052, 0.04, 0.065),
             new RooConstVar("sigma0_172", "sigma", 0.18*resolution_fraction),
             threshold[1],
-			new RooRealVar("num0_172", "num", 10, 0.01, 50)
+			new RooRealVar("num0_172", "num", 10, 0.01, 150)
         }
     ));
-    // 17.5
-    info_map[0].insert(std::make_pair(
-        "175",
-        VoigtInfo {
-            new RooRealVar("mean175", "mean", 17.5, 17.2, 17.8),
-            new RooRealVar("gamma175", "gamma", 0.2, 1e-6, 0.6),
-			new RooConstVar("sigma0_175", "sigma", 0.19*resolution_fraction),
-            threshold[1],
-			new RooRealVar("num0_175", "num", 50, 30, 80)
-		}
-	));
+    // // 17.5
+    // info_map[0].insert(std::make_pair(
+    //     "175",
+    //     VoigtInfo {
+    //         new RooRealVar("mean175", "mean", 17.5, 17.4, 17.8),
+    //         new RooRealVar("gamma175", "gamma", 0.2, 1e-6, 0.4),
+	// 		new RooConstVar("sigma0_175", "sigma", 0.19*resolution_fraction),
+    //         threshold[1],
+	// 		new RooRealVar("num0_175", "num", 50, 30, 80)
+	// 	}
+	// ));
 	// 18.3
 	info_map[0].insert(std::make_pair(
         "183",
         VoigtInfo {
-            new RooRealVar("mean183", "mean", 18.25, 18.2, 18.3),
+            new RooRealVar("mean183", "mean", 18.25, 18.2, 18.6),
             new RooRealVar("gamma183", "gamma", 0.05, 1e-6, 0.2),
             new RooConstVar("sigma0_183", "sigma", 0.2*resolution_fraction),
             threshold[1],
@@ -396,11 +396,11 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
         "192",
         VoigtInfo {
-            new RooRealVar("mean192", "mean", 19.25, 19.1, 19.3),
-            new RooRealVar("gamma192", "gamma", 0.3, 0.15, 0.4),
+            new RooRealVar("mean192", "mean", 19.2, 19.0, 19.4),
+            new RooRealVar("gamma192", "gamma", 0.2, 0.05, 0.5),
             new RooConstVar("sigma0_192", "sigma", 0.2*resolution_fraction),
             threshold[1],
-			new RooRealVar("num0_192", "num", 100, 0.01, 200)
+			new RooRealVar("num0_192", "num", 100, 1.0, 200)
         }
     ));
 	// 19.8
@@ -473,7 +473,7 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
 		"232",
 		VoigtInfo {
-            new RooRealVar("mean232", "mean", 23.1, 23.0, 23.2),
+            new RooRealVar("mean232", "mean", 23.1, 23.0, 23.3),
             new RooRealVar("gamma232", "gamma", 1e-5, 1e-6, 1e-3),
             new RooConstVar("sigma0_232", "sigma", 0.26*resolution_fraction),
 			threshold[2],
@@ -495,7 +495,7 @@ int main() {	// efficiency file name
 	info_map[0].insert(std::make_pair(
 		"240",
 		VoigtInfo {
-            new RooRealVar("mean240", "mean", 24.0, 24.0, 24.1),
+            new RooRealVar("mean240", "mean", 24.0, 23.9, 24.1),
             new RooRealVar("gamma240", "gamma", 1e-6, 1e-6, 1e-3),
             new RooConstVar("sigma0_240", "sigma", 0.27*resolution_fraction),
 			threshold[2],
@@ -605,20 +605,20 @@ int main() {	// efficiency file name
 			nullptr,
 			new RooConstVar("sigma1_172", "sigma", 0.11*resolution_fraction),
             threshold[1],
-			new RooRealVar("num1_172", "num", 50, 30, 70)
+			new RooRealVar("num1_172", "num", 30, 20, 150)
 		}
 	));
 	// 17.5
-	info_map[1].insert(std::make_pair(
-		"175",
-		VoigtInfo{
-			nullptr,
-			nullptr,
-			new RooConstVar("sigma1_175", "sigma", 0.12*resolution_fraction),
-            threshold[1],
-			new RooRealVar("num1_175", "num", 5, 0.01, 50)
-		}
-	));
+	// info_map[1].insert(std::make_pair(
+	// 	"175",
+	// 	VoigtInfo{
+	// 		nullptr,
+	// 		nullptr,
+	// 		new RooConstVar("sigma1_175", "sigma", 0.12*resolution_fraction),
+    //         threshold[1],
+	// 		new RooRealVar("num1_175", "num", 5, 0.01, 50)
+	// 	}
+	// ));
 	// 18.5
 	info_map[1].insert(std::make_pair(
 		"183",
@@ -1281,7 +1281,7 @@ int main() {	// efficiency file name
 	// printable efficiency
 	TGraph print_efficiency[3];
 	const double efficiency_factor[3] = {
-		180.0, 300.0, 400.0
+		250.0, 450.0, 400.0
 	};
 	for (int i = 0; i < 3; ++i) {
 		print_efficiency[i].SetLineWidth(2);
@@ -1351,7 +1351,7 @@ int main() {	// efficiency file name
 	hist_ex[0].Draw("same");
 	for (const auto &[key, value] : info_map[0]) {
 		TLine *line = new TLine(
-			value.mean->getVal(), 0.0, value.mean->getVal(), 45.0
+			value.mean->getVal(), 0.0, value.mean->getVal(), 35.0
 		);
 		line->SetLineStyle(2);
 		line->Draw("same");

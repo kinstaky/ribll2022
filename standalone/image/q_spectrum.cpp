@@ -17,7 +17,7 @@ struct QEvent {
 	double q;
 };
 
-int FillV2(TH1F &hq) {
+int FillV2(TH1F &hq, TH1F &hq0, TH1F &hq1, TH1F &hq2) {
 	// input file name
 	TString input_file_name = TString::Format(
 		"%s%sthreebody-10Be-dv2-2.root", kGenerateDataPath, kSpectrumDir
@@ -58,6 +58,9 @@ int FillV2(TH1F &hq) {
 		if (c_kinetic[0] < 360.0) continue;
 
 		hq.Fill(q[0]);
+		hq0.Fill(q[0]);
+		hq1.Fill(q[0]);
+		hq2.Fill(q[0]);
 	}
 
 	// close file
@@ -66,7 +69,7 @@ int FillV2(TH1F &hq) {
 }
 
 
-int FillV3(TH1F &hq) {
+int FillV3(TH1F &hq, TH1F &hq0, TH1F &hq1, TH1F &hq2) {
 	// spectrum V3 file
 	TString input_file_name = TString::Format(
 		"%s%sC14-10Be-4He-2H-v3.root", kGenerateDataPath, kSpectrumDir
@@ -96,6 +99,9 @@ int FillV3(TH1F &hq) {
 		if (valid != 0) continue;
 		if (taf_flag != 1) continue;
 		hq.Fill(q);
+		hq0.Fill(q);
+		hq1.Fill(q);
+		hq2.Fill(q);
 	}
 
 	ipf.Close();
@@ -124,7 +130,10 @@ int main() {
 	// output file
 	TFile opf(output_file_name, "recreate");
 	// Q value spectrum
-	TH1F hq("hq", "Q value", 70, -23, -8);
+	TH1F hq("hq", "Q value", 90, -23, -8);
+	TH1F hq0("hq0", "Q value for state 0", 12, -13.0, -11.0);
+	TH1F hq1("hq1", "Q value for state 1", 9, -16.0, -14.5);
+	TH1F hq2("hq2", "Q value for state 2", 18, -20.0, -17.0);
 	// output data
 	QEvent event;
 	// output tree
@@ -133,8 +142,8 @@ int main() {
 	opt.Branch("version", &event.version, "ver/I");
 	opt.Branch("q", &event.q, "q/D");
 
-	if (FillV2(hq)) return -1;
-	if (FillV3(hq)) return -1;
+	if (FillV2(hq, hq0, hq1, hq2)) return -1;
+	if (FillV3(hq, hq0, hq1, hq2)) return -1;
 
 	// result is -12.5247, -15.5002, -17.9949
 	constexpr double q_init_param[9] = {
@@ -148,6 +157,7 @@ int main() {
 	fq->SetParLimits(1, -14, -11);
 	fq->SetParLimits(4, -17, -14);
 	fq->SetParLimits(7, -19, -17);
+	fq->SetNpx(1000);
 	hq.Fit(fq, "R+");
 	std::cout << fq->GetParameter(1) << ", "
 		<< fq->GetParameter(4) << ", "
@@ -157,6 +167,7 @@ int main() {
 		f1->SetLineColor(kBlue);
 		f1->SetLineWidth(3);
 		f1->SetLineStyle(2);
+		f1->SetNpx(1000);
 		f1->SetParameters(fq->GetParameters()+3*i);
 		hq.GetListOfFunctions()->Add(f1);
 	}
@@ -171,11 +182,13 @@ int main() {
 	// TF1 *fq = new TF1("fq", FitQ, -23, -8, 7);
 	// fq->SetParameters(q_init_param);
 	// fq->SetParLimits(3, -13, -11);
+	// fq->SetNpx(1000);
 	// hq.Fit(fq, "R+");
 	// std::cout << fq->GetParameter(3) << "\n";
 	// for (size_t i = 0; i < 3; ++i) {
 	// 	TF1 *f1 = new TF1(TString::Format("fq%ld", i), "gaus", -23, -8);
 	// 	f1->SetLineColor(kBlue);
+	//	f1->SetNpx(1000);
 	// 	f1->SetParameter(0, fq->GetParameter(0+i));
 	// 	if (i == 0) {
 	// 		f1->SetParameter(1, fq->GetParameter(3));
@@ -195,6 +208,15 @@ int main() {
 	gStyle->SetOptTitle(false);
 	hq.SetStats(false);
 	hq.Draw();
+	hq0.SetFillColor(kBlack);
+	hq0.SetFillStyle(3354);
+	hq0.Draw("same");
+	hq1.SetFillColor(kBlack);
+	hq1.SetFillStyle(3354);
+	hq1.Draw("same");
+	hq2.SetFillColor(kBlack);
+	hq2.SetFillStyle(3354);
+	hq2.Draw("same");
 	c1->Print(TString::Format(
 		"%s%sq-final.png", kGenerateDataPath, kImageDir
 	));
@@ -202,6 +224,10 @@ int main() {
 	// save
 	opf.cd();
 	hq.Write();
+	hq0.Write();
+	hq1.Write();
+	hq2.Write();
+	c1->Write();
 	// close files
 	opf.Close();
 	return 0;
