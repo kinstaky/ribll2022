@@ -152,6 +152,10 @@ int main(int argc, char **argv) {
 	double sep_ex_target[4];
 	// excited energy ignore 10Be state
 	double stateless_excited_energy[3][4];
+	// direction
+	double be_dx, be_dy, be_dz;
+	double he_dx, he_dy, he_dz;
+	double d_dx, d_dy, d_dz;
 
 	// setup output branches
 	opt.Branch("valid", &valid, "v/I");
@@ -179,6 +183,15 @@ int main(int argc, char **argv) {
 	opt.Branch(
 		"stateless_excited_energy", stateless_excited_energy, "slext[3][4]/D"
 	);
+	opt.Branch("be_dx", &be_dx, "bedx/D");
+	opt.Branch("be_dy", &be_dy, "bedy/D");
+	opt.Branch("be_dz", &be_dz, "bedz/D");
+	opt.Branch("he_dx", &he_dx, "hedx/D");
+	opt.Branch("he_dy", &he_dy, "hedy/D");
+	opt.Branch("he_dz", &he_dz, "hedz/D");
+	opt.Branch("d_dx", &d_dx, "ddx/D");
+	opt.Branch("d_dy", &d_dy, "ddy/D");
+	opt.Branch("d_dz", &d_dz, "ddz/D");
 
 	// Q value correct
 	constexpr double q_correct[12] = {
@@ -393,6 +406,16 @@ int main(int argc, char **argv) {
 			he_kinetic_target[2] =
 				he4_target.Energy(-0.5/cos(d_he.Theta()), he_kinetic[2]);
 		}
+
+		be_dx = d_be.X();
+		be_dy = d_be.Y();
+		be_dz = d_be.Z();
+		he_dx = d_he.X();
+		he_dy = d_he.Y();
+		he_dz = d_he.Z();
+		d_dx = d_d.X();
+		d_dy = d_d.Y();
+		d_dz = d_d.Z();
 
 		// get target flag
 		target_flag = 0;
@@ -798,10 +821,10 @@ int main(int argc, char **argv) {
 		line.SetLineStyle(2);
 		line.Draw();
 	}
-	c1->Write();
 
 	// save
 	opf.cd();
+	c1->Write();
 	for (int i = 0; i < 3; ++i) {
 		for (int j = 0; j < 11; ++j) {
 			hist_stateless_excited_energy[i][j].Write();

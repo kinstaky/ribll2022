@@ -62,4 +62,4 @@ target_link_libraries(resolution PRIVATE event ROOT::Core ROOT::Graf)
 
 # simulate two body spectrum
 add_executable(sim_twobody simulate_twobody.cpp)
-target_link_libraries(sim_twobody PRIVATE event ROOT::Core ROOT::Graf)
+target_link_libraries(sim_twobody PRIVATE event ROOT::Core ROOT::Graf target_energy_calculator)

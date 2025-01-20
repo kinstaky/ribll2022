@@ -31,3 +31,7 @@ target_link_libraries(
 add_executable(q_spectrum q_spectrum.cpp)
 target_include_directories(q_spectrum PRIVATE ${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
 target_link_libraries(q_spectrum PRIVATE ROOT::Graf ROOT::Core ROOT::RIO ROOT::Tree ROOT::Gpad)
+
+add_executable(final_spectrum_bin final_spectrum_bin.cpp)
+target_include_directories(final_spectrum_bin PRIVATE ${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS})
+target_link_libraries(final_spectrum_bin PRIVATE ROOT::Graf ROOT::Core ROOT::RIO ROOT::Tree ROOT::Gpad)

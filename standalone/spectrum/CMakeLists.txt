@@ -62,3 +62,8 @@ target_link_libraries(taf_edge_spectrum PRIVATE event csi_energy_calculator ROOT
 # image recoil Q spectrum
 add_executable(image_recoil_q image_recoil_q.cpp)
 target_link_libraries(image_recoil_q PRIVATE channel_v2_event csi_energy_calculator)
+
+# Dalitz plot
+add_executable(dalitz dalitz.cpp)
+target_include_directories(dalitz PRIVATE ${PROJECT_SOURCE_DIR})
+target_link_libraries(dalitz PRIVATE ROOT::Hist ROOT::RIO ROOT::Core ROOT::Tree)

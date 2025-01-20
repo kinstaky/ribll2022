@@ -16,10 +16,10 @@ using namespace ribll;
 
 using elc::TargetEnergyCalculator;
 
-constexpr double beam_mass = mass_14c;
-constexpr double target_mass = mass_2h;
-constexpr double fragment2_mass = mass_4he;
-constexpr double target_thickness = 9.53;
+double beam_mass = mass_14c;
+double target_mass = mass_2h;
+double fragment2_mass = mass_4he;
+double target_thickness = 9.53;
 
 
 /// @brief simulate process of inelastic scattering
@@ -235,8 +235,8 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 2) {
-		std::cout << "Usage: " << argv[0] << "[run]\n"
+	if (run < 0 || run > 3) {
+		std::cout << "Usage: " << argv[0] << " [run]\n"
 			<< "  run        run number, default is 0\n";
 	}
 
@@ -245,7 +245,9 @@ int main(int argc, char **argv) {
 	TargetEnergyCalculator c14_target("14C", "CD2", target_thickness);
 	TargetEnergyCalculator be10_target("10Be", "CD2", target_thickness);
 	TargetEnergyCalculator he4_target("4He", "CD2", target_thickness);
-	TargetEnergyCalculator h2_target("2H", "CD2", target_thickness);
+	TargetEnergyCalculator recoil_target(
+		run == 3 ? "1H" : "2H", "CD2", target_thickness
+	);
 
 	// generate file name
 	TString generate_file_name = TString::Format(
@@ -287,6 +289,11 @@ int main(int argc, char **argv) {
 	double parent_angle, recoil_angle;
 	double fragment1_energy, fragment2_energy;
 	double fragment1_angle, fragment2_angle;
+
+	if (run == 3) {
+		target_mass = mass_1h;
+		target_thickness = 0.01;
+	}
 
 
 	constexpr int entries = 3'000'000;
@@ -351,6 +358,17 @@ int main(int argc, char **argv) {
 			} else {
 				event.beam_excited_energy =
 					18.20 + 0.2 * ((entry / (entries / 300)) % 100);
+			}
+		} else if (run == 3) {
+			if (entry < entries / 3) {
+				event.beam_excited_energy =
+					12.02 + 0.1 * ((entry / (entries / 300)) % 100);
+			} else if (entry < entries / 3 * 2) {
+				event.beam_excited_energy =
+					15.39 + 0.05 * ((entry / (entries / 300)) % 100);
+			} else {
+				event.beam_excited_energy =
+					18.20 + 0.02 * ((entry / (entries / 300)) % 100);
 			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;
@@ -429,7 +447,7 @@ int main(int argc, char **argv) {
 		event.angle_theta_star = event.elastic_angle;
 
 		// consider energy loss of recoil particle in target
-		event.recoil_kinetic_after_target = h2_target.Energy(
+		event.recoil_kinetic_after_target = recoil_target.Energy(
 			(1.0-event.depth) / cos(event.recoil_theta),
 			event.recoil_kinetic_in_target
 		);

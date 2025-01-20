@@ -493,6 +493,9 @@ int main(int argc, char **argv) {
 			}
 
 			t0_tree->GetEntry(valid_entries[i]);
+			// initialize
+			event.xppac_track[0] = event.xppac_track[1] = 0;
+			event.vppac_track[0] = event.vppac_track[1] = 0;
 
 			if (event.xppac_xflag != 0 && event.xppac_yflag != 0) {
 				++ppac_valid_count;
@@ -522,9 +525,6 @@ int main(int argc, char **argv) {
 				++valid_count;
 			}
 
-			// initialize
-			event.xppac_track[0] = event.xppac_track[1] = 0;
-			event.vppac_track[0] = event.vppac_track[1] = 0;
 
 			// T0
 			// T0 layer
