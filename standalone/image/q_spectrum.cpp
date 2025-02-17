@@ -207,6 +207,12 @@ int main() {
 	c1->cd();
 	gStyle->SetOptTitle(false);
 	hq.SetStats(false);
+	hq.GetXaxis()->SetLabelFont(132);
+	// hq.GetXaxis()->SetMaxDigits(3);
+	hq.GetXaxis()->SetLabelSize(0.06);
+	hq.GetYaxis()->SetLabelFont(132);
+	// hq.GetYaxis()->SetMaxDigits(3);
+	hq.GetYaxis()->SetLabelSize(0.06);
 	hq.Draw();
 	hq0.SetFillColor(kBlack);
 	hq0.SetFillStyle(3354);
