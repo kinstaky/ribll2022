@@ -1,4 +1,3 @@
-
 #include <cmath>
 #include <iostream>
 
@@ -203,6 +202,87 @@ void BreakupReaction(
 }
 
 
+/// @brief simulate gamma decay process
+/// @param[in] parent_mass mass of parent particle
+/// @param[in] daughter_mass mass of daughter particle
+/// @param[in] parent_energy full energy of parent particle
+/// @param[in] theta decay angle in center of mass coordinate
+/// @param[out] daughter_energy full energy of daughter particle
+/// @param[out] photon_energy full energy of gamma photon
+/// @param[out] daughter_angle angle of daughter particle in lab frame
+/// @param[out] photon_angle angle of gamma photon in lab frame
+///
+void GammaDecay(
+	double parent_mass,
+	double daughter_mass,
+	double parent_energy,
+	double theta,
+	double &daughter_energy,
+	double &photon_energy,
+	double &daughter_angle,
+	double &photon_angle
+) {
+	// momentum of parent particle in lab frame
+	double parent_momentum =
+		sqrt(pow(parent_energy, 2.0) - pow(parent_mass, 2.0));
+	// beta of center of mass
+	double beta_center = parent_momentum / parent_energy;
+	// gamma of center of mass
+	double gamma_center = 1.0 / sqrt(1.0 - pow(beta_center, 2.0));
+	// momentum of daughter in center of mass frame
+	double daughter_momentum =
+		(parent_mass - daughter_mass)
+		* (parent_mass + daughter_mass)
+		/ (2.0 * parent_mass);
+
+	// daughter momentum parallel part in c.m. frame
+	double daughter_momentum_center_parallel = daughter_momentum * cos(theta);
+	// daughter momentum vertical part in c.m. frame
+	double daughter_momentum_center_vertical = daughter_momentum * sin(theta);
+	// daughter energy in c.m. frame
+	double daughter_energy_center = sqrt(
+		pow(daughter_momentum, 2.0) + pow(daughter_mass, 2.0)
+	);
+	// daughter energy in lab frame
+	daughter_energy = gamma_center * daughter_energy_center
+		+ gamma_center * beta_center * daughter_momentum_center_parallel;
+	// daughter momentum parallel part in lab frame
+	double daughter_momentum_parallel =
+		gamma_center * daughter_momentum_center_parallel
+		+ gamma_center * beta_center * daughter_energy_center;
+	// daughter momentum vertical part in lab frame
+	double daughter_momentum_vertical = daughter_momentum_center_vertical;
+	// daughter angle in lab frame
+	daughter_angle =
+		fabs(atan(daughter_momentum_vertical / daughter_momentum_parallel));
+	daughter_angle = daughter_momentum_parallel > 0 ?
+		daughter_angle : pi - daughter_angle;
+
+	// photon momentum parallel part in c.m. frame
+	double photon_momentum_center_parallel = -daughter_momentum * cos(theta);
+	// photon momentum vertical part in c.m. frame
+	double photon_momentum_center_vertical = -daughter_momentum * sin(theta);
+	// photon energy in c.m. frame
+	double photon_energy_center = daughter_momentum;
+	// photon energy in lab frame
+	photon_energy = gamma_center * photon_energy_center
+		+ gamma_center * beta_center * photon_momentum_center_parallel;
+	// photon momentum parallel part in lab frame
+	double photon_momentum_parallel =
+		gamma_center * photon_momentum_center_parallel
+		+ gamma_center * beta_center * photon_energy_center;
+	// photon momentum vertical part in lab frame
+	double photon_momentum_vertical = photon_momentum_center_vertical;
+	// photon angle in lab frame
+	photon_angle =
+		fabs(atan(photon_momentum_vertical / photon_momentum_parallel));
+	photon_angle = photon_momentum_parallel > 0 ?
+		photon_angle : pi - photon_angle;
+
+	return;
+}
+
+
 void Rotate(
 	double parent_theta, double parent_phi,
 	double fragment_theta, double fragment_phi,
@@ -287,8 +367,10 @@ int main(int argc, char **argv) {
 
 	double parent_energy, recoil_energy;
 	double parent_angle, recoil_angle;
-	double fragment1_energy, fragment2_energy;
-	double fragment1_angle, fragment2_angle;
+	double excited_fragment1_energy, fragment2_energy;
+	double fragment1_energy, photon_energy;
+	double excited_fragment1_angle, fragment2_angle;
+	double fragment1_angle, photon_angle;
 
 	if (run == 3) {
 		target_mass = mass_1h;
@@ -324,7 +406,7 @@ int main(int argc, char **argv) {
 		);
 
 		// get beam kinetic energy
-		event.beam_kinetic_before_target = generator.Gaus(389.5, 3.5);
+		event.beam_kinetic_before_target = generator.Gaus(392.0, 2.5);
 		// reaction point depth
 		event.depth = generator.Rndm();
 		// consider energy loss in target
@@ -394,6 +476,11 @@ int main(int argc, char **argv) {
 		event.breakup_angle = dist_breakup_angle.GetRandom();
 		// get breakup angle phi
 		double fragment_phi_center = generator.Rndm() * 2.0 * pi;
+		// get gamma decay angle theta
+		event.gamma_angle = dist_breakup_angle.GetRandom();
+		// get gamma decay angle phi
+		double gamma_decay_phi = generator.Rndm() * 2.0 * pi;
+
 
 		InelasticScattering(
 			beam_mass, target_mass,
@@ -414,6 +501,120 @@ int main(int argc, char **argv) {
 			recoil_angle, recoil_phi,
 			event.recoil_theta, event.recoil_phi
 		);
+
+		// consider energy loss of recoil particle in target
+		event.recoil_kinetic_after_target = recoil_target.Energy(
+			(1.0-event.depth) / cos(event.recoil_theta),
+			event.recoil_kinetic_in_target
+		);
+
+		if (event.recoil_kinetic_after_target < 0) {
+			event.recoil_kinetic_after_target = 0.0;
+		}
+
+		event.rz = 135.0;
+		event.rr = event.rz * tan(event.recoil_theta);
+		event.rx = event.rr * cos(event.recoil_phi) + event.target_x;
+		event.ry = event.rr * sin(event.recoil_phi) + event.target_y;
+		event.rr = sqrt(pow(event.rx, 2.0) + pow(event.ry, 2.0));
+
+		BreakupReaction(
+			parent_mass, fragment1_mass, fragment2_mass,
+			parent_energy, event.breakup_angle,
+			excited_fragment1_energy, fragment2_energy,
+			excited_fragment1_angle, fragment2_angle
+		);
+
+		// rotate and get fragment 1 angle
+		Rotate(
+			event.parent_theta, event.parent_phi,
+			excited_fragment1_angle, fragment_phi_center,
+			event.excited_fragment0_theta, event.excited_fragment0_phi
+		);
+		// rotate and get fragment 2 angle
+		Rotate(
+			event.parent_theta, event.parent_phi,
+			fragment2_angle, fragment_phi_center-pi,
+			event.fragment_theta[1], event.fragment_phi[1]
+		);
+		// calculate kinetic energy for fragments
+		event.excited_fragment0_kinetic_in_target =
+			excited_fragment1_energy - fragment1_mass;
+		event.fragment_kinetic_in_target[1] =
+			fragment2_energy - fragment2_mass;
+
+		if (event.fragment_state > 0) {
+			GammaDecay(
+				fragment1_mass, mass_10be, excited_fragment1_energy,
+				event.gamma_angle,
+				fragment1_energy, photon_energy,
+				fragment1_angle, photon_angle
+			);
+			event.fragment_kinetic_in_target[0] = fragment1_energy - mass_10be;
+			event.photon_energy = photon_energy;
+			// rotate
+			Rotate(
+				event.excited_fragment0_theta, event.excited_fragment0_phi,
+				fragment1_angle, gamma_decay_phi,
+				event.fragment_theta[0], event.fragment_phi[0]
+			);
+			Rotate(
+				event.excited_fragment0_theta, event.excited_fragment0_phi,
+				photon_angle, gamma_decay_phi-pi,
+				event.photon_theta, event.photon_phi
+			);
+		} else {
+			event.fragment_theta[0] = event.excited_fragment0_theta;
+			event.fragment_phi[0] = event.excited_fragment0_phi;
+			event.fragment_kinetic_in_target[0] =
+				event.excited_fragment0_kinetic_in_target;
+			event.photon_energy = photon_energy;
+			event.photon_theta = 0.0;
+			event.photon_phi = 0.0;
+		}
+
+
+		// consider energy loss of fragment1 particle in target
+		event.fragment_kinetic_after_target[0] = be10_target.Energy(
+			(1.0-event.depth) / cos(event.fragment_theta[0]),
+			event.fragment_kinetic_in_target[0]
+		);
+		// consider energy loss of fragment1 particle in target
+		event.fragment_kinetic_after_target[1] = he4_target.Energy(
+			(1.0-event.depth) / cos(event.fragment_theta[1]),
+			event.fragment_kinetic_in_target[1]
+		);
+
+
+		event.excited_fragment0_z = 100.0;
+		double excited_fragment0_r =
+			event.excited_fragment0_z * tan(event.excited_fragment0_theta);
+		event.excited_fragment0_x =
+			excited_fragment0_r * cos(event.excited_fragment0_phi)
+			+ event.target_x;
+		event.excited_fragment0_y =
+			excited_fragment0_r * sin(event.excited_fragment0_phi)
+			+ event.target_y;
+		for (size_t j = 0; j < 2; ++j) {
+			event.fragment_z[j] = 100.0;
+			event.fragment_r[j] =
+				event.fragment_z[j] * tan(event.fragment_theta[j]);
+			event.fragment_x[j] =
+				event.fragment_r[j] * cos(event.fragment_phi[j])
+				+ event.target_x;
+			event.fragment_y[j] =
+				event.fragment_r[j] * sin(event.fragment_phi[j])
+				+ event.target_y;
+			event.fragment_r[j] = sqrt(
+				pow(event.fragment_x[j], 2.0)
+				+ pow(event.fragment_y[j], 2.0)
+			);
+		}
+
+
+		//---------------------------------------------------------------------
+		//							angle correlation
+		//---------------------------------------------------------------------
 
 		// get angle of parent relate to recoil
 		// parent particle velocity
@@ -445,48 +646,6 @@ int main(int argc, char **argv) {
 		// event.angle_theta_star =
 		// 	acos((v_parent - v_recoil).Unit().Dot(beam_direction));
 		event.angle_theta_star = event.elastic_angle;
-
-		// consider energy loss of recoil particle in target
-		event.recoil_kinetic_after_target = recoil_target.Energy(
-			(1.0-event.depth) / cos(event.recoil_theta),
-			event.recoil_kinetic_in_target
-		);
-
-		if (event.recoil_kinetic_after_target < 0) {
-			event.recoil_kinetic_after_target = 0.0;
-		}
-
-		event.rz = 135.0;
-		event.rr = event.rz * tan(event.recoil_theta);
-		event.rx = event.rr * cos(event.recoil_phi) + event.target_x;
-		event.ry = event.rr * sin(event.recoil_phi) + event.target_y;
-		event.rr = sqrt(pow(event.rx, 2.0) + pow(event.ry, 2.0));
-
-		BreakupReaction(
-			parent_mass, fragment1_mass, fragment2_mass,
-			parent_energy, event.breakup_angle,
-			fragment1_energy, fragment2_energy,
-			fragment1_angle, fragment2_angle
-		);
-
-		// rotate and get fragment 1 angle
-		Rotate(
-			event.parent_theta, event.parent_phi,
-			fragment1_angle, fragment_phi_center,
-			event.fragment_theta[0], event.fragment_phi[0]
-		);
-		// rotate and get fragment 2 angle
-		Rotate(
-			event.parent_theta, event.parent_phi,
-			fragment2_angle, fragment_phi_center-pi,
-			event.fragment_theta[1], event.fragment_phi[1]
-		);
-		// calculate kinetic energy for fragments
-		event.fragment_kinetic_in_target[0] =
-			fragment1_energy - fragment1_mass;
-		event.fragment_kinetic_in_target[1] =
-			fragment2_energy - fragment2_mass;
-
 
 		// get angle of parent relate to recoil
 		// fragment1 velocity
@@ -531,17 +690,6 @@ int main(int argc, char **argv) {
 		while (event.angle_chi < 0.0) event.angle_chi += pi;
 		while (event.angle_chi > pi) event.angle_chi -= pi;
 
-		// consider energy loss of fragment1 particle in target
-		event.fragment_kinetic_after_target[0] = be10_target.Energy(
-			(1.0-event.depth) / cos(event.fragment_theta[0]),
-			event.fragment_kinetic_in_target[0]
-		);
-		// consider energy loss of fragment1 particle in target
-		event.fragment_kinetic_after_target[1] = he4_target.Energy(
-			(1.0-event.depth) / cos(event.fragment_theta[1]),
-			event.fragment_kinetic_in_target[1]
-		);
-
 		// save velocity
 		event.recoil_vx = v_recoil.X();
 		event.recoil_vy = v_recoil.Y();
@@ -555,22 +703,6 @@ int main(int argc, char **argv) {
 		event.fragment_vx[1] = v_fragment2.X();
 		event.fragment_vy[1] = v_fragment2.Y();
 		event.fragment_vz[1] = v_fragment2.Z();
-
-		for (size_t j = 0; j < 2; ++j) {
-			event.fragment_z[j] = 100.0;
-			event.fragment_r[j] =
-				event.fragment_z[j] * tan(event.fragment_theta[j]);
-			event.fragment_x[j] =
-				event.fragment_r[j] * cos(event.fragment_phi[j])
-				+ event.target_x;
-			event.fragment_y[j] =
-				event.fragment_r[j] * sin(event.fragment_phi[j])
-				+ event.target_y;
-			event.fragment_r[j] = sqrt(
-				pow(event.fragment_x[j], 2.0)
-				+ pow(event.fragment_y[j], 2.0)
-			);
-		}
 
 		// fill to tree
 		tree.Fill();

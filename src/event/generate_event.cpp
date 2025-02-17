@@ -71,6 +71,36 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 		(prefix+"recoil_r").c_str(), &rr
 	);
 	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_kinetic_in_target").c_str(),
+		&excited_fragment0_kinetic_in_target
+	);
+	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_theta").c_str(),
+		&excited_fragment0_theta
+	);
+	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_phi").c_str(),
+		&excited_fragment0_phi
+	);
+	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_x").c_str(), &excited_fragment0_x
+	);
+	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_y").c_str(), &excited_fragment0_y
+	);
+	tree->SetBranchAddress(
+		(prefix + "excited_fragment0_z").c_str(), &excited_fragment0_z
+	);
+	tree->SetBranchAddress(
+		(prefix + "photon_energy").c_str(), &photon_energy
+	);
+	tree->SetBranchAddress(
+		(prefix + "photon_theta").c_str(), &photon_theta
+	);
+	tree->SetBranchAddress(
+		(prefix + "photon_phi").c_str(), &photon_phi
+	);
+	tree->SetBranchAddress(
 		(prefix+"fragment_kinetic_after_target").c_str(),
 		fragment_kinetic_after_target
 	);
@@ -101,6 +131,9 @@ void GenerateEvent::SetupInput(TTree *tree, const std::string &prefix) {
 	);
 	tree->SetBranchAddress(
 		(prefix+"breakup_angle").c_str(), &breakup_angle
+	);
+	tree->SetBranchAddress(
+		(prefix+"gamma_angle").c_str(), &gamma_angle
 	);
 	tree->SetBranchAddress(
 		(prefix+"parent_recoil_angle").c_str(), &parent_recoil_angle
@@ -185,6 +218,27 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("recoil_z", &rz, "rz/D");
 	tree->Branch("recoil_r", &rr, "rr/D");
 	tree->Branch(
+		"excited_fragment0_kinetic_in_target",
+		&excited_fragment0_kinetic_in_target,
+		"xfkit/D"
+	);
+	tree->Branch(
+		"excited_fragment0_theta",
+		&excited_fragment0_theta,
+		"xftheta/D"
+	);
+	tree->Branch(
+		"excited_fragment0_phi",
+		&excited_fragment0_phi,
+		"xfphi/D"
+	);
+	tree->Branch("excited_fragment0_x", &excited_fragment0_x, "xfx/D");
+	tree->Branch("excited_fragment0_y", &excited_fragment0_y, "xfy/D");
+	tree->Branch("excited_fragment0_z", &excited_fragment0_z, "xfz/D");
+	tree->Branch("photon_energy", &photon_energy, "ge/D");
+	tree->Branch("photon_theta", &photon_theta, "gtheta/D");
+	tree->Branch("photon_phi", &photon_phi, "gphi/D");
+	tree->Branch(
 		"fragment_kinetic_after_target",
 		fragment_kinetic_after_target,
 		"fkat[2]/D"
@@ -202,6 +256,7 @@ void GenerateEvent::SetupOutput(TTree *tree) {
 	tree->Branch("fragment_r", fragment_r, "fr[2]/D");
 	tree->Branch("elastic_angle", &elastic_angle, "ea/D");
 	tree->Branch("breakup_angle", &breakup_angle, "ba/D");
+	tree->Branch("gamma_angle", &gamma_angle, "ga/D");
 	tree->Branch("parent_recoil_angle", &parent_recoil_angle, "pra/D");
 	tree->Branch("fragment_phi_center", &fragment_phi_center, "fpc/D");
 	tree->Branch("fragment_fragment_angle", &fragment_fragment_angle, "ffa/D");

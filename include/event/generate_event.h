@@ -45,6 +45,13 @@ public:
 	double ry;
 	double rz;
 	double rr;
+	double excited_fragment0_kinetic_in_target;
+	double excited_fragment0_theta;
+	double excited_fragment0_phi;
+	double excited_fragment0_x, excited_fragment0_y, excited_fragment0_z;
+	double photon_energy;
+	double photon_theta;
+	double photon_phi;
 	double fragment_kinetic_after_target[2];
 	double fragment_kinetic_in_target[2];
 	double fragment_theta[2];
@@ -53,9 +60,12 @@ public:
 	double fragment_y[2];
 	double fragment_z[2];
 	double fragment_r[2];
+
 	// other information
 	double elastic_angle;
 	double breakup_angle;
+	double gamma_angle;
+	// angle correlation
 	double parent_recoil_angle;
 	double fragment_phi_center;
 	double fragment_fragment_angle;

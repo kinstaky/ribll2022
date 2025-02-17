@@ -18,13 +18,13 @@
 using namespace ribll;
 
 // parameters control the affect
-constexpr bool t0_strips_affect = true;
-constexpr bool taf_strips_affect = true;
-constexpr bool ppac_strips_affect = true;
-constexpr bool t0_energy_affect = true;
-constexpr bool taf_energy_affect = true;
-constexpr bool target_affect = true;
-constexpr bool d_in_t0 = true;
+constexpr bool t0_strips_affect = false;
+constexpr bool taf_strips_affect = false;
+constexpr bool ppac_strips_affect = false;
+constexpr bool t0_energy_affect = false;
+constexpr bool taf_energy_affect = false;
+constexpr bool target_affect = false;
+constexpr bool d_in_t0 = false;
 
 constexpr double state_start[3] = {12.5, 16.0, 18.5};
 constexpr double t0_resolution[7] = {0.2, 0.8, 0.2, 0.1, 0.1, 0.1, 1.0};

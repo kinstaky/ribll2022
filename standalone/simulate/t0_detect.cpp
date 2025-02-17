@@ -169,8 +169,8 @@ int main(int argc, char **argv) {
 	// T0 detect tree
 	TTree opt("tree", "T0 detect information");
 	// output position DSSD flag
-	// 	-4: 1 particle, cut by energy threshold
-	// 	-3: 2 particle, cut by energy threshold
+	// 	-4: 1 particle, but cut by energy threshold
+	// 	-3: 2 particle, but one or two cut by energy threshold
 	// 	-2: out of range
 	// 	-1: cannot reach this layer
 	// 	 0: nothing, invalid
@@ -475,6 +475,8 @@ int main(int argc, char **argv) {
 						dssd_events[j].front_energy[k] = t0_front_channel[i][j];
 						++k;
 					}
+				} else {
+					dssd_flag[i] = -2;
 				}
 
 				if (!IsBadStrip(j, 1, ystrip)) {
@@ -493,6 +495,8 @@ int main(int argc, char **argv) {
 						dssd_events[j].back_energy[k] = t0_back_channel[i][j];
 						++k;
 					}
+				} else {
+					dssd_flag[i] = -2;
 				}
 			}
 		}
@@ -570,8 +574,6 @@ int main(int argc, char **argv) {
 
 				if (delta_strip == 1) front_flag = 1;
 				else front_flag = 0;
-			} else {
-				front_flag = 0;
 			}
 			// back side flag
 			int back_flag = -1;
@@ -586,8 +588,11 @@ int main(int argc, char **argv) {
 
 				if (delta_strip == 1) back_flag = 1;
 				else back_flag = 0;
-			} else {
-				back_flag = 0;
+			}
+			if (front_flag == -1 || back_flag == -1) {
+				std::cerr << "[Error] Invalid front or back flag in T0D"
+					<< i+1 << " : front " << front_flag
+					<< ", back " << back_flag << "\n";
 			}
 			dssd_flag[i] = front_flag*3 + back_flag + 2;
 		}

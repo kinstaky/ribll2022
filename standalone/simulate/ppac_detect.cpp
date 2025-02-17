@@ -34,7 +34,7 @@ constexpr double xia_sum_sigma[2][3][3] = {
 	{{0.55, 0.83, 0.85}, {0.83, 0.59, 0.86}, {0.82, 0.83, 0.57}}
 };
 constexpr double xia_anode_mean[3] = {-482.5, -482.8, -468.6};
-constexpr double xia_anode_sigma[3] = {0.43, 0.44, 0.44};
+constexpr double xia_anode_sigma[3] = {0.25, 0.25, 0.25};
 
 
 void PrintUsage(const char *name) {
@@ -202,13 +202,13 @@ int main(int argc, char **argv) {
 				ppac_xz[i] * tan(event.beam_theta) * cos(event.beam_phi)
 				+ event.target_x;
 			// consider strips
-			ppacx = int(ppacx + 50.5) - 50.0 + generator.Gaus(0.0, 0.35);
+			ppacx = int(ppacx + 50.5) - 50.0 + generator.Gaus(0.0, 0.26);
 			// Y position
 			double ppacy =
 				ppac_yz[i] * tan(event.beam_theta) * sin(event.beam_phi)
 				+ event.target_y;
 			// consider strips
-			ppacy = int(ppacy + 50.5) - 50.0 + generator.Gaus(0.0, 0.35);
+			ppacy = int(ppacy + 50.5) - 50.0 + generator.Gaus(0.0, 0.26);
 
 			// efficiency check
 			for (int j = 0; j < 5; ++j) {
