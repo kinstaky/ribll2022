@@ -51,6 +51,7 @@ void ChannelV2Event::SetupInput(
 	tree->SetBranchAddress((prefix+"entry").c_str(), &entry);
 	tree->SetBranchAddress((prefix+"tafd_front_strip").c_str(), &tafd_front_strip);
 	tree->SetBranchAddress((prefix+"tafd_energy").c_str(), &tafd_energy);
+	tree->SetBranchAddress((prefix+"t0_layer").c_str(), t0_layer);
 }
 
 
@@ -100,6 +101,7 @@ void ChannelV2Event::SetupOutput(TTree *tree) {
 	tree->Branch("entry", &entry, "entry/L");
 	tree->Branch("tafd_front_strip", &tafd_front_strip, "tafdfs/I");
 	tree->Branch("tafd_energy", &tafd_energy, "tafde/D");
+	tree->Branch("t0_layer", t0_layer, "t0l[2]/I");
 }
 
 }	// ribll

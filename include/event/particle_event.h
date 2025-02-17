@@ -27,6 +27,7 @@ public:
 	int num;
 	unsigned short charge[8];
 	unsigned short mass[8];
+	unsigned short layer[8];
 	double energy[8];
 	double time[8];
 	double x[8];

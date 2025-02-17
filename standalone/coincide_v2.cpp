@@ -62,7 +62,7 @@ void CoincideSingleRun(
 			kParticleDir,
 			i,
 			simulation ? "sim-" : "",
-			run			
+			run
 		);
 	}
 	// add friend
@@ -335,6 +335,8 @@ void CoincideSingleRun(
 			taf_tele_events[channel.taf_index].front_strip[0];
 		channel.tafd_energy =
 			taf_tele_events[channel.taf_index].energy[0][0];
+		channel.t0_layer[0] = t0_event.layer[frag_index[0]];
+		channel.t0_layer[1] = t0_event.layer[frag_index[1]];
 
 		opt.Fill();
 	}

@@ -9,6 +9,7 @@ void ParticleEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"num").c_str(), &num);
 	tree->SetBranchAddress((prefix+"charge").c_str(), charge);
 	tree->SetBranchAddress((prefix+"mass").c_str(), mass);
+	tree->SetBranchAddress((prefix+"layer").c_str(), layer);
 	tree->SetBranchAddress((prefix+"energy").c_str(), energy);
 	tree->SetBranchAddress((prefix+"time").c_str(), time);
 	tree->SetBranchAddress((prefix+"x").c_str(), x);
@@ -26,6 +27,7 @@ void ParticleEvent::SetupOutput(TTree *tree) {
 	tree->Branch("num", &num, "num/I");
 	tree->Branch("charge", charge, "Z[num]/s");
 	tree->Branch("mass", mass, "A[num]/s");
+	tree->Branch("layer", layer, "layer[num]/s");
 	tree->Branch("energy", energy, "e[num]/D");
 	tree->Branch("time", time, "t[num]/D");
 	tree->Branch("x", x, "x[num]/D");

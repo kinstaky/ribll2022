@@ -2601,6 +2601,8 @@ int T0::Rebuild() {
 			particle_event.charge[particle_event.num] = type_event.charge[i];
 			// fill mass number
 			particle_event.mass[particle_event.num] = type_event.mass[i];
+			// fill layer
+			particle_event.layer[particle_event.num] = type_event.layer[i];
 
 			double energy = TotalEnergy(
 				t0_event, type_event, i, csi_calculator, delta_10Be_calculator

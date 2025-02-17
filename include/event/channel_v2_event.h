@@ -29,7 +29,7 @@ public:
 	int hole;
 	bool t0_valid;
 	bool tafd_edge;
-	bool tafcsi_valid;	
+	bool tafcsi_valid;
 	// PPAC information
 	unsigned short ppac_xflag, ppac_yflag;
 	unsigned short ppac_xnum, ppac_ynum;
@@ -58,6 +58,7 @@ public:
 	// extra TAF information
 	int tafd_front_strip;
 	double tafd_energy;
+	int t0_layer[2];
 };
 
 }	// ribll
