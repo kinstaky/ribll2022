@@ -17,6 +17,8 @@
 
 using namespace ribll;
 
+// #define ISOLATED_RESOLUTION
+
 const std::pair<double, double> tafd_phi_ranges[6] = {
 	{117.6*TMath::DegToRad(), 62.4*TMath::DegToRad()},
 	{57.6*TMath::DegToRad(), 2.4*TMath::DegToRad()},
@@ -47,6 +49,21 @@ constexpr double csi_threshold[12] = {
 	1100.0, 1200.0
 };
 
+constexpr double csi_resolution_param[12][2] = {
+	{-0.1512, 0.0593},
+	{0.0318, 0.0571},
+	{0.0895, 0.0534},
+	{0.2065, 0.0444},
+	{-0.1577, 0.0623},
+	{-0.0164, 0.0576},
+	{-0.157, 0.0685},
+	{-0.0229, 0.0809},
+	{-0.2338, 0.0585},
+	{-0.04, 0.055},
+	{0.3868, 0.0389},
+	{0.1845, 0.0286}
+};
+
 // CsI geometry parameters
 // range from most distant point to z-axis (mm)
 constexpr double csi_r = 180.58;
@@ -67,7 +84,7 @@ constexpr double outer_vertex_y = 163.35;
 
 // whether CsI-9 is in low statistics like experiment
 // if true, only 20% data of CsI-9 will be kept
-constexpr double low_csi9 = true;
+constexpr bool low_csi9 = true;
 
 
 /// @brief intersection of special plane and line 特殊平面和直线的交点
@@ -134,7 +151,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 2) {
+	if (run < 0 || run > 4) {
 		std::cout << "Usage: " << argv[0] << "[run]\n"
 			<< "  run        run number, default is 0\n";
 	}
@@ -217,12 +234,16 @@ int main(int argc, char **argv) {
 	TFile detect_file(detect_file_name, "recreate");
 	// output TAF detect tree
 	TTree detect_tree("tree", "TAF detect information");
+	// 0 - in ADSSD, 1 in CsI(Tl)
+	int taf_layer;
 	// TAF index
 	int taf_index;
 	// CsI index
 	int csi_index;
 	// particle stop status
-	// 	-1: not in CsI
+	//  -3: not in ADSSD
+	// 	-2: stop in ADSSD
+	//  -1: not in CsI
 	//	 0: stop inside CsI
 	//	 1: pass through uppper surface
 	//	 2: pass through inner surface
@@ -246,6 +267,7 @@ int main(int argc, char **argv) {
 	// energy valid
 	bool energy_valid;
 	// setup output branches
+	detect_tree.Branch("layer", &taf_layer, "layer/I");
 	detect_tree.Branch("taf_index", &taf_index, "tafi/I");
 	detect_tree.Branch("csi_index", &csi_index, "ci/I");
 	detect_tree.Branch("tafd_x", &tafd_x, "tafdx/D");
@@ -434,7 +456,7 @@ int main(int argc, char **argv) {
 			for (int i = 0; i < 6; ++i) tafd_trees[i]->Fill();
 			csi_tree.Fill();
 			tafd_xstrip = -1;
-			stop_status = -1;
+			stop_status = -3;
 			detect_tree.Fill();
 			continue;
 		}
@@ -469,10 +491,13 @@ int main(int argc, char **argv) {
 
 		// calculate taf energy
 		double recoil_range =
+#ifdef ISOLATED_RESOLUTION
+			h2_si_calculator.Range(event.recoil_kinetic_in_target);
+#else
 			h2_si_calculator.Range(event.recoil_kinetic_after_target);
-		double thickness = tafd_thickness[taf_index];
+#endif
+			double thickness = tafd_thickness[taf_index];
 		// double thickness = 140.0;
-		int taf_layer;
 		double taf_lost_energy[2];
 		if (recoil_range < thickness / cos(event.recoil_theta)) {
 			taf_layer = 0;
@@ -498,7 +523,11 @@ int main(int argc, char **argv) {
 		csi_y = csi_front_position.Y();
 		csi_z = csi_front_position.Z();
 		// check recoil particle hits CsI front surface
-		if (taf_layer == 0 || !csi_front_surface[csi_index].IsInside(csi_x, csi_y)) {
+		if (taf_layer == 0) {
+			stop_status = -2;
+			csi_real_energy = 0.0;
+			csi_ideal_energy = 0.0;
+		} else if (!csi_front_surface[csi_index].IsInside(csi_x, csi_y)) {
 			stop_status = -1;
 			csi_real_energy = 0.0;
 			taf_layer = 0;
@@ -577,7 +606,9 @@ int main(int argc, char **argv) {
 
 		// consider energy resolution
 		double tafd_energy = taf_lost_energy[0] + generator.Gaus(0.0, 0.05);
-		double csi_energy = csi_real_energy + generator.Gaus(0.0, 1.0);
+		double csi_energy_sigma = csi_resolution_param[csi_index][0]
+			+ csi_resolution_param[csi_index][1] * csi_real_energy;
+		double csi_energy = csi_real_energy + generator.Gaus(0.0, csi_energy_sigma);
 		// double tafd_energy = taf_lost_energy[0];
 		// double csi_energy = taf_lost_energy[1];
 

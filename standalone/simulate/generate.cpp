@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 3) {
+	if (run < 0 || run > 4) {
 		std::cout << "Usage: " << argv[0] << " [run]\n"
 			<< "  run        run number, default is 0\n";
 	}
@@ -451,6 +451,14 @@ int main(int argc, char **argv) {
 			} else {
 				event.beam_excited_energy =
 					18.20 + 0.02 * ((entry / (entries / 300)) % 100);
+			}
+		} else if (run == 4) {
+			if (entry < entries / 3) {
+				event.beam_excited_energy = 18.0;
+			} else if (entry < entries / 3 * 2) {
+				event.beam_excited_energy = 21.5;
+			} else {
+				event.beam_excited_energy = 24.0;
 			}
 		}
 		double parent_mass = beam_mass + event.beam_excited_energy;

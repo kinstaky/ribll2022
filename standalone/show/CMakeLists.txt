@@ -246,3 +246,12 @@ target_link_libraries(show_tafd_alpha_source PRIVATE event ROOT::Core ROOT::RIO 
 # show TAF coincide number
 add_executable(show_taf_coincident_number show_taf_coincident_number.cpp)
 target_link_libraries(show_taf_coincident_number PRIVATE event ROOT::RIO)
+
+# show CsI calibrate for checking CsI resolution in simulation
+add_executable(show_csi_calibrate show_csi_calibrate.cpp)
+target_link_libraries(show_csi_calibrate PRIVATE ROOT::Graf ROOT::Core ROOT::RIO ROOT::Tree csi_energy_calculator event)
+
+# show CsI error
+add_executable(show_csi_error show_csi_error.cpp)
+target_include_directories(show_csi_error PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
+target_link_libraries(show_csi_error PRIVATE ROOT::Graf ROOT::Core ROOT::RIO ROOT::Tree)

@@ -99,7 +99,7 @@ target_link_libraries(coincide PRIVATE channel)
 
 # coincide V2
 add_executable(coincide_v2 coincide_v2.cpp)
-target_link_libraries(coincide_v2 PRIVATE channel_v2_event ROOT::RIO csi_energy_calculator)
+target_link_libraries(coincide_v2 PRIVATE channel_v2_event ROOT::RIO csi_energy_calculator target_energy_calculator)
 
 # info-pd
 add_executable(info_pd info_pd.cpp)

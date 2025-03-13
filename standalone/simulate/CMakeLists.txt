@@ -58,8 +58,20 @@ target_link_libraries(efficiency PRIVATE event channel_v2_event ROOT::Core ROOT:
 
 # energy resolution
 add_executable(resolution simulate_resolution.cpp)
-target_link_libraries(resolution PRIVATE event ROOT::Core ROOT::Graf)
+target_link_libraries(resolution PRIVATE event ROOT::Core ROOT::Graf channel_v2_event)
 
 # simulate two body spectrum
 add_executable(sim_twobody simulate_twobody.cpp)
 target_link_libraries(sim_twobody PRIVATE event ROOT::Core ROOT::Graf target_energy_calculator)
+
+# full resolution from simulation
+add_executable(full_resolution full_resolution.cpp)
+target_link_libraries(full_resolution PRIVATE event channel_v2_event ROOT::Core ROOT::Graf target_energy_calculator)
+
+# target resolution from simulation
+add_executable(target_resolution target_resolution.cpp)
+target_link_libraries(target_resolution PRIVATE event channel_v2_event ROOT::Core ROOT::Graf)
+
+# systematic error from simulation
+add_executable(systematic_error systematic_error.cpp)
+target_link_libraries(systematic_error PRIVATE event channel_v2_event ROOT::Core ROOT::Graf target_energy_calculator)

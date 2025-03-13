@@ -15,6 +15,8 @@
 
 using namespace ribll;
 
+// #define ISOLATED_RESOLUTION
+
 // 能量分辨（sigma）模拟目标（道址）
 // T0D1-120(be),130(he)
 // T0D2-210(be),150(he)
@@ -58,7 +60,7 @@ int main(int argc, char **argv) {
 	if (argc > 1) {
 		run = atoi(argv[1]);
 	}
-	if (run < 0 || run > 2) {
+	if (run < 0 || run > 4) {
 		std::cout << "Usage: " << argv[0] << "[run]\n"
 			<< "  run        run number, default is 0\n";
 	}
@@ -307,14 +309,19 @@ int main(int argc, char **argv) {
 		// calculate t0 energy
 		double range[2];
 		double residual_energy[2];
+#ifdef ISOLATED_RESOLUTION
+		residual_energy[0] = event.excited_fragment0_kinetic_in_target;
+		residual_energy[1] = event.fragment_kinetic_in_target[1];
+#else
+		for (size_t i = 0; i < 2; ++i) {
+			residual_energy[i] = event.fragment_kinetic_after_target[i];
+		}
+#endif
 		for (size_t i = 0; i < 2; ++i) {
 			for (size_t j = 0; j < 7; ++j) {
 				t0_lost_energy[i][j] = 0.0;
 			}
-			range[i] = frag_calculators[i]->Range(
-				event.fragment_kinetic_after_target[i]
-			);
-			residual_energy[i] = event.fragment_kinetic_after_target[i];
+			range[i] = frag_calculators[i]->Range(residual_energy[i]);
 
 			for (size_t j = 0; j < 6; ++j) {
 				double thick = thickness[j] / cos(event.fragment_theta[i]);

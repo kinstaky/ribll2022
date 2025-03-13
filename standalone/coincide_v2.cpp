@@ -10,6 +10,7 @@
 #include "include/event/ta_event.h"
 #include "include/ppac_track.h"
 #include "include/calculator/csi_energy_calculator.h"
+#include "include/calculator/target_energy_calculator.h"
 
 using namespace ribll;
 
@@ -17,6 +18,11 @@ using namespace ribll;
 const double beam_mass = mass_14c;
 double recoil_mass = mass_2h;
 const double fragment_mass[2] = {mass_10be, mass_4he};
+
+constexpr double correct_tafd_thickness[6] = {
+	166.0, 160.0, 150.0, 160.0, 164.0, 170.0
+};
+
 
 void CoincideSingleRun(
 	int run,
@@ -133,6 +139,15 @@ void CoincideSingleRun(
 		using_ppac_correct[1][0] = all_ppac_correct[1][1];
 	}
 
+
+	elc::TargetEnergyCalculator be10_target("10Be", "CD2", 9.53);
+	elc::TargetEnergyCalculator he4_target("4He", "CD2", 9.53);
+	elc::TargetEnergyCalculator h2_target("2H", "CD2", 9.53);
+	elc::TargetEnergyCalculator *fragment_targets[2] = {
+		&be10_target, &he4_target
+	};
+
+
 	// total number of entries
 	long long entries = ipt->GetEntries();
 	// 1/100 of entries
@@ -246,9 +261,14 @@ void CoincideSingleRun(
 		// get target position
 		// correct PPAC
 		for (int i = 0; i < 3; ++i) {
-			channel.ppac_x[i] = xppac_event.x[i] - using_ppac_correct[0][i];
-			channel.ppac_y[i] = xppac_event.y[i] - using_ppac_correct[1][i];
+			channel.ppac_x[i] = xppac_event.x[i];
+			channel.ppac_y[i] = xppac_event.y[i];
+			if (!simulation) {
+				channel.ppac_x[i] -= using_ppac_correct[0][i];
+				channel.ppac_y[i] -= using_ppac_correct[1][i];
+			}
 		}
+
 		// track
 		double xk, yk;
 		TrackMultiplePpac(
@@ -258,58 +278,69 @@ void CoincideSingleRun(
 			channel.ppac_yflag, using_ppac_yz, channel.ppac_y, yk, channel.ty
 		);
 
-		// get recoil direction
-		ROOT::Math::XYZVector recoil_direction(
-			channel.recoil_x - channel.tx,
-			channel.recoil_y - channel.ty,
-			channel.recoil_z
-		);
-		recoil_direction = recoil_direction.Unit();
-		// get recoil energy
-		if (channel.tafcsi_valid) {
-			channel.recoil_kinetic = taf_events[channel.taf_index].energy[0];
-		} else {
-			channel.recoil_kinetic = h2_calculator.Energy(
-				recoil_direction.Theta(),
-				taf_events[channel.taf_index].energy[0],
-				tafd_thickness[channel.taf_index]
-			);
-		}
-		channel.recoil_energy = channel.recoil_kinetic + recoil_mass;
-		channel.recoil_momentum = MomentumFromKinetic(
-			recoil_mass, channel.recoil_kinetic
-		);
 		// get recoil position
 		channel.recoil_x = taf_events[channel.taf_index].x[0];
 		channel.recoil_y = taf_events[channel.taf_index].y[0];
 		channel.recoil_z = taf_events[channel.taf_index].z[0];
+		// get recoil direction
+		ROOT::Math::XYZVector recoil_direction = ROOT::Math::XYZVector(
+			channel.recoil_x - channel.tx,
+			channel.recoil_y - channel.ty,
+			channel.recoil_z
+		).Unit();
+		// get recoil energy
+		if (channel.tafcsi_valid) {
+			channel.recoil_kinetic = taf_events[channel.taf_index].energy[0];
+		} else {
+			double tafde = taf_events[channel.taf_index].energy[0];
+			double csie = h2_calculator.Energy(
+				recoil_direction.Theta(),
+				tafde,
+				correct_tafd_thickness[channel.taf_index]
+			);
+			channel.recoil_kinetic = tafde + csie;
+		}
+		// check recoil kinetic
+		if (channel.recoil_kinetic > 80.0 || channel.recoil_kinetic < 6.0) {
+			channel.valid |= 2;
+			continue;
+		}
+		channel.recoil_kinetic = h2_target.Energy(
+			-0.5 / recoil_direction.Theta(),
+			channel.recoil_kinetic
+		);
+		channel.recoil_energy = channel.recoil_kinetic + recoil_mass;
+		channel.recoil_momentum = MomentumFromKinetic(
+			recoil_mass, channel.recoil_kinetic
+		);
 		ROOT::Math::XYZVector recoil_p = recoil_direction * channel.recoil_momentum;
 
-		// get fragment energy
-		for (int i = 0; i < 2; ++i) {
-			channel.fragment_kinetic[i] = t0_event.energy[frag_index[i]];
-			channel.fragment_energy[i] =
-				channel.fragment_kinetic[i] + fragment_mass[i];
-			channel.fragment_momentum[i] = MomentumFromKinetic(
-				fragment_mass[i], channel.fragment_kinetic[i]
-			);
-		}
 		// get fragment position
 		for (int i = 0; i < 2; ++i) {
 			channel.fragment_x[i] = t0_event.x[frag_index[i]];
 			channel.fragment_y[i] = t0_event.y[frag_index[i]];
 			channel.fragment_z[i] = t0_event.z[frag_index[i]];
 		}
-		// get fragment momentum vector
+		ROOT::Math::XYZVector fragment_direction[2];
 		ROOT::Math::XYZVector fragment_p[2];
 		for (int i = 0; i < 2; ++i) {
-			fragment_p[i] = ROOT::Math::XYZVector(
+			// get fragment directions
+			fragment_direction[i] = ROOT::Math::XYZVector(
 				channel.fragment_x[i] - channel.tx,
 				channel.fragment_y[i] - channel.ty,
 				channel.fragment_z[i]
+			).Unit();
+			channel.fragment_kinetic[i] = fragment_targets[i]->Energy(
+				-0.5 / cos(fragment_direction[i].Theta()),
+				t0_event.energy[frag_index[i]]
 			);
-			fragment_p[i] =
-				fragment_p[i].Unit() * channel.fragment_momentum[i];
+channel.fragment_kinetic[i] = t0_event.energy[frag_index[i]];
+			channel.fragment_energy[i] =
+				channel.fragment_kinetic[i] + fragment_mass[i];
+			channel.fragment_momentum[i] = MomentumFromKinetic(
+				fragment_mass[i], channel.fragment_kinetic[i]
+			);
+			fragment_p[i] = fragment_direction[i] * channel.fragment_momentum[i];
 		}
 
 		// get parent momentum
@@ -346,6 +377,8 @@ void CoincideSingleRun(
 	}
 }
 
+
+
 void PrintUsage(const char* name) {
 	std::cout << "Usage: " << name << " [options] [recoil]\n"
 		<< "  recoil        Recoil particle mass, default is 2(2H).\n"
@@ -354,26 +387,87 @@ void PrintUsage(const char* name) {
 		<< "  -c            Use C target.\n";
 }
 
+
+/// @brief parse arguments
+/// @param[in] argc number of arguments
+/// @param[in] argv arguments
+/// @param[out] help need help
+/// @param[out] sim use simulated data
+/// @param[out] ctarget use C target data
+/// @param[out] run set run
+/// @returns start index of positional arguments if succes, if failed returns
+///		-argc (negative argc) for miss argument behind option,
+/// 	or -index (negative index) for invalid arguemnt
+///
+int ParseArguments(
+	int argc,
+	char **argv,
+	bool &help,
+	bool &sim,
+	bool &ctarget,
+	int &run
+) {
+	// initialize
+	help = false;
+	sim = false;
+	ctarget = false;
+	run = 2;
+	// start index of positional arugments
+	int result = 0;
+	for (result = 1; result < argc; ++result) {
+		// assumed that all options have read
+		if (argv[result][0] != '-') break;
+		// short option contains only one letter
+		if (argv[result][2] != 0) return -result;
+		if (argv[result][1] == 'h') {
+			help = true;
+			return result;
+		} else if (argv[result][1] == 's') {
+			sim = true;
+		} else if (argv[result][1] == 'c') {
+			ctarget = true;
+		} else if (argv[result][1] == 'r') {
+			++result;
+			if (result == argc) return -argc;
+			run = atoi(argv[result]);
+		} else {
+			return -result;
+		}
+	}
+	return result;
+}
+
+
+
+
 int main(int argc, char **argv) {
-	if (argc > 2) {
+	bool help = false;
+	bool simulation = false;
+	bool ctarget = false;
+	int sim_run = 2;
+	int recoil_mass_number = 2;
+	std::string target = "cd2";
+
+	int pos_start = ParseArguments(
+		argc, argv, help, simulation, ctarget, sim_run
+	);
+	if (help) {
+		PrintUsage(argv[0]);
+		return 0;
+	}
+	if (pos_start < 0) {
+		if (-pos_start < argc) {
+			std::cerr << "Error: Invalid option " << argv[-pos_start] << ".\n";
+		} else {
+			std::cerr << "Error: Option need parameter.\n";
+		}
 		PrintUsage(argv[0]);
 		return -1;
 	}
-	bool simulation = false;
-	int recoil_mass_number = 2;
-	std::string target = "cd2";
-	if (argc == 2) {
-		if (argv[1][0] == '-' && argv[1][1] == 'h') {
-			PrintUsage(argv[0]);
-			return 0;
-		} else if (argv[1][0] == '-' && argv[1][1] == 's') {
-			simulation = true;
-		} else if (argv[1][0] == '-' && argv[1][1] == 'c') {
-			target = "c";
-		} else {
-			recoil_mass_number = atoi(argv[1]);
-		}
+	if (pos_start < argc) {
+		recoil_mass_number = atoi(argv[pos_start]);
 	}
+
 	if (recoil_mass_number != 1 && recoil_mass_number != 2) {
 		std::cerr << "Error: Invalid recoil mass number, "
 			<< recoil_mass_number << "\n";
@@ -422,7 +516,14 @@ int main(int argc, char **argv) {
 	elc::CsiEnergyCalculator h2_calculator("2H");
 
 	if (simulation) {
-		CoincideSingleRun(2, true, opt, channel, h2_calculator, taf_conflict_number);
+		CoincideSingleRun(
+			sim_run,
+			true,
+			opt,
+			channel,
+			h2_calculator,
+			taf_conflict_number
+		);
 	} else if (target == "cd2") {
 		printf("Processing run 000");
 		for (int run = 618; run <= 716; ++run) {
@@ -433,7 +534,14 @@ int main(int argc, char **argv) {
 			printf("\b\b\b%3d", run);
 			fflush(stdout);
 
-			CoincideSingleRun(run, false, opt, channel, h2_calculator, taf_conflict_number);
+			CoincideSingleRun(
+				run,
+				false,
+				opt,
+				channel,
+				h2_calculator,
+				taf_conflict_number
+			);
 		}
 		// show finish
 		printf("\n");
@@ -447,7 +555,14 @@ int main(int argc, char **argv) {
 			printf("\b\b\b%3d", run);
 			fflush(stdout);
 
-			CoincideSingleRun(run, false, opt, channel, h2_calculator, taf_conflict_number);
+			CoincideSingleRun(
+				run,
+				false,
+				opt,
+				channel,
+				h2_calculator,
+				taf_conflict_number
+			);
 		}
 		// show finish
 		printf("\n");

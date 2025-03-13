@@ -6,8 +6,10 @@
 #include <TTree.h>
 #include <TH1F.h>
 #include <TF1.h>
+#include <Math/Vector3D.h>
 
 #include "include/event/generate_event.h"
+#include "include/event/channel_v2_event.h"
 
 using namespace ribll;
 
@@ -16,38 +18,43 @@ int main() {
 	int run = 2;
 
 	// input file name
-	TString generate_file_name = TString::Format(
-		"%s%sgenerate-%04d.root", kGenerateDataPath, kSimulateDir, run
+	TString channel_file_name = TString::Format(
+		"%s%sC14-10Be-4He-2H-v2-sim.root",
+		kGenerateDataPath,
+		kChannelDir
 	);
-	// input file
-	TFile generate_file(generate_file_name, "read");
+	// channel file
+	TFile channel_file(channel_file_name, "read");
 	// input tree
-	TTree *ipt = (TTree*)generate_file.Get("tree");
-	if (!ipt) {
+	TTree *channel_tree = (TTree*)channel_file.Get("tree");
+	if (!channel_tree) {
+		std::cerr << "Error: Get tree from "
+			<< channel_file_name << " failed.\n";
+        return -1;
+	}
+	// setup input branches
+	ChannelV2Event channel;
+    channel.SetupInput(channel_tree);
+
+	// generate file name
+	TString generate_file_name = TString::Format(
+        "%s%sgenerate-%04d.root",
+        kGenerateDataPath,
+        kSimulateDir,
+		run
+    );
+    // generate file
+    TFile generate_file(generate_file_name, "read");
+    // input tree
+    TTree *generate_tree = (TTree*)generate_file.Get("tree");
+	if (!generate_tree) {
 		std::cerr << "Error: Get tree from "
 			<< generate_file_name << " failed.\n";
 		return -1;
 	}
-	// generate event
 	GenerateEvent generate;
 	// setup input branches
-	generate.SetupInput(ipt);
-
-	// spectrum-V2 file
-	TString spectrum_file_name = TString::Format(
-		"%s%sthreebody-sim-%04d-2.root", kGenerateDataPath, kSpectrumDir, run 
-	);
-	// add friend
-	ipt->AddFriend("s=tree", spectrum_file_name);
-	// PPAC flag and TAF flag and bind flag
-	int ppac_flag, taf_flag, bind_flag;
-	// rebuilt excited energy
-	double excited_energy[4];
-	// setup input branches
-	ipt->SetBranchAddress("s.ppac_flag", &ppac_flag);
-	ipt->SetBranchAddress("s.taf_flag", &taf_flag);
-	ipt->SetBranchAddress("s.bind", &bind_flag);
-	ipt->SetBranchAddress("s.excited_energy", excited_energy);
+	generate.SetupInput(generate_tree);
 
 	// output file name
 	TString output_file_name = TString::Format(
@@ -66,18 +73,18 @@ int main() {
 	}
 	// resolution graph
 	TGraph graph_resolution[3];
-	
-	
-	if (ipt->GetEntries() != 3'000'000) {
-		std::cerr << "Error: entries != 3,000,000\n";
-		return -1;
-	}
+
+
+	// if (ipt->GetEntries() != 3'000'000) {
+	// 	std::cerr << "Error: entries != 3,000,000\n";
+	// 	return -1;
+	// }
 	// 1/100 of total entries, for showing process
 	long long entry100 = 30'000;
 	// show start
 	printf("Getting resolution   0%%");
 	fflush(stdout);
-	for (long long entry = 0; entry < 3'000'000; ++entry) {
+	for (long long entry = 0; entry < channel_tree->GetEntries(); ++entry) {
 		// show process
 		if (entry % entry100 == 0) {
 			printf("\b\b\b\b%3lld%%", entry / entry100);
@@ -85,19 +92,44 @@ int main() {
 		}
 
 		// get data
-		ipt->GetEntry(entry);
-		if ((ppac_flag & 1) == 0) continue;
-		if (taf_flag) continue;
-		if (bind_flag) continue;
+		channel_tree->GetEntry(entry);
+		if (channel.valid != 0) continue;
+		generate_tree->GetEntry(channel.entry);
 
 		// 10Be state
-		int state = entry / 1'000'000;
+		int state = channel.entry / 1'000'000;
 		// excited energy part
-		int i = (entry % 1'000'000) / 10'000;
+		int i = (channel.entry % 1'000'000) / 10'000;
+
+
+		ROOT::Math::XYZVector be_direction = ROOT::Math::XYZVector(
+			channel.fragment_x[0] - channel.tx,
+			channel.fragment_y[0] - channel.ty,
+			100.0
+		).Unit();
+		double mass_excited_10be = mass_10be + generate.fragment_excited_energy;
+		ROOT::Math::XYZVector bep = be_direction * MomentumFromKinetic(
+			mass_excited_10be, channel.fragment_kinetic[0]
+		);
+
+		ROOT::Math::XYZVector he_direction = ROOT::Math::XYZVector(
+            channel.fragment_x[1] - channel.tx,
+			channel.fragment_y[1] - channel.ty,
+			100.0
+        ).Unit();
+		ROOT::Math::XYZVector hep = he_direction * MomentumFromKinetic(
+			mass_4he, channel.fragment_kinetic[1]
+		);
+
+		ROOT::Math::XYZVector xcp = bep + hep;
+		double xc_energy = channel.fragment_kinetic[0] + mass_excited_10be
+			+ channel.fragment_kinetic[1] + mass_4he;
+		double xc_mass = sqrt(pow(xc_energy, 2.0) - xcp.Mag2());
+		double xce = xc_mass - mass_14c;
 
 		// resolution
 		hist_resolution[state][i].Fill(
-			excited_energy[3] - generate.beam_excited_energy
+			xce - generate.beam_excited_energy
 		);
 	}
 	// show finish
@@ -108,7 +140,7 @@ int main() {
 		double x_base = 12.02;
 		if (i == 1) x_base = 15.39;
 		if (i == 2) x_base = 18.20;
-		for (int j = 0; j < 100; ++j) {
+		for (int j = 1; j < 100; ++j) {
 			TF1 *f1 = new TF1(TString::Format("fs%di%d", i, j), "gaus", -2, 2);
 			hist_resolution[i][j].Fit(f1, "RQ+");
 			graph_resolution[i].AddPoint(
