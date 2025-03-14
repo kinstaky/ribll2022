@@ -24,6 +24,29 @@ constexpr double d1_range = 500.0;
 constexpr double d2_range = 1000.0;
 constexpr double d3_range = 200.0;
 
+// straight parameters
+constexpr double sa12 = 0.47;
+constexpr double sb12 = -0.042;
+constexpr double sa23 = 0.59;
+constexpr double sb23 = -0.042;
+
+
+/// @brief get fixed energy after straight
+/// @param[in] de energy(channel) in the first layer
+/// @param[in] e energy(channel) in the second layer 
+/// @param[in] a straight parameter a
+/// @param[in] b straight parameter b
+/// @returns fixed energy after straight
+/// 
+inline double Straight(
+	const double de,
+	const double e,
+	const double a, 
+	const double b
+) {
+	return sqrt(de*e + a*de*de) + b*e;
+}
+
 // const double cy_param[6][2] = {
 // 	{-0.451425,	0.00679791},
 // 	{0.217737, 0.00697266},
@@ -860,18 +883,21 @@ public:
 	unsigned short charge;
 	unsigned short mass;
 	bool tail;
+	bool straight;
 	int index[2];
 
 	Slice(
 		unsigned short c,
 		unsigned short m,
 		bool t,
+		bool s,
 		int i1,
 		int i2
 	)
 	: charge(c)
 	, mass(m)
 	, tail(t)
+	, straight(s)
 	{
 		index[0] = i1;
 		index[1] = i2;
@@ -885,6 +911,14 @@ public:
 			&& tail
 		);
 	}
+};
+
+
+struct StraightInfo {
+	unsigned short charge;
+	unsigned short mass;
+	double min;
+	double max;
 };
 
 
@@ -909,6 +943,9 @@ void BuildDssdSliceHole(
 	const std::vector<ParticleCut> &hole_tail_cuts,
 	const bool *hole1,
 	const bool *hole2,
+	const double sa,
+	const double sb,
+	const std::map<int, StraightInfo> &straight_info,
 	double offset,
 	std::vector<Slice> &slices
 ) {
@@ -930,16 +967,30 @@ void BuildDssdSliceHole(
 					std::cerr << "Error: hole1 and hole2 invalid.\n";
 					return;
 				}
-				// check penatrate PID curv
+				// check stopped PID curv
 				for (const auto &cut : *(used_cuts)) {
 					if (cut.cut->IsInside(
 						layer2.energy[j], layer1.energy[i]
 					)) {
+						double ef = Straight(
+							layer1.energy[i], layer2.energy[j], sa, sb
+						);
+						auto search = straight_info.find(cut.charge*100+cut.mass);
+						bool is_straight = false;
+						if (
+							search != straight_info.end()
+							&& ef > search->second.min
+							&& ef < search->second.max
+						) {
+							is_straight = true;
+						}
+
 						// build slice
 						slices.emplace_back(
 							cut.charge,
 							cut.mass,
 							false,
+							is_straight,
 							i, j
 						);
 					}
@@ -953,7 +1004,7 @@ void BuildDssdSliceHole(
 						slices.emplace_back(
 							cut.charge,
 							cut.mass,
-							true,
+							true, false,
 							i, j
 						);
 					}
@@ -987,7 +1038,7 @@ void BuildDssdSsdSlice(
 				slices.emplace_back(
 					cut.charge,
 					cut.mass,
-					false,
+					false, false,
 					i, 0
 				);
 			}
@@ -998,7 +1049,7 @@ void BuildDssdSsdSlice(
 				slices.emplace_back(
 					cut.charge,
 					cut.mass,
-					true,
+					true, false,
 					i, 0
 				);
 			}
@@ -1028,7 +1079,7 @@ void BuildSsdSlice(
 		if (cut.cut->IsInside(layer2.energy, layer1.energy)) {
 			slices.emplace_back(
 				cut.charge, cut.mass,
-				false,
+				false, false,
 				0, 0
 			);
 		}
@@ -1037,7 +1088,7 @@ void BuildSsdSlice(
 		if (cut.cut->IsInside(layer2.energy, layer1.energy)) {
 			slices.emplace_back(
 				cut.charge, cut.mass,
-				true,
+				true, false,
 				0, 0
 			);
 		}
@@ -1068,19 +1119,38 @@ void BuildSlice(
 ) {
 	bool d2_hole[8];
 	for (size_t i = 0; i < hole.size(); ++i) d2_hole[i] = hole[i];
+	std::map<int, StraightInfo> d1d2_straight_info;
+	d1d2_straight_info.insert(
+		std::make_pair(410, StraightInfo{4, 10, 20200, 21200})
+	);
+	d1d2_straight_info.insert(
+		std::make_pair(204, StraightInfo{2, 4, 6100, 6600})
+	);
 	BuildDssdSliceHole(
 		d1, d2,
 		t0_cut.d1d2_cuts, t0_cut.d1d2_tail_cuts,
 		t0_cut.d1d2_hole_cuts, t0_cut.d1d2_hole_tail_cuts,
 		nullptr, d2_hole,
+		sa12, sb12,
+		d1d2_straight_info,
 		4.0,
 		slices[0]
+	);
+
+	std::map<int, StraightInfo> d2d3_straight_info;
+	d2d3_straight_info.insert(
+		std::make_pair(410, StraightInfo{4, 10, 24000, 25000})
+	);
+	d2d3_straight_info.insert(
+		std::make_pair(204, StraightInfo{2, 4, 7000, 8000})
 	);
 	BuildDssdSliceHole(
 		d2, d3,
 		t0_cut.d2d3_cuts, t0_cut.d2d3_tail_cuts,
 		t0_cut.d2d3_hole_cuts, t0_cut.d2d3_hole_tail_cuts,
 		d2_hole, nullptr,
+		sa23, sb23,
+		d2d3_straight_info,
 		4.2,
 		slices[1]
 	);
@@ -1689,6 +1759,7 @@ int SliceTrack(
 		t0_event.ssd_flag = group[i].flag >> 24;
 		t0_event.charge[i] = slice->charge;
 		t0_event.mass[i] = slice->mass;
+		t0_event.straight[i] = true;
 
 		SliceNode *node = &(group[i]);
 		for (int layer = detect_layer; layer >= 0; --layer) {
@@ -1735,6 +1806,9 @@ int SliceTrack(
 				t0_event.z[i][1] = 111.76;
 				t0_event.dssd_flag[i][1] = merge_event[1].flag[d2_index];
 				t0_event.hole[i] = selected_d2_hole->at(d2_index);
+				if (detect_layer == 0 && !slice->straight) {
+					t0_event.straight[i] = false;
+				} 
 			} else if (layer == 1) {
 				// fill T0D3 information
 				int d3_index = slice->index[1];
@@ -1751,6 +1825,9 @@ int SliceTrack(
 				t0_event.y[i][2] = merge_event[2].y[d3_index];
 				t0_event.z[i][2] = 123.52;
 				t0_event.dssd_flag[i][2] = merge_event[2].flag[d3_index];
+				if (detect_layer == 1 && !slice->straight) {
+					t0_event.straight[i] = false;
+				}
 			} else if (layer == 2) {
 				// fill T0S1 information
 				t0_event.ssd_energy[0] = s1_event.energy;

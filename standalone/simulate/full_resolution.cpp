@@ -22,7 +22,7 @@
 // #define THREE_PPAC
 // #define TWO_PPAC
 // #define SINGLE_PPAC_APPROX
-#define SINGLE_PPAC_FSOLVE
+// #define SINGLE_PPAC_FSOLVE
 // #define GAMMA_DECAY
 // #define BE_POS
 // #define HE_POS
@@ -30,7 +30,7 @@
 // #define BE_ENERGY
 // #define HE_ENERGY
 // #define H_ENERGY
-// #define FULL
+#define FULL
 
 constexpr int PPAC_INDEX = 0;
 

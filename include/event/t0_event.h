@@ -40,6 +40,7 @@ public:
 	int points[8];
 	unsigned short dssd_flag[8][3];
 	bool hole[8];
+	bool straight[8];
 };
 
 }	// namespace ribll

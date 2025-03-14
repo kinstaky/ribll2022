@@ -167,11 +167,12 @@ void CoincideSingleRun(
 
 		// initialize
 		channel.valid = 0;
-		channel.ppac_valid = false;
+		channel.ppac_valid = true;
 		channel.t0_valid = false;
 		channel.tafd_edge = false;
 		channel.tafcsi_valid = false;
 		channel.hole = 0;
+		channel.t0_straight = 0;
 
 		// check Be and He
 		int frag_index[2] = {-1, -1};
@@ -196,9 +197,10 @@ void CoincideSingleRun(
 		}
 		if (hole[frag_index[0]]) channel.hole |= 1;
 		if (hole[frag_index[1]]) channel.hole |= 2;
-		if (channel.hole == 0) {
-			channel.t0_valid = true;
-		} else {
+		if (!t0_event.straight[frag_index[0]]) channel.t0_straight |= 1;
+		if (!t0_event.straight[frag_index[1]]) channel.t0_straight |= 2;
+		channel.t0_valid = true;
+		if (channel.hole != 0 || channel.t0_straight != 0) {
 			channel.t0_valid = false;
 			channel.valid |= 1;
 		}
@@ -239,26 +241,33 @@ void CoincideSingleRun(
 		channel.csi_index =
 			channel.taf_index*2 + taf_events[channel.taf_index].index[0];
 
+		// get recoil position
+		channel.recoil_x = taf_events[channel.taf_index].x[0];
+		channel.recoil_y = taf_events[channel.taf_index].y[0];
+		channel.recoil_z = taf_events[channel.taf_index].z[0];
+		// get recoil direction
+		ROOT::Math::XYZVector recoil_direction = ROOT::Math::XYZVector(
+			channel.recoil_x,
+			channel.recoil_y,
+			channel.recoil_z
+		).Unit();
+		// get recoil energy
+		if (channel.tafcsi_valid) {
+			channel.recoil_kinetic = taf_events[channel.taf_index].energy[0];
+		} else {
+			double tafde = taf_events[channel.taf_index].energy[0];
+			double csie = h2_calculator.Energy(
+				recoil_direction.Theta(),
+				tafde,
+				correct_tafd_thickness[channel.taf_index]
+			);
+			channel.recoil_kinetic = tafde + csie;
+		}
+
+
 		// check PPAC
 		channel.ppac_xflag = xppac_xflag;
 		channel.ppac_yflag = xppac_yflag;
-		channel.ppac_xnum = channel.ppac_ynum = 0;
-		for (int i = 0; i < 3; ++i) {
-			if (xppac_xflag & (1 << i)) ++channel.ppac_xnum;
-			if (xppac_yflag & (1 << i)) ++channel.ppac_ynum;
-		}
-		if (channel.ppac_xnum < 1 || channel.ppac_ynum < 1) {
-			channel.valid |= 4;
-			continue;
-		}
-		if (channel.ppac_xnum >= 2 && channel.ppac_ynum >= 2) {
-			channel.ppac_valid = true;
-		} else {
-			channel.ppac_valid = false;
-			channel.valid |= 4;
-		}
-
-		// get target position
 		// correct PPAC
 		for (int i = 0; i < 3; ++i) {
 			channel.ppac_x[i] = xppac_event.x[i];
@@ -268,30 +277,76 @@ void CoincideSingleRun(
 				channel.ppac_y[i] -= using_ppac_correct[1][i];
 			}
 		}
+		if ((channel.ppac_xflag & 4) == 4) {
+			channel.tx = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_xz[2],
+				t0_event.x[frag_index[0]], t0_event.x[frag_index[1]],
+				channel.recoil_x, channel.recoil_y,
+				channel.ppac_x[2]
+			);
+		} else if ((channel.ppac_xflag & 2) == 2) {
+			channel.tx = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_xz[1],
+				t0_event.x[frag_index[0]], t0_event.x[frag_index[1]],
+				channel.recoil_x, channel.recoil_y,
+				channel.ppac_x[1]
+			);
+		} else if ((channel.ppac_xflag & 1) == 1) {
+			channel.tx = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_xz[0],
+				t0_event.x[frag_index[0]], t0_event.x[frag_index[1]],
+				channel.recoil_x, channel.recoil_y,
+				channel.ppac_x[0]
+			);
+		} else {
+			channel.ppac_valid = false;
+			channel.valid |= 4;
+		}
+		if ((channel.ppac_yflag & 4) == 4) {
+			channel.ty = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_yz[2],
+				t0_event.y[frag_index[0]], t0_event.y[frag_index[1]],
+				channel.recoil_y, channel.recoil_x,
+				channel.ppac_y[2]
+			);
+		} else if ((channel.ppac_yflag & 2) == 2) {
+			channel.ty = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_yz[1],
+				t0_event.y[frag_index[0]], t0_event.y[frag_index[1]],
+				channel.recoil_y, channel.recoil_x,
+				channel.ppac_y[1]
+			);
+		} else if ((channel.ppac_yflag & 1) == 1) {
+			channel.ty = DeutronRelativeApproximateTrack(
+				t0_event.energy[frag_index[0]], t0_event.energy[frag_index[1]],
+				channel.recoil_kinetic,
+				using_ppac_yz[0],
+				t0_event.y[frag_index[0]], t0_event.y[frag_index[1]],
+				channel.recoil_y, channel.recoil_x,
+				channel.ppac_y[0]
+			);
+		} else {
+			channel.ppac_valid = false;
+			channel.valid |= 4;
+		}
 
-		// track
-		double xk, yk;
-		TrackMultiplePpac(
-			channel.ppac_xflag, using_ppac_xz, channel.ppac_x, xk, channel.tx
-		);
-		TrackMultiplePpac(
-			channel.ppac_yflag, using_ppac_yz, channel.ppac_y, yk, channel.ty
-		);
-
-		// get recoil position
-		channel.recoil_x = taf_events[channel.taf_index].x[0];
-		channel.recoil_y = taf_events[channel.taf_index].y[0];
-		channel.recoil_z = taf_events[channel.taf_index].z[0];
 		// get recoil direction
-		ROOT::Math::XYZVector recoil_direction = ROOT::Math::XYZVector(
+		recoil_direction = ROOT::Math::XYZVector(
 			channel.recoil_x - channel.tx,
 			channel.recoil_y - channel.ty,
 			channel.recoil_z
 		).Unit();
-		// get recoil energy
-		if (channel.tafcsi_valid) {
-			channel.recoil_kinetic = taf_events[channel.taf_index].energy[0];
-		} else {
+		if (!channel.tafcsi_valid) {
 			double tafde = taf_events[channel.taf_index].energy[0];
 			double csie = h2_calculator.Energy(
 				recoil_direction.Theta(),
@@ -315,6 +370,7 @@ void CoincideSingleRun(
 		);
 		ROOT::Math::XYZVector recoil_p = recoil_direction * channel.recoil_momentum;
 
+
 		// get fragment position
 		for (int i = 0; i < 2; ++i) {
 			channel.fragment_x[i] = t0_event.x[frag_index[i]];
@@ -334,7 +390,7 @@ void CoincideSingleRun(
 				-0.5 / cos(fragment_direction[i].Theta()),
 				t0_event.energy[frag_index[i]]
 			);
-channel.fragment_kinetic[i] = t0_event.energy[frag_index[i]];
+// channel.fragment_kinetic[i] = t0_event.energy[frag_index[i]];
 			channel.fragment_energy[i] =
 				channel.fragment_kinetic[i] + fragment_mass[i];
 			channel.fragment_momentum[i] = MomentumFromKinetic(

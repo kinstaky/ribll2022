@@ -27,6 +27,7 @@ public:
 	int valid;
 	bool ppac_valid;
 	int hole;
+	int t0_straight;
 	bool t0_valid;
 	bool tafd_edge;
 	bool tafcsi_valid;
@@ -55,7 +56,7 @@ public:
 	// other information
 	short run;
 	long long entry;
-	// extra TAF information
+	// extra information
 	int tafd_front_strip;
 	double tafd_energy;
 	int t0_layer[2];

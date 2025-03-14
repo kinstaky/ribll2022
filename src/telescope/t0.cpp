@@ -2631,6 +2631,7 @@ int T0::Rebuild() {
 			if (type_event.mass[i] == 4 && type_event.charge[i] == 2) {
 				has_4he = true;
 			}
+			particle_event.straight[particle_event.num] = t0_event.straight[i];
 
 			++particle_event.num;
 		}

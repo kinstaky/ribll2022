@@ -9,6 +9,7 @@ void ChannelV2Event::SetupInput(
 	tree->SetBranchAddress((prefix+"valid").c_str(), &valid);
 	tree->SetBranchAddress((prefix+"ppac_valid").c_str(), &ppac_valid);
 	tree->SetBranchAddress((prefix+"hole").c_str(), &hole);
+	tree->SetBranchAddress((prefix+"t0_straight").c_str(), &t0_straight);
 	tree->SetBranchAddress((prefix+"t0_valid").c_str(), &t0_valid);
 	tree->SetBranchAddress((prefix+"tafd_edge").c_str(), &tafd_edge);
 	tree->SetBranchAddress((prefix+"tafcsi_valid").c_str(), &tafcsi_valid);
@@ -59,6 +60,7 @@ void ChannelV2Event::SetupOutput(TTree *tree) {
 	tree->Branch("valid", &valid, "v/I");
 	tree->Branch("ppac_valid", &ppac_valid, "pv/O");
 	tree->Branch("hole", &hole, "hole/I");
+	tree->Branch("t0_straight", &t0_straight, "t0s/I");
 	tree->Branch("t0_valid", &t0_valid, "t0v/O");
 	tree->Branch("tafd_edge", &tafd_edge, "tafdedge/O");
 	tree->Branch("tafcsi_valid", &tafcsi_valid, "cv/O");

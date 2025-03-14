@@ -38,6 +38,7 @@ public:
 	double pz[8];
 	int status[8];
 	int index[8];
+	bool straight[8];
 };
 
 }	// namespace ribll

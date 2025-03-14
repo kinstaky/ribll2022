@@ -940,6 +940,7 @@ int main(int argc, char **argv) {
 			particle.z[0] = position.Z();
 			// index
 			particle.index[0] = csi_index;
+			particle.straight[0] = true;
 		} else if (mass == 0) {
 			particle.num = 1;
 			// charge and mass
@@ -958,6 +959,7 @@ int main(int argc, char **argv) {
 			particle.z[0] = position.Z();
 			// index
 			particle.index[0] = csi_index;
+			particle.straight[0] = false;
 		}
 
 		opt.Fill();

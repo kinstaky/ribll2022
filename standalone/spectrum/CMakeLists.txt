@@ -32,6 +32,17 @@ target_link_libraries(
 	asymmetric_voigt background_poly
 )
 
+# roofit spectrum
+add_executable(roofit_spectrum_v2 roofit_spectrum_v2.cpp)
+target_link_libraries(
+	roofit_spectrum_v2
+	PRIVATE
+	ROOT::Hist ROOT::RooFit ROOT::Gpad
+	event d2_energy_calculator target_energy_calculator
+	asymmetric_voigt background_poly
+)
+
+
 # roofit alone spectrum
 add_executable(roofit_alone_spectrum roofit_alone_spectrum.cpp)
 target_link_libraries(

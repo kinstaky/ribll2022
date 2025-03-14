@@ -48,7 +48,19 @@ constexpr double sa23 = 0.59;
 constexpr double sb23 = -0.042;
 
 
-inline double Straight(double de, double e, double a, double b) {
+/// @brief get fixed energy after straight
+/// @param[in] de energy(channel) in the first layer
+/// @param[in] e energy(channel) in the second layer 
+/// @param[in] a straight parameter a
+/// @param[in] b straight parameter b
+/// @returns fixed energy after straight
+/// 
+inline double Straight(
+	const double de,
+	const double e,
+	const double a, 
+	const double b
+) {
 	return sqrt(de*e + a*de*de) + b*e;
 }
 

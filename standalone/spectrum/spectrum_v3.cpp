@@ -12,8 +12,6 @@
 #include <Math/Vector3D.h>
 
 #include "include/event/channel_v2_event.h"
-#include "include/calculator/target_energy_calculator.h"
-#include "include/calculator/csi_energy_calculator.h"
 #include "include/ppac_track.h"
 
 using namespace ribll;
@@ -27,8 +25,13 @@ constexpr double correct_tafd_thickness[6] = {
 };
 
 // Q value correct
-constexpr double q_correct[6] = {
+constexpr double q_tafd_correct[6] = {
 	0.3, -0.3, -0.4, 0.0, 0.4, 0.4
+};
+constexpr double q_csi_correct[12] = {
+	-0.46, -0.25, 0.18, 0.49,
+	0.49, 0.55, 0.28, 0.30,
+	-0.04, -0.10, -0.12, -0.64
 };
 
 
@@ -102,17 +105,15 @@ int main(int argc, char **argv) {
 	TTree opt("tree", "spectrum v3");
 	// output data
 	int valid, ppac_flag, target_flag, taf_flag;
-	// PID in correct range? index 0 for origin, 1 for calculated
-	int straight[2];
 	// kinetic energy with target energy lost
-	double be_kinetic_target, he_kinetic_target, d_kinetic_target;
-	double c_momentum_target, c_kinetic_target;
+	double be_kinetic, he_kinetic, d_kinetic;
+	double c_momentum, c_kinetic;
 	// Q value
 	double q;
 	// 10Be state, under different T0D2 energy method
 	int be_state;
 	// excited energy with target energy lost
-	double excited_energy_target;
+	double excited_energy;
 	// image 1H part
 	double image_q;
 
@@ -121,25 +122,15 @@ int main(int argc, char **argv) {
 	opt.Branch("ppac_flag", &ppac_flag, "pflag/I");
 	opt.Branch("taf_flag", &taf_flag, "tflag/I");
 	opt.Branch("target_flag", &target_flag, "tarflag/I");
-	opt.Branch("straight", &straight, "straight[2]/I");
-	opt.Branch("be_kinetic_target", &be_kinetic_target, "bekt/D");
-	opt.Branch("he_kinetic_target", &he_kinetic_target, "hekt/D");
-	opt.Branch("d_kinetic_target", &d_kinetic_target, "dkt/D");
-	opt.Branch("c_momentum_target", &c_momentum_target, "cpt/D");
-	opt.Branch("c_kinetic_target", &c_kinetic_target, "ckt/D");
+	opt.Branch("be_kinetic", &be_kinetic, "bek/D");
+	opt.Branch("he_kinetic", &he_kinetic, "hek/D");
+	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
+	opt.Branch("c_momentum", &c_momentum, "cp/D");
+	opt.Branch("c_kinetic", &c_kinetic, "ck/D");
 	opt.Branch("q", &q, "q/D");
 	opt.Branch("be_state", &be_state, "bes/I");
-	opt.Branch("excited_energy_target", &excited_energy_target, "ext/D");
+	opt.Branch("excited_energy", &excited_energy, "ex/D");
 	opt.Branch("image_q", &image_q, "imq/D");
-
-	// target energy calculator
-	elc::TargetEnergyCalculator be10_target("10Be", "CD2", 9.53);
-	elc::TargetEnergyCalculator he4_target("4He", "CD2", 9.53);
-	elc::TargetEnergyCalculator h2_target("2H", "CD2", 9.53);
-	// CsI energy calculator
-	elc::CsiEnergyCalculator h2_csi("2H");
-	elc::CsiEnergyCalculator h1_csi("1H");
-
 
 	// loop to process
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -149,30 +140,33 @@ int main(int argc, char **argv) {
 		if (channel.hole != 0) continue;
 		// get flags
 		valid = 0;
+		if (!channel.t0_valid) valid |= 1;
 		taf_flag = 0;
 		if (recoil_name == "2H") {
 			if (!channel.tafcsi_valid && channel.tafd_front_strip >= 13) {
 				taf_flag = 1;
 			} else if (channel.tafcsi_valid && channel.tafd_front_strip <= 13) {
 				taf_flag = 2;
+			} else {
+				valid |= 2;
 			}
 		} else if (recoil_name == "1H") {
 			if (channel.tafcsi_valid && channel.tafd_front_strip >= 12) {
 				taf_flag = 1;
+			} else {
+				valid |= 2;
 			}
 		}
-		ppac_flag = 0;
-		if (channel.ppac_xnum >= 2 && channel.ppac_ynum >= 2) {
-			ppac_flag = 2;
-		} else if (channel.ppac_xnum >= 1 && channel.ppac_ynum >= 1) {
-			ppac_flag = 1;
-		}
+
+		if (!channel.ppac_valid) valid |= 4;
 		if (pow(channel.tx-2.5, 2.0) + pow(channel.ty+2.0, 2.0) < 196.0) {
 			target_flag = 1;
 		} else {
 			target_flag = 0;
+			valid |= 8;
 		}
-		straight[0] = straight[1] = 0;
+		if (c_kinetic < 360.0) valid |= 16;
+
 
 		double &tx = channel.tx;
 		double &ty = channel.ty;
@@ -201,121 +195,45 @@ int main(int argc, char **argv) {
 
 		// sum up
 		double be_kinetic = channel.fragment_kinetic[0];
-		// consider energy loss in target
-		be_kinetic_target =
-			be10_target.Energy(-0.5/cos(d_be.Theta()), be_kinetic);
-
-
 		// 4He kinetic energy
 		double he_kinetic = channel.fragment_kinetic[1];
-		// consider energy loss in target
-		he_kinetic_target =
-			he4_target.Energy(-0.5/cos(d_he.Theta()), he_kinetic);
-
 		// deutron kinetic energy
-		double d_kinetic = 0.0;
-		if (taf_flag == 1) {
-			double tafd_energy = channel.tafd_energy;
-			double csi_energy = h2_csi.Energy(
-				d_d.Theta(), tafd_energy, correct_tafd_thickness[channel.taf_index]
-			);
-			d_kinetic = tafd_energy + csi_energy;
-		} else if (taf_flag == 2) {
-			d_kinetic = channel.recoil_energy;
-		}
-		// consider energy lost in target
-		d_kinetic_target =
-			h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
-
-		// calculate energy
-		double using_ppac_xz[3] = {ppac_xz[0], ppac_xz[1], ppac_xz[2]};
-		double using_ppac_yz[3] = {ppac_yz[0], ppac_yz[1], ppac_yz[2]};
-		if (channel.run >= ppac_change_run) {
-			using_ppac_xz[0] = all_ppac_xz[1];
-			using_ppac_yz[0] = all_ppac_yz[1];
-		}
-		double iter_tx, iter_ty;
-		for (int i = 0; i < 2; ++i) {
-			// calculate iterate reaction point
-			TrackPpac(
-				channel.ppac_xflag, using_ppac_xz, channel.ppac_x,
-				be_kinetic, he_kinetic, d_kinetic,
-				channel.fragment_x[0], channel.fragment_x[1],
-				channel.recoil_x, channel.recoil_y,
-				iter_tx
-			);
-			TrackPpac(
-				channel.ppac_yflag, using_ppac_yz, channel.ppac_y,
-				be_kinetic, he_kinetic, d_kinetic,
-				channel.fragment_y[0], channel.fragment_y[1],
-				channel.recoil_y, channel.recoil_x,
-				iter_ty
-			);
-
-			// calculate again
-			// 10Be direction vector
-			d_be = ROOT::Math::XYZVector(
-				channel.fragment_x[0] - iter_tx,
-				channel.fragment_y[0] - iter_ty,
-				100.0
-			).Unit();
-			// 4He direction vector
-			d_he = ROOT::Math::XYZVector(
-				channel.fragment_x[1] - iter_tx,
-				channel.fragment_y[1] - iter_ty,
-				100.0
-			).Unit();
-			// 2H direction vector
-			d_d = ROOT::Math::XYZVector(
-				channel.recoil_x - iter_tx,
-				channel.recoil_y - iter_ty,
-				135.0
-			).Unit();
-
-			// calculated recoil kinetic
-			d_kinetic = channel.tafd_energy + h2_csi.Energy(
-				d_d.Theta(), channel.tafd_energy,
-				correct_tafd_thickness[channel.taf_index]
-			);
-			d_kinetic_target =
-				h2_target.Energy(-0.5/cos(d_d.Theta()), d_kinetic);
-		}
-		if (pow(iter_tx-2.5, 2.0) + pow(iter_ty+2.0, 2.0) < 196.0) {
-			target_flag = 1;
-		} else {
-			target_flag = 0;
-		}
+		double d_kinetic = channel.recoil_kinetic;
 
 		// 10Be momentum
-		double be_momentum= MomentumFromKinetic(mass_10be, be_kinetic_target);
+		double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
 		ROOT::Math::XYZVector p_be = d_be * be_momentum;
 
 		// 4He momentum
-		double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic_target);
+		double he_momentum = MomentumFromKinetic(mass_4he, he_kinetic);
 		ROOT::Math::XYZVector p_he = d_he * he_momentum;
 
 		// 2H momentum
-		double d_momentum = MomentumFromKinetic(mass_2h, d_kinetic_target);
+		double d_momentum = MomentumFromKinetic(mass_2h, d_kinetic);
 		ROOT::Math::XYZVector p_d = d_d * d_momentum;
 
 		// beam 14C momentum vector
 		ROOT::Math::XYZVector p_c = p_be + p_he + p_d;
 
 		// 14C momentum
-		c_momentum_target = p_c.R();
+		c_momentum = p_c.R();
 		// 14C kinematic energy
-		c_kinetic_target =
-			sqrt(pow(c_momentum_target, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
+		c_kinetic =
+			sqrt(pow(c_momentum, 2.0) + pow(mass_14c, 2.0)) - mass_14c;
 
 		// three body Q value
-		q = be_kinetic_target + he_kinetic_target + d_kinetic_target - c_kinetic_target;
+		q = be_kinetic + he_kinetic + d_kinetic - c_kinetic;
 
 		// correct Q
-		q += q_correct[channel.taf_index];
+		if (taf_flag == 1) {
+			q += q_tafd_correct[channel.taf_index];
+		} else if (taf_flag == 2) {
+			q -= q_csi_correct[channel.csi_index];
+		}
 		// get 10Be state from Q value
-		if (q < -11.0 && q > -13.3) be_state = 0;
-		else if (q < -14.5 && q > -16.5) be_state = 1;
-		else if (q < -17.3 && q > -19) be_state = 2;
+		if (q < -11.0 && q > -13.0) be_state = 0;
+		else if (q < -14.5 && q > -16.0) be_state = 1;
+		else if (q < -17.0 && q > -20.0) be_state = 2;
 		// else if (q < -19 && q > -20.5) be_state = 3;
 		else be_state = -1;
 		// get 10Be excited energy form state
@@ -323,57 +241,56 @@ int main(int argc, char **argv) {
 			? be_excited_energy[be_state]
 			: 0.0;
 
+		double mass_excited_10be = mass_10be + be10_excited_energy;
+ 		be_momentum = MomentumFromKinetic(mass_excited_10be, be_kinetic);
+		p_be = d_be * be_momentum;
 		// excited 14C momentum vector
 		ROOT::Math::XYZVector p_excited_c = p_be + p_he;
 		// excited 14C momentum
 		double excited_c_momentum = p_excited_c.R();
 		// excited 14C total energy
-		double excited_c_energy =
-			(be_kinetic_target + mass_10be + be10_excited_energy)
-			+ (he_kinetic_target + mass_4he);
+		double excited_c_energy = (be_kinetic + mass_excited_10be)
+			+ (he_kinetic + mass_4he);
 		// excited 14C mass
 		double excited_c_mass = sqrt(
 			pow(excited_c_energy, 2.0) - pow(excited_c_momentum, 2.0)
 		);
 		// excited energy of 14C
-		excited_energy_target = excited_c_mass - mass_14c;
+		excited_energy = excited_c_mass - mass_14c;
 
-		if (ppac_flag == 0) valid |= 1;
-		if (taf_flag == 0) valid |= 2;
-		if (!channel.t0_valid) valid |= 4;
-		if (target_flag == 0) valid |= 8;
-		if (c_kinetic_target < 360.0) valid |= 32;
 
 		if (valid == 0 && taf_flag == 1) {
 			// fill Q spectrums
-			hq_taf[channel.taf_index].Fill(q - q_correct[channel.taf_index]);
+			hq_taf[channel.taf_index].Fill(
+				q - q_tafd_correct[channel.taf_index]
+			);
 			hq.Fill(q);
 		}
 
-		// image 1H part
-		// calculated recoil kinetic
-		double image_p_kinetic = channel.tafd_energy + h1_csi.Energy(
-			d_d.Theta(), channel.tafd_energy,
-			correct_tafd_thickness[channel.taf_index]
-		);
-		double image_p_kinetic_target =
-			h2_target.Energy(-0.5/cos(d_d.Theta()), image_p_kinetic);
-		// 2H momentum
-		double image_p_momentum =
-			MomentumFromKinetic(mass_1h, image_p_kinetic_target);
-		ROOT::Math::XYZVector image_p_p = d_d * image_p_momentum;
-		// beam 14C momentum vector
-		ROOT::Math::XYZVector image_p_c = p_be + p_he + image_p_p;
-		// 14C momentum
-		double image_c_momentum_target = image_p_c.R();
-		// 14C kinematic energy
-		double image_c_kinetic_target =
-			sqrt(pow(image_c_momentum_target, 2.0)
-			+ pow(mass_14c, 2.0)) - mass_14c;
-		// three body Q value
-		image_q = be_kinetic_target + he_kinetic_target
-			+ image_p_kinetic_target - image_c_kinetic_target;
-		if (image_q > 1) valid |= 64;
+		// // image 1H part
+		// // calculated recoil kinetic
+		// double image_p_kinetic = channel.tafd_energy + h1_csi.Energy(
+		// 	d_d.Theta(), channel.tafd_energy,
+		// 	correct_tafd_thickness[channel.taf_index]
+		// );
+		// double image_p_kinetic_target =
+		// 	h2_target.Energy(-0.5/cos(d_d.Theta()), image_p_kinetic);
+		// // 2H momentum
+		// double image_p_momentum =
+		// 	MomentumFromKinetic(mass_1h, image_p_kinetic_target);
+		// ROOT::Math::XYZVector image_p_p = d_d * image_p_momentum;
+		// // beam 14C momentum vector
+		// ROOT::Math::XYZVector image_p_c = p_be + p_he + image_p_p;
+		// // 14C momentum
+		// double image_c_momentum_target = image_p_c.R();
+		// // 14C kinematic energy
+		// double image_c_kinetic_target =
+		// 	sqrt(pow(image_c_momentum_target, 2.0)
+		// 	+ pow(mass_14c, 2.0)) - mass_14c;
+		// // three body Q value
+		// image_q = be_kinetic_target + he_kinetic_target
+		// 	+ image_p_kinetic_target - image_c_kinetic_target;
+		// if (image_q > 1) valid |= 64;
 
 		// fill to tree
 		opt.Fill();

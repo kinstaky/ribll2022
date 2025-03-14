@@ -20,6 +20,7 @@ void ParticleEvent::SetupInput(
 	tree->SetBranchAddress((prefix+"pz").c_str(), pz);
 	tree->SetBranchAddress((prefix+"status").c_str(), status);
 	tree->SetBranchAddress((prefix+"index").c_str(), index);
+	tree->SetBranchAddress((prefix+"straight").c_str(), straight);
 }
 
 
@@ -38,6 +39,7 @@ void ParticleEvent::SetupOutput(TTree *tree) {
 	tree->Branch("pz", pz, "pz[num]/D");
 	tree->Branch("status", status, "status[num]/I");
 	tree->Branch("index", index, "index[num]/I");
+	tree->Branch("straight", straight, "straight[num]/O");
 }
 
 }	// namespace ribll
