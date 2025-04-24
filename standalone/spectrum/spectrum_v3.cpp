@@ -1,4 +1,4 @@
-// spectrum 程序版本2，版本1太臃肿了，重新写一个
+// spectrum 程序版本3，仅从 channel_v2 读取
 #include <iostream>
 #include <fstream>
 
@@ -33,19 +33,6 @@ constexpr double q_csi_correct[12] = {
 	0.49, 0.55, 0.28, 0.30,
 	-0.04, -0.10, -0.12, -0.64
 };
-
-
-// straight parameters
-constexpr double sa12 = 0.47;
-constexpr double sb12 = -0.042;
-constexpr double sa23 = 0.59;
-constexpr double sb23 = -0.042;
-
-
-inline double Straight(double de, double e, double a, double b) {
-	return sqrt(de*e + a*de*de) + b*e;
-}
-
 
 int main(int argc, char **argv) {
 	if (argc > 2) {
@@ -108,6 +95,10 @@ int main(int argc, char **argv) {
 	// kinetic energy with target energy lost
 	double be_kinetic, he_kinetic, d_kinetic;
 	double c_momentum, c_kinetic;
+	// particle direction
+	double be_dx, be_dy, be_dz;
+	double he_dx, he_dy, he_dz;
+	double d_dx, d_dy, d_dz;
 	// Q value
 	double q;
 	// 10Be state, under different T0D2 energy method
@@ -127,6 +118,15 @@ int main(int argc, char **argv) {
 	opt.Branch("d_kinetic", &d_kinetic, "dk/D");
 	opt.Branch("c_momentum", &c_momentum, "cp/D");
 	opt.Branch("c_kinetic", &c_kinetic, "ck/D");
+	opt.Branch("be_dx", &be_dx, "bedx/D");
+	opt.Branch("be_dy", &be_dy, "bedy/D");
+	opt.Branch("be_dz", &be_dz, "bedz/D");
+	opt.Branch("he_dx", &he_dx, "hedx/D");
+	opt.Branch("he_dy", &he_dy, "hedy/D");
+	opt.Branch("he_dz", &he_dz, "hedz/D");
+	opt.Branch("d_dx", &d_dx, "ddx/D");
+	opt.Branch("d_dy", &d_dy, "ddy/D");
+	opt.Branch("d_dz", &d_dz, "ddz/D");
 	opt.Branch("q", &q, "q/D");
 	opt.Branch("be_state", &be_state, "bes/I");
 	opt.Branch("excited_energy", &excited_energy, "ex/D");
@@ -165,8 +165,6 @@ int main(int argc, char **argv) {
 			target_flag = 0;
 			valid |= 8;
 		}
-		if (c_kinetic < 360.0) valid |= 16;
-
 
 		double &tx = channel.tx;
 		double &ty = channel.ty;
@@ -194,11 +192,11 @@ int main(int argc, char **argv) {
 		d_d = d_d.Unit();
 
 		// sum up
-		double be_kinetic = channel.fragment_kinetic[0];
+		be_kinetic = channel.fragment_kinetic[0];
 		// 4He kinetic energy
-		double he_kinetic = channel.fragment_kinetic[1];
+		he_kinetic = channel.fragment_kinetic[1];
 		// deutron kinetic energy
-		double d_kinetic = channel.recoil_kinetic;
+		d_kinetic = channel.recoil_kinetic;
 
 		// 10Be momentum
 		double be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
@@ -232,17 +230,14 @@ int main(int argc, char **argv) {
 		}
 		// get 10Be state from Q value
 		if (q < -11.0 && q > -13.0) be_state = 0;
-		else if (q < -14.5 && q > -16.0) be_state = 1;
-		else if (q < -17.0 && q > -20.0) be_state = 2;
+		else if (q < -15.0 && q > -16.0) be_state = 1;
+		else if (q < -18.0 && q > -20.0) be_state = 2;
 		// else if (q < -19 && q > -20.5) be_state = 3;
 		else be_state = -1;
-		// get 10Be excited energy form state
-		double be10_excited_energy = be_state >= 0
-			? be_excited_energy[be_state]
-			: 0.0;
 
-		double mass_excited_10be = mass_10be + be10_excited_energy;
- 		be_momentum = MomentumFromKinetic(mass_excited_10be, be_kinetic);
+		double mass_excited_10be = mass_10be
+			+ (be_state >= 0 ? be_excited_energy[be_state] : 0.0);
+ 		be_momentum = MomentumFromKinetic(mass_10be, be_kinetic);
 		p_be = d_be * be_momentum;
 		// excited 14C momentum vector
 		ROOT::Math::XYZVector p_excited_c = p_be + p_he;
@@ -259,6 +254,7 @@ int main(int argc, char **argv) {
 		excited_energy = excited_c_mass - mass_14c;
 
 
+		if (c_kinetic < 360.0) valid |= 16;
 		if (valid == 0 && taf_flag == 1) {
 			// fill Q spectrums
 			hq_taf[channel.taf_index].Fill(
@@ -291,6 +287,17 @@ int main(int argc, char **argv) {
 		// image_q = be_kinetic_target + he_kinetic_target
 		// 	+ image_p_kinetic_target - image_c_kinetic_target;
 		// if (image_q > 1) valid |= 64;
+
+		// fill particle direction
+		be_dx = d_be.X();
+		be_dy = d_be.Y();
+		be_dz = d_be.Z();
+		he_dx = d_he.X();
+		he_dy = d_he.Y();
+		he_dz = d_he.Z();
+		d_dx = d_d.X();
+		d_dy = d_d.Y();
+		d_dz = d_d.Z();
 
 		// fill to tree
 		opt.Fill();

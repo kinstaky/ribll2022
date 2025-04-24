@@ -180,7 +180,7 @@ int FillFromSpectrumV3(
 	ipt->SetBranchAddress("ppac_flag", &event.ppac_flag);
 	ipt->SetBranchAddress("taf_flag", &event.taf_flag);
 	ipt->SetBranchAddress("be_state", &event.be_state);
-	ipt->SetBranchAddress("excited_energy_target", &event.excited_energy);
+	ipt->SetBranchAddress("excited_energy", &event.excited_energy);
 
 	// loop
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -320,7 +320,7 @@ int main() {	// efficiency file name
         "144",
         VoigtInfo {
             new RooRealVar("mean144", "mean", 14.4, 14.3, 14.5),
-            new RooRealVar("gamma144", "gamma", 3e-6, 1e-6, 5e-6),
+            new RooRealVar("gamma144", "gamma", 3e-6, 1e-6, 0.1),
             new RooConstVar("sigma0_144", "sigma", 0.12*resolution_fraction),
             threshold[0],
 			new RooRealVar("num0_144", "num", 9, 8, 10)
@@ -345,7 +345,7 @@ int main() {	// efficiency file name
             new RooRealVar("gamma154", "gamma", 0.095, 0.07, 0.12),
             new RooConstVar("sigma0_154", "sigma", 0.14*resolution_fraction),
             threshold[0],
-			new RooRealVar("num0_154", "num", 83, 50, 85)
+			new RooRealVar("num0_154", "num", 83, 20, 85)
         }
     ));
     // 16.5
@@ -356,7 +356,7 @@ int main() {	// efficiency file name
 			new RooRealVar("gamma165", "gamma", 0.06, 0.05, 0.07),
             new RooConstVar("sigma0_165", "sigma", 0.16*resolution_fraction),
             threshold[0],
-			new RooRealVar("num0_165", "num", 80, 30, 90)
+			new RooRealVar("num0_165", "num", 50, 10, 90)
 		}
 	));
 	// 17.2
