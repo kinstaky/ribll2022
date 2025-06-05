@@ -1096,20 +1096,20 @@ int main() {
 	hist_ex[0].SetLineColor(kBlack);
 	hist_ex[0].Draw("same");
 	std::map<std::string, double> line0_y;
-	line0_y.insert(std::make_pair("144", 5.0));
-	line0_y.insert(std::make_pair("149", 12.0));
-	line0_y.insert(std::make_pair("156", 20.0));
-	line0_y.insert(std::make_pair("165", 12.0));
-	line0_y.insert(std::make_pair("172", 20.0));
-	line0_y.insert(std::make_pair("182", 30.0));
-	line0_y.insert(std::make_pair("192", 15.0));
-	line0_y.insert(std::make_pair("198", 24.0));
-	line0_y.insert(std::make_pair("207", 10.0));
-	line0_y.insert(std::make_pair("216", 11.0));
-	line0_y.insert(std::make_pair("223", 5.0));
-	line0_y.insert(std::make_pair("228", 10.0));
-	line0_y.insert(std::make_pair("235", 6.0));
-	line0_y.insert(std::make_pair("245", 5.0));
+	line0_y.insert(std::make_pair("144", 6.0));
+	line0_y.insert(std::make_pair("149", 16.0));
+	line0_y.insert(std::make_pair("156", 23.0));
+	line0_y.insert(std::make_pair("165", 16.0));
+	line0_y.insert(std::make_pair("172", 24.0));
+	line0_y.insert(std::make_pair("182", 35.0));
+	line0_y.insert(std::make_pair("192", 30.0));
+	line0_y.insert(std::make_pair("198", 32.0));
+	line0_y.insert(std::make_pair("207", 17.0));
+	line0_y.insert(std::make_pair("216", 17.0));
+	line0_y.insert(std::make_pair("223", 8.0));
+	line0_y.insert(std::make_pair("228", 19.0));
+	line0_y.insert(std::make_pair("235", 10.0));
+	line0_y.insert(std::make_pair("245", 8.0));
 	for (const auto &[key, value] : info_map[0]) {
 		// check y
 		auto search = line0_y.find(key);
