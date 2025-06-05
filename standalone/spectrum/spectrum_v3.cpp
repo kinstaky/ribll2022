@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
 		ipt->GetEntry(entry);
 
 		if (channel.hole != 0) continue;
+		if (channel.valid != 0) continue;
 		// get flags
 		valid = 0;
 		if (!channel.t0_valid) valid |= 1;
@@ -231,7 +232,7 @@ int main(int argc, char **argv) {
 		// get 10Be state from Q value
 		if (q < -11.0 && q > -13.0) be_state = 0;
 		else if (q < -15.0 && q > -16.0) be_state = 1;
-		else if (q < -18.0 && q > -20.0) be_state = 2;
+		else if (q < -17.5 && q > -19.5) be_state = 2;
 		// else if (q < -19 && q > -20.5) be_state = 3;
 		else be_state = -1;
 

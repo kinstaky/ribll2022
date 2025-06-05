@@ -255,3 +255,8 @@ target_link_libraries(show_csi_calibrate PRIVATE ROOT::Graf ROOT::Core ROOT::RIO
 add_executable(show_csi_error show_csi_error.cpp)
 target_include_directories(show_csi_error PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
 target_link_libraries(show_csi_error PRIVATE ROOT::Graf ROOT::Core ROOT::RIO ROOT::Tree)
+
+# show event mixing
+add_executable(show_event_mixing show_event_mixing.cpp)
+target_include_directories(show_event_mixing PRIVATE ${PROJECT_SOURCE_DIR} ROOT_INCLUDE_DIR)
+target_link_libraries(show_event_mixing PRIVATE ROOT::Core ROOT::RIO ROOT::Tree ROOT::Hist ROOT::Gpad event)

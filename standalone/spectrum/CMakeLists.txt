@@ -13,6 +13,13 @@ target_link_libraries(
 	ROOT::Hist ROOT::RIO ROOT::Graf
 )
 
+add_executable(spectrum_slice spectrum_slice.cpp)
+target_link_libraries(
+	spectrum_slice PRIVATE
+	channel_v2_event target_energy_calculator csi_energy_calculator
+	ROOT::Hist ROOT::RIO ROOT::Graf ROOT::Gpad
+)
+
 # fit spectrum
 add_executable(fit_spectrum fit_spectrum.cpp)
 target_link_libraries(
@@ -78,3 +85,26 @@ target_link_libraries(image_recoil_q PRIVATE channel_v2_event csi_energy_calcula
 add_executable(dalitz dalitz.cpp)
 target_include_directories(dalitz PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(dalitz PRIVATE ROOT::Hist ROOT::RIO ROOT::Core ROOT::Tree)
+
+# significance level
+add_executable(significance_level significance_level.cpp)
+target_link_libraries(
+	significance_level
+	PRIVATE
+	ROOT::Hist ROOT::RooFit ROOT::Gpad
+	event asymmetric_voigt background_poly
+)
+
+# significance level
+add_executable(significance_level_fixed significance_level_fixed.cpp)
+target_link_libraries(
+	significance_level_fixed
+	PRIVATE
+	ROOT::Hist ROOT::RooFit ROOT::Gpad
+	event asymmetric_voigt background_poly
+)
+
+# angle correlate v2
+add_executable(angle_correlate_v2 angle_correlate_v2.cpp)
+target_include_directories(angle_correlate_v2 PRIVATE ${PROJECT_SOURCE_DIR})
+target_link_libraries(angle_correlate_v2 PRIVATE ROOT::Hist ROOT::Tree ROOT::Core ROOT::RIO)

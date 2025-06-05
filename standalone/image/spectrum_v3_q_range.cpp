@@ -120,7 +120,7 @@ int FillSpectrumV3(
 	ipt->SetBranchAddress("taf_flag", &taf_flag);
 	ipt->SetBranchAddress("be_state", &be_state);
 	ipt->SetBranchAddress("q", &q);
-	ipt->SetBranchAddress("excited_energy_target", &excited_energy);
+	ipt->SetBranchAddress("excited_energy", &excited_energy);
 
 	// loop and fill events
 	for (long long entry = 0; entry < ipt->GetEntriesFast(); ++entry) {
@@ -128,7 +128,7 @@ int FillSpectrumV3(
 		ipt->GetEntry(entry);
 		// ignore bad events
 		if (valid != 0) continue;
-		if (taf_flag == 2) continue;
+		// if (taf_flag == 2) continue;
 
 		for (size_t i = 0; i < 30; ++i) {
 			if (be_state == 0) {
@@ -198,12 +198,12 @@ int main() {
 		);
 	}
 
-	if (FillSpectrumV2(
-		hist_ex0_qs, hist_ex1_qs, hist_ex2_qs
-	)) {
-		std::cerr << "Error: Fill spectrum V2 failed.\n";
-		return -1;
-	}
+	// if (FillSpectrumV2(
+	// 	hist_ex0_qs, hist_ex1_qs, hist_ex2_qs
+	// )) {
+	// 	std::cerr << "Error: Fill spectrum V2 failed.\n";
+	// 	return -1;
+	// }
 
 
 	if (FillSpectrumV3(

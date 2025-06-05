@@ -6,7 +6,7 @@
 #include <TLine.h>
 
 void rotational_band() {
-	const double marker_size = 4;
+	const double marker_size = 6;
 
     // Define x values
     double theory_x_values[] = {0, 2, 4, 6, 8};
@@ -16,7 +16,9 @@ void rotational_band() {
     double theory_pi_values[] = {14.64, 15.73, 17.98, 21.80, 27.25};
     double theory_sigma_values[] = {22.16, 22.93, 24.30, 26.45, 29.39};
     double observe_pi_values[] = {13.9, 14.9, 17.3};
-    double observe_sigma_values[] = {22.3, 23.2, 24.6};
+    // double observe_sigma_values[] = {22.3, 23.2, 24.6};
+	double observe_sigma_values[] = {22.08, 22.78, 24.41};
+    // double observe_sigma_values[] = {22.2, 22.9, 24.4};
 
     // // Create a canvas
     // TCanvas *c1 = new TCanvas("c1", "Rotational Band", 1200, 800);
@@ -28,19 +30,19 @@ void rotational_band() {
     TGraph *g4 = new TGraph(3, observe_x_values, observe_sigma_values);
 
     // Set marker styles, sizes, and colors
-    g1->SetMarkerStyle(20);
+    g1->SetMarkerStyle(89);
     g1->SetMarkerSize(marker_size);
     g1->SetMarkerColor(kGreen);
     g1->SetLineColor(kGreen);
     g1->SetLineStyle(2);
-	g1->SetLineWidth(2);
+	g1->SetLineWidth(4);
 
-    g2->SetMarkerStyle(21);
+    g2->SetMarkerStyle(90);
     g2->SetMarkerSize(marker_size);
     g2->SetMarkerColor(kBlue);
     g2->SetLineColor(kBlue);
     g2->SetLineStyle(2);
-	g2->SetLineWidth(2);
+	g2->SetLineWidth(4);
 
     g3->SetMarkerStyle(43);
     g3->SetMarkerSize(marker_size);
@@ -50,6 +52,7 @@ void rotational_band() {
     g4->SetMarkerSize(marker_size);
     g4->SetMarkerColor(kRed);
 
+	gStyle->SetOptTitle(0);
     // Draw graphs
     g1->Draw("APL");
     g2->Draw("PL SAME");

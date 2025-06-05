@@ -581,8 +581,8 @@ int main() {
 		be_direction = ROOT::Math::XYZVector(
 			t0bex - stx, t0bey - sty, 100.0
 		).Unit();
-		bep = be_direction * MomentumFromKinetic(mass_10be, sbek);
-		// bep = be_direction * MomentumFromKinetic(mass_excited_10be, sbek);
+		// bep = be_direction * MomentumFromKinetic(mass_10be, sbek);
+		bep = be_direction * MomentumFromKinetic(mass_excited_10be, sbek);
 		he_direction = ROOT::Math::XYZVector(
             t0hex - stx, t0hey - sty, 100.0
         ).Unit();
@@ -600,6 +600,7 @@ int main() {
 #endif
 		xcp = bep + hep;
 		double sxc_energy = sbek + mass_excited_10be + shek + mass_4he;
+		// double sxc_energy = sbek + mass_10be + shek + mass_4he;
 		double sxc_mass = sqrt(pow(sxc_energy, 2.0) - xcp.Mag2());
 		sxce = sxc_mass - mass_14c;
 

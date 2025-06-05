@@ -56,6 +56,10 @@ target_link_libraries(taf_detect PRIVATE event range_energy_calculator)
 add_executable(efficiency efficiency.cpp)
 target_link_libraries(efficiency PRIVATE event channel_v2_event ROOT::Core ROOT::Graf)
 
+# efficiency v2
+add_executable(efficiency_v2 efficiency_v2.cpp)
+target_link_libraries(efficiency_v2 PRIVATE event channel_v2_event ROOT::Core ROOT::Graf)
+
 # energy resolution
 add_executable(resolution simulate_resolution.cpp)
 target_link_libraries(resolution PRIVATE event ROOT::Core ROOT::Graf channel_v2_event)

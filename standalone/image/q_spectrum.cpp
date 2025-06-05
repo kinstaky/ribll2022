@@ -1,3 +1,7 @@
+/*
+ * 绘制拟合最终的 Q 值谱
+ */
+
 #include <iostream>
 
 #include <TString.h>
@@ -97,7 +101,7 @@ int FillV3(TH1F &hq, TH1F &hq0, TH1F &hq1, TH1F &hq2) {
 		ipt->GetEntry(entry);
 
 		if (valid != 0) continue;
-		if (taf_flag != 1) continue;
+		// if (taf_flag != 1) continue;
 		hq.Fill(q);
 		hq0.Fill(q);
 		hq1.Fill(q);
@@ -132,8 +136,8 @@ int main() {
 	// Q value spectrum
 	TH1F hq("hq", "Q value", 90, -23, -8);
 	TH1F hq0("hq0", "Q value for state 0", 12, -13.0, -11.0);
-	TH1F hq1("hq1", "Q value for state 1", 9, -16.0, -14.5);
-	TH1F hq2("hq2", "Q value for state 2", 18, -20.0, -17.0);
+	TH1F hq1("hq1", "Q value for state 1", 6, -16.0, -15.0);
+	TH1F hq2("hq2", "Q value for state 2", 12, -19.5, -17.5);
 	// output data
 	QEvent event;
 	// output tree
@@ -142,7 +146,7 @@ int main() {
 	opt.Branch("version", &event.version, "ver/I");
 	opt.Branch("q", &event.q, "q/D");
 
-	if (FillV2(hq, hq0, hq1, hq2)) return -1;
+	// if (FillV2(hq, hq0, hq1, hq2)) return -1;
 	if (FillV3(hq, hq0, hq1, hq2)) return -1;
 
 	// result is -12.5247, -15.5002, -17.9949
@@ -203,7 +207,7 @@ int main() {
 	// 	hq.GetListOfFunctions()->Add(f1);
 	// }
 
-	TCanvas *c1 = new TCanvas("c1", "c1", 1920, 1080);
+	TCanvas *c1 = new TCanvas("c1", "c1", 1520, 855);
 	c1->cd();
 	gStyle->SetOptTitle(false);
 	hq.SetStats(false);

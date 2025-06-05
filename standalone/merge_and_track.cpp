@@ -1478,10 +1478,10 @@ int SliceTrack(
 	const SsdEvent &s2_event,
 	const SsdEvent &s3_event,
 	const std::vector<std::vector<bool>> &d2_hole,
-	const std::vector<DssdMergeEvent> &d1_bind_events1,
-	const std::vector<DssdMergeEvent> &d2_bind_events1,
-	const std::vector<DssdMergeEvent> &d1_bind_events2,
-	const std::vector<DssdMergeEvent> &d2_bind_events2,
+	// const std::vector<DssdMergeEvent> &d1_bind_events1,
+	// const std::vector<DssdMergeEvent> &d2_bind_events1,
+	// const std::vector<DssdMergeEvent> &d1_bind_events2,
+	// const std::vector<DssdMergeEvent> &d2_bind_events2,
 	const T0Cut &t0_cut,
 	const ExtraInfo &info,
 	T0Event &t0_event,
@@ -1573,141 +1573,141 @@ int SliceTrack(
 		}
 	}
 
-	// make T0D2 binding events 1 hole
-	std::vector<std::vector<bool>> d2_bind_hole1;
-	for (size_t i = 0; i < d2_bind_events1.size(); ++i) {
-		std::vector<bool> temp;
-		for (int j = 0; j < d2_bind_events1[i].hit; ++j) {
-			temp.push_back(false);
-		}
-		d2_bind_hole1.push_back(temp);
-	}
-	// loop possible events
-	for (size_t i = 0; i < d1_bind_events1.size(); ++i) {
-		if (found_behe_times > 0) break;
-		for (size_t j = 0; j < d2_bind_events1.size(); ++j) {
-			for (size_t k = 0; k < d3_events.size(); ++k) {
-				// used events
-				const DssdMergeEvent *used_d1_event = &(d1_bind_events1[i]);
-				const DssdMergeEvent *used_d2_event = &(d2_bind_events1[j]);
-				const DssdMergeEvent *used_d3_event = &(d3_events[k]);
+	// // make T0D2 binding events 1 hole
+	// std::vector<std::vector<bool>> d2_bind_hole1;
+	// for (size_t i = 0; i < d2_bind_events1.size(); ++i) {
+	// 	std::vector<bool> temp;
+	// 	for (int j = 0; j < d2_bind_events1[i].hit; ++j) {
+	// 		temp.push_back(false);
+	// 	}
+	// 	d2_bind_hole1.push_back(temp);
+	// }
+	// // loop possible events
+	// for (size_t i = 0; i < d1_bind_events1.size(); ++i) {
+	// 	if (found_behe_times > 0) break;
+	// 	for (size_t j = 0; j < d2_bind_events1.size(); ++j) {
+	// 		for (size_t k = 0; k < d3_events.size(); ++k) {
+	// 			// used events
+	// 			const DssdMergeEvent *used_d1_event = &(d1_bind_events1[i]);
+	// 			const DssdMergeEvent *used_d2_event = &(d2_bind_events1[j]);
+	// 			const DssdMergeEvent *used_d3_event = &(d3_events[k]);
 
-				// slices
-				std::vector<Slice> bind_slices[5];
-				// nodes
-				std::vector<SliceNode> bind_nodes;
-				// picked nodes group
-				std::vector<SliceNode> bind_group;
-				// found 10Be and 4He in group ?
-				bool bind_found_behe;
-				// number of used slices
-				int bind_used_slices;
-				// build slice from DSSD and SSD events
-				BuildSlice(
-					*used_d1_event, *used_d2_event, *used_d3_event,
-					s1_event, s2_event, s3_event,
-					d2_bind_hole1[j],
-					t0_cut,
-					bind_slices
-				);
-				// convert to tree structure
-				BuildSliceTree(bind_slices, bind_nodes);
-				// pick one group
-				PickSliceGroup(
-					bind_nodes, bind_group,
-					bind_found_behe, bind_used_slices
-				);
+	// 			// slices
+	// 			std::vector<Slice> bind_slices[5];
+	// 			// nodes
+	// 			std::vector<SliceNode> bind_nodes;
+	// 			// picked nodes group
+	// 			std::vector<SliceNode> bind_group;
+	// 			// found 10Be and 4He in group ?
+	// 			bool bind_found_behe;
+	// 			// number of used slices
+	// 			int bind_used_slices;
+	// 			// build slice from DSSD and SSD events
+	// 			BuildSlice(
+	// 				*used_d1_event, *used_d2_event, *used_d3_event,
+	// 				s1_event, s2_event, s3_event,
+	// 				d2_bind_hole1[j],
+	// 				t0_cut,
+	// 				bind_slices
+	// 			);
+	// 			// convert to tree structure
+	// 			BuildSliceTree(bind_slices, bind_nodes);
+	// 			// pick one group
+	// 			PickSliceGroup(
+	// 				bind_nodes, bind_group,
+	// 				bind_found_behe, bind_used_slices
+	// 			);
 
-				// this group is selected?
-				bool selected = false;
-				// select it if it's the best group
-				if (found_behe_times == 0 && bind_found_behe) {
-					selected = true;
-				}
-				if (bind_found_behe) ++found_behe_times;
-				// record the selected slices
-				if (selected) {
-					found_particles = bind_group.size();
-					used_slices = bind_used_slices;
-					for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
-					nodes = bind_nodes;
-					group = bind_group;
-					merge_event[0] = d1_bind_events1[i];
-					merge_event[1] = d2_bind_events1[j];
-					merge_event[2] = d3_events[k];
-					selected_d2_hole = &(d2_bind_hole1[j]);
-				}
-			}
-		}
-	}
+	// 			// this group is selected?
+	// 			bool selected = false;
+	// 			// select it if it's the best group
+	// 			if (found_behe_times == 0 && bind_found_behe) {
+	// 				selected = true;
+	// 			}
+	// 			if (bind_found_behe) ++found_behe_times;
+	// 			// record the selected slices
+	// 			if (selected) {
+	// 				found_particles = bind_group.size();
+	// 				used_slices = bind_used_slices;
+	// 				for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
+	// 				nodes = bind_nodes;
+	// 				group = bind_group;
+	// 				merge_event[0] = d1_bind_events1[i];
+	// 				merge_event[1] = d2_bind_events1[j];
+	// 				merge_event[2] = d3_events[k];
+	// 				selected_d2_hole = &(d2_bind_hole1[j]);
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-	// make T0D2 binding events 1 hole
-	std::vector<std::vector<bool>> d2_bind_hole2;
-	for (size_t i = 0; i < d2_bind_events2.size(); ++i) {
-		std::vector<bool> temp;
-		for (int j = 0; j < d2_bind_events2[i].hit; ++j) {
-			temp.push_back(false);
-		}
-		d2_bind_hole2.push_back(temp);
-	}
-	// loop possible events
-	for (size_t i = 0; i < d1_bind_events2.size(); ++i) {
-		if (found_behe_times > 0) break;
-		for (size_t j = 0; j < d2_bind_events2.size(); ++j) {
-			for (size_t k = 0; k < d3_events.size(); ++k) {
-				// used events
-				const DssdMergeEvent *used_d1_event = &(d1_bind_events2[i]);
-				const DssdMergeEvent *used_d2_event = &(d2_bind_events2[j]);
-				const DssdMergeEvent *used_d3_event = &(d3_events[k]);
+	// // make T0D2 binding events 1 hole
+	// std::vector<std::vector<bool>> d2_bind_hole2;
+	// for (size_t i = 0; i < d2_bind_events2.size(); ++i) {
+	// 	std::vector<bool> temp;
+	// 	for (int j = 0; j < d2_bind_events2[i].hit; ++j) {
+	// 		temp.push_back(false);
+	// 	}
+	// 	d2_bind_hole2.push_back(temp);
+	// }
+	// // loop possible events
+	// for (size_t i = 0; i < d1_bind_events2.size(); ++i) {
+	// 	if (found_behe_times > 0) break;
+	// 	for (size_t j = 0; j < d2_bind_events2.size(); ++j) {
+	// 		for (size_t k = 0; k < d3_events.size(); ++k) {
+	// 			// used events
+	// 			const DssdMergeEvent *used_d1_event = &(d1_bind_events2[i]);
+	// 			const DssdMergeEvent *used_d2_event = &(d2_bind_events2[j]);
+	// 			const DssdMergeEvent *used_d3_event = &(d3_events[k]);
 
-				// slices
-				std::vector<Slice> bind_slices[5];
-				// nodes
-				std::vector<SliceNode> bind_nodes;
-				// picked nodes group
-				std::vector<SliceNode> bind_group;
-				// found 10Be and 4He in group ?
-				bool bind_found_behe;
-				// number of used slices
-				int bind_used_slices;
-				// build slice from DSSD and SSD events
-				BuildSlice(
-					*used_d1_event, *used_d2_event, *used_d3_event,
-					s1_event, s2_event, s3_event,
-					d2_bind_hole2[j],
-					t0_cut,
-					bind_slices
-				);
-				// convert to tree structure
-				BuildSliceTree(bind_slices, bind_nodes);
-				// pick one group
-				PickSliceGroup(
-					bind_nodes, bind_group,
-					bind_found_behe, bind_used_slices
-				);
+	// 			// slices
+	// 			std::vector<Slice> bind_slices[5];
+	// 			// nodes
+	// 			std::vector<SliceNode> bind_nodes;
+	// 			// picked nodes group
+	// 			std::vector<SliceNode> bind_group;
+	// 			// found 10Be and 4He in group ?
+	// 			bool bind_found_behe;
+	// 			// number of used slices
+	// 			int bind_used_slices;
+	// 			// build slice from DSSD and SSD events
+	// 			BuildSlice(
+	// 				*used_d1_event, *used_d2_event, *used_d3_event,
+	// 				s1_event, s2_event, s3_event,
+	// 				d2_bind_hole2[j],
+	// 				t0_cut,
+	// 				bind_slices
+	// 			);
+	// 			// convert to tree structure
+	// 			BuildSliceTree(bind_slices, bind_nodes);
+	// 			// pick one group
+	// 			PickSliceGroup(
+	// 				bind_nodes, bind_group,
+	// 				bind_found_behe, bind_used_slices
+	// 			);
 
-				// this group is selected?
-				bool selected = false;
-				// select it if it's the best group
-				if (found_behe_times == 0 && bind_found_behe) {
-					selected = true;
-				}
-				if (bind_found_behe) ++found_behe_times;
-				// record the selected slices
-				if (selected) {
-					found_particles = bind_group.size();
-					used_slices = bind_used_slices;
-					for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
-					nodes = bind_nodes;
-					group = bind_group;
-					merge_event[0] = d1_bind_events2[i];
-					merge_event[1] = d2_bind_events2[j];
-					merge_event[2] = d3_events[k];
-					selected_d2_hole = &(d2_bind_hole2[j]);
-				}
-			}
-		}
-	}
+	// 			// this group is selected?
+	// 			bool selected = false;
+	// 			// select it if it's the best group
+	// 			if (found_behe_times == 0 && bind_found_behe) {
+	// 				selected = true;
+	// 			}
+	// 			if (bind_found_behe) ++found_behe_times;
+	// 			// record the selected slices
+	// 			if (selected) {
+	// 				found_particles = bind_group.size();
+	// 				used_slices = bind_used_slices;
+	// 				for (int l = 0; l < 5; ++l) slices[l] = bind_slices[l];
+	// 				nodes = bind_nodes;
+	// 				group = bind_group;
+	// 				merge_event[0] = d1_bind_events2[i];
+	// 				merge_event[1] = d2_bind_events2[j];
+	// 				merge_event[2] = d3_events[k];
+	// 				selected_d2_hole = &(d2_bind_hole2[j]);
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	if (print_debug) {
 		std::cout << "---------- Slice Track ----------\n";
@@ -2335,77 +2335,77 @@ int main(int argc, char **argv) {
 		// 	std::chrono::high_resolution_clock::now();
 		// d3_merge_time += d3_merge_time_point - d2_merge_time_point;
 
-		std::vector<DssdMergeEvent> d1_bind_merge1;
-		std::vector<DssdMergeEvent> d1_bind_merge2;
-		std::vector<DssdMergeEvent> d2_bind_merge1;
-		std::vector<DssdMergeEvent> d2_bind_merge2;
-		GetBindEvents(
-			d1, d2, d1_range, d2_range, &hole_info,
-			d1_bind_merge1, d1_bind_merge2,
-			d2_bind_merge1, d2_bind_merge2
-		);
-		if (print_debug) {
-			std::cout << "---------- D1 bind events 1 ----------\n"
-				<< "Possible cases " << d1_bind_merge1.size() << "\n";
-			for (size_t i = 0; i < d1_bind_merge1.size(); ++i) {
-				std::cout << "Case " << i
-					<< ", hit " << d1_bind_merge1[i].hit << "\n"
-					<< "index, flag, tag, x, y, energy\n";
-				for (int j = 0; j < d1_bind_merge1[i].hit; ++j) {
-					std::cout << std::dec << j << ", "
-						<< std::hex << d1_bind_merge1[i].flag[j] << ", "
-						<< std::dec << d1_bind_merge1[i].merge_tag[j] << ", "
-						<< d1_bind_merge1[i].x[j] << ", "
-						<< d1_bind_merge1[i].y[j] << ", "
-						<< d1_bind_merge1[i].energy[j] << "\n";
-				}
-			}
-			std::cout << "---------- D1 bind events 2 ----------\n"
-				<< "Possible cases " << d1_bind_merge2.size() << "\n";
-			for (size_t i = 0; i < d1_bind_merge2.size(); ++i) {
-				std::cout << "Case " << i
-					<< ", hit " << d1_bind_merge2[i].hit << "\n"
-					<< "index, flag, tag, x, y, energy\n";
-				for (int j = 0; j < d1_bind_merge2[i].hit; ++j) {
-					std::cout << std::dec << j << ", "
-						<< std::hex << d1_bind_merge2[i].flag[j] << ", "
-						<< std::dec << d1_bind_merge2[i].merge_tag[j] << ", "
-						<< d1_bind_merge2[i].x[j] << ", "
-						<< d1_bind_merge2[i].y[j] << ", "
-						<< d1_bind_merge2[i].energy[j] << "\n";
-				}
-			}
-			std::cout << "---------- D2 bind events 1 ----------\n"
-				<< "Possible cases " << d2_bind_merge1.size() << "\n";
-			for (size_t i = 0; i < d2_bind_merge1.size(); ++i) {
-				std::cout << "Case " << i
-					<< ", hit " << d2_bind_merge1[i].hit << "\n"
-					<< "index, flag, tag, x, y, energy\n";
-				for (int j = 0; j < d2_bind_merge1[i].hit; ++j) {
-					std::cout << std::dec << j << ", "
-						<< std::hex << d2_bind_merge1[i].flag[j] << ", "
-						<< std::dec << d2_bind_merge1[i].merge_tag[j] << ", "
-						<< d2_bind_merge1[i].x[j] << ", "
-						<< d2_bind_merge1[i].y[j] << ", "
-						<< d2_bind_merge1[i].energy[j] << "\n";
-				}
-			}
-			std::cout << "---------- D2 bind events 2 ----------\n"
-				<< "Possible cases " << d2_bind_merge2.size() << "\n";
-			for (size_t i = 0; i < d2_bind_merge2.size(); ++i) {
-				std::cout << "Case " << i
-					<< ", hit " << d2_bind_merge2[i].hit << "\n"
-					<< "index, flag, tag, x, y, energy\n";
-				for (int j = 0; j < d2_bind_merge2[i].hit; ++j) {
-					std::cout << std::dec << j << ", "
-						<< std::hex << d2_bind_merge2[i].flag[j] << ", "
-						<< std::dec << d2_bind_merge2[i].merge_tag[j] << ", "
-						<< d2_bind_merge2[i].x[j] << ", "
-						<< d2_bind_merge2[i].y[j] << ", "
-						<< d2_bind_merge2[i].energy[j] << "\n";
-				}
-			}
-		}
+		// std::vector<DssdMergeEvent> d1_bind_merge1;
+		// std::vector<DssdMergeEvent> d1_bind_merge2;
+		// std::vector<DssdMergeEvent> d2_bind_merge1;
+		// std::vector<DssdMergeEvent> d2_bind_merge2;
+		// GetBindEvents(
+		// 	d1, d2, d1_range, d2_range, &hole_info,
+		// 	d1_bind_merge1, d1_bind_merge2,
+		// 	d2_bind_merge1, d2_bind_merge2
+		// );
+		// if (print_debug) {
+		// 	std::cout << "---------- D1 bind events 1 ----------\n"
+		// 		<< "Possible cases " << d1_bind_merge1.size() << "\n";
+		// 	for (size_t i = 0; i < d1_bind_merge1.size(); ++i) {
+		// 		std::cout << "Case " << i
+		// 			<< ", hit " << d1_bind_merge1[i].hit << "\n"
+		// 			<< "index, flag, tag, x, y, energy\n";
+		// 		for (int j = 0; j < d1_bind_merge1[i].hit; ++j) {
+		// 			std::cout << std::dec << j << ", "
+		// 				<< std::hex << d1_bind_merge1[i].flag[j] << ", "
+		// 				<< std::dec << d1_bind_merge1[i].merge_tag[j] << ", "
+		// 				<< d1_bind_merge1[i].x[j] << ", "
+		// 				<< d1_bind_merge1[i].y[j] << ", "
+		// 				<< d1_bind_merge1[i].energy[j] << "\n";
+		// 		}
+		// 	}
+		// 	std::cout << "---------- D1 bind events 2 ----------\n"
+		// 		<< "Possible cases " << d1_bind_merge2.size() << "\n";
+		// 	for (size_t i = 0; i < d1_bind_merge2.size(); ++i) {
+		// 		std::cout << "Case " << i
+		// 			<< ", hit " << d1_bind_merge2[i].hit << "\n"
+		// 			<< "index, flag, tag, x, y, energy\n";
+		// 		for (int j = 0; j < d1_bind_merge2[i].hit; ++j) {
+		// 			std::cout << std::dec << j << ", "
+		// 				<< std::hex << d1_bind_merge2[i].flag[j] << ", "
+		// 				<< std::dec << d1_bind_merge2[i].merge_tag[j] << ", "
+		// 				<< d1_bind_merge2[i].x[j] << ", "
+		// 				<< d1_bind_merge2[i].y[j] << ", "
+		// 				<< d1_bind_merge2[i].energy[j] << "\n";
+		// 		}
+		// 	}
+		// 	std::cout << "---------- D2 bind events 1 ----------\n"
+		// 		<< "Possible cases " << d2_bind_merge1.size() << "\n";
+		// 	for (size_t i = 0; i < d2_bind_merge1.size(); ++i) {
+		// 		std::cout << "Case " << i
+		// 			<< ", hit " << d2_bind_merge1[i].hit << "\n"
+		// 			<< "index, flag, tag, x, y, energy\n";
+		// 		for (int j = 0; j < d2_bind_merge1[i].hit; ++j) {
+		// 			std::cout << std::dec << j << ", "
+		// 				<< std::hex << d2_bind_merge1[i].flag[j] << ", "
+		// 				<< std::dec << d2_bind_merge1[i].merge_tag[j] << ", "
+		// 				<< d2_bind_merge1[i].x[j] << ", "
+		// 				<< d2_bind_merge1[i].y[j] << ", "
+		// 				<< d2_bind_merge1[i].energy[j] << "\n";
+		// 		}
+		// 	}
+		// 	std::cout << "---------- D2 bind events 2 ----------\n"
+		// 		<< "Possible cases " << d2_bind_merge2.size() << "\n";
+		// 	for (size_t i = 0; i < d2_bind_merge2.size(); ++i) {
+		// 		std::cout << "Case " << i
+		// 			<< ", hit " << d2_bind_merge2[i].hit << "\n"
+		// 			<< "index, flag, tag, x, y, energy\n";
+		// 		for (int j = 0; j < d2_bind_merge2[i].hit; ++j) {
+		// 			std::cout << std::dec << j << ", "
+		// 				<< std::hex << d2_bind_merge2[i].flag[j] << ", "
+		// 				<< std::dec << d2_bind_merge2[i].merge_tag[j] << ", "
+		// 				<< d2_bind_merge2[i].x[j] << ", "
+		// 				<< d2_bind_merge2[i].y[j] << ", "
+		// 				<< d2_bind_merge2[i].energy[j] << "\n";
+		// 		}
+		// 	}
+		// }
 
 		// for (auto &m : d1_merge) {
 		// 	for (int i = 0; i < m.hit; ++i) {
@@ -2436,8 +2436,8 @@ int main(int argc, char **argv) {
 			d1_merge, d2_merge, d3_merge,
 			s1, s2, s3,
 			d2_hole,
-			d1_bind_merge1, d2_bind_merge1,
-			d1_bind_merge2, d2_bind_merge2,
+			// d1_bind_merge1, d2_bind_merge1,
+			// d1_bind_merge2, d2_bind_merge2,
 			t0_cut, extract_info,
 			t0, merge_event, found_behe_times
 		)) {

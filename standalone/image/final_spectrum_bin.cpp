@@ -119,7 +119,7 @@ int FillV3(
 		ipt->GetEntry(entry);
 
 		if (valid != 0) continue;
-		if (taf_flag != 1) continue;
+		// if (taf_flag != 1) continue;
 		if (be_state == 0) {
 			for (size_t i = 0; i < hex0.size(); ++i) {
 				hex0[i].Fill(excited_energy);
@@ -164,7 +164,7 @@ int main() {
 		}
 	}
 
-	if (FillV2(hist_ex[0], hist_ex[1], hist_ex[2])) return -1;
+	// if (FillV2(hist_ex[0], hist_ex[1], hist_ex[2])) return -1;
 	if (FillV3(hist_ex[0], hist_ex[1], hist_ex[2])) return -1;
 
 	TCanvas *c1 = new TCanvas("c1", "c1", 1920, 1080);
